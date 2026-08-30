@@ -904,6 +904,7 @@ const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
   catalogPanel = new CatalogPanel({
     catalog: sharedCatalog,
     onPlace: (item, x, y, angleDeg) => {
+      model.getStore().beginCompoundEdit()
       const placed = model.addFurniture({
         name: item.name,
         catalogId: item.catalogId,
@@ -920,6 +921,7 @@ const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
         levelRef: activeLevelId,
       })
       model.setSelection([placed.id])
+      model.getStore().endCompoundEdit()
       refreshToolbar()
       refreshStatus()
       return placed.id
