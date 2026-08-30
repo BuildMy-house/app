@@ -8,7 +8,6 @@ export interface Preferences {
   unit: 'cm' | 'inch'
   wallHeightCm: number
   wallThicknessCm: number
-  language: string
   groundColor: string
 }
 
@@ -16,7 +15,6 @@ const DEFAULTS: Preferences = {
   unit: 'cm',
   wallHeightCm: DEFAULT_WALL_HEIGHT_CM,
   wallThicknessCm: NEW_WALL_THICKNESS_CM,
-  language: 'en',
   groundColor: '#a8a8a8',
 }
 
@@ -79,15 +77,6 @@ export class PreferencesDialog {
           <input id="prefs-wall-thickness" type="number" min="1" max="100" step="0.5" value="${prefs.wallThicknessCm}" />
         </div>
         <div class="prefs-row">
-          <label for="prefs-language">Language</label>
-          <select id="prefs-language">
-            <option value="en"${prefs.language === 'en' ? ' selected' : ''}>English</option>
-            <option value="fr"${prefs.language === 'fr' ? ' selected' : ''}>Français</option>
-            <option value="de"${prefs.language === 'de' ? ' selected' : ''}>Deutsch</option>
-            <option value="es"${prefs.language === 'es' ? ' selected' : ''}>Español</option>
-          </select>
-        </div>
-        <div class="prefs-row">
           <label for="prefs-ground-color">Ground color</label>
           <input id="prefs-ground-color" type="color" value="${prefs.groundColor}" />
         </div>
@@ -129,10 +118,9 @@ export class PreferencesDialog {
     const unit = (this.overlay.querySelector<HTMLSelectElement>('#prefs-unit')?.value ?? 'cm') as 'cm' | 'inch'
     const wallHeightCm = Number(this.overlay.querySelector<HTMLInputElement>('#prefs-wall-height')?.value) || DEFAULT_WALL_HEIGHT_CM
     const wallThicknessCm = Number(this.overlay.querySelector<HTMLInputElement>('#prefs-wall-thickness')?.value) || NEW_WALL_THICKNESS_CM
-    const language = this.overlay.querySelector<HTMLSelectElement>('#prefs-language')?.value ?? 'en'
     const groundColor = this.overlay.querySelector<HTMLInputElement>('#prefs-ground-color')?.value ?? '#a8a8a8'
 
-    const prefs: Preferences = { unit, wallHeightCm, wallThicknessCm, language, groundColor }
+    const prefs: Preferences = { unit, wallHeightCm, wallThicknessCm, groundColor }
     savePreferences(prefs)
     this.close()
     this.onClose(prefs)

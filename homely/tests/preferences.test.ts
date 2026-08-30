@@ -61,7 +61,7 @@ describe('preference persistence (localStorage)', () => {
     expect(prefs.wallHeightCm).toBe(DEFAULT_WALL_HEIGHT_CM)
     expect(prefs.wallThicknessCm).toBe(NEW_WALL_THICKNESS_CM)
     expect(prefs.unit).toBe('cm')
-    expect(prefs.language).toBe('en')
+    expect(prefs.groundColor).toBe('#a8a8a8')
   })
 
   it('round-trips save → load', () => {
@@ -69,7 +69,6 @@ describe('preference persistence (localStorage)', () => {
       unit: 'inch',
       wallHeightCm: 300,
       wallThicknessCm: 10,
-      language: 'fr',
       groundColor: '#ff0000',
     }
     savePreferences(custom)
