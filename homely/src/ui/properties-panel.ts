@@ -1,6 +1,7 @@
 import type { HomeStore } from '../core/store'
 import { HomeModel } from '../core/model'
 import type { Wall, Room, Furniture, NormalizedHomeState } from '../core/home'
+import { WALL_TEXTURES } from '../core/home'
 import { normalizeAngle } from '../core/export'
 import { observeStore } from '../view3d/watch'
 
@@ -260,6 +261,44 @@ export class PropertiesPanel {
     const rightColor = colorInput(wall.rightSideColor)
     rightColor.addEventListener('input', () => commit({ rightSideColor: parseColor(rightColor.value) }))
     body.appendChild(fieldRow('Right', rightColor))
+
+    // Left texture
+    const leftTexture = document.createElement('select')
+    leftTexture.className = 'prop-input'
+    const ltNone = document.createElement('option')
+    ltNone.value = ''
+    ltNone.textContent = '— none —'
+    leftTexture.appendChild(ltNone)
+    for (const t of WALL_TEXTURES) {
+      const opt = document.createElement('option')
+      opt.value = t.id
+      opt.textContent = t.label
+      if (wall.leftSideTextureId === t.id) opt.selected = true
+      leftTexture.appendChild(opt)
+    }
+    leftTexture.addEventListener('change', () =>
+      commit({ leftSideTextureId: leftTexture.value || null }),
+    )
+    body.appendChild(fieldRow('L Texture', leftTexture))
+
+    // Right texture
+    const rightTexture = document.createElement('select')
+    rightTexture.className = 'prop-input'
+    const rtNone = document.createElement('option')
+    rtNone.value = ''
+    rtNone.textContent = '— none —'
+    rightTexture.appendChild(rtNone)
+    for (const t of WALL_TEXTURES) {
+      const opt = document.createElement('option')
+      opt.value = t.id
+      opt.textContent = t.label
+      if (wall.rightSideTextureId === t.id) opt.selected = true
+      rightTexture.appendChild(opt)
+    }
+    rightTexture.addEventListener('change', () =>
+      commit({ rightSideTextureId: rightTexture.value || null }),
+    )
+    body.appendChild(fieldRow('R Texture', rightTexture))
 
     // Level
     const levelText = document.createElement('span')

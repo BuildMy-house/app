@@ -37,6 +37,17 @@ export interface Level {
   viewable: boolean
 }
 
+export const WALL_TEXTURES: { id: string; label: string; file: string }[] = [
+  { id: 'carpet', label: 'Carpet', file: 'carpet.png' },
+  { id: 'concrete', label: 'Concrete', file: 'concrete.png' },
+  { id: 'plaster-white', label: 'Plaster White', file: 'plaster-white.png' },
+  { id: 'tile-floor', label: 'Tile Floor', file: 'tile-floor.png' },
+  { id: 'wood-oak', label: 'Wood Oak', file: 'wood-oak.png' },
+  { id: 'wood-pine', label: 'Wood Pine', file: 'wood-pine.png' },
+]
+
+export type WallTextureId = (typeof WALL_TEXTURES)[number]['id']
+
 export interface Wall {
   id: string
   xStart: number
@@ -51,6 +62,8 @@ export interface Wall {
   levelRef?: string | null
   leftSideColor?: number | null
   rightSideColor?: number | null
+  leftSideTextureId?: string | null
+  rightSideTextureId?: string | null
   patternId?: string | null
 }
 

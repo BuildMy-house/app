@@ -10,7 +10,7 @@ import type {
   Room,
   Wall,
 } from './home'
-import { DEFAULT_WALL_HEIGHT_CM } from './home'
+import { DEFAULT_WALL_HEIGHT_CM, WALL_TEXTURES } from './home'
 import type { HomeStore } from './store'
 import { normalizeAngle } from './export'
 
@@ -59,6 +59,15 @@ function validatePatch(key: CollectionKey, patch: Record<string, unknown>): void
       }
       if (patch.height !== undefined) requireMinimum(patch.height, 'height', 1)
       if (patch.thickness !== undefined) requireMinimum(patch.thickness, 'thickness', 0.1)
+      const validTextureIds = new Set(WALL_TEXTURES.map((t) => t.id))
+      for (const field of ['leftSideTextureId', 'rightSideTextureId']) {
+        if (patch[field] !== undefined && patch[field] !== null) {
+          assert(
+            typeof patch[field] === 'string' && validTextureIds.has(patch[field]),
+            `${field} must be a known texture id or null`,
+          )
+        }
+      }
       break
     }
     case 'rooms': {
@@ -185,6 +194,15 @@ export class HomeModel {
     requireMinimum(input.thickness, 'thickness', 0.1)
     if (input.height !== undefined && input.height !== null) {
       requireMinimum(input.height, 'height', 1)
+    }
+    const validTextureIds = new Set(WALL_TEXTURES.map((t) => t.id))
+    for (const field of ['leftSideTextureId', 'rightSideTextureId'] as const) {
+      if (input[field] !== undefined && input[field] !== null) {
+        assert(
+          typeof input[field] === 'string' && validTextureIds.has(input[field]),
+          `${field} must be a known texture id or null`,
+        )
+      }
     }
     let created!: Wall
     this.store.apply((h) => {
