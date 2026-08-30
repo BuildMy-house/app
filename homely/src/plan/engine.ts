@@ -21,6 +21,7 @@ export type HitResult =
   | { kind: 'wall-body'; id: string }
   | { kind: 'furniture'; id: string }
   | { kind: 'room'; id: string }
+  | { kind: 'room-vertex'; roomId: string; vertexIndex: number }
   | { kind: 'label'; id: string }
   | { kind: 'dimension'; id: string }
 
@@ -86,6 +87,7 @@ export class PlanEngine {
   /** Start point of a dimension-line-tool drawing session. */
   private dimensionStart: Point | null = null
   private vertexDrag: { wallId: string; endpoint: 'start' | 'end'; startX: number; startY: number; connectedWalls: Array<{ wallId: string; endpoint: 'start' | 'end' }> } | null = null
+  private roomVertexDrag: { roomId: string; vertexIndex: number; startX: number; startY: number } | null = null
   private activeLevelId: string | null = null
   private wallHeightCm = DEFAULT_WALL_HEIGHT_CM
   private wallThicknessCm = NEW_WALL_THICKNESS_CM
@@ -232,6 +234,30 @@ export class PlanEngine {
         this.vertexDrag = null
         return
       }
+      if (hit.kind === 'room-vertex') {
+        if (!this.roomVertexDrag) {
+          const room = home.rooms.find((r) => r.id === hit.roomId)
+          if (!room || hit.vertexIndex < 0 || hit.vertexIndex >= room.points.length) return
+          const [startX, startY] = room.points[hit.vertexIndex]!
+          this.roomVertexDrag = { roomId: hit.roomId, vertexIndex: hit.vertexIndex, startX, startY }
+          if (!home.selection.includes(hit.roomId)) {
+            this.model.setSelection([hit.roomId])
+          }
+        }
+        const state = this.roomVertexDrag!
+        const newX = state.startX + (to.x - from.x)
+        const newY = state.startY + (to.y - from.y)
+        const room = home.rooms.find((r) => r.id === state.roomId)
+        if (!room) return
+        const points = room.points.map((point, i) =>
+          i === state.vertexIndex
+            ? ([newX, newY] as [number, number])
+            : point,
+        )
+        this.model.updateRoom(state.roomId, { points })
+        this.roomVertexDrag = null
+        return
+      }
       if (!home.selection.includes(hit.id)) {
         this.model.setSelection([hit.id])
       }
@@ -309,7 +335,12 @@ export class PlanEngine {
         if (!shift) this.model.setSelection([])
         return
       }
-      const hitId = hit.kind === 'wall-endpoint' ? hit.wallId : hit.id
+      const hitId =
+        hit.kind === 'wall-endpoint'
+          ? hit.wallId
+          : hit.kind === 'room-vertex'
+            ? hit.roomId
+            : hit.id
       const selection = home.selection
       if (shift) {
         this.model.setSelection(
@@ -627,6 +658,12 @@ export class PlanEngine {
     // 4. Rooms
     for (const room of home.rooms) {
       if (!this.matchesActiveLevel(room.levelRef)) continue
+      for (let i = 0; i < room.points.length; i++) {
+        const [px, py] = room.points[i]!
+        if (distance(point, { x: px, y: py }) <= ENDPOINT_HIT_RADIUS) {
+          return { kind: 'room-vertex', roomId: room.id, vertexIndex: i }
+        }
+      }
       if (this.pointInPolygon(point, room.points)) return { kind: 'room', id: room.id }
     }
     // 5. Labels

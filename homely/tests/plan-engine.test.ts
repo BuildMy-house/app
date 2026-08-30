@@ -388,6 +388,57 @@ describe('wall vertex interaction', () => {
   })
 })
 
+describe('room vertex interaction', () => {
+  function makeRoom() {
+    const s = setup()
+    s.engine.setTool('room')
+    s.engine.setMagnetism(false)
+    s.click(0, 0)
+    s.click(200, 0)
+    s.click(200, 150)
+    s.click(0, 150)
+    s.click(50, 75, { dbl: true })
+    s.engine.setTool('selection')
+    return s
+  }
+
+  it('hitTest near a room vertex returns the room-vertex HitResult', () => {
+    const { engine, store } = makeRoom()
+    const room = store.getHome().rooms[0]!
+    const hit = engine.hitTestPoint({ x: room.points[1]![0] + 3, y: room.points[1]![1] + 3 })
+    expect(hit).not.toBeNull()
+    expect(hit!.kind).toBe('room-vertex')
+    expect((hit as Extract<HitResult, { kind: 'room-vertex' }>).roomId).toBe(room.id)
+    expect((hit as Extract<HitResult, { kind: 'room-vertex' }>).vertexIndex).toBe(1)
+  })
+
+  it('drag on a room vertex moves only that one point, leaving others unchanged', () => {
+    const { drag, store } = makeRoom()
+    const room = store.getHome().rooms[0]!
+    drag(room.points[1]![0], room.points[1]![1], room.points[1]![0] + 40, room.points[1]![1] + 25)
+    const updated = store.getHome().rooms[0]!
+    expect(updated.points[1]).toEqual([240, 25])
+    expect(updated.points[0]).toEqual([0, 0])
+    expect(updated.points[2]).toEqual([200, 150])
+    expect(updated.points[3]).toEqual([0, 150])
+  })
+
+  it('the whole room-vertex drag is ONE undo step', () => {
+    const { drag, store } = makeRoom()
+    const room = store.getHome().rooms[0]!
+    const original = room.points
+    drag(
+      room.points[2]![0],
+      room.points[2]![1],
+      room.points[2]![0] + 30,
+      room.points[2]![1] - 10,
+    )
+    expect(store.getHome().rooms[0]!.points[2]).toEqual([230, 140])
+    expect(store.undo()).toBe(true)
+    expect(store.getHome().rooms[0]!.points).toEqual(original)
+  })
+})
+
 describe('room tool state machine', () => {
   it('clicks a 4-vertex polygon and double-click closes it into a Room', () => {
     const { engine, click, store } = setup()
