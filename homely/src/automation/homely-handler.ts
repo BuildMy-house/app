@@ -1,6 +1,6 @@
 import type { HomeStore } from '../core/store'
 import { serializeHome } from '../core/export'
-import { HomeModel, ModelError, assert, DEFAULT_LEVEL_HEIGHT_CM, NEW_WALL_PATTERN_ID } from '../core/model'
+import { HomeModel, ModelError, assert, DEFAULT_LEVEL_HEIGHT_CM } from '../core/model'
 import type {
   NormalizedHomeState,
   Wall,
@@ -10,21 +10,15 @@ import type {
   Label,
   Level,
 } from '../core/home'
-import { DEFAULT_WALL_HEIGHT_CM } from '../core/home'
 import { isNormalizedHome, saveProject, loadProject } from '../core/project-store'
 import type { CameraPatch } from '../view3d/cameras'
 import { CameraDirector } from '../view3d/cameras'
 import { PlanEngine, type ClickInput, type DragInput, type PlanKey, type PlanTool } from '../plan/engine'
+import { ClipboardManager, type CollectionName } from '../plan/clipboard'
 import { CaptureService, type CaptureBackend } from './capture'
 import type { CommandHandler, CommandResult } from './client'
 import { FurnitureCatalog } from '../core/catalog'
 import { resolvePlacement, toWireItem } from '../core/catalog-service'
-
-type CollectionName = 'levels' | 'walls' | 'rooms' | 'furniture' | 'dimensionLines' | 'labels'
-interface ClipboardEntry {
-  collection: CollectionName
-  item: Record<string, unknown>
-}
 
 const COMMANDS = [
   'ping',
@@ -86,8 +80,8 @@ export class HomelyCommandHandler implements CommandHandler {
   private readonly plan: PlanEngine
   private readonly capture: CaptureService
   private readonly catalog: FurnitureCatalog | null
+  private readonly clipboardManager: ClipboardManager
   private activeView: 'plan' | '3d' = '3d'
-  private clipboard: ClipboardEntry[] = []
 
   constructor(
     store: HomeStore,
@@ -96,17 +90,17 @@ export class HomelyCommandHandler implements CommandHandler {
       captureBackend?: CaptureBackend
       /** Injectable catalog; omit for inline-only add_furniture (back-compat). */
       catalog?: FurnitureCatalog | null
+      clipboardManager?: ClipboardManager
     },
   ) {
     this.store = store
     const model = new HomeModel(store)
     this.model = model
     this.cameras = new CameraDirector(store, model)
-    // The GUI passes its engine so UI input and automation share one tool
-    // state machine; headless use lazily creates a private one.
     this.plan = options?.planEngine ?? new PlanEngine(model)
     this.capture = new CaptureService(store, this.cameras, options?.captureBackend)
     this.catalog = options?.catalog ?? null
+    this.clipboardManager = options?.clipboardManager ?? new ClipboardManager(store, model)
   }
 
   execute(type: string, params: Record<string, unknown>): CommandResult {
@@ -319,22 +313,18 @@ export class HomelyCommandHandler implements CommandHandler {
         return { ok: true, data: { removed: selection.length } }
       }
       case 'copy': {
-        const clip = this.copySelection()
-        if (clip.length === 0) throw new ModelError('copy requires a non-empty selection')
-        this.clipboard = clip
-        return { ok: true, data: { count: clip.length } }
+        const count = this.clipboardManager.copy()
+        if (count === 0) throw new ModelError('copy requires a non-empty selection')
+        return { ok: true, data: { count } }
       }
       case 'paste': {
-        if (this.clipboard.length === 0) throw new ModelError('clipboard is empty; copy something first')
-        const ids = this.clipboard.map((entry) => this.pasteItem(entry, 20, 20))
-        this.model.setSelection(ids)
+        const ids = this.clipboardManager.paste()
+        if (ids.length === 0) throw new ModelError('clipboard is empty; copy something first')
         return { ok: true, data: { ids } }
       }
       case 'duplicate': {
-        const clip = this.copySelection()
-        if (clip.length === 0) throw new ModelError('duplicate requires a non-empty selection')
-        const ids = clip.map((entry) => this.pasteItem(entry, 20, 20))
-        this.model.setSelection(ids)
+        const ids = this.clipboardManager.duplicate()
+        if (ids.length === 0) throw new ModelError('duplicate requires a non-empty selection')
         return { ok: true, data: { ids } }
       }
       case 'modify_selected': {
@@ -554,21 +544,6 @@ export class HomelyCommandHandler implements CommandHandler {
     }
   }
 
-  private copySelection(): ClipboardEntry[] {
-    const home = this.store.getHome()
-    const selected = new Set(home.selection)
-    const clip: ClipboardEntry[] = []
-    const collections: CollectionName[] = ['levels', 'walls', 'rooms', 'furniture', 'dimensionLines', 'labels']
-    for (const collection of collections) {
-      for (const item of home[collection]) {
-        if (selected.has(item.id)) {
-          clip.push({ collection, item: structuredClone(item) as unknown as Record<string, unknown> })
-        }
-      }
-    }
-    return clip
-  }
-
   private collectionOf(home: NormalizedHomeState, id: string): CollectionName | null {
     for (const collection of ['levels', 'walls', 'rooms', 'furniture', 'dimensionLines', 'labels'] as CollectionName[]) {
       if (home[collection].some((item) => item.id === id)) return collection
@@ -599,62 +574,4 @@ export class HomelyCommandHandler implements CommandHandler {
     }
   }
 
-  /** Recreates a clipboard item as a NEW object, offset by (dx, dy) in cm. */
-  private pasteItem(entry: ClipboardEntry, dx: number, dy: number): string {
-    const item = entry.item
-    switch (entry.collection) {
-      case 'walls': {
-        const w = item as unknown as Wall
-        const created = this.model.addWall({
-          xStart: w.xStart + dx,
-          yStart: w.yStart + dy,
-          xEnd: w.xEnd + dx,
-          yEnd: w.yEnd + dy,
-          thickness: w.thickness,
-          height: w.height ?? DEFAULT_WALL_HEIGHT_CM,
-          patternId: w.patternId ?? NEW_WALL_PATTERN_ID,
-        })
-        return created.id
-      }
-      case 'rooms': {
-        const r = item as unknown as Room
-        const points = r.points.map(([x, y]) => [x + dx, y + dy] as [number, number])
-        const { id: _id, points: _points, ...rest } = r
-        const created = this.model.addRoom(points, rest as Partial<Omit<Room, 'id' | 'points'>>)
-        return created.id
-      }
-      case 'furniture': {
-        const f = item as unknown as Furniture
-        const { id: _fId, ...frest } = f
-        const created = this.model.addFurniture({ ...(frest as Omit<Furniture, 'id'>), x: f.x + dx, y: f.y + dy })
-        return created.id
-      }
-      case 'dimensionLines': {
-        const d = item as unknown as DimensionLine
-        const created = this.model.addDimensionLine({
-          xStart: d.xStart + dx,
-          yStart: d.yStart + dy,
-          xEnd: d.xEnd + dx,
-          yEnd: d.yEnd + dy,
-          offset: d.offset,
-          elevationStart: d.elevationStart,
-          elevationEnd: d.elevationEnd,
-          levelRef: d.levelRef ?? null,
-        })
-        return created.id
-      }
-      case 'labels': {
-        const l = item as unknown as Label
-        const { id: _lId, ...lrest } = l
-        const created = this.model.addLabel({ ...(lrest as Omit<Label, 'id'>), x: l.x + dx, y: l.y + dy })
-        return created.id
-      }
-      case 'levels': {
-        const lv = item as unknown as Level
-        const { id: _lvId, ...lvrest } = lv
-        const created = this.model.addLevel(lvrest as Omit<Level, 'id'>)
-        return created.id
-      }
-    }
-  }
 }

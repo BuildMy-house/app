@@ -13,6 +13,7 @@ import { ViewMapper, drawPlan, fitToBounds, type PlanRenderingContext, type View
 import { saveHomeFile, loadHomeFile } from './services/adapters/home-persistence'
 import { exportPlanPng } from './services/adapters/plan-export'
 import { PreferencesDialog, loadPreferences, hexToIntColor } from './ui/preferences'
+import { ClipboardManager } from './plan/clipboard'
 
 import { View3D, type CameraPresetName } from './view3d'
 import { PropertiesPanel } from './ui/properties-panel'
@@ -60,6 +61,7 @@ const ctx = canvas.getContext('2d')
 const store = new HomeStore()
 const model = new HomeModel(store)
 const engine = new PlanEngine(model)
+const clipboardManager = new ClipboardManager(store, model)
 
 // Apply stored preferences (wall defaults, ground color).
 const bootPrefs = loadPreferences()
@@ -218,6 +220,10 @@ function refreshMenus(): void {
         { label: '---' },
         { label: 'Delete', action: () => { engine.key('delete'); refreshAll() } },
         { label: 'Select All', action: () => selectAll() },
+        { label: '---' },
+        { label: 'Copy', shortcut: 'Ctrl+C', action: () => { if (clipboardManager.copy() > 0) refreshAll() } },
+        { label: 'Paste', shortcut: 'Ctrl+V', action: () => { if (clipboardManager.paste().length > 0) refreshAll() } },
+        { label: 'Duplicate', shortcut: 'Ctrl+D', action: () => { if (clipboardManager.duplicate().length > 0) refreshAll() } },
         { label: '---' },
         { label: 'Preferences…', action: () => openPreferences() },
       ],
@@ -712,6 +718,26 @@ window.addEventListener('keydown', (event) => {
     return
   }
 
+  // Clipboard shortcuts — skip Ctrl+C/V when focused in a text input so
+  // native browser copy/paste takes precedence.
+  const isInput = event.target instanceof HTMLElement &&
+    (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable)
+  if ((event.ctrlKey || event.metaKey) && event.key === 'c' && !isInput) {
+    event.preventDefault()
+    if (clipboardManager.copy() > 0) refreshAll()
+    return
+  }
+  if ((event.ctrlKey || event.metaKey) && event.key === 'v' && !isInput) {
+    event.preventDefault()
+    if (clipboardManager.paste().length > 0) refreshAll()
+    return
+  }
+  if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
+    event.preventDefault()
+    if (clipboardManager.duplicate().length > 0) refreshAll()
+    return
+  }
+
   if (event.key === ' ' && !event.repeat) {
     event.preventDefault()
     spaceHeld = true
@@ -996,7 +1022,7 @@ async function connectAutomation(): Promise<void> {
     } catch {
       // catalog load failed; proceed without catalog support
     }
-    new AutomationClient(new HomelyCommandHandler(store, { planEngine: engine, catalog: sharedCatalog }), {
+    new AutomationClient(new HomelyCommandHandler(store, { planEngine: engine, catalog: sharedCatalog, clipboardManager }), {
       port,
       mode: 'gui',
       onStatus: (status: ClientStatus) => {
