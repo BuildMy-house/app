@@ -2,6 +2,7 @@ import type { HomeModel } from '../core/model'
 import { ModelError, NEW_WALL_PATTERN_ID, NEW_WALL_THICKNESS_CM } from '../core/model'
 import { DEFAULT_WALL_HEIGHT_CM } from '../core/home'
 import type { NormalizedHomeState } from '../core/home'
+import { normalizeAngle } from '../core/export'
 import { wallPointMagnetism } from './magnetism'
 import {
   distance,
@@ -15,10 +16,24 @@ export const WALL_ENDS_PIXEL_MARGIN = 2 * PLAN_SCALE
 const EPSILON = 1e-6
 const ENDPOINT_HIT_RADIUS = 10
 const CONNECTED_WALL_EPSILON = 0.1
+const ROTATION_HANDLE_OFFSET = 20
+
+/** Model-space position of the rotation handle for a furniture item. */
+export function furnitureRotationHandlePos(f: { x: number; y: number; depth: number; angleDeg: number }): Point {
+  const angleRad = (f.angleDeg * Math.PI) / 180
+  const cos = Math.cos(angleRad)
+  const sin = Math.sin(angleRad)
+  const hd = f.depth / 2
+  return {
+    x: f.x + (hd + ROTATION_HANDLE_OFFSET) * sin,
+    y: f.y - (hd + ROTATION_HANDLE_OFFSET) * cos,
+  }
+}
 
 export type HitResult =
   | { kind: 'wall-endpoint'; wallId: string; endpoint: 'start' | 'end' }
   | { kind: 'wall-body'; id: string }
+  | { kind: 'furniture-rotate'; id: string }
   | { kind: 'furniture'; id: string }
   | { kind: 'room'; id: string }
   | { kind: 'room-vertex'; roomId: string; vertexIndex: number }
@@ -88,6 +103,7 @@ export class PlanEngine {
   private dimensionStart: Point | null = null
   private vertexDrag: { wallId: string; endpoint: 'start' | 'end'; startX: number; startY: number; connectedWalls: Array<{ wallId: string; endpoint: 'start' | 'end' }> } | null = null
   private roomVertexDrag: { roomId: string; vertexIndex: number; startX: number; startY: number } | null = null
+  private furnitureRotateDrag: { id: string } | null = null
   private activeLevelId: string | null = null
   private wallHeightCm = DEFAULT_WALL_HEIGHT_CM
   private wallThicknessCm = NEW_WALL_THICKNESS_CM
@@ -256,6 +272,21 @@ export class PlanEngine {
         )
         this.model.updateRoom(state.roomId, { points })
         this.roomVertexDrag = null
+        return
+      }
+      if (hit.kind === 'furniture-rotate') {
+        if (!this.furnitureRotateDrag) {
+          this.furnitureRotateDrag = { id: hit.id }
+          if (!home.selection.includes(hit.id)) {
+            this.model.setSelection([hit.id])
+          }
+        }
+        const f = home.furniture.find((f) => f.id === hit.id)
+        if (!f) return
+        const angleRad = Math.atan2(to.x - f.x, -(to.y - f.y))
+        const angleDeg = (angleRad * 180) / Math.PI
+        this.model.updateFurniture(hit.id, { angleDeg: normalizeAngle(angleDeg) })
+        this.furnitureRotateDrag = null
         return
       }
       if (!home.selection.includes(hit.id)) {
@@ -642,7 +673,18 @@ export class PlanEngine {
         return { kind: 'wall-body', id: wall.id }
       }
     }
-    // 3. Furniture
+    // 3. Furniture rotation handle (single-selected)
+    if (home.selection.length === 1) {
+      const selectedId = home.selection[0]!
+      const sf = home.furniture.find((f) => f.id === selectedId && this.matchesActiveLevel(f.levelRef))
+      if (sf) {
+        const hp = furnitureRotationHandlePos(sf)
+        if (distance(point, hp) <= ENDPOINT_HIT_RADIUS) {
+          return { kind: 'furniture-rotate', id: sf.id }
+        }
+      }
+    }
+    // 4. Furniture body
     for (let i = home.furniture.length - 1; i >= 0; i--) {
       const f = home.furniture[i]!
       if (!this.matchesActiveLevel(f.levelRef)) continue
@@ -655,7 +697,7 @@ export class PlanEngine {
         return { kind: 'furniture', id: f.id }
       }
     }
-    // 4. Rooms
+    // 5. Rooms
     for (const room of home.rooms) {
       if (!this.matchesActiveLevel(room.levelRef)) continue
       for (let i = 0; i < room.points.length; i++) {
@@ -666,14 +708,14 @@ export class PlanEngine {
       }
       if (this.pointInPolygon(point, room.points)) return { kind: 'room', id: room.id }
     }
-    // 5. Labels
+    // 6. Labels
     for (const label of home.labels) {
       if (!this.matchesActiveLevel(label.levelRef)) continue
       if (Math.abs(point.x - label.x) <= 20 && Math.abs(point.y - label.y) <= 10) {
         return { kind: 'label', id: label.id }
       }
     }
-    // 6. Dimension lines
+    // 7. Dimension lines
     for (const dim of home.dimensionLines) {
       if (!this.matchesActiveLevel(dim.levelRef)) continue
       const dist = distToSegment(

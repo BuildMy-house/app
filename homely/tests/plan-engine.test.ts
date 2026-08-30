@@ -3,6 +3,7 @@ import { HomeModel, NEW_WALL_THICKNESS_CM } from '../src/core/model'
 import { HomeStore } from '../src/core/store'
 import {
   PlanEngine,
+  furnitureRotationHandlePos,
   type ClickInput,
   type DragInput,
   type HitResult,
@@ -656,5 +657,63 @@ describe('label tool state machine', () => {
     click(0, 0)
     click(100, 100)
     expect(store.getHome().labels).toHaveLength(2)
+  })
+})
+
+describe('furniture rotation handle', () => {
+  function makeFurniture() {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const engine = new PlanEngine(model)
+    engine.setTool('selection')
+    const f = model.addFurniture({
+      name: 'Sofa',
+      x: 100,
+      y: 200,
+      width: 120,
+      depth: 80,
+      height: 80,
+      elevation: 0,
+      angleDeg: 0,
+    })
+    model.setSelection([f.id])
+    const click = (x: number, y: number, rest: Omit<ClickInput, 'x' | 'y'> = {}) =>
+      engine.click({ x, y, ...rest })
+    const drag = (fromX: number, fromY: number, toX: number, toY: number, rest: Partial<DragInput> = {}) =>
+      engine.drag({ fromX, fromY, toX, toY, ...rest })
+    return { store, model, engine, click, drag, furniture: f }
+  }
+
+  it('hitTest near the handle returns furniture-rotate', () => {
+    const { engine, furniture } = makeFurniture()
+    const hp = furnitureRotationHandlePos(furniture)
+    const hit = engine.hitTestPoint(hp)
+    expect(hit).not.toBeNull()
+    expect(hit!.kind).toBe('furniture-rotate')
+    expect((hit as Extract<HitResult, { kind: 'furniture-rotate' }>).id).toBe(furniture.id)
+  })
+
+  it('dragging the handle east of center sets angleDeg to 90', () => {
+    const { drag, store, furniture } = makeFurniture()
+    const hp = furnitureRotationHandlePos(furniture)
+    drag(hp.x, hp.y, furniture.x + 100, furniture.y)
+    expect(store.getHome().furniture[0]!.angleDeg).toBe(90)
+  })
+
+  it('dragging the handle south of center sets angleDeg to 0', () => {
+    const { drag, store, furniture } = makeFurniture()
+    const hp = furnitureRotationHandlePos(furniture)
+    drag(hp.x, hp.y, furniture.x, furniture.y - 100)
+    expect(store.getHome().furniture[0]!.angleDeg).toBe(0)
+  })
+
+  it('the whole rotation drag is ONE undo step', () => {
+    const { drag, store, furniture } = makeFurniture()
+    const originalAngle = store.getHome().furniture[0]!.angleDeg
+    const hp = furnitureRotationHandlePos(furniture)
+    drag(hp.x, hp.y, furniture.x + 100, furniture.y)
+    expect(store.getHome().furniture[0]!.angleDeg).toBe(90)
+    expect(store.undo()).toBe(true)
+    expect(store.getHome().furniture[0]!.angleDeg).toBe(originalAngle)
   })
 })

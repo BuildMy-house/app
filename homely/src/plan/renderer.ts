@@ -39,6 +39,8 @@ const DIMENSION_COLOR = '#8a6d1a'
 const LABEL_COLOR = '#333333'
 const PREVIEW_COLOR = '#999999'
 const FURNITURE_FILL = 'rgba(160, 160, 90, 0.5)'
+const ROTATION_HANDLE_OFFSET = 20
+const ROTATION_HANDLE_RADIUS = 5
 
 const MINOR_GRID_COLOR = '#e8e8e8'
 const MAJOR_GRID_COLOR = '#d0d0d0'
@@ -392,6 +394,29 @@ export function drawPlan(
         )
       }
     }
+  }
+
+  // Rotation handle for single-selected furniture.
+  const selectedFurniture = home.furniture.filter(
+    (f) => selected.has(f.id) && matchesLevel(f.levelRef, activeLevelId),
+  )
+  if (selectedFurniture.length === 1) {
+    const f = selectedFurniture[0]!
+    const angleRad = (f.angleDeg * Math.PI) / 180
+    const cos = Math.cos(angleRad)
+    const sin = Math.sin(angleRad)
+    const hd = f.depth / 2
+    const hx = f.x + (hd + ROTATION_HANDLE_OFFSET) * sin
+    const hy = f.y - (hd + ROTATION_HANDLE_OFFSET) * cos
+    const px = mapper.sx(hx)
+    const py = mapper.sy(hy)
+    ctx.beginPath()
+    ctx.arc(px, py, ROTATION_HANDLE_RADIUS, 0, Math.PI * 2)
+    ctx.fillStyle = SELECTION_COLOR
+    ctx.fill()
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 2
+    ctx.stroke()
   }
 
   // Dimension lines.
