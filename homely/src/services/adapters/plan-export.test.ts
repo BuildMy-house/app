@@ -3,7 +3,12 @@ import { describe, expect, it } from 'vitest'
 import type { CaptureBackend } from '../../automation/capture'
 import { HomeModel } from '../../core/model'
 import { HomeStore } from '../../core/store'
-import { PLAN_EXPORT_HEIGHT, PLAN_EXPORT_WIDTH, renderPlanPng } from './plan-export'
+import {
+  PLAN_EXPORT_HEIGHT,
+  PLAN_EXPORT_WIDTH,
+  render3dPng,
+  renderPlanPng,
+} from './plan-export'
 
 // ── minimal PNG encoder (node stdlib only) ──────────────────────────────────
 
@@ -74,6 +79,23 @@ function fakeBackend(png: Uint8Array) {
   return { backend, calls }
 }
 
+function fake3dBackend(png: Uint8Array) {
+  const calls: Array<{ scene: unknown; camera: unknown; width: number; height: number }> = []
+  const backend: CaptureBackend = {
+    renderPlan: () => {
+      throw new Error('unexpected renderPlan call')
+    },
+    render3d(scene, camera, width, height) {
+      calls.push({ scene, camera, width, height })
+      return Buffer.from(png).toString('base64')
+    },
+  }
+  return { backend, calls }
+}
+
+const FAKE_SCENE = {} as import('three').Scene
+const FAKE_CAMERA = {} as import('three').PerspectiveCamera
+
 const PNG_SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
 
 // ── tests ───────────────────────────────────────────────────────────────────
@@ -106,5 +128,34 @@ describe('M9: plan PNG export', () => {
 
   it('fails fast outside a DOM environment (no silent empty export)', () => {
     expect(() => renderPlanPng(sampleHome())).toThrow(/requires a DOM/)
+  })
+})
+
+describe('M48: 3D PNG export', () => {
+  it('produces a valid, non-trivial PNG from a live scene', () => {
+    const png = makePng(64, 64)
+    const { backend, calls } = fake3dBackend(png)
+    const bytes = render3dPng(FAKE_SCENE, FAKE_CAMERA, { backend })
+
+    expect(Array.from(bytes.slice(0, 8))).toEqual(PNG_SIG)
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+    expect(view.getUint32(16)).toBe(64)
+    expect(view.getUint32(20)).toBe(64)
+    expect(bytes.byteLength).toBeGreaterThan(500)
+    expect(Array.from(bytes)).toEqual(Array.from(png))
+    expect(calls).toEqual([
+      { scene: FAKE_SCENE, camera: FAKE_CAMERA, width: PLAN_EXPORT_WIDTH, height: PLAN_EXPORT_HEIGHT },
+    ])
+  })
+
+  it('passes custom dimensions through to the rasterizer', () => {
+    const { backend, calls } = fake3dBackend(makePng(2, 2))
+    render3dPng(FAKE_SCENE, FAKE_CAMERA, { backend, width: 800, height: 600 })
+    expect(calls[0]?.width).toBe(800)
+    expect(calls[0]?.height).toBe(600)
+  })
+
+  it('fails fast outside a DOM environment', () => {
+    expect(() => render3dPng(FAKE_SCENE, FAKE_CAMERA)).toThrow(/requires a DOM/)
   })
 })
