@@ -247,7 +247,7 @@ function fitModelToBox(model: THREE.Object3D, item: Furniture): THREE.Object3D {
  * caller can trigger a re-render — without it the swapped-in model would sit
  * un-drawn until the next camera move / store change.
  */
-function swapInModel(mesh: THREE.Mesh, item: Furniture, onReady?: () => void): void {
+function swapInModel(mesh: THREE.Mesh, item: Furniture, isSelected: boolean, onReady?: () => void): void {
   if (!item.modelPath) return
   const url = activeModelUrlResolver(item.modelPath)
 
@@ -261,6 +261,7 @@ function swapInModel(mesh: THREE.Mesh, item: Furniture, onReady?: () => void): v
     mesh.geometry.dispose()
     mesh.geometry = new THREE.BoxGeometry(0, 0, 0)
     mesh.add(model)
+    if (isSelected) tintEmissive(model)
   }
 
   const cached = getCachedModel(url)
@@ -289,7 +290,7 @@ function swapInModel(mesh: THREE.Mesh, item: Furniture, onReady?: () => void): v
   }
 }
 
-function furnitureMesh(item: Furniture, elevation: number, onReady?: () => void): THREE.Mesh {
+function furnitureMesh(item: Furniture, elevation: number, onReady?: () => void, isSelected = false): THREE.Mesh {
   const geometry = new THREE.BoxGeometry(item.width, item.height, item.depth)
   const material = new THREE.MeshStandardMaterial({
     color: item.color ?? DEFAULT_FURNITURE_COLOR,
@@ -302,25 +303,35 @@ function furnitureMesh(item: Furniture, elevation: number, onReady?: () => void)
   mesh.rotation.y = THREE.MathUtils.degToRad(item.angleDeg)
   mesh.castShadow = true
   mesh.receiveShadow = true
-  swapInModel(mesh, item, onReady)
+  swapInModel(mesh, item, isSelected, onReady)
   return mesh
 }
 
-function applySelectionHighlight(scene: THREE.Scene, selectionSet: Set<string>): void {
-  for (const name of selectionSet) {
-    scene.traverse((object) => {
-      if (object.name === name && 'material' in object) {
-        const mesh = object as THREE.Mesh
-        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-        for (const m of mats) {
-          if ('emissive' in m) {
-            ;(m as THREE.MeshStandardMaterial).emissive.set(0x1a66d6)
-            ;(m as THREE.MeshStandardMaterial).emissiveIntensity = 0.3
-          }
+const SELECTION_EMISSIVE_COLOR = 0x1a66d6
+const SELECTION_EMISSIVE_INTENSITY = 0.3
+
+function tintEmissive(object: THREE.Object3D): void {
+  object.traverse((child) => {
+    if ('material' in child) {
+      const mesh = child as THREE.Mesh
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+      for (const m of mats) {
+        if ('emissive' in m) {
+          ;(m as THREE.MeshStandardMaterial).emissive.set(SELECTION_EMISSIVE_COLOR)
+          ;(m as THREE.MeshStandardMaterial).emissiveIntensity = SELECTION_EMISSIVE_INTENSITY
         }
       }
-    })
-  }
+    }
+  })
+}
+
+function applySelectionHighlight(scene: THREE.Scene, selectionSet: Set<string>): void {
+  scene.traverse((object) => {
+    const colonIdx = object.name.indexOf(':')
+    if (colonIdx >= 0 && selectionSet.has(object.name.slice(colonIdx + 1))) {
+      tintEmissive(object)
+    }
+  })
 }
 
 /** Full scene rebuild from a normalized home snapshot. Deterministic. */
@@ -387,15 +398,16 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
     if (room.floorVisible === false || room.points.length < 3) continue
     root.add(roomMesh(room, elevationFor(room.levelRef, elevations)))
   }
+  const selectionSet = new Set(home.selection)
   for (const item of home.furniture) {
     if (item.visible === false) continue
-    root.add(furnitureMesh(item, elevationFor(item.levelRef, elevations), onModelReady))
+    root.add(furnitureMesh(item, elevationFor(item.levelRef, elevations), onModelReady, selectionSet.has(item.id)))
   }
   scene.add(root)
 
-  // Selection highlight
-  if (home.selection.length > 0) {
-    applySelectionHighlight(scene, new Set(home.selection))
+  // Selection highlight (walls, rooms — furniture handled at creation time)
+  if (selectionSet.size > 0) {
+    applySelectionHighlight(scene, selectionSet)
   }
 
   scene.fog = new THREE.FogExp2(home.environment.skyColor ?? 0xcce4fc, 0.00005)
