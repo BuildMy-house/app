@@ -801,6 +801,9 @@ function frame(): void {
 function doFit(): void {
   userHasZoomed = false
   currentView = fitToBounds(store.getHome(), canvas.width, canvas.height, 40, activeLevelId)
+  if (view3d) {
+    view3d.setActivePreset(view3d.director.getActivePreset())
+  }
   refreshStatus()
 }
 
