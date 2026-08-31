@@ -17,6 +17,7 @@
     "e2e": "playwright test",
     "e2e:open": "playwright open",
     "smoke": "tsx scripts/smoke-automation.ts",
+    "export:scene": "tsx scripts/export-scene.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "tauri": "tauri"
