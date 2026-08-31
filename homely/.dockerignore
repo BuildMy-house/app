@@ -1,0 +1,11 @@
+node_modules
+server/node_modules
+dist
+server/dist
+e2e
+tests
+test-results
+playwright-report
+graphify-out
+src-tauri/target
+.git

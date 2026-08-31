@@ -1,12 +1,17 @@
 import express from 'express';
 import type { Database } from 'better-sqlite3';
+import path from 'node:path';
 import { assetsRouter } from './assets.js';
 import { loginHandler, registerHandler } from './auth.js';
 import { homesRouter } from './homes.js';
 import { initDb } from './db.js';
 import { AssetStorage } from './storage.js';
 
-export function createApp(db: Database, assetRoot = 'data/assets'): express.Express {
+export function createApp(
+  db: Database,
+  assetRoot = 'data/assets',
+  staticDir?: string,
+): express.Express {
   initDb(db);
   const app = express();
   // Base64 inflates bodies ~4/3 (up to two near-50MB blobs on upload), so the
@@ -17,5 +22,14 @@ export function createApp(db: Database, assetRoot = 'data/assets'): express.Expr
   app.post('/api/auth/login', loginHandler(db));
   app.use('/api/assets', assetsRouter(db, new AssetStorage(assetRoot)));
   app.use('/api/homes', homesRouter(db));
+
+  if (staticDir) {
+    app.use(express.static(staticDir));
+    // SPA fallback: any GET that didn't match an API route serves index.html.
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(staticDir, 'index.html'));
+    });
+  }
+
   return app;
 }
