@@ -77,7 +77,7 @@ def renderable_to_bridge(scene: dict, home: dict | None = None) -> dict:
     materials = {}
     for mat in scene.get("materials", []):
         kd = _rs_rgb(mat.get("color", 0xFFFFFF))
-        materials[mat["id"]] = {"type": "matte", "kd": kd}
+        materials[mat["id"]] = _material_to_bridge(mat, kd)
 
     objects = []
     for obj in scene.get("objects", []):
@@ -105,6 +105,32 @@ def renderable_to_bridge(scene: dict, home: dict | None = None) -> dict:
 
 def _rs_rgb(color: int) -> list[float]:
     return [(color >> 16 & 0xFF) / 255, (color >> 8 & 0xFF) / 255, (color & 0xFF) / 255]
+
+
+# Shininess (MaterialDef.shininess, 0-1) -> LuxCore material mapping.
+#   shininess <= _GLOSSY2_THRESHOLD  -> `matte` (pure diffuse)
+#   higher                           -> `glossy2` with roughness = 1 - shininess
+# glossy2 property keys verified against LuxCore 2.11 shipped examples
+# (pyluxcoretest/scenes/luxball/luxball-glossy2.scn): `type`, `kd`, `ks`,
+# `uroughness`, `vroughness`, optional `index` (IOR, default 1.5).
+_GLOSSY2_THRESHOLD = 0.01
+_MIN_ROUGHNESS = 0.02
+_DEFAULT_KS = [0.5, 0.5, 0.5]
+
+
+def _material_to_bridge(mat: dict, kd: list[float]) -> dict:
+    """Map a RenderableScene MaterialDef to a bridge material dict.
+
+    `shininess` 0-1 (0 = matte, 1 = mirror-like) selects matte vs glossy2.
+    `ks` defaults to a neutral specular since MaterialDef carries no specular
+    colour; `index` is left unset so LuxCore's IOR default (1.5) applies.
+    """
+    shininess = float(mat.get("shininess", 0.0))
+    if shininess <= _GLOSSY2_THRESHOLD:
+        return {"type": "matte", "kd": kd}
+    roughness = round(max(1.0 - shininess, _MIN_ROUGHNESS), 4)
+    return {"type": "glossy2", "kd": kd, "ks": list(_DEFAULT_KS),
+            "uroughness": roughness, "vroughness": roughness}
 
 
 def _box_to_bridge(name: str, prim: dict) -> dict:
@@ -181,6 +207,29 @@ def _light_to_bridge(light: dict) -> dict:
             "direction": [direction[0], direction[2], direction[1]], "gain": gain}
 
 
+def _material_props(prefix: str, mat: dict) -> str:
+    """Render a bridge material dict as fully-prefixed LuxCore property lines.
+
+    Emits `type` + `kd`, then any optional glossy2 fields (`ks`, `uroughness`,
+    `vroughness`, `index`) that are present. Scalar values (roughness/index)
+    are emitted as-is; list values (kd/ks) are space-joined.
+    """
+    def fmt(value: Any) -> str:
+        if isinstance(value, (list, tuple)):
+            return " ".join(map(str, value))
+        return str(value)
+
+    lines = [
+        f"{prefix}type = {mat.get('type', 'matte')}",
+        f"{prefix}kd = {fmt(mat.get('kd', [0.5, 0.5, 0.5]))}",
+    ]
+    for key in ("ks", "uroughness", "vroughness", "index"):
+        value = mat.get(key)
+        if value is not None:
+            lines.append(f"{prefix}{key} = {fmt(value)}")
+    return "\n".join(lines)
+
+
 def build_scene(scene_data: dict, luxcore_module: Any | None = None) -> Any:
     if luxcore_module is None:
         import pyluxcore as luxcore_module
@@ -188,7 +237,7 @@ def build_scene(scene_data: dict, luxcore_module: Any | None = None) -> Any:
     props = luxcore_module.Properties()
     for name, mat in scene_data.get("materials", {}).items():
         prefix = f"scene.materials.{name}."
-        props.SetFromString(f"{prefix}type = {mat.get('type', 'matte')}\n{prefix}kd = {' '.join(map(str, mat.get('kd', [0.5, 0.5, 0.5])))}")
+        props.SetFromString(_material_props(prefix, mat))
     for obj in scene_data.get("objects", []):
         obj_type = obj.get("type", "mesh")
         if obj_type == "asset":
