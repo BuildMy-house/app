@@ -76,4 +76,56 @@ test.describe('plan (canvas) viewport', () => {
     await page.locator('#btn-fit').click()
     await expect(page.locator('#status-zoom')).toHaveText('zoom: 100%')
   })
+
+  test('dragging a wall midpoint handle bulges it into a curved wall (M53a)', async ({ page }) => {
+    const canvas = page.locator('#plan-canvas')
+    const box = await canvas.boundingBox()
+    expect(box).not.toBeNull()
+
+    // Draw a horizontal wall left → right at mid-height.
+    const y = box!.y + box!.height * 0.5
+    const x0 = box!.x + box!.width * 0.3
+    const x1 = box!.x + box!.width * 0.7
+    await page.locator('button[data-tool="wall"]').click()
+    await page.mouse.click(x0, y)
+    await page.mouse.click(x1, y)
+    await page.keyboard.press('Escape')
+
+    // Select the wall (click its midpoint).
+    await page.locator('button[data-tool="selection"]').click()
+    const midX = box!.x + box!.width * 0.5
+    await page.mouse.click(midX, y)
+
+    const arcBefore = await page.evaluate(() => {
+      const w = (window as any).__model.getStore().getHome().walls[0]
+      return w ? w.arcExtent : null
+    })
+    expect(arcBefore == null || arcBefore === 0).toBe(true)
+
+    // Drag the midpoint handle perpendicular to the wall.
+    await page.mouse.move(midX, y)
+    await page.mouse.down()
+    await page.mouse.move(midX, y - 70, { steps: 10 })
+    await page.mouse.up()
+
+    const arcExtent = await page.evaluate(() => {
+      const w = (window as any).__model.getStore().getHome().walls[0]
+      return w ? w.arcExtent : null
+    })
+    expect(typeof arcExtent).toBe('number')
+    expect(Math.abs(arcExtent!)).toBeGreaterThan(0.1)
+
+    // One undo step reverts the drag back to a straight wall.
+    await page.keyboard.press('Control+z')
+    const arcAfterUndo = await page.evaluate(() => {
+      const w = (window as any).__model.getStore().getHome().walls[0]
+      return w ? w.arcExtent : null
+    })
+    expect(arcAfterUndo == null || arcAfterUndo === 0).toBe(true)
+
+    // Redo the bulge and capture a screenshot of the curved wall.
+    await page.keyboard.press('Control+y')
+    await page.waitForTimeout(200)
+    await canvas.screenshot({ path: 'test-results/m53a-curved-wall.png' })
+  })
 })

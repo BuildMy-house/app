@@ -79,6 +79,69 @@ function unjoinedCorners(wall: Wall): [Pt, Pt, Pt, Pt] {
   ]
 }
 
+/** Effective arc extent: 0 for absent/null/0/NaN, so straight walls pass through. */
+function arcExtentOf(wall: Wall): number {
+  const a = wall.arcExtent
+  return typeof a === 'number' && Number.isFinite(a) ? a : 0
+}
+
+/** A wall renders as an arc only when it has a nonzero extent and a real chord. */
+function isArcWall(wall: Wall): boolean {
+  const dx = wall.xEnd - wall.xStart
+  const dy = wall.yEnd - wall.yStart
+  return Math.abs(arcExtentOf(wall)) > 0 && dx * dx + dy * dy > 1e-10
+}
+
+/**
+ * Center of the arc circle through both endpoints (SH3D Wall.getArcCircleCenter).
+ * The angle to the center is computed from the included angle `arcExtent` and
+ * the chord midpoint; the sign of arcExtent picks the bulge side.
+ */
+function arcCircleCenter(wall: Wall, arcExtent: number): Pt {
+  const d = Math.hypot(wall.xEnd - wall.xStart, wall.yEnd - wall.yStart)
+  const alpha =
+    Math.abs(arcExtent) > Math.PI ? -(Math.PI + arcExtent) / 2 : (Math.PI - arcExtent) / 2
+  const dist = -Math.tan(alpha) * (d / 2)
+  const xMid = (wall.xStart + wall.xEnd) / 2
+  const yMid = (wall.yStart + wall.yEnd) / 2
+  const angle = Math.atan2(wall.xStart - wall.xEnd, wall.yEnd - wall.yStart)
+  return [xMid + dist * Math.cos(angle), yMid + dist * Math.sin(angle)]
+}
+
+/**
+ * Concentric-arc outline for a round wall (SH3D getUnjoinedShapePoints arc
+ * branch): exterior and interior arcs offset ±thickness/2 from the centerline
+ * arc, returned as one closed ring [exterior end→start, interior start→end]
+ * (roles swap for negative arcExtent).
+ */
+function arcWallOutlinePoints(wall: Wall): Pt[] {
+  const arcExtent = arcExtentOf(wall)
+  const center = arcCircleCenter(wall, arcExtent)
+  const startAngle =
+    Math.atan2(center[1] - wall.yStart, center[0] - wall.xStart) +
+    2 * Math.atan2(wall.yStart - wall.yEnd, wall.xEnd - wall.xStart)
+  const radius = Math.hypot(center[0] - wall.xStart, center[1] - wall.yStart)
+  const exteriorRadius = radius + wall.thickness / 2
+  const interiorRadius = Math.max(0, radius - wall.thickness / 2)
+  const exteriorArcLength = exteriorRadius * Math.abs(arcExtent)
+  let angleDelta = arcExtent / Math.sqrt(exteriorArcLength)
+  let angleStepCount = Math.floor(arcExtent / angleDelta)
+  if (Math.abs(arcExtent - angleStepCount * angleDelta) > 1e-6) {
+    angleStepCount++
+    angleDelta = arcExtent / angleStepCount
+  }
+  const exterior: Pt[] = []
+  const interior: Pt[] = []
+  for (let i = 0; i <= angleStepCount; i++) {
+    const angle = startAngle + arcExtent - i * angleDelta
+    const cos = Math.cos(angle)
+    const sin = Math.sin(angle)
+    exterior.push([center[0] + exteriorRadius * cos, center[1] - exteriorRadius * sin])
+    interior.push([center[0] + interiorRadius * cos, center[1] - interiorRadius * sin])
+  }
+  return angleDelta > 0 ? [...exterior, ...interior.reverse()] : [...interior, ...exterior.reverse()]
+}
+
 function samePoint(a: Pt, b: Pt): boolean {
   return Math.abs(a[0] - b[0]) < JOIN_EPSILON && Math.abs(a[1] - b[1]) < JOIN_EPSILON
 }
@@ -173,9 +236,11 @@ function miterEnd(
 /**
  * Thick-polygon corner points with mitered joins where walls share an exact
  * endpoint (geometric equivalent of SH3D wallAtStart/wallAtEnd outlines).
- * Arc walls behave as straight segments — homely cannot create arcs yet.
+ * Round walls (nonzero arcExtent) return their concentric-arc outline with no
+ * mitering — curved-to-straight joins are a later milestone (M53c).
  */
 export function wallOutlinePoints(wall: Wall, allWalls: Wall[]): Pt[] {
+  if (isArcWall(wall)) return arcWallOutlinePoints(wall)
   const pts = unjoinedCorners(wall)
   for (const atStart of [true, false]) {
     const join = findJoin(allWalls, wall, atStart)

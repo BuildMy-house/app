@@ -4,6 +4,7 @@ import { HomeStore } from '../src/core/store'
 import {
   PlanEngine,
   furnitureRotationHandlePos,
+  wallArcHandlePos,
   type ClickInput,
   type DragInput,
   type HitResult,
@@ -815,6 +816,60 @@ describe('furniture rotation handle', () => {
     expect(store.getHome().furniture[0]!.angleDeg).toBe(90)
     expect(store.undo()).toBe(true)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(originalAngle)
+  })
+})
+
+describe('wall round-wall (arc) handle', () => {
+  function makeWall() {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const engine = new PlanEngine(model)
+    engine.setTool('selection')
+    const wall = model.addWall({
+      xStart: 0,
+      yStart: 0,
+      xEnd: 100,
+      yEnd: 0,
+      thickness: NEW_WALL_THICKNESS_CM,
+    })
+    model.setSelection([wall.id])
+    const click = (x: number, y: number, rest: Omit<ClickInput, 'x' | 'y'> = {}) =>
+      engine.click({ x, y, ...rest })
+    const drag = (fromX: number, fromY: number, toX: number, toY: number, rest: Partial<DragInput> = {}) =>
+      engine.drag({ fromX, fromY, toX, toY, ...rest })
+    return { store, model, engine, click, drag, wall }
+  }
+
+  it('hitTest near the midpoint of a selected wall returns wall-arc', () => {
+    const { engine, store } = makeWall()
+    const wall = store.getHome().walls[0]!
+    expect(wall.arcExtent).toBeUndefined()
+    const hp = wallArcHandlePos(wall)
+    expect(hp.x).toBeCloseTo(50, 6)
+    expect(hp.y).toBeCloseTo(0, 6)
+    const hit = engine.hitTestPoint(hp)
+    expect(hit).not.toBeNull()
+    expect(hit!.kind).toBe('wall-arc')
+    expect((hit as Extract<HitResult, { kind: 'wall-arc' }>).id).toBe(wall.id)
+  })
+
+  it('dragging the handle perpendicular sets a semicircular arcExtent', () => {
+    const { drag, store } = makeWall()
+    const wall = store.getHome().walls[0]!
+    const hp = wallArcHandlePos(wall)
+    // Perpendicular offset 50 on a 100-long chord => sagitta 50 => θ = 4·atan(2·50/100) = π.
+    drag(hp.x, hp.y, 50, -50)
+    expect(store.getHome().walls[0]!.arcExtent).toBeCloseTo(Math.PI, 6)
+  })
+
+  it('the whole arc drag is ONE undo step', () => {
+    const { drag, store } = makeWall()
+    const wall = store.getHome().walls[0]!
+    const hp = wallArcHandlePos(wall)
+    drag(hp.x, hp.y, 50, -50)
+    expect(store.getHome().walls[0]!.arcExtent).toBeCloseTo(Math.PI, 6)
+    expect(store.undo()).toBe(true)
+    expect(store.getHome().walls[0]!.arcExtent).toBeUndefined()
   })
 })
 

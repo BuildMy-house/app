@@ -32,8 +32,41 @@ export function furnitureRotationHandlePos(f: { x: number; y: number; depth: num
   }
 }
 
+/** Perpendicular unit vector to a wall's chord (points in the CCW bulge direction). */
+function wallChordNormal(wall: { xStart: number; yStart: number; xEnd: number; yEnd: number }): { x: number; y: number } {
+  const dx = wall.xEnd - wall.xStart
+  const dy = wall.yEnd - wall.yStart
+  const len = Math.hypot(dx, dy)
+  if (len <= EPSILON) return { x: 0, y: 0 }
+  return { x: dy / len, y: -dx / len }
+}
+
+/**
+ * Model-space position of the round-wall (arc) handle for a wall: the arc's
+ * midpoint on the centerline. For a straight wall (arcExtent 0) this is the
+ * chord midpoint. The signed perpendicular distance from the chord to the
+ * handle is the arc sagitta.
+ */
+export function wallArcHandlePos(wall: {
+  xStart: number
+  yStart: number
+  xEnd: number
+  yEnd: number
+  arcExtent?: number | null
+}): Point {
+  const xMid = (wall.xStart + wall.xEnd) / 2
+  const yMid = (wall.yStart + wall.yEnd) / 2
+  const n = wallChordNormal(wall)
+  if (n.x === 0 && n.y === 0) return { x: xMid, y: yMid }
+  const a = typeof wall.arcExtent === 'number' && Number.isFinite(wall.arcExtent) ? wall.arcExtent : 0
+  const len = Math.hypot(wall.xEnd - wall.xStart, wall.yEnd - wall.yStart)
+  const sagitta = (len / 2) * Math.tan(a / 4)
+  return { x: xMid + n.x * sagitta, y: yMid + n.y * sagitta }
+}
+
 export type HitResult =
   | { kind: 'wall-endpoint'; wallId: string; endpoint: 'start' | 'end' }
+  | { kind: 'wall-arc'; id: string }
   | { kind: 'wall-body'; id: string }
   | { kind: 'furniture-rotate'; id: string }
   | { kind: 'furniture'; id: string }
@@ -106,6 +139,7 @@ export class PlanEngine {
   private vertexDrag: { wallId: string; endpoint: 'start' | 'end'; startX: number; startY: number; connectedWalls: Array<{ wallId: string; endpoint: 'start' | 'end' }> } | null = null
   private roomVertexDrag: { roomId: string; vertexIndex: number; startX: number; startY: number } | null = null
   private furnitureRotateDrag: { id: string } | null = null
+  private wallArcDrag: { id: string } | null = null
   private activeLevelId: string | null = null
   private wallHeightCm = DEFAULT_WALL_HEIGHT_CM
   private wallThicknessCm = NEW_WALL_THICKNESS_CM
@@ -275,6 +309,32 @@ export class PlanEngine {
         }
         this.model.getStore().endCompoundEdit()
         this.vertexDrag = null
+        return
+      }
+      if (hit.kind === 'wall-arc') {
+        if (!this.wallArcDrag) {
+          this.wallArcDrag = { id: hit.id }
+          if (!home.selection.includes(hit.id)) {
+            this.model.setSelection([hit.id])
+          }
+        }
+        const wall = home.walls.find((w) => w.id === hit.id)
+        if (!wall) return
+        const len = Math.hypot(wall.xEnd - wall.xStart, wall.yEnd - wall.yStart)
+        if (len <= EPSILON) {
+          this.wallArcDrag = null
+          return
+        }
+        const n = wallChordNormal(wall)
+        const xMid = (wall.xStart + wall.xEnd) / 2
+        const yMid = (wall.yStart + wall.yEnd) / 2
+        // Signed sagitta = perpendicular distance of the cursor from the chord.
+        const s = (to.x - xMid) * n.x + (to.y - yMid) * n.y
+        let arcExtent = 4 * Math.atan((2 * s) / len)
+        arcExtent = Math.max(-Math.PI, Math.min(Math.PI, arcExtent))
+        if (Math.abs(arcExtent) < 1e-3) arcExtent = 0
+        this.model.updateWall(hit.id, { arcExtent })
+        this.wallArcDrag = null
         return
       }
       if (hit.kind === 'room-vertex') {
@@ -924,6 +984,17 @@ export class PlanEngine {
       }
       if (distance(point, { x: wall.xEnd, y: wall.yEnd }) <= ENDPOINT_HIT_RADIUS) {
         return { kind: 'wall-endpoint', wallId: wall.id, endpoint: 'end' }
+      }
+    }
+    // 1b. Wall round-wall (arc) handle (single-selected wall)
+    if (home.selection.length === 1) {
+      const selectedId = home.selection[0]!
+      const sw = home.walls.find((w) => w.id === selectedId && this.matchesActiveLevel(w.levelRef))
+      if (sw) {
+        const hp = wallArcHandlePos(sw)
+        if (distance(point, hp) <= ENDPOINT_HIT_RADIUS) {
+          return { kind: 'wall-arc', id: sw.id }
+        }
       }
     }
     // 2. Wall body

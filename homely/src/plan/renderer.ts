@@ -1,6 +1,7 @@
 import type { NormalizedHomeState, Wall, Furniture } from '../core/home'
 import { WALL_TEXTURES } from '../core/home'
 import { wallOutlinePoints } from '../core/top-camera-follower'
+import { wallArcHandlePos } from './engine'
 import type { PlanPreview } from './engine'
 
 export interface ViewTransform {
@@ -430,6 +431,23 @@ export function drawPlan(
       ctx.lineWidth = 2
       ctx.strokeRect(px - HANDLE_SIZE / 2, py - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE)
     }
+  }
+
+  // Round-wall (arc) handle for a single-selected wall.
+  const selectedWalls = home.walls.filter(
+    (w) => selected.has(w.id) && matchesLevel(w.levelRef, activeLevelId),
+  )
+  if (selectedWalls.length === 1) {
+    const hp = wallArcHandlePos(selectedWalls[0]!)
+    const px = mapper.sx(hp.x)
+    const py = mapper.sy(hp.y)
+    ctx.beginPath()
+    ctx.arc(px, py, ROTATION_HANDLE_RADIUS, 0, Math.PI * 2)
+    ctx.fillStyle = SELECTION_COLOR
+    ctx.fill()
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 2
+    ctx.stroke()
   }
 
   // Furniture as rotated rectangles.

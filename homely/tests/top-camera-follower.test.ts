@@ -301,3 +301,33 @@ describe('wall thick-polygon miters', () => {
     expect(wallOutlinePoints(b, [a, b]).flat()).toEqual([100, -5, 0, -5, 0, 5, 100, 5])
   })
 })
+
+describe('wall arc outlines', () => {
+  it('arcExtent: 0 produces an outline identical to a straight wall', () => {
+    const straight = { id: 's', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7 }
+    const arced = { id: 'a', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7, arcExtent: 0 }
+    expect(wallOutlinePoints(arced, [arced]).flat()).toEqual(
+      wallOutlinePoints(straight, [straight]).flat(),
+    )
+  })
+
+  it('a 90° arc bulges CCW by the sagitta on a wall along +x', () => {
+    const wall = { id: 'a', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7, arcExtent: Math.PI / 2 }
+    const pts = wallOutlinePoints(wall, [wall])
+    expect(pts.length).toBeGreaterThan(4)
+    const ys = pts.map((p) => p[1])
+    const sagitta = 50 * Math.tan(Math.PI / 8)
+    // CCW bulge points in -y for a +x wall: outline bottom = center.y - exteriorRadius.
+    // The polyline samples a finite number of arc angles, so the sampled apex
+    // undercuts the exact sagitta by less than one segment (~0.19 for this arc).
+    expect(Math.min(...ys)).toBeCloseTo(-(sagitta + 3.5), 0)
+  })
+
+  it('a negative arcExtent bulges the opposite way', () => {
+    const wall = { id: 'a', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7, arcExtent: -Math.PI / 2 }
+    const pts = wallOutlinePoints(wall, [wall])
+    const ys = pts.map((p) => p[1])
+    const sagitta = 50 * Math.tan(Math.PI / 8)
+    expect(Math.max(...ys)).toBeCloseTo(sagitta + 3.5, 0)
+  })
+})
