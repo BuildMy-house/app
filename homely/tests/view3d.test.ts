@@ -76,6 +76,15 @@ function meshChild(scene: THREE.Scene, name: string): THREE.Mesh {
   return found
 }
 
+/** Get bounding-box size and center of a mesh in world space. */
+function meshBounds(mesh: THREE.Mesh): { w: number; h: number; d: number; cx: number; cy: number; cz: number } {
+  mesh.updateMatrixWorld(true)
+  const box = new THREE.Box3().setFromObject(mesh)
+  const size = box.getSize(new THREE.Vector3())
+  const center = box.getCenter(new THREE.Vector3())
+  return { w: size.x, h: size.y, d: size.z, cx: center.x, cy: center.y, cz: center.z }
+}
+
 function countNamed(scene: THREE.Scene, prefix: string): number {
   let count = 0
   scene.traverse((object) => {
@@ -99,20 +108,22 @@ describe('buildScene', () => {
 
     // North segment: plan (0,0)->(400,0), default height fallback.
     const north = meshChild(scene, 'wall:w-n')
-    expect(north.geometry).toBeInstanceOf(THREE.BoxGeometry)
-    const northBox = north.geometry as THREE.BoxGeometry
-    expect(northBox.parameters.width).toBeCloseTo(400)
-    expect(northBox.parameters.height).toBe(250)
-    expect(northBox.parameters.depth).toBe(7)
+    expect(north.geometry).toBeInstanceOf(THREE.ExtrudeGeometry)
+    const nb = meshBounds(north)
+    // Mitered corners extend the bounding box into adjacent walls
+    // (thickness/2 = 3.5 on each end for 90° corners → +7 total).
+    expect(nb.w).toBeCloseTo(400 + 7)
+    expect(nb.h).toBeCloseTo(250)
+    expect(nb.d).toBeCloseTo(7)
     expect(north.position.x).toBeCloseTo(200)
-    expect(north.position.y).toBeCloseTo(25 + 125)
+    expect(nb.cy).toBeCloseTo(25 + 125)
     expect(north.position.z).toBeCloseTo(0)
-    expect(north.rotation.y).toBeCloseTo(Math.atan2(0, 400))
 
-    // East segment yaw straight from atan2(dy, dx).
+    // East segment: vertical wall, no explicit rotation needed (shape handles direction).
     const east = meshChild(scene, 'wall:w-e')
-    expect(east.rotation.y).toBeCloseTo(Math.atan2(300, 0))
-    expect(east.position.z).toBeCloseTo(150)
+    const eb = meshBounds(east)
+    expect(eb.h).toBeCloseTo(250)
+    expect(eb.cz).toBeCloseTo(150)
   })
 
   it('renders the room floor polygon flat with an up-facing normal', () => {
@@ -315,11 +326,11 @@ describe('wall opening segmentation (M33)', () => {
     // Exactly one mesh named wall:w1 — not segmented into a group.
     expect(countMeshesByName(scene, 'wall:w1')).toBe(1)
     const wall = meshChild(scene, 'wall:w1')
-    expect(wall.geometry).toBeInstanceOf(THREE.BoxGeometry)
-    const box = wall.geometry as THREE.BoxGeometry
-    expect(box.parameters.width).toBeCloseTo(400)
-    expect(box.parameters.height).toBe(250)
-    expect(box.parameters.depth).toBe(15)
+    expect(wall.geometry).toBeInstanceOf(THREE.ExtrudeGeometry)
+    const wb = meshBounds(wall)
+    expect(wb.w).toBeCloseTo(400)
+    expect(wb.h).toBeCloseTo(250)
+    expect(wb.d).toBeCloseTo(15)
   })
 
   it('segments a wall into multiple boxes when a door opening is present', () => {
@@ -341,7 +352,7 @@ describe('wall opening segmentation (M33)', () => {
     const meshes = meshesByName(scene, 'wall:w1')
     expect(meshes.length).toBe(3)
     for (const m of meshes) {
-      expect(m.geometry).toBeInstanceOf(THREE.BoxGeometry)
+      expect(m.geometry).toBeInstanceOf(THREE.ExtrudeGeometry)
     }
   })
 
@@ -409,13 +420,12 @@ describe('wall opening segmentation (M33)', () => {
     const meshes = meshesByName(scene, 'wall:w1')
     // The lintel is the shortest segment (height = 250 - 210 = 40).
     const lintel = meshes.reduce((a, b) =>
-      (a.geometry as THREE.BoxGeometry).parameters.height <
-      (b.geometry as THREE.BoxGeometry).parameters.height ? a : b,
+      meshBounds(a).h < meshBounds(b).h ? a : b,
     )
-    const lintelBox = lintel.geometry as THREE.BoxGeometry
-    expect(lintelBox.parameters.height).toBeCloseTo(40)
+    const lb = meshBounds(lintel)
+    expect(lb.h).toBeCloseTo(40)
     // Lintel center y = elevation + (210 + 250)/2 = 230
-    expect(lintel.position.y).toBeCloseTo(230)
+    expect(lb.cy).toBeCloseTo(230)
   })
 
   it('ignores door/window furniture attached to a different wall', () => {

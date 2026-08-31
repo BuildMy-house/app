@@ -25,6 +25,162 @@ function elevationFor(ref: string | null | undefined, levels: Map<string, number
   return levels.get(ref) ?? 0
 }
 
+// ── Wall mitering (M50) ─────────────────────────────────────────────────────
+//
+// Re-derives the same 2D thick-wall outline + mitered corners that
+// wallOutlinePoints() in top-camera-follower.ts uses for the 2D plan and
+// camera bounds, but kept local to avoid cross-module imports.  Kept
+// structurally identical so future readers can compare the two side-by-side.
+
+const JOIN_EPSILON = 1e-6
+const PARALLEL_EPSILON = 1e-9
+
+type Pt = [number, number]
+
+function miterSamePoint(a: Pt, b: Pt): boolean {
+  return Math.abs(a[0] - b[0]) < JOIN_EPSILON && Math.abs(a[1] - b[1]) < JOIN_EPSILON
+}
+
+function miterEndpoint(wall: Wall, atStart: boolean): Pt {
+  return atStart ? [wall.xStart, wall.yStart] : [wall.xEnd, wall.yEnd]
+}
+
+function miterFindJoin(
+  allWalls: Wall[],
+  self: Wall,
+  atStart: boolean,
+): { other: Wall; otherAtStart: boolean } | undefined {
+  const point = miterEndpoint(self, atStart)
+  for (const other of allWalls) {
+    if (other.id === self.id) continue
+    if (miterSamePoint(point, miterEndpoint(other, true))) return { other, otherAtStart: true }
+    if (miterSamePoint(point, miterEndpoint(other, false))) return { other, otherAtStart: false }
+  }
+  return undefined
+}
+
+function miterLineIntersect(p1: Pt, p2: Pt, p3: Pt, p4: Pt): Pt | null {
+  const d1x = p2[0] - p1[0]
+  const d1y = p2[1] - p1[1]
+  const d2x = p4[0] - p3[0]
+  const d2y = p4[1] - p3[1]
+  const denom = d1x * d2y - d1y * d2x
+  if (Math.abs(denom) < PARALLEL_EPSILON) return null
+  const t = ((p3[0] - p1[0]) * d2y - (p3[1] - p1[1]) * d2x) / denom
+  return [p1[0] + t * d1x, p1[1] + t * d1y]
+}
+
+function miterCorner(
+  pts: [Pt, Pt, Pt, Pt],
+  capIndex: number,
+  neighborIndex: number,
+  theirPts: [Pt, Pt, Pt, Pt],
+  theirCapIndex: number,
+  theirNeighborIndex: number,
+  limit: number,
+): void {
+  const cap = pts[capIndex]
+  const neighbor = pts[neighborIndex]
+  const theirCap = theirPts[theirCapIndex]
+  const theirNeighbor = theirPts[theirNeighborIndex]
+  if (!cap || !neighbor || !theirCap || !theirNeighbor) return
+  const moved = miterLineIntersect(cap, neighbor, theirCap, theirNeighbor)
+  if (!moved) return
+  const dx = moved[0] - cap[0]
+  const dy = moved[1] - cap[1]
+  if (dx * dx + dy * dy < limit * limit) {
+    cap[0] = moved[0]
+    cap[1] = moved[1]
+  }
+}
+
+// Unjoined corner order: [startL(0), endL(1), endR(2), startR(3)]
+function miterEnd(
+  pts: [Pt, Pt, Pt, Pt],
+  atStart: boolean,
+  theirs: [Pt, Pt, Pt, Pt],
+  theirAtStart: boolean,
+  limit: number,
+): void {
+  const myLeft = atStart ? 0 : 1
+  const myRight = atStart ? 3 : 2
+  const myLeftN = atStart ? 1 : 0
+  const myRightN = atStart ? 2 : 3
+  const theirLeft = theirAtStart ? 0 : 1
+  const theirRight = theirAtStart ? 3 : 2
+  const theirLeftN = theirAtStart ? 1 : 0
+  const theirRightN = theirAtStart ? 2 : 3
+  if (atStart === theirAtStart) {
+    miterCorner(pts, myLeft, myLeftN, theirs, theirRight, theirRightN, limit)
+    miterCorner(pts, myRight, myRightN, theirs, theirLeft, theirLeftN, limit)
+  } else {
+    miterCorner(pts, myLeft, myLeftN, theirs, theirLeft, theirLeftN, limit)
+    miterCorner(pts, myRight, myRightN, theirs, theirRight, theirRightN, limit)
+  }
+}
+
+/**
+ * 2D wall outline with mitered corners at shared endpoints (local mirror of
+ * wallOutlinePoints from top-camera-follower.ts). Returns [startL, endL,
+ * endR, startR] — the four thick-wall rectangle corners, with any shared
+ * endpoints extended to the correct miter intersection.
+ */
+function computeWallMiteredOutline(wall: Wall, allWalls: Wall[]): [Pt, Pt, Pt, Pt] {
+  const dx = wall.xEnd - wall.xStart
+  const dy = wall.yEnd - wall.yStart
+  const len = Math.hypot(dx, dy) || 1
+  const half = wall.thickness / 2
+  const nx = (-dy / len) * half
+  const ny = (dx / len) * half
+  const pts: [Pt, Pt, Pt, Pt] = [
+    [wall.xStart + nx, wall.yStart + ny],
+    [wall.xEnd + nx, wall.yEnd + ny],
+    [wall.xEnd - nx, wall.yEnd - ny],
+    [wall.xStart - nx, wall.yStart - ny],
+  ]
+  for (const atStart of [true, false]) {
+    const join = miterFindJoin(allWalls, wall, atStart)
+    if (!join) continue
+    // Use unjoined (pre-miter) rectangle of the neighbor — same as
+    // wallOutlinePoints in top-camera-follower.ts: pairwise miter only
+    // needs the neighbor's own rectangle, not its recursive miter result.
+    const odx = join.other.xEnd - join.other.xStart
+    const ody = join.other.yEnd - join.other.yStart
+    const olen = Math.hypot(odx, ody) || 1
+    const ohalf = join.other.thickness / 2
+    const onx = (-ody / olen) * ohalf
+    const ony = (odx / olen) * ohalf
+    const theirs: [Pt, Pt, Pt, Pt] = [
+      [join.other.xStart + onx, join.other.yStart + ony],
+      [join.other.xEnd + onx, join.other.yEnd + ony],
+      [join.other.xEnd - onx, join.other.yEnd - ony],
+      [join.other.xStart - onx, join.other.yStart - ony],
+    ]
+    const limit = 2 * Math.max(wall.thickness, join.other.thickness)
+    miterEnd(pts, atStart, theirs, join.otherAtStart, limit)
+  }
+  return pts
+}
+
+/**
+ * Convert a mitered 4-corner outline into a THREE.Shape suitable for
+ * ExtrudeGeometry. The shape is centered at the wall's midpoint so
+ * position/rotation on the resulting mesh are straightforward.
+ */
+function miteredShape(
+  outline: [Pt, Pt, Pt, Pt],
+  midX: number,
+  midY: number,
+): THREE.Shape {
+  const shape = new THREE.Shape()
+  shape.moveTo(outline[0]![0] - midX, -(outline[0]![1] - midY))
+  for (let i = 1; i < 4; i++) {
+    shape.lineTo(outline[i]![0] - midX, -(outline[i]![1] - midY))
+  }
+  shape.closePath()
+  return shape
+}
+
 // ── Wall opening segmentation (M33, ported from render/scene-builder.ts) ──
 
 interface WallOpening {
@@ -67,6 +223,7 @@ function wallMesh(
   elevation: number,
   wallsTransparency: number,
   furniture: ReadonlyArray<Furniture>,
+  allWalls: Wall[],
 ): THREE.Object3D {
   const dx = wall.xEnd - wall.xStart
   const dy = wall.yEnd - wall.yStart
@@ -82,42 +239,57 @@ function wallMesh(
     material.transparent = true
     material.opacity = 1 - wallsTransparency
   }
-  const yaw = Math.atan2(dy, dx)
 
+  const ux = dx / (length || 1)
+  const uy = dy / (length || 1)
+  const midX = (wall.xStart + wall.xEnd) / 2
+  const midY = (wall.yStart + wall.yEnd) / 2
   const openings = computeWallOpenings(wall, furniture)
 
-  // No openings → single solid box (identical to pre-M33 behavior).
   if (openings.length === 0) {
-    const geometry = new THREE.BoxGeometry(length, height, wall.thickness)
+    // No openings — single extruded mitered shape.
+    const outline = computeWallMiteredOutline(wall, allWalls)
+    const shape = miteredShape(outline, midX, midY)
+    const geometry = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false })
+    // ExtrudeGeometry builds in XY extruded along +Z.
+    // Rotate -π/2 around X: Y→Z(up), Z→-Y so front face (z=depth) → +Y.
+    geometry.rotateX(-Math.PI / 2)
     const mesh = new THREE.Mesh(geometry, material)
     mesh.name = `wall:${wall.id}`
-    mesh.position.set(
-      (wall.xStart + wall.xEnd) / 2,
-      elevation + height / 2,
-      (wall.yStart + wall.yEnd) / 2,
-    )
-    mesh.rotation.y = yaw
+    mesh.position.set(midX, elevation, midY)
     mesh.castShadow = true
     mesh.receiveShadow = true
     return mesh
   }
 
-  // Openings → side-span + sill + lintel boxes (M27 technique).
-  const ux = dx / length
-  const uy = dy / length
-  const thickness = wall.thickness
+  // Openings → segmented extruded shapes (M27 technique with mitered ends).
   const group = new THREE.Group()
 
+  const segShape = (d1: number, d2: number): THREE.Shape => {
+    const nx = -uy * wall.thickness / 2
+    const ny = ux * wall.thickness / 2
+    const sx = wall.xStart + ux * d1
+    const sy = wall.yStart + uy * d1
+    const ex = wall.xStart + ux * d2
+    const ey = wall.yStart + uy * d2
+    const shape = new THREE.Shape()
+    shape.moveTo(sx + nx - midX, -(sy + ny - midY))
+    shape.lineTo(ex + nx - midX, -(ey + ny - midY))
+    shape.lineTo(ex - nx - midX, -(ey - ny - midY))
+    shape.lineTo(sx - nx - midX, -(sy - ny - midY))
+    shape.closePath()
+    return shape
+  }
+
   const segMesh = (d1: number, d2: number, y1: number, y2: number): THREE.Mesh => {
-    const geom = new THREE.BoxGeometry(d2 - d1, y2 - y1, thickness)
-    const m = new THREE.Mesh(geom, material)
+    const segLen = d2 - d1
+    if (segLen <= 0 || y2 - y1 <= 0) return new THREE.Mesh(new THREE.BufferGeometry(), material)
+    const shape = segShape(d1, d2)
+    const geometry = new THREE.ExtrudeGeometry(shape, { depth: y2 - y1, bevelEnabled: false })
+    geometry.rotateX(-Math.PI / 2)
+    const m = new THREE.Mesh(geometry, material)
     m.name = `wall:${wall.id}`
-    m.position.set(
-      wall.xStart + ux * (d1 + d2) / 2,
-      elevation + (y1 + y2) / 2,
-      wall.yStart + uy * (d1 + d2) / 2,
-    )
-    m.rotation.y = yaw
+    m.position.set(midX, elevation + y1, midY)
     m.castShadow = true
     m.receiveShadow = true
     return m
@@ -139,23 +311,20 @@ function wallMesh(
   return group
 }
 
-function wallEdges(wall: Wall, elevation: number): THREE.LineSegments {
-  const dx = wall.xEnd - wall.xStart
-  const dy = wall.yEnd - wall.yStart
-  const length = Math.hypot(dx, dy)
+function wallEdges(wall: Wall, elevation: number, allWalls: Wall[]): THREE.LineSegments {
   const height = wall.height ?? DEFAULT_WALL_HEIGHT_CM
-  const geometry = new THREE.BoxGeometry(length, height, wall.thickness)
+  const midX = (wall.xStart + wall.xEnd) / 2
+  const midY = (wall.yStart + wall.yEnd) / 2
+  const outline = computeWallMiteredOutline(wall, allWalls)
+  const shape = miteredShape(outline, midX, midY)
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false })
+  geometry.rotateX(-Math.PI / 2)
   const edges = new THREE.EdgesGeometry(geometry)
   const line = new THREE.LineSegments(
     edges,
     new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.3 }),
   )
-  line.position.set(
-    (wall.xStart + wall.xEnd) / 2,
-    elevation + height / 2,
-    (wall.yStart + wall.yEnd) / 2,
-  )
-  line.rotation.y = Math.atan2(dy, dx)
+  line.position.set(midX, elevation, midY)
   return line
 }
 
@@ -390,9 +559,9 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
   const root = new THREE.Group()
   root.name = 'home'
   for (const wall of home.walls) {
-    const mesh = wallMesh(wall, elevationFor(wall.levelRef, elevations), wallsTransparency, home.furniture)
+    const mesh = wallMesh(wall, elevationFor(wall.levelRef, elevations), wallsTransparency, home.furniture, home.walls)
     root.add(mesh)
-    root.add(wallEdges(wall, elevationFor(wall.levelRef, elevations)))
+    root.add(wallEdges(wall, elevationFor(wall.levelRef, elevations), home.walls))
   }
   for (const room of home.rooms) {
     if (room.floorVisible === false || room.points.length < 3) continue
