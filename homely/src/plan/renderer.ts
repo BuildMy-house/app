@@ -1,4 +1,5 @@
 import type { NormalizedHomeState, Wall, Furniture } from '../core/home'
+import { WALL_TEXTURES } from '../core/home'
 import { wallOutlinePoints } from '../core/top-camera-follower'
 import type { PlanPreview } from './engine'
 
@@ -30,6 +31,7 @@ export interface PlanRenderingContext {
   save(): void
   restore(): void
   globalCompositeOperation: GlobalCompositeOperation
+  createPattern?(image: unknown, repetition: string): unknown
 }
 
 const WALL_COLOR = '#5a5a5a'
@@ -54,6 +56,40 @@ function cssColor(color: number | null | undefined, fallback: string): string {
 /** Formats a length in cm as meters with two decimals. */
 function formatLength(cm: number): string {
   return `${(cm / 100).toFixed(2)} m`
+}
+
+const imageCache = new Map<string, HTMLImageElement>()
+
+/** Test-only: inject a pre-loaded image into the texture cache. */
+export function setTestImageCache(entries: Map<string, HTMLImageElement>): void {
+  imageCache.clear()
+  for (const [k, v] of entries) imageCache.set(k, v)
+}
+
+function resolveTextureImage(
+  textureId: string | null | undefined,
+): HTMLImageElement | null {
+  if (!textureId) return null
+  const tex = WALL_TEXTURES.find((t) => t.id === textureId)
+  if (!tex) return null
+  const url = `/assets/textures/${tex.file}`
+  const cached = imageCache.get(url)
+  if (cached) return cached
+  const img = new Image()
+  img.src = url
+  imageCache.set(url, img)
+  return img
+}
+
+function patternOrNull(
+  ctx: PlanRenderingContext,
+  textureId: string | null | undefined,
+): string | null {
+  if (!textureId || !ctx.createPattern) return null
+  const img = resolveTextureImage(textureId)
+  if (!img || !img.complete || img.naturalWidth === 0) return null
+  const pat = ctx.createPattern(img, 'repeat')
+  return pat != null ? (pat as unknown as string) : null
 }
 
 function matchesLevel(levelRef: string | null | undefined, activeLevelId: string | null): boolean {
@@ -297,7 +333,7 @@ export function drawPlan(
     ctx.closePath()
     ctx.fillStyle = selected.has(wall.id)
       ? SELECTION_COLOR
-      : cssColor(wall.leftSideColor, WALL_COLOR)
+      : patternOrNull(ctx, wall.leftSideTextureId) ?? cssColor(wall.leftSideColor, WALL_COLOR)
     ctx.fill()
 
     // Punch door/window openings through the wall fill.

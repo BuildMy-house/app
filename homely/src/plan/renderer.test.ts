@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { drawPlan, type PlanRenderingContext, type ViewTransform } from './renderer'
-import { createEmptyHome } from '../core/home'
+import { drawPlan, setTestImageCache, type PlanRenderingContext, type ViewTransform } from './renderer'
+import { createEmptyHome, WALL_TEXTURES } from '../core/home'
 
 interface Op { type: string; args?: unknown[] }
 
@@ -13,6 +13,7 @@ class MockContext implements PlanRenderingContext {
   font = '12px sans-serif'
   textAlign: CanvasTextAlign = 'start'
   textBaseline: CanvasTextBaseline = 'alphabetic'
+  patternResult: string | null = null
 
   get globalCompositeOperation(): GlobalCompositeOperation { return this._gco }
   set globalCompositeOperation(v: GlobalCompositeOperation) {
@@ -33,6 +34,10 @@ class MockContext implements PlanRenderingContext {
   setLineDash(d: number[]): void { this.ops.push({ type: 'setLineDash', args: [d] }) }
   save(): void { this.ops.push({ type: 'save' }) }
   restore(): void { this.ops.push({ type: 'restore' }) }
+  createPattern(image: unknown, repetition: string): unknown {
+    this.ops.push({ type: 'createPattern', args: [image, repetition] })
+    return this.patternResult
+  }
 }
 
 const IDENTITY_VIEW: ViewTransform = { scale: 1, offsetX: 0, offsetY: 0 }
@@ -133,5 +138,95 @@ describe('drawPlan wall openings', () => {
     const fillCount = ctx.ops.filter(op => op.type === 'fill').length
     // At minimum: 1 wall fill + 2 opening fills = 3
     expect(fillCount).toBeGreaterThanOrEqual(3)
+  })
+})
+
+describe('drawPlan wall textures', () => {
+  it('uses createPattern fill for a wall with leftSideTextureId when image is loaded', () => {
+    const tex = WALL_TEXTURES.find(t => t.id === 'wood-oak')!
+    const img = { complete: true, naturalWidth: 64 } as unknown as HTMLImageElement
+    setTestImageCache(new Map([[`/assets/textures/${tex.file}`, img]]))
+
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+      leftSideTextureId: 'wood-oak',
+    })
+
+    const ctx = new MockContext()
+    ctx.patternResult = 'mock-pattern'
+    drawPlan(home, null, ctx, IDENTITY_VIEW)
+
+    const patternCalls = ctx.ops.filter(op => op.type === 'createPattern')
+    expect(patternCalls.length).toBeGreaterThanOrEqual(1)
+    expect(ctx.fillStyle).toBe('mock-pattern')
+
+    setTestImageCache(new Map())
+  })
+
+  it('falls back to flat color when no texture is set', () => {
+    setTestImageCache(new Map())
+
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+      leftSideColor: 0xff0000,
+    })
+
+    const ctx = new MockContext()
+    drawPlan(home, null, ctx, IDENTITY_VIEW)
+
+    const patternCalls = ctx.ops.filter(op => op.type === 'createPattern')
+    expect(patternCalls).toHaveLength(0)
+    expect(ctx.fillStyle).toBe('#ff0000')
+
+    setTestImageCache(new Map())
+  })
+
+  it('falls back to flat color when texture image has not loaded yet', () => {
+    const img = { complete: false, naturalWidth: 0 } as unknown as HTMLImageElement
+    setTestImageCache(new Map([['/assets/textures/wood-oak.png', img]]))
+
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+      leftSideTextureId: 'wood-oak',
+    })
+
+    const ctx = new MockContext()
+    drawPlan(home, null, ctx, IDENTITY_VIEW)
+
+    const patternCalls = ctx.ops.filter(op => op.type === 'createPattern')
+    expect(patternCalls).toHaveLength(0)
+
+    setTestImageCache(new Map())
+  })
+
+  it('textured wall produces different fillStyle than untextured wall', () => {
+    const tex = WALL_TEXTURES.find(t => t.id === 'concrete')!
+    const img = { complete: true, naturalWidth: 64 } as unknown as HTMLImageElement
+    setTestImageCache(new Map([[`/assets/textures/${tex.file}`, img]]))
+
+    const textured = createEmptyHome()
+    textured.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+      leftSideTextureId: 'concrete',
+    })
+    const ctx1 = new MockContext()
+    ctx1.patternResult = 'pattern-fill'
+    drawPlan(textured, null, ctx1, IDENTITY_VIEW)
+    const texturedFill = ctx1.fillStyle
+
+    const plain = createEmptyHome()
+    plain.walls.push({
+      id: 'w2', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+    })
+    const ctx2 = new MockContext()
+    drawPlan(plain, null, ctx2, IDENTITY_VIEW)
+    const plainFill = ctx2.fillStyle
+
+    expect(texturedFill).not.toBe(plainFill)
+
+    setTestImageCache(new Map())
   })
 })
