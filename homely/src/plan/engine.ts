@@ -67,7 +67,7 @@ export interface DragInput {
   altOrMeta?: boolean
 }
 
-export type PlanKey = 'escape' | 'delete' | 'backspace'
+export type PlanKey = 'escape' | 'delete' | 'backspace' | 'arrow-up' | 'arrow-down' | 'arrow-left' | 'arrow-right'
 
 interface Segment {
   start: Point
@@ -416,7 +416,15 @@ export class PlanEngine {
     }
   }
 
-  key(key: PlanKey): void {
+  key(key: PlanKey, shift = false): void {
+    if (key === 'arrow-up' || key === 'arrow-down' || key === 'arrow-left' || key === 'arrow-right') {
+      const step = shift ? 10 : 1
+      const dx = key === 'arrow-left' ? -step : key === 'arrow-right' ? step : 0
+      const dy = key === 'arrow-up' ? -step : key === 'arrow-down' ? step : 0
+      if (this.homeSnapshot().selection.length === 0) return
+      this.model.moveSelection(dx, dy)
+      return
+    }
     if (key !== 'escape' && key !== 'delete' && key !== 'backspace') {
       throw new ModelError(`unsupported key ${JSON.stringify(key)}`)
     }

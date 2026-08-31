@@ -740,6 +740,12 @@ window.addEventListener('keydown', (event) => {
   // native browser copy/paste takes precedence.
   const isInput = event.target instanceof HTMLElement &&
     (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable)
+
+  // Arrow keys: skip nudge when focused in a text input so native cursor movement works.
+  if (isInput && (event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+    return
+  }
+
   if ((event.ctrlKey || event.metaKey) && event.key === 'c' && !isInput) {
     event.preventDefault()
     if (clipboardManager.copy() > 0) refreshAll()
@@ -779,14 +785,18 @@ window.addEventListener('keydown', (event) => {
     return
   }
 
-  let key: 'escape' | 'delete' | 'backspace' | null = null
+  let key: 'escape' | 'delete' | 'backspace' | 'arrow-up' | 'arrow-down' | 'arrow-left' | 'arrow-right' | null = null
   if (event.key === 'Escape') key = 'escape'
   else if (event.key === 'Delete') key = 'delete'
   else if (event.key === 'Backspace') key = 'backspace'
+  else if (event.key === 'ArrowUp') key = 'arrow-up'
+  else if (event.key === 'ArrowDown') key = 'arrow-down'
+  else if (event.key === 'ArrowLeft') key = 'arrow-left'
+  else if (event.key === 'ArrowRight') key = 'arrow-right'
   else if (event.key === ']') { propsPanel.toggle(); return }
   if (key === null) return
   event.preventDefault()
-  engine.key(key)
+  engine.key(key, event.shiftKey)
   refreshToolbar()
   refreshStatus()
 })

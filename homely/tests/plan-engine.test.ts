@@ -272,6 +272,64 @@ describe('selection interactions', () => {
     expect(store.getHome().walls).toHaveLength(2)
   })
 
+  it('arrow keys nudge selection by 1 cm', () => {
+    const s = twoWalls()
+    const { click, store, engine } = s
+    click(50, 0)
+    const id = store.getHome().selection[0]!
+    const w = () => store.getHome().walls.find((w) => w.id === id)!
+    expect(w().xStart).toBe(0)
+    engine.key('arrow-right')
+    expect(w().xStart).toBe(1)
+    engine.key('arrow-left')
+    expect(w().xStart).toBe(0)
+    engine.key('arrow-down')
+    expect(w().yStart).toBe(1)
+    engine.key('arrow-up')
+    expect(w().yStart).toBe(0)
+  })
+
+  it('arrow keys with shift nudge by 10 cm', () => {
+    const s = twoWalls()
+    const { click, store, engine } = s
+    click(50, 0)
+    const id = store.getHome().selection[0]!
+    const w = () => store.getHome().walls.find((w) => w.id === id)!
+    engine.key('arrow-right', true)
+    expect(w().xStart).toBe(10)
+    engine.key('arrow-left', true)
+    expect(w().xStart).toBe(0)
+    engine.key('arrow-down', true)
+    expect(w().yStart).toBe(10)
+    engine.key('arrow-up', true)
+    expect(w().yStart).toBe(0)
+  })
+
+  it('arrow key nudge is a no-op on empty selection', () => {
+    const s = twoWalls()
+    const { click, store, engine } = s
+    click(500, 500)
+    const before = store.getHome().walls.map((w) => [w.xStart, w.yStart, w.xEnd, w.yEnd])
+    engine.key('arrow-right')
+    expect(store.getHome().walls.map((w) => [w.xStart, w.yStart, w.xEnd, w.yEnd])).toEqual(before)
+  })
+
+  it('arrow key nudge is undoable in one step per keypress', () => {
+    const s = twoWalls()
+    const { click, store, engine } = s
+    click(50, 0)
+    const id = store.getHome().selection[0]!
+    const w = () => store.getHome().walls.find((w) => w.id === id)!
+    engine.key('arrow-right')
+    expect(w().xStart).toBe(1)
+    engine.key('arrow-down')
+    expect(w().yStart).toBe(1)
+    expect(store.undo()).toBe(true)
+    expect(w().yStart).toBe(0)
+    expect(store.undo()).toBe(true)
+    expect(w().xStart).toBe(0)
+  })
+
   it('new walls use the driver defaults: thickness 7, height 250, pattern hatchUp', () => {
     const s = setup()
     s.engine.setTool('wall')
