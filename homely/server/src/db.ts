@@ -34,6 +34,16 @@ const SCHEMA = `
     created_at  INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_assets_user ON assets (user_id);
+
+  CREATE TABLE IF NOT EXISTS homes (
+    id            TEXT PRIMARY KEY,
+    owner_user_id TEXT NOT NULL,
+    name          TEXT NOT NULL,
+    json          TEXT NOT NULL,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_homes_owner ON homes (owner_user_id);
 `;
 
 // Idempotent init-on-boot: safe to call once per server start, and safe to

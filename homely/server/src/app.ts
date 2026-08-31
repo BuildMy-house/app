@@ -2,6 +2,7 @@ import express from 'express';
 import type { Database } from 'better-sqlite3';
 import { assetsRouter } from './assets.js';
 import { loginHandler, registerHandler } from './auth.js';
+import { homesRouter } from './homes.js';
 import { initDb } from './db.js';
 import { AssetStorage } from './storage.js';
 
@@ -15,5 +16,6 @@ export function createApp(db: Database, assetRoot = 'data/assets'): express.Expr
   app.post('/api/auth/register', registerHandler(db));
   app.post('/api/auth/login', loginHandler(db));
   app.use('/api/assets', assetsRouter(db, new AssetStorage(assetRoot)));
+  app.use('/api/homes', homesRouter(db));
   return app;
 }
