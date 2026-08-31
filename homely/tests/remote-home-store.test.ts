@@ -134,3 +134,46 @@ describe('RemoteHomeStore.remove()', () => {
     await expect(store.remove('h1')).rejects.toThrow(/removal failed/)
   })
 })
+
+describe('RemoteHomeStore Authorization header', () => {
+  it('adds a Bearer token to list() when a token is available', async () => {
+    fetchStub.mockResolvedValue(jsonResponse(200, { items: [] }))
+    vi.stubGlobal('fetch', fetchStub)
+
+    const store = new RemoteHomeStore('/api/homes', () => 'tok-123')
+    await store.list()
+
+    const [url, init] = fetchStub.mock.calls[0]!
+    expect(url).toBe('/api/homes')
+    expect(new Headers(init.headers).get('Authorization')).toBe('Bearer tok-123')
+  })
+
+  it('merges Authorization with Content-Type on save()', async () => {
+    const home = sampleHome()
+    const record = { id: 'h1', name: 'House A', json: serializeForSave(home), createdAt: 't', updatedAt: 't' }
+    fetchStub.mockResolvedValue(jsonResponse(201, record))
+    vi.stubGlobal('fetch', fetchStub)
+
+    const store = new RemoteHomeStore('/api/homes', () => 'tok-123')
+    await store.save(home, { name: 'House A' })
+
+    const [, init] = fetchStub.mock.calls[0]!
+    const headers = new Headers(init.headers)
+    expect(headers.get('Content-Type')).toBe('application/json')
+    expect(headers.get('Authorization')).toBe('Bearer tok-123')
+  })
+
+  it('adds a Bearer token to load() without disturbing single-arg parity', async () => {
+    const home = sampleHome()
+    const record = { id: 'h1', name: 'House A', json: serializeForSave(home), createdAt: 't', updatedAt: 't' }
+    fetchStub.mockResolvedValue(jsonResponse(200, record))
+    vi.stubGlobal('fetch', fetchStub)
+
+    const store = new RemoteHomeStore('/api/homes', () => 'tok-123')
+    await store.load('h1')
+
+    const [url, init] = fetchStub.mock.calls[0]!
+    expect(url).toBe('/api/homes/h1')
+    expect(new Headers(init.headers).get('Authorization')).toBe('Bearer tok-123')
+  })
+})

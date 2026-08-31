@@ -6,6 +6,10 @@ export default defineConfig({
   server: {
     port: 1420,
     strictPort: true,
+    proxy: {
+      // Track H backend (homely/server) runs on :3000 in dev.
+      '/api': 'http://localhost:3000',
+    },
   },
   test: {
     environment: 'node',

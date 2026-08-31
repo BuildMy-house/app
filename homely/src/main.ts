@@ -1,4 +1,5 @@
 import './style.css'
+import { telemetry } from './telemetry/logger'
 import { AutomationClient, automationPortFromSearch } from './automation/client'
 import type { ClientStatus } from './automation/client'
 import { HomeStore } from './core/store'
@@ -13,10 +14,27 @@ import { ViewMapper, drawPlan, fitToBounds, type PlanRenderingContext, type View
 import { saveHomeFile, loadHomeFile } from './services/adapters/home-persistence'
 import { exportPlanPng, export3dPng } from './services/adapters/plan-export'
 import { PreferencesDialog, loadPreferences, hexToIntColor } from './ui/preferences'
+import { HttpAuth } from './services/auth'
+import { RemoteHomeStore } from './services/adapters/remote-home-store'
+import { AuthDialog } from './ui/auth-dialog'
+import { HomeListDialog } from './ui/home-list-dialog'
 import { ClipboardManager } from './plan/clipboard'
 
 import { View3D, type CameraPresetName } from './view3d'
 import { PropertiesPanel } from './ui/properties-panel'
+
+// ── Telemetry ────────────────────────────────────────────────────────────────
+telemetry.init()
+
+window.onerror = (msg, _src, _line, _col, err) => {
+  telemetry.error(err ?? new Error(String(msg)), 'window.onerror')
+}
+window.addEventListener('unhandledrejection', (e) => {
+  telemetry.error(e.reason instanceof Error ? e.reason : new Error(String(e.reason)), 'unhandledrejection')
+})
+window.addEventListener('focus', () => telemetry.appFocus())
+window.addEventListener('blur', () => telemetry.appBlur())
+window.addEventListener('pagehide', () => telemetry.appExit())
 
 // ── DOM shell ───────────────────────────────────────────────────────────────
 
@@ -41,6 +59,7 @@ root.innerHTML = `
     <span id="status-tool">selection</span>
     <span id="status-zoom">zoom: 100%</span>
     <span id="status-automation">automation: idle</span>
+    <span id="status-account"></span>
   </div>
 `
 
@@ -55,6 +74,7 @@ const statusCursor = root.querySelector<HTMLSpanElement>('#status-cursor')!
 const statusTool = root.querySelector<HTMLSpanElement>('#status-tool')!
 const statusZoom = root.querySelector<HTMLSpanElement>('#status-zoom')!
 const statusAutomation = root.querySelector<HTMLSpanElement>('#status-automation')!
+const statusAccount = root.querySelector<HTMLSpanElement>('#status-account')!
 const ctx = canvas.getContext('2d')
 const contextMenu = root.querySelector<HTMLDivElement>('#context-menu')!
 
@@ -64,6 +84,17 @@ const store = new HomeStore()
 const model = new HomeModel(store)
 const engine = new PlanEngine(model)
 const clipboardManager = new ClipboardManager(store, model)
+
+// Account auth + server-backed home store (Track H). The auth session is
+// localStorage-backed; RemoteHomeStore threads the token into requests.
+const auth = new HttpAuth()
+const remoteHomes = new RemoteHomeStore('/api/homes', () => auth.getToken())
+
+// Server-side home id the currently-open document maps to, if any. Set after a
+// successful save/open so the NEXT save updates (PUT) instead of duplicating
+// (POST). Cleared when the document stops being that account home (New, local
+// Open, Log Out).
+let currentAccountHomeId: string | null = null
 
 // Apply stored preferences (wall defaults, ground color).
 const bootPrefs = loadPreferences()
@@ -178,6 +209,7 @@ function refreshMenus(): void {
           action: () => {
             if (store.isDirty() && !confirm('Unsaved changes will be lost. Continue?')) return
             store.resetToEmpty()
+            currentAccountHomeId = null
             doFit()
             refreshAll()
           },
@@ -202,6 +234,7 @@ function refreshMenus(): void {
               const home = await loadHomeFile()
               if (home) {
                 store.loadHome(home)
+                currentAccountHomeId = null
                 doFit()
                 refreshAll()
               }
@@ -210,6 +243,15 @@ function refreshMenus(): void {
             }
           },
         },
+        { label: '---' },
+        { label: 'Save to My Account…', action: () => accountGuard(saveToAccount) },
+        { label: 'Open from My Account…', action: () => accountGuard(openFromAccount) },
+        ...(auth.currentUser()
+          ? [
+              { label: `Signed in as ${auth.currentUser()}`, disabled: true },
+              { label: 'Log Out', action: () => { auth.logout(); currentAccountHomeId = null; refreshAll() } },
+            ]
+          : [{ label: 'Log In / Register…', action: () => promptLogin() }]),
         { label: '---' },
         { label: 'Export Plan as PNG…', action: () => { exportPlanPng(store.getHome()) } },
         { label: 'Export 3D View as PNG…', action: () => { if (view3d) export3dPng(view3d.scene, view3d.camera) } },
@@ -259,6 +301,67 @@ function openPreferences(): void {
   dialog.open()
 }
 
+// ── Account (Track H) ────────────────────────────────────────────────────────
+
+/** Show the login/register dialog; resume `then` (if any) after success. */
+function promptLogin(then?: () => void): void {
+  new AuthDialog(auth, () => {
+    refreshAll()
+    then?.()
+  }).open()
+}
+
+/** Run an account action, prompting for login first when signed out. */
+function accountGuard(action: () => void): void {
+  if (auth.currentUser()) {
+    action()
+    return
+  }
+  promptLogin(action)
+}
+
+async function saveToAccount(): Promise<void> {
+  try {
+    const current = store.getHome()
+    const defaultName = current.name && current.name.trim() ? current.name : 'Untitled home'
+    const name = window.prompt('Home name:', defaultName)
+    if (name === null) return
+    const trimmed = name.trim() || 'Untitled home'
+    model.setName(trimmed)
+    const record = await remoteHomes.save(store.getHome(), { id: currentAccountHomeId ?? undefined, name: trimmed })
+    currentAccountHomeId = record.id
+    store.markClean()
+  } catch (err) {
+    alert(err instanceof Error ? err.message : `Failed to save home to account: ${String(err)}`)
+  }
+}
+
+async function openFromAccount(): Promise<void> {
+  try {
+    const homes = await remoteHomes.list()
+    if (homes.length === 0) {
+      alert('No homes saved to your account yet.')
+      return
+    }
+    new HomeListDialog(homes, (id) => {
+      void (async () => {
+        if (store.isDirty() && !confirm('Unsaved changes will be lost. Continue?')) return
+        try {
+          const home = await remoteHomes.load(id)
+          store.loadHome(home)
+          currentAccountHomeId = id
+          doFit()
+          refreshAll()
+        } catch (err) {
+          alert(err instanceof Error ? err.message : `Failed to open home from account: ${String(err)}`)
+        }
+      })()
+    }).open()
+  } catch (err) {
+    alert(err instanceof Error ? err.message : `Failed to list account homes: ${String(err)}`)
+  }
+}
+
 // ── Toolbar ─────────────────────────────────────────────────────────────────
 
 function buildToolbar(): void {
@@ -300,14 +403,15 @@ function buildToolbar(): void {
   for (const btn of toolbar.querySelectorAll<HTMLButtonElement>('button[data-tool]')) {
     btn.addEventListener('click', () => {
       try { engine.setTool(btn.dataset.tool as PlanTool) } catch { /* ignore */ }
+      telemetry.toolSwitch(btn.dataset.tool ?? 'unknown')
       catalogPanel?.disarm()
       refreshToolbar()
       refreshStatus()
     })
   }
 
-  toolbar.querySelector('#btn-undo')!.addEventListener('click', () => { store.undo(); refreshAll() })
-  toolbar.querySelector('#btn-redo')!.addEventListener('click', () => { store.redo(); refreshAll() })
+  toolbar.querySelector('#btn-undo')!.addEventListener('click', () => { store.undo(); telemetry.featureUndo(); refreshAll() })
+  toolbar.querySelector('#btn-redo')!.addEventListener('click', () => { store.redo(); telemetry.featureRedo(); refreshAll() })
 
   toolbar.querySelector('#magnetism')!.addEventListener('change', (e) => {
     engine.setMagnetism((e.target as HTMLInputElement).checked)
@@ -440,6 +544,8 @@ function refreshStatus(): void {
   statusTool.textContent = `${tool}${phase}`
   statusAutomation.textContent = `automation: ${automationText}`
   statusZoom.textContent = `zoom: ${Math.round(currentView.scale * 100)}%`
+  const user = auth.currentUser()
+  statusAccount.textContent = user ? `account: ${user}` : 'account: signed out'
 }
 
 // ── Camera preset ───────────────────────────────────────────────────────────
@@ -954,6 +1060,7 @@ function refreshAll(): void {
 
 // ── Boot ────────────────────────────────────────────────────────────────────
 
+telemetry.appStart()
 refreshMenus()
 buildToolbar()
 resizeCanvas()
@@ -1005,6 +1112,7 @@ const propsPanel = new PropertiesPanel(store, mainArea)
 let sharedCatalog: FurnitureCatalog | null = null
 let userCatalog: import('./core/user-catalog').UserCatalog | null = null
 
+const catalogLoadStart = performance.now()
 const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
   const { UserCatalog, InMemoryModelStore } = await import('./core/user-catalog')
   sharedCatalog = catalog
@@ -1049,6 +1157,7 @@ const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
     },
   })
   catalogHost.appendChild(catalogPanel.element)
+  telemetry.catalogLoad(performance.now() - catalogLoadStart, sharedCatalog.size)
 }).catch((err) => {
   console.error('[catalog] failed to load catalog:', err)
   automationText = 'catalog unavailable'

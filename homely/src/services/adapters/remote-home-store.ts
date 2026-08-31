@@ -27,11 +27,28 @@ export interface RemoteHome {
  * client never supplies an owner id.
  */
 export class RemoteHomeStore {
-  constructor(private readonly baseUrl = '/api/homes') {}
+  constructor(
+    private readonly baseUrl = '/api/homes',
+    private readonly getToken: () => string | null = () => null,
+  ) {}
+
+  /**
+   * Shared fetch path. When a token is present, adds a Bearer Authorization
+   * header; otherwise delegates to plain fetch. Single-argument calls are
+   * preserved (no token → `fetch(url)`) so callers/tests can assert exact
+   * call shapes.
+   */
+  private async request(url: string, init?: RequestInit): Promise<Response> {
+    const token = this.getToken()
+    if (!token) return init ? fetch(url, init) : fetch(url)
+    const headers = new Headers(init?.headers)
+    headers.set('Authorization', `Bearer ${token}`)
+    return fetch(url, { ...init, headers })
+  }
 
   /** List the authenticated user's saved homes (summaries, no JSON blob). */
   async list(): Promise<RemoteHomeSummary[]> {
-    const response = await fetch(this.baseUrl)
+    const response = await this.request(this.baseUrl)
     if (!response.ok) throw new Error(`home library unavailable (${response.status})`)
     return ((await response.json()) as { items: RemoteHomeSummary[] }).items
   }
@@ -45,7 +62,7 @@ export class RemoteHomeStore {
     options: { id?: string; name?: string } = {},
   ): Promise<RemoteHome> {
     const body = { name: options.name, json: serializeForSave(home) }
-    const response = await fetch(options.id ? `${this.baseUrl}/${encodeURIComponent(options.id)}` : this.baseUrl, {
+    const response = await this.request(options.id ? `${this.baseUrl}/${encodeURIComponent(options.id)}` : this.baseUrl, {
       method: options.id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -56,7 +73,7 @@ export class RemoteHomeStore {
 
   /** Load and parse a saved home by id. */
   async load(id: string): Promise<NormalizedHomeState> {
-    const response = await fetch(`${this.baseUrl}/${encodeURIComponent(id)}`)
+    const response = await this.request(`${this.baseUrl}/${encodeURIComponent(id)}`)
     if (!response.ok) throw new Error(`home load failed (${response.status})`)
     const record = (await response.json()) as RemoteHome
     return parseHomeFile(record.json)
@@ -64,7 +81,7 @@ export class RemoteHomeStore {
 
   /** Delete a saved home by id. */
   async remove(id: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/${encodeURIComponent(id)}`, { method: 'DELETE' })
+    const response = await this.request(`${this.baseUrl}/${encodeURIComponent(id)}`, { method: 'DELETE' })
     if (!response.ok) throw new Error(`home removal failed (${response.status})`)
   }
 }
