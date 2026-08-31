@@ -35,6 +35,7 @@ root.innerHTML = `
       <div id="view3d"></div>
     </div>
   </div>
+  <div id="context-menu"></div>
   <div id="status-bar">
     <span id="status-cursor">x: 0  y: 0</span>
     <span id="status-tool">selection</span>
@@ -55,6 +56,7 @@ const statusTool = root.querySelector<HTMLSpanElement>('#status-tool')!
 const statusZoom = root.querySelector<HTMLSpanElement>('#status-zoom')!
 const statusAutomation = root.querySelector<HTMLSpanElement>('#status-automation')!
 const ctx = canvas.getContext('2d')
+const contextMenu = root.querySelector<HTMLDivElement>('#context-menu')!
 
 // ── Store + engine ──────────────────────────────────────────────────────────
 
@@ -696,6 +698,86 @@ canvas.addEventListener('dblclick', (event) => {
   engine.click({ x: point.x, y: point.y, dbl: true, shift: event.shiftKey })
   refreshToolbar()
   refreshStatus()
+})
+
+// ── Plan-view context menu (right-click) ────────────────────────────────────
+// Mirrors the Edit menu actions, wired to the exact same functions the
+// keyboard shortcuts use (clipboardManager / engine.key('delete')).
+
+function closeContextMenu(): void {
+  contextMenu.classList.remove('open')
+}
+
+function hitItemId(hit: { kind: string; id?: string; wallId?: string; roomId?: string }): string | null {
+  switch (hit.kind) {
+    case 'wall-endpoint':
+      return hit.wallId ?? null
+    case 'room-vertex':
+      return hit.roomId ?? null
+    default:
+      return (hit.id as string | undefined) ?? null
+  }
+}
+
+function openContextMenu(clientX: number, clientY: number): void {
+  contextMenu.innerHTML = ''
+  const selected = store.getHome().selection
+  const hasSelection = selected.length > 0
+
+  const makeEntry = (label: string, enabled: boolean, action: () => void): void => {
+    const btn = document.createElement('button')
+    btn.className = 'menu-entry'
+    btn.disabled = !enabled
+    btn.textContent = label
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      closeContextMenu()
+      action()
+    })
+    contextMenu.appendChild(btn)
+  }
+
+  makeEntry('Copy', hasSelection, () => { if (clipboardManager.copy() > 0) refreshAll() })
+  makeEntry('Paste', clipboardManager.getClipboardLength() > 0, () => {
+    if (clipboardManager.paste().length > 0) refreshAll()
+  })
+  makeEntry('Duplicate', hasSelection, () => { if (clipboardManager.duplicate().length > 0) refreshAll() })
+  makeEntry('Delete', hasSelection, () => {
+    if (store.getHome().selection.length > 0) { engine.key('delete'); refreshAll() }
+  })
+
+  contextMenu.style.left = `${clientX}px`
+  contextMenu.style.top = `${clientY}px`
+  contextMenu.classList.add('open')
+}
+
+canvas.addEventListener('contextmenu', (event) => {
+  event.preventDefault()
+
+  const hit = engine.hitTestPoint(eventModelPoint(event))
+  const hitId = hit ? hitItemId(hit) : null
+  const selected = new Set(store.getHome().selection)
+
+  // Right-click on an unselected object selects it first (no toggle).
+  if (hitId && !selected.has(hitId)) {
+    model.setSelection([hitId])
+    refreshToolbar()
+    refreshStatus()
+  }
+
+  closeContextMenu()
+  openContextMenu(event.clientX, event.clientY)
+})
+
+document.addEventListener('mousedown', (event) => {
+  if (!contextMenu.contains(event.target as Node)) closeContextMenu()
+})
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && contextMenu.classList.contains('open')) {
+    event.stopPropagation()
+    closeContextMenu()
+  }
 })
 
 // Scroll wheel zoom centered on cursor

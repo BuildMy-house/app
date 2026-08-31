@@ -167,6 +167,25 @@ body {
   margin: 4px 8px;
 }
 
+/* Context menu (right-click on plan canvas). Reuses .menu-dropdown/.menu-entry
+   visuals but floats at the cursor with position: fixed. */
+#context-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  min-width: 180px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1200;
+  padding: 4px 0;
+  display: none;
+}
+#context-menu.open {
+  display: block;
+}
+
 /* ── Toolbar ──────────────────────────────────────────────────────────────── */
 
 #toolbar {
