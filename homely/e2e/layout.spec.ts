@@ -54,7 +54,7 @@ test.describe('layout', () => {
     await page.locator('.menu-trigger').first().click()
     const dropdown = page.locator('.menu-item.open .menu-dropdown')
     await expect(dropdown).toBeVisible()
-    await expect(dropdown.locator('.menu-entry')).toHaveCount(4) // New, Save, Open, Export Plan as PNG (separators are not .menu-entry)
+    await expect(dropdown.locator('.menu-entry')).toHaveCount(5) // New, Save, Open, Export Plan as PNG, Export 3D View as PNG (separators are not .menu-entry)
   })
 
   test('clicking elsewhere closes the menu', async ({ page }) => {
@@ -81,6 +81,17 @@ test.describe('layout', () => {
     await expect(entry).toBeVisible()
     const [download] = await Promise.all([page.waitForEvent('download'), entry.click()])
     expect(download.suggestedFilename()).toBe('plan.png')
+    const file = readFileSync((await download.path())!)
+    expect([...file.slice(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    expect(file.byteLength).toBeGreaterThan(1000)
+  })
+
+  test('File > Export 3D View as PNG downloads a valid non-trivial PNG', async ({ page }) => {
+    await page.locator('.menu-trigger').first().click()
+    const entry = page.locator('.menu-item.open .menu-entry', { hasText: 'Export 3D View as PNG' })
+    await expect(entry).toBeVisible()
+    const [download] = await Promise.all([page.waitForEvent('download'), entry.click()])
+    expect(download.suggestedFilename()).toBe('3d-view.png')
     const file = readFileSync((await download.path())!)
     expect([...file.slice(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
     expect(file.byteLength).toBeGreaterThan(1000)

@@ -11,7 +11,7 @@ import { PlanEngine, type PlanPreview, type PlanTool } from './plan/engine'
 import { snapFurniturePlacement } from './plan/furniture-snap'
 import { ViewMapper, drawPlan, fitToBounds, type PlanRenderingContext, type ViewTransform } from './plan/renderer'
 import { saveHomeFile, loadHomeFile } from './services/adapters/home-persistence'
-import { exportPlanPng } from './services/adapters/plan-export'
+import { exportPlanPng, export3dPng } from './services/adapters/plan-export'
 import { PreferencesDialog, loadPreferences, hexToIntColor } from './ui/preferences'
 import { ClipboardManager } from './plan/clipboard'
 
@@ -210,6 +210,7 @@ function refreshMenus(): void {
         },
         { label: '---' },
         { label: 'Export Plan as PNG…', action: () => { exportPlanPng(store.getHome()) } },
+        { label: 'Export 3D View as PNG…', action: () => { if (view3d) export3dPng(view3d.scene, view3d.camera) } },
       ],
     },
     {
