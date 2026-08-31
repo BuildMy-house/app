@@ -107,6 +107,40 @@ def renderable_to_bridge(scene: dict, home: dict | None = None) -> dict:
     return {"materials": materials, "objects": objects, "lights": lights, "camera": camera}
 
 
+def render_cameras(scene_data: dict, cameras: list[dict], *,
+                   settings: Any | None = None, home: dict | None = None) -> dict[str, bytes]:
+    """Render one PNG per named camera from a single scene.
+
+    ``cameras`` is a list of ``{"name": str, "camera": <RenderableScene camera>}``
+    (each camera the same ``position``/``yaw``/``pitch``/``fov`` shape that
+    ``_camera_to_bridge`` consumes). Returns ``{name: png_bytes}`` — the batch
+    "render every saved view" primitive.
+
+    The film aspect (settings.width / settings.height) is applied to every
+    camera via ``scene.camera.screenwindow`` so non-square renders are not
+    distorted (LuxCore's ``fieldofview`` is vertical-only). The full render
+    pipeline (engine, denoise, adaptive sampling) is delegated to
+    ``renderer.render``; ``renderer`` can later call this directly for batch
+    jobs. Imported lazily to avoid the bridge<->renderer import cycle.
+    """
+    from .renderer import RenderSettings, render, validate_settings
+
+    settings = validate_settings(settings) if settings is not None else validate_settings(RenderSettings())
+    aspect = settings.width / settings.height
+    if "version" in scene_data:
+        base = renderable_to_bridge(scene_data, home)
+    elif "walls" in scene_data:
+        base = home_to_scene(scene_data)
+    else:
+        base = dict(scene_data)  # already-bridged ad-hoc scene; copy camera slot
+    results: dict[str, bytes] = {}
+    for cam in cameras:
+        name = cam["name"]
+        base["camera"] = _camera_to_bridge(cam["camera"], aspect)
+        results[name] = render(base, settings, home=home)
+    return results
+
+
 def _rs_rgb(color: int) -> list[float]:
     return [(color >> 16 & 0xFF) / 255, (color >> 8 & 0xFF) / 255, (color & 0xFF) / 255]
 
@@ -181,21 +215,25 @@ def _furniture_to_asset(item: dict, material_id: str) -> dict:
             "rotation": -item.get("angleDeg", 0), "path": str(source)}
 
 
-def _camera_to_bridge(camera: dict) -> dict:
+def _camera_to_bridge(camera: dict, aspect: float | None = None) -> dict:
     if not camera:
-        return {"lookat": [[0, 0, 5], [0, 0, 0], [0, 0, 1]], "fov": 60}
-    pos = camera["position"]  # [plan_x, height, plan_y] cm
-    yaw_rs = camera.get("yaw", 0.0)
-    pitch_rs = camera.get("pitch", 0.0)
-    eye = [pos[0] / 100, pos[2] / 100, pos[1] / 100]
-    distance = 5
-    direction = [-math.sin(yaw_rs) * math.cos(pitch_rs),
-                 -math.cos(yaw_rs) * math.cos(pitch_rs),
-                 math.sin(pitch_rs)]
-    target = [eye[0] + direction[0] * distance,
-              eye[1] + direction[1] * distance,
-              max(eye[2] + direction[2] * distance, 0)]
-    return {"lookat": [eye, target, [0, 1, 0]], "fov": camera.get("fov", 60)}
+        result = {"lookat": [[0, 0, 5], [0, 0, 0], [0, 0, 1]], "fov": 60}
+    else:
+        pos = camera["position"]  # [plan_x, height, plan_y] cm
+        yaw_rs = camera.get("yaw", 0.0)
+        pitch_rs = camera.get("pitch", 0.0)
+        eye = [pos[0] / 100, pos[2] / 100, pos[1] / 100]
+        distance = 5
+        direction = [-math.sin(yaw_rs) * math.cos(pitch_rs),
+                     -math.cos(yaw_rs) * math.cos(pitch_rs),
+                     math.sin(pitch_rs)]
+        target = [eye[0] + direction[0] * distance,
+                  eye[1] + direction[1] * distance,
+                  max(eye[2] + direction[2] * distance, 0)]
+        result = {"lookat": [eye, target, [0, 1, 0]], "fov": camera.get("fov", 60)}
+    if aspect:
+        result["aspect"] = aspect
+    return result
 
 
 def _light_to_bridge(light: dict) -> dict:
@@ -336,6 +374,14 @@ def build_scene(scene_data: dict, luxcore_module: Any | None = None) -> Any:
                        f"scene.camera.lookat.target = {' '.join(map(str, lookat[1]))}\n" +
                        f"scene.camera.up = {' '.join(map(str, lookat[2]))}\n" +
                        f"scene.camera.fieldofview = {camera.get('fov', 60)}")
+    # LuxCore's perspective `fieldofview` is the VERTICAL fov; the horizontal
+    # extent comes from `screenwindow` (default [-1,1,-1,1] = square). A naive
+    # vertical-fov-only setup therefore distorts non-square renders. Carry the
+    # film aspect (width/height) through the camera dict so the renderer can
+    # emit the correct window.
+    aspect = camera.get("aspect")
+    if aspect:
+        props.SetFromString(f"scene.camera.screenwindow = {-aspect} {aspect} -1 1")
     scene.Parse(props)
     return scene
 
