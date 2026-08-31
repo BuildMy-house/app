@@ -224,6 +224,35 @@ body {
   background: transparent;
 }
 
+.level-delete {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0.5;
+  margin-left: -4px;
+}
+
+.level-delete:hover {
+  opacity: 1;
+  color: #c00;
+  background: var(--menu-hover);
+}
+
+.level-delete:disabled {
+  opacity: 0.2;
+  cursor: default;
+}
+
+.level-delete:disabled:hover {
+  color: var(--text);
+  background: transparent;
+}
+
 #toolbar label {
   font-size: 12px;
   display: flex;

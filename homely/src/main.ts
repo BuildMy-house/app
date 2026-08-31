@@ -362,10 +362,12 @@ function refreshCamera3DButtons(): void {
 function refreshLevelButtons(): void {
   const home = store.getHome()
   const group = toolbar.querySelector<HTMLDivElement>('#level-group')!
+  const canDelete = home.levels.length > 1
   let html = `<button class="tool-btn" id="btn-level-all" title="Show all levels" data-level="all">All</button>`
   for (const level of home.levels) {
     const isActive = activeLevelId === level.id
     html += `<button class="tool-btn level-btn${isActive ? ' active' : ''}" data-level="${level.id}" title="${level.name}">${level.name}</button>`
+    html += `<button class="level-delete" data-delete-level="${level.id}" title="Delete level"${canDelete ? '' : ' disabled'}>×</button>`
   }
   html += `<button class="tool-btn" id="btn-add-level" title="Add level">+</button>`
   group.innerHTML = html
@@ -390,6 +392,21 @@ function refreshLevelButtons(): void {
         model.updateLevel(level.id, { name: newName.trim() })
         refreshAll()
       }
+    })
+  }
+
+  for (const btn of group.querySelectorAll<HTMLButtonElement>('button.level-delete')) {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.deleteLevel!
+      const level = home.levels.find((l) => l.id === id)
+      if (!level) return
+      if (!confirm(`Delete level "${level.name}"? This also removes everything on it. This can be undone.`)) return
+      model.removeLevel(id)
+      if (activeLevelId === id) {
+        activeLevelId = null
+        engine.setActiveLevel(null)
+      }
+      refreshAll()
     })
   }
 
