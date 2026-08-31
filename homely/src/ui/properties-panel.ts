@@ -330,6 +330,11 @@ export class PropertiesPanel {
     floorVis.addEventListener('change', () => commit({ floorVisible: floorVis.checked }))
     body.appendChild(fieldRow('Floor', floorVis))
 
+    // Ceiling visible
+    const ceilingVis = checkboxInput(room.ceilingVisible !== false)
+    ceilingVis.addEventListener('change', () => commit({ ceilingVisible: ceilingVis.checked }))
+    body.appendChild(fieldRow('Ceiling', ceilingVis))
+
     // Floor color
     const floorColor = colorInput(room.floorColor)
     floorColor.addEventListener('input', () => commit({ floorColor: parseColor(floorColor.value) }))
