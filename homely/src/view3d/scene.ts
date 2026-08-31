@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import {
   DEFAULT_WALL_HEIGHT_CM,
+  WALL_TEXTURES,
   type Furniture,
   type NormalizedHomeState,
   type Room,
@@ -240,6 +241,12 @@ function wallMesh(
     material.opacity = 1 - wallsTransparency
   }
 
+  const wallTexture = wall.leftSideTextureId ? loadWallTexture(wall.leftSideTextureId) : null
+  if (wallTexture) {
+    material.map = wallTexture
+    material.needsUpdate = true
+  }
+
   const ux = dx / (length || 1)
   const uy = dy / (length || 1)
   const midX = (wall.xStart + wall.xEnd) / 2
@@ -254,6 +261,7 @@ function wallMesh(
     // ExtrudeGeometry builds in XY extruded along +Z.
     // Rotate -π/2 around X: Y→Z(up), Z→-Y so front face (z=depth) → +Y.
     geometry.rotateX(-Math.PI / 2)
+    if (wallTexture) remapExtrudeUvs(geometry)
     const mesh = new THREE.Mesh(geometry, material)
     mesh.name = `wall:${wall.id}`
     mesh.position.set(midX, elevation, midY)
@@ -285,8 +293,10 @@ function wallMesh(
     const segLen = d2 - d1
     if (segLen <= 0 || y2 - y1 <= 0) return new THREE.Mesh(new THREE.BufferGeometry(), material)
     const shape = segShape(d1, d2)
-    const geometry = new THREE.ExtrudeGeometry(shape, { depth: y2 - y1, bevelEnabled: false })
+    const segHeight = y2 - y1
+    const geometry = new THREE.ExtrudeGeometry(shape, { depth: segHeight, bevelEnabled: false })
     geometry.rotateX(-Math.PI / 2)
+    if (wallTexture) remapExtrudeUvs(geometry)
     const m = new THREE.Mesh(geometry, material)
     m.name = `wall:${wall.id}`
     m.position.set(midX, elevation + y1, midY)
@@ -386,6 +396,57 @@ export const defaultModelUrlResolver: ModelUrlResolver = (modelPath) => `assets/
 
 /** Scene-level resolver; set once per buildScene call via the options. */
 let activeModelUrlResolver: ModelUrlResolver = defaultModelUrlResolver
+
+// ── Wall texture loading (M52) ──────────────────────────────────────────────
+
+const TEXTURE_TILE_CM = 100 // 1 repeat per 100 cm — documents the tiling choice
+const textureCache = new Map<string, THREE.Texture | null>()
+const textureLoader = new THREE.TextureLoader()
+
+function loadWallTexture(textureId: string): THREE.Texture | null {
+  const entry = WALL_TEXTURES.find((t) => t.id === textureId)
+  if (!entry) return null
+  const url = `assets/textures/${entry.file}`
+  const cached = textureCache.get(url)
+  if (cached !== undefined) return cached
+  let tex: THREE.Texture | null = null
+  try {
+    tex = textureLoader.load(url)
+    tex.wrapS = THREE.RepeatWrapping
+    tex.wrapT = THREE.RepeatWrapping
+    tex.colorSpace = THREE.SRGBColorSpace
+  } catch {
+    tex = null
+  }
+  textureCache.set(url, tex)
+  return tex
+}
+
+/**
+ * Remap ExtrudeGeometry UVs so textures tile by physical wall dimensions.
+ * ExtrudeGeometry default UVs normalise to bounding-box [0,1], which does
+ * not correspond to real-world size. Instead, we divide by the tile period
+ * (TEXTURE_TILE_CM) so that each UV unit equals one tile. This is done per-
+ * geometry so that shared materials (segments of an opening wall) each tile
+ * at the correct density without needing per-mesh repeat overrides.
+ *
+ * Shape vertices' x-coordinates are projections along the wall direction
+ * (miteredShape centres the outline at wall midpoint). After rotateX(-π/2),
+ * shape x → geometry x → wall direction; shape y (extrude depth) → geometry
+ * -z. The rotation maps extrude height to geometry y, so Y is the wall
+ * height axis (0 … wallHeight) and V is derived from it.
+ */
+export function remapExtrudeUvs(geometry: THREE.BufferGeometry): void {
+  const posAttr = geometry.getAttribute('position')
+  const uvAttr = geometry.getAttribute('uv')
+  if (!posAttr || !uvAttr) return
+  for (let i = 0; i < posAttr.count; i++) {
+    const x = posAttr.getX(i)
+    const y = posAttr.getY(i)
+    uvAttr.setXY(i, x / TEXTURE_TILE_CM, y / TEXTURE_TILE_CM)
+  }
+  uvAttr.needsUpdate = true
+}
 
 /**
  * Scale + center a loaded model to fit the furniture's width/height/depth,

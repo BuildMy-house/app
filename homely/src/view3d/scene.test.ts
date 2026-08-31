@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { createEmptyHome } from '../core/home'
-import { buildScene } from './scene'
+import { buildScene, remapExtrudeUvs } from './scene'
 
 /**
  * Extract every unique XZ position from a THREE.BufferGeometry's position
@@ -109,5 +109,77 @@ describe('wall corner mitering (M50)', () => {
     const meshes = wallMeshes(scene)
     // Multiple segments around the opening
     expect(meshes.length).toBeGreaterThan(1)
+  })
+})
+
+// ── M52: wall texture UV remapping ────────────────────────────────────────
+
+describe('remapExtrudeUvs', () => {
+  it('sets V from Y (height) not Z after rotateX(-π/2)', () => {
+    // Mimic the wall geometry: extruded shape, then rotated so height is on Y.
+    const shape = new THREE.Shape()
+    shape.moveTo(-50, -7.5)
+    shape.lineTo(50, -7.5)
+    shape.lineTo(50, 7.5)
+    shape.lineTo(-50, 7.5)
+    shape.closePath()
+    const geometry = new THREE.ExtrudeGeometry(shape, { depth: 250, bevelEnabled: false })
+    geometry.rotateX(-Math.PI / 2)
+
+    remapExtrudeUvs(geometry)
+
+    const pos = geometry.getAttribute('position')
+    const uv = geometry.getAttribute('uv')
+    expect(pos).toBeDefined()
+    expect(uv).toBeDefined()
+
+    // Collect (Y, V) pairs
+    const yvPairs: Array<{ y: number; v: number }> = []
+    for (let i = 0; i < pos.count; i++) {
+      yvPairs.push({ y: pos.getY(i), v: uv.getY(i) })
+    }
+
+    // Find vertices at min Y and max Y
+    const minY = Math.min(...yvPairs.map((p) => p.y))
+    const maxY = Math.max(...yvPairs.map((p) => p.y))
+    expect(maxY - minY).toBeGreaterThan(100) // geometry spans meaningful height
+
+    const vAtMinY = yvPairs.filter((p) => Math.abs(p.y - minY) < 0.01).map((p) => p.v)
+    const vAtMaxY = yvPairs.filter((p) => Math.abs(p.y - maxY) < 0.01).map((p) => p.v)
+
+    const avgVMinY = vAtMinY.reduce((a, b) => a + b, 0) / vAtMinY.length
+    const avgVMaxY = vAtMaxY.reduce((a, b) => a + b, 0) / vAtMaxY.length
+
+    // V must differ significantly between bottom and top of the wall
+    const vSpread = Math.abs(avgVMaxY - avgVMinY)
+    expect(vSpread).toBeGreaterThan(0.5)
+
+    // V should roughly equal Y / 100
+    expect(avgVMinY).toBeCloseTo(minY / 100, 1)
+    expect(avgVMaxY).toBeCloseTo(maxY / 100, 1)
+  })
+
+  it('U uses X (wall length direction)', () => {
+    const shape = new THREE.Shape()
+    shape.moveTo(-50, -7.5)
+    shape.lineTo(50, -7.5)
+    shape.lineTo(50, 7.5)
+    shape.lineTo(-50, 7.5)
+    shape.closePath()
+    const geometry = new THREE.ExtrudeGeometry(shape, { depth: 250, bevelEnabled: false })
+    geometry.rotateX(-Math.PI / 2)
+
+    remapExtrudeUvs(geometry)
+
+    const pos = geometry.getAttribute('position')
+    const uv = geometry.getAttribute('uv')
+
+    // U should roughly equal X / 100
+    const uAtX50 = Array.from({ length: pos.count }, (_, i) => ({ x: pos.getX(i), u: uv.getX(i) }))
+      .filter((p) => Math.abs(p.x - 50) < 0.01)
+      .map((p) => p.u)
+    expect(uAtX50.length).toBeGreaterThan(0)
+    const avgU = uAtX50.reduce((a, b) => a + b, 0) / uAtX50.length
+    expect(avgU).toBeCloseTo(50 / 100, 1)
   })
 })
