@@ -173,28 +173,44 @@ def validate_settings(settings: RenderSettings) -> RenderSettings:
 # Film property builders (verified against LuxCore 2.11 API)
 # ---------------------------------------------------------------------------
 
-def _build_denoise_pipeline_props(settings: RenderSettings) -> str:
-    """Build film.imagepipelines properties for denoising.
+def _build_image_pipeline_props(settings: RenderSettings) -> str:
+    """Build film.imagepipelines properties — tonemap + optional denoise + gamma.
 
-    Verified property keys (LuxCore 2.11 SDL Reference Manual):
-      film.imagepipelines.<pipeline>.<plugin>.type = "INTEL_OIDN" | "BCD_DENOISER"
-      film.imagepipelines.<pipeline>.<plugin>.sharpness = <float>
-      film.imagepipelines.<pipeline>.<plugin>.oidnmemory = <int MB>
+    Tonemapping and gamma correction are ALWAYS applied (unconditionally),
+    so that RGB_TONEMAPPED output is correctly toned even without denoising.
+    The denoiser plugin is inserted into the pipeline only when requested.
+
+    Pipeline order (LuxCore 2.11 SDL Reference Manual):
+      tonemap → [denoiser] → gamma correction
+
+    Tonemap default: TONEMAP_REINHARD02 — automatic photographic operator,
+    no hand-tuned scale needed. Works well for previews and finals alike.
+
+    Verified property keys:
+      film.imagepipelines.<pipeline>.<plugin>.type
+      film.imagepipelines.<pipeline>.<plugin>.sharpness   (denoiser)
+      film.imagepipelines.<pipeline>.<plugin>.oidnmemory  (OIDN only)
+      film.imagepipelines.<pipeline>.<plugin>.value       (GAMMA_CORRECTION)
     """
-    if settings.denoise == DenoiseBackend.NONE:
-        return ""
-    # Pipeline 0: tonemap → denoise → gamma correction
-    lines = [
-        "film.imagepipelines.0.0.type = TONEMAP_LINEAR",
-        "film.imagepipelines.0.0.scale = 0.0001",
-        f"film.imagepipelines.0.1.type = {settings.denoise.value}",
-        f"film.imagepipelines.0.1.sharpness = {settings.denoise_sharpness}",
-    ]
-    if settings.denoise == DenoiseBackend.OIDN:
-        lines.append(f"film.imagepipelines.0.1.oidnmemory = {settings.denoise_oidn_memory_mb}")
-    lines.append("film.imagepipelines.0.2.type = GAMMA_CORRECTION")
-    lines.append("film.imagepipelines.0.2.value = 2.2")
-    # Route output through this pipeline
+    # Slot 0: tonemap (always present)
+    lines = ["film.imagepipelines.0.0.type = TONEMAP_REINHARD02"]
+    next_slot = 1
+
+    # Slot 1 (when denoising): denoiser plugin
+    if settings.denoise != DenoiseBackend.NONE:
+        lines.append(f"film.imagepipelines.0.{next_slot}.type = {settings.denoise.value}")
+        lines.append(f"film.imagepipelines.0.{next_slot}.sharpness = {settings.denoise_sharpness}")
+        if settings.denoise == DenoiseBackend.OIDN:
+            lines.append(
+                f"film.imagepipelines.0.{next_slot}.oidnmemory = {settings.denoise_oidn_memory_mb}"
+            )
+        next_slot += 1
+
+    # Last slot: gamma correction (always present)
+    lines.append(f"film.imagepipelines.0.{next_slot}.type = GAMMA_CORRECTION")
+    lines.append(f"film.imagepipelines.0.{next_slot}.value = 2.2")
+
+    # Route RGB output through this pipeline
     lines.append("film.imagepipeline.0.type = RGB_IMAGEPIPELINE")
     lines.append("film.imagepipeline.0.index = 0")
     return "\n".join(lines)
@@ -252,10 +268,9 @@ def render(
             f"batch.haltspp = {settings.samples_per_pixel}\n"
             f"sampler.type = SOBOL"
         )
-        # Denoising pipeline
-        denoise_str = _build_denoise_pipeline_props(settings)
-        if denoise_str:
-            config_str += "\n" + denoise_str
+        # Image pipeline (tonemap + optional denoise + gamma — always applied)
+        pipeline_str = _build_image_pipeline_props(settings)
+        config_str += "\n" + pipeline_str
         # Adaptive sampling
         adaptive_str = _build_adaptive_props(settings)
         if adaptive_str:

@@ -13,6 +13,7 @@ from luxcore.renderer import (
     PRESETS,
     DenoiseBackend,
     RenderSettings,
+    _build_image_pipeline_props,
     resolve_preset,
     validate_settings,
 )
@@ -243,3 +244,42 @@ def test_renderable_hides_luxcore_invisible_objects():
     rs = _rs_scene(2)
     rs["objects"][0]["visible"]["luxcore"] = False
     assert renderable_to_bridge(rs)["objects"] == []
+
+
+# --- image pipeline (R8: tonemap always applied) ---
+
+
+@pytest.mark.parametrize(
+    "backend",
+    [DenoiseBackend.NONE, DenoiseBackend.OIDN, DenoiseBackend.BCD],
+)
+def test_image_pipeline_always_has_tonemap_and_gamma(backend: DenoiseBackend):
+    props = _build_image_pipeline_props(RenderSettings(denoise=backend))
+    assert "TONEMAP_REINHARD02" in props
+    assert "GAMMA_CORRECTION" in props
+    assert "film.imagepipeline.0.type = RGB_IMAGEPIPELINE" in props
+    assert "film.imagepipeline.0.index = 0" in props
+
+
+def test_image_pipeline_no_denoiser_when_none():
+    props = _build_image_pipeline_props(RenderSettings(denoise=DenoiseBackend.NONE))
+    assert "INTEL_OIDN" not in props
+    assert "BCD_DENOISER" not in props
+    # tonemap at slot 0, gamma at slot 1
+    assert "film.imagepipelines.0.0.type = TONEMAP_REINHARD02" in props
+    assert "film.imagepipelines.0.1.type = GAMMA_CORRECTION" in props
+
+
+def test_image_pipeline_denoiser_between_tonemap_and_gamma():
+    props = _build_image_pipeline_props(RenderSettings(denoise=DenoiseBackend.OIDN))
+    assert "film.imagepipelines.0.0.type = TONEMAP_REINHARD02" in props
+    assert "film.imagepipelines.0.1.type = INTEL_OIDN" in props
+    assert "film.imagepipelines.0.2.type = GAMMA_CORRECTION" in props
+    assert "film.imagepipelines.0.1.sharpness = 0.1" in props
+    assert "film.imagepipelines.0.1.oidnmemory = 6000" in props
+
+
+def test_image_pipeline_bcd_denoiser_no_oidnmemory():
+    props = _build_image_pipeline_props(RenderSettings(denoise=DenoiseBackend.BCD))
+    assert "film.imagepipelines.0.1.type = BCD_DENOISER" in props
+    assert "oidnmemory" not in props
