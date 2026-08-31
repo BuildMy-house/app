@@ -616,10 +616,11 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
   }
 
   // HemisphereLight (natural ambient) + AmbientLight (fill) + DirectionalLight (shadows)
+  // + soft fill DirectionalLight (opposite side, no shadows) to lift shadowed faces
   const skyColor = new THREE.Color(home.environment.skyColor ?? 0xcce4fc)
   const groundColor = new THREE.Color(home.environment.groundColor ?? 0x808080)
-  scene.add(new THREE.HemisphereLight(skyColor, groundColor, 0.6))
-  scene.add(new THREE.AmbientLight(home.environment.lightColor ?? 0xffffff, 0.3))
+  scene.add(new THREE.HemisphereLight(skyColor, groundColor, 1.0))
+  scene.add(new THREE.AmbientLight(home.environment.lightColor ?? 0xffffff, 0.5))
 
   const dirLightColor = new THREE.Color(home.environment.lightColor ?? 0xffffff)
   const directional = new THREE.DirectionalLight(dirLightColor, 0.8)
@@ -633,6 +634,12 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
   directional.shadow.camera.top = 5000
   directional.shadow.camera.bottom = -5000
   scene.add(directional)
+
+  // Soft fill light from roughly opposite direction — lifts shadowed faces
+  // without flattening the main directional shadow contrast.
+  const fillLight = new THREE.DirectionalLight(dirLightColor, 0.25)
+  fillLight.position.set(-300, 300, -200)
+  scene.add(fillLight)
 
   if (home.environment.groundColor !== null) {
     const ground = new THREE.Mesh(
