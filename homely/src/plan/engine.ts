@@ -8,6 +8,7 @@ import { snapFurniturePlacement } from './furniture-snap'
 import {
   distance,
   distToSegment,
+  signedArea,
   type Point,
 } from './geometry'
 
@@ -520,8 +521,38 @@ export class PlanEngine {
   }
 
   private doubleClick(point: Point): void {
-    if (this.tool === 'room' && this.phase === 'drawing') {
-      this.closeRoom()
+    if (this.tool === 'room') {
+      // A real browser double-click fires pointerup→click before dblclick,
+      // so singleClick→roomClick has already added 1-2 phantom points at
+      // the same position. If all roomPoints are co-located with the dblclick
+      // point, this is a trivial drawing session from the gesture itself —
+      // reset and try wall-enclosure auto-detect. Otherwise the user was
+      // genuinely mid-manual-polygon and wants to close it.
+      const isTrivial =
+        this.roomPoints.length > 0 &&
+        this.roomPoints.every(
+          (p) => distance(point, { x: p[0], y: p[1] }) <= ENDPOINT_HIT_RADIUS,
+        )
+      if (this.phase === 'drawing' && !isTrivial) {
+        this.closeRoom()
+        return
+      }
+      if (this.phase === 'drawing') {
+        this.roomPoints = []
+        this.phase = 'idle'
+      }
+      const loop = this.findEnclosingWallLoop(point)
+      if (loop) {
+        this.model.getStore().beginCompoundEdit()
+        const room = this.model.addRoom(
+          loop.map((p) => [p.x, p.y] as [number, number]),
+          { levelRef: this.activeLevelId ?? undefined },
+        )
+        this.model.setSelection([room.id])
+        this.model.getStore().endCompoundEdit()
+        return
+      }
+      this.roomClick(point)
       return
     }
     if (this.tool !== 'wall' || this.phase !== 'drawing') return
@@ -600,6 +631,113 @@ export class PlanEngine {
     this.roomPoints = []
     this.phase = 'idle'
     this.chainStart = null
+  }
+
+  /**
+   * Walk the wall graph to find the smallest enclosing cycle (by area) whose
+   * interior contains `point`. Returns the cycle's vertex polygon or null.
+   *
+   * Scoped to the common rectangular/simple-polygon case: DFS bounded to
+   * MAX_CYCLE edges per candidate, picking the smallest-area enclosing face.
+   * Works correctly for convex and simple concave enclosures; may miss
+   * extremely complex self-touching layouts (acceptable per M64 DoD).
+   */
+  private findEnclosingWallLoop(point: Point): Array<Point> | null {
+    const home = this.homeSnapshot()
+    const walls = home.walls.filter((w) => this.matchesActiveLevel(w.levelRef))
+    if (walls.length < 3) return null
+
+    const MAX_CYCLE = 10
+
+    // Canonicalize wall endpoints: merge within CONNECTED_WALL_EPSILON.
+    const pts: Point[] = []
+    const canonicalize = (p: Point): number => {
+      for (let i = 0; i < pts.length; i++) {
+        if (distance(pts[i] as Point, p) <= CONNECTED_WALL_EPSILON) return i
+      }
+      pts.push({ x: p.x, y: p.y })
+      return pts.length - 1
+    }
+
+    // Collect edges (wall-indexed) then build adjacency.
+    const edges: Array<[number, number]> = []
+    for (const wall of walls) {
+      const si = canonicalize({ x: wall.xStart, y: wall.yStart })
+      const ei = canonicalize({ x: wall.xEnd, y: wall.yEnd })
+      edges.push([si, ei])
+    }
+
+    const n = pts.length
+    const neighbors: Array<Array<{ node: number; wallIdx: number }>> = Array.from(
+      { length: n },
+      () => [],
+    )
+    for (let wi = 0; wi < edges.length; wi++) {
+      const [si, ei] = edges[wi]!
+      neighbors[si]!.push({ node: ei, wallIdx: wi })
+      neighbors[ei]!.push({ node: si, wallIdx: wi })
+    }
+
+    let bestCycle: number[] | null = null
+    let bestArea = Infinity
+
+    // DFS from each node to find simple cycles containing `point`.
+    // Deduplicate by only starting from the lowest-indexed node in each cycle.
+    for (let start = 0; start < n; start++) {
+      const adj = neighbors[start]
+      if (!adj || adj.length === 0) continue
+
+      const stack: Array<{
+        node: number
+        path: number[]
+        usedWalls: Set<number>
+      }> = []
+      for (const { node, wallIdx } of adj) {
+        if (node < start) continue
+        stack.push({
+          node,
+          path: [start, node],
+          usedWalls: new Set([wallIdx]),
+        })
+      }
+
+      while (stack.length > 0) {
+        const { node, path, usedWalls } = stack.pop()!
+        if (path.length >= MAX_CYCLE) continue
+
+        for (const { node: next, wallIdx } of neighbors[node] ?? []) {
+          if (next === start && path.length >= 3) {
+            const poly = path.map((i) => pts[i]!)
+            if (
+              this.pointInPolygon(
+                point,
+                poly.map((p) => [p.x, p.y]),
+              )
+            ) {
+              const area = Math.abs(signedArea(poly))
+              if (area < bestArea) {
+                bestArea = area
+                bestCycle = [...path]
+              }
+            }
+          } else if (
+            next > start &&
+            !usedWalls.has(wallIdx) &&
+            !path.includes(next)
+          ) {
+            const nextUsed = new Set(usedWalls)
+            nextUsed.add(wallIdx)
+            stack.push({
+              node: next,
+              path: [...path, next],
+              usedWalls: nextUsed,
+            })
+          }
+        }
+      }
+    }
+
+    return bestCycle ? bestCycle.map((i) => pts[i]!) : null
   }
 
   // ── Dimension-line tool ───────────────────────────────────────────────────

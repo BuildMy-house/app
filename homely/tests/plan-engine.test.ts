@@ -583,6 +583,7 @@ describe('room tool state machine', () => {
     click(50, 50, { dbl: true })
 
     expect(store.getHome().rooms).toHaveLength(0)
+    // Points are at different positions → not trivial → closeRoom with < 3 points → idle
     expect(engine.getPreview().phase).toBe('idle')
   })
 
@@ -614,6 +615,47 @@ describe('room tool state machine', () => {
       [100, 0],
       [50, 80],
     ])
+  })
+
+  it('double-click inside a 4-wall enclosure auto-creates a room in one undo step', () => {
+    const { engine, click, store } = setup()
+    // Draw 4 walls forming a closed rectangle
+    engine.setTool('wall')
+    engine.setMagnetism(false)
+    click(0, 0)
+    click(400, 0)
+    click(400, 300)
+    click(0, 300)
+    click(0, 0, { dbl: true })
+    expect(store.getHome().walls).toHaveLength(4)
+
+    // Switch to room tool and double-click inside the rectangle
+    engine.setTool('room')
+    click(200, 150, { dbl: true })
+
+    const home = store.getHome()
+    expect(home.rooms).toHaveLength(1)
+    const room = home.rooms[0]!
+    expect(room.points.length).toBeGreaterThanOrEqual(3)
+    // The room should cover the interior of the 4-wall rectangle.
+    // Verify undo removes it in one step.
+    expect(store.canUndo()).toBe(true)
+    store.undo()
+    expect(store.getHome().rooms).toHaveLength(0)
+    // Walls remain untouched.
+    expect(store.getHome().walls).toHaveLength(4)
+  })
+
+  it('double-click in open space (no enclosure) starts manual room drawing', () => {
+    const { engine, click, store } = setup()
+    engine.setTool('room')
+    // Double-click in empty space — no walls, no enclosure
+    click(100, 100, { dbl: true })
+
+    // Should fall back to manual drawing (starts with 1 vertex)
+    expect(engine.getPreview().phase).toBe('drawing')
+    expect(engine.getPreview().roomPoints).toHaveLength(1)
+    expect(store.getHome().rooms).toHaveLength(0)
   })
 })
 
