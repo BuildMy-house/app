@@ -100,6 +100,10 @@ def renderable_to_bridge(scene: dict, home: dict | None = None) -> dict:
 
     camera = _camera_to_bridge(scene.get("camera", {}))
     lights = [_light_to_bridge(light) for light in scene.get("lights", [])]
+    lights.append(_environment_light(scene.get("backgroundColor", 0xFFFFFF)))
+    if home:
+        lights.extend(_portal_lights(home))
+        lights.extend(_interior_lights(home))
     return {"materials": materials, "objects": objects, "lights": lights, "camera": camera}
 
 
@@ -207,6 +211,59 @@ def _light_to_bridge(light: dict) -> dict:
             "direction": [direction[0], direction[2], direction[1]], "gain": gain}
 
 
+# Gain scales for the three R3 light classes. Environment gain is a radiance
+# multiplier on the sky colour; portal/interior are point-light gains in the
+# same absolute scale the existing point-light default uses (5000).
+_ENV_GAIN = [1.0, 1.0, 1.0]
+_PORTAL_GAIN = [1500.0, 1500.0, 1500.0]
+_INTERIOR_GAIN = [2500.0, 2500.0, 2500.0]
+
+
+def _environment_light(bg_color: int) -> dict:
+    """Sky/environment light: constant-infinite radiance from the scene's
+    background (sky) colour. `constantinfinite` is the verified LuxCore 2.11
+    constant-colour environment light (`color` + `gain` float3)."""
+    return {"type": "constantinfinite", "name": "env",
+            "color": _rs_rgb(bg_color), "gain": list(_ENV_GAIN)}
+
+
+def _portal_lights(home: dict) -> list[dict]:
+    """Light portal per wall opening (doorOrWindow furniture), as point lights.
+
+    pyluxcore 2.11.1 has no portal light type (Scene.Parse rejects
+    ``type = portal`` with "Unknown light type: portal"), so each opening is
+    approximated by a point light at its centre.
+    # ponytail: point-light proxy; upgrade to real area/portal lights when
+    # LuxCore gains them.
+    """
+    lights = []
+    for item in home.get("furniture", []):
+        if not item.get("doorOrWindow"):
+            continue
+        z = item.get("elevation", 0) + item.get("height", 0) / 2
+        lights.append({"type": "point",
+                       "name": f"portal_{_sanitize(str(item.get('id', '')))}",
+                       "position": [item.get("x", 0) / 100, item.get("y", 0) / 100, z / 100],
+                       "gain": list(_PORTAL_GAIN)})
+    return lights
+
+
+def _interior_lights(home: dict) -> list[dict]:
+    """Point light per light-fixture furniture item (catalogId contains
+    "light"). The catalogId heuristic is the documented MVP: no schema field
+    is added to Furniture to keep the bridge disjoint from homely's core."""
+    lights = []
+    for item in home.get("furniture", []):
+        if "light" not in str(item.get("catalogId", "")).lower():
+            continue
+        z = item.get("elevation", 0) + item.get("height", 0) / 2
+        lights.append({"type": "point",
+                       "name": f"lamp_{_sanitize(str(item.get('id', '')))}",
+                       "position": [item.get("x", 0) / 100, item.get("y", 0) / 100, z / 100],
+                       "gain": list(_INTERIOR_GAIN)})
+    return lights
+
+
 def _material_props(prefix: str, mat: dict) -> str:
     """Render a bridge material dict as fully-prefixed LuxCore property lines.
 
@@ -265,8 +322,11 @@ def build_scene(scene_data: dict, luxcore_module: Any | None = None) -> Any:
             props.SetFromString(f"{prefix}material = {obj.get('material', '')}\n{prefix}vertices = {' '.join(map(str, vertices))}\n{prefix}faces = {' '.join(map(str, faces))}")
     for light in scene_data.get("lights", []):
         prefix = f"scene.lights.{light.get('name', 'light')}."
-        if light.get("type") == "directional":
+        light_type = light.get("type")
+        if light_type == "directional":
             props.SetFromString(f"{prefix}type = sharpdistant\n{prefix}direction = {' '.join(map(str, light.get('direction', [0, 0, -1])))}\n{prefix}gain = {' '.join(map(str, light.get('gain', [1, 1, 1])))}")
+        elif light_type == "constantinfinite":
+            props.SetFromString(f"{prefix}type = constantinfinite\n{prefix}color = {' '.join(map(str, light.get('color', [1, 1, 1])))}\n{prefix}gain = {' '.join(map(str, light.get('gain', [1, 1, 1])))}")
         else:
             props.SetFromString(f"{prefix}type = point\n{prefix}position = {' '.join(map(str, light.get('position', [0, 0, 5])))}\n{prefix}gain = {' '.join(map(str, light.get('gain', [5000, 5000, 5000])))}")
     camera = scene_data.get("camera", {})
