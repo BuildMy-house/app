@@ -557,6 +557,11 @@ function furnitureMesh(item: Furniture, elevation: number, onReady?: () => void,
   mesh.name = `furniture:${item.id}`
   mesh.position.set(item.x, elevation + item.elevation + item.height / 2, item.y)
   mesh.rotation.y = THREE.MathUtils.degToRad(item.angleDeg)
+  // M60: mirror furniture along the local X (width) axis when modelMirrored.
+  // Three.js WebGLRenderer auto-flips gl.frontFace for negative-determinant
+  // world matrices, so face culling and lighting stay correct without manual
+  // normal/winding correction.
+  if (item.modelMirrored) mesh.scale.x = -1
   mesh.castShadow = true
   mesh.receiveShadow = true
   swapInModel(mesh, item, isSelected, onReady)

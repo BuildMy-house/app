@@ -422,6 +422,11 @@ export class PropertiesPanel {
     const visCheck = checkboxInput(f.visible !== false)
     visCheck.addEventListener('change', () => commit({ visible: visCheck.checked }))
     body.appendChild(fieldRow('Visible', visCheck))
+
+    // Flip Horizontal (M60)
+    const mirrorCheck = checkboxInput(f.modelMirrored === true)
+    mirrorCheck.addEventListener('change', () => commit({ modelMirrored: mirrorCheck.checked }))
+    body.appendChild(fieldRow('Flip Horizontal', mirrorCheck))
   }
 
   private group(label: string): HTMLDivElement {

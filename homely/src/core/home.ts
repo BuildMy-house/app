@@ -106,6 +106,7 @@ export interface Furniture {
    */
   modelPath?: string | null
   levelRef?: string | null
+  modelMirrored?: boolean
 }
 
 export interface DimensionLine {

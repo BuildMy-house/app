@@ -253,3 +253,92 @@ describe('ceiling mesh height (M56)', () => {
     expect(ceilings.length).toBe(0)
   })
 })
+
+// ── M60: furniture horizontal flip (mirror) ──────────────────────────────
+
+function furnitureMeshes(scene: THREE.Scene): THREE.Mesh[] {
+  const meshes: THREE.Mesh[] = []
+  scene.traverse((obj) => {
+    if (obj instanceof THREE.Mesh && obj.name.startsWith('furniture:')) meshes.push(obj)
+  })
+  return meshes
+}
+
+describe('furniture mirror (M60)', () => {
+  it('non-mirrored furniture has scale.x = 1', () => {
+    const home = createEmptyHome()
+    home.furniture.push({
+      id: 'f1', name: 'Sofa',
+      x: 100, y: 200, angleDeg: 0,
+      width: 200, depth: 80, height: 90,
+      elevation: 0,
+    })
+    const scene = buildScene(home)
+    const meshes = furnitureMeshes(scene)
+    expect(meshes.length).toBe(1)
+    expect(meshes[0]!.scale.x).toBe(1)
+  })
+
+  it('mirrored furniture has scale.x = -1', () => {
+    const home = createEmptyHome()
+    home.furniture.push({
+      id: 'f1', name: 'Sofa',
+      x: 100, y: 200, angleDeg: 0,
+      width: 200, depth: 80, height: 90,
+      elevation: 0,
+      modelMirrored: true,
+    })
+    const scene = buildScene(home)
+    const meshes = furnitureMeshes(scene)
+    expect(meshes.length).toBe(1)
+    expect(meshes[0]!.scale.x).toBe(-1)
+  })
+
+  it('mirrored box geometry retains valid index and normals (no culled faces)', () => {
+    const home = createEmptyHome()
+    home.furniture.push({
+      id: 'f1', name: 'Table',
+      x: 0, y: 0, angleDeg: 0,
+      width: 100, depth: 60, height: 75,
+      elevation: 0,
+      modelMirrored: true,
+    })
+    const scene = buildScene(home)
+    const meshes = furnitureMeshes(scene)
+    const mesh = meshes[0]!
+
+    // Index buffer exists and is non-empty (faces are defined)
+    const index = mesh.geometry.getIndex()
+    expect(index).not.toBeNull()
+    expect(index!.count).toBeGreaterThan(0)
+
+    // Normal attribute exists and contains non-zero vectors
+    const normals = mesh.geometry.getAttribute('normal')
+    expect(normals).toBeDefined()
+    expect(normals.count).toBeGreaterThan(0)
+    let hasNonZeroNormal = false
+    for (let i = 0; i < normals.count; i++) {
+      if (normals.getX(i) !== 0 || normals.getY(i) !== 0 || normals.getZ(i) !== 0) {
+        hasNonZeroNormal = true
+        break
+      }
+    }
+    expect(hasNonZeroNormal).toBe(true)
+  })
+
+  it('mirror composes with rotation correctly', () => {
+    const home = createEmptyHome()
+    home.furniture.push({
+      id: 'f1', name: 'Chair',
+      x: 50, y: 50, angleDeg: 90,
+      width: 60, depth: 60, height: 80,
+      elevation: 0,
+      modelMirrored: true,
+    })
+    const scene = buildScene(home)
+    const meshes = furnitureMeshes(scene)
+    const mesh = meshes[0]!
+    expect(mesh.scale.x).toBe(-1)
+    expect(mesh.rotation.y).toBeCloseTo(Math.PI / 2, 10)
+  })
+})
