@@ -4,6 +4,7 @@ import {
   DEFAULT_WALL_HEIGHT_CM,
   WALL_TEXTURES,
   type Furniture,
+  type Level,
   type NormalizedHomeState,
   type Room,
   type Wall,
@@ -12,6 +13,7 @@ import {
 export const DEFAULT_WALL_COLOR = 0xd2d2d2
 export const DEFAULT_FLOOR_COLOR = 0xc8c8c8
 export const DEFAULT_FURNITURE_COLOR = 0x9e9e9e
+const DEFAULT_CEILING_COLOR = 0xf0f0f0
 
 const GROUND_SIZE_CM = 100_000
 
@@ -359,6 +361,30 @@ function roomMesh(room: Room, elevation: number): THREE.Mesh {
   return mesh
 }
 
+function ceilingMesh(room: Room, elevation: number, levels: Level[]): THREE.Mesh | null {
+  if (room.ceilingVisible === false) return null
+  const level = levels.find(l => l.id === room.levelRef)
+  const levelHeight = level ? level.height : DEFAULT_WALL_HEIGHT_CM
+  const shape = new THREE.Shape()
+  room.points.forEach(([x, y], index) => {
+    if (index === 0) shape.moveTo(x, -y)
+    else shape.lineTo(x, -y)
+  })
+  const geometry = new THREE.ShapeGeometry(shape)
+  geometry.rotateX(-Math.PI / 2)
+  const material = new THREE.MeshStandardMaterial({
+    color: DEFAULT_CEILING_COLOR,
+    side: THREE.DoubleSide,
+    roughness: 0.7,
+    metalness: 0.0,
+  })
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.name = `ceiling:${room.id}`
+  mesh.position.y = elevation + levelHeight
+  mesh.receiveShadow = true
+  return mesh
+}
+
 /** Shared GLTFLoader instance (lazy so the import cost is paid only when used). */
 let sharedModelLoader: GLTFLoader | null = null
 
@@ -625,8 +651,11 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
     root.add(wallEdges(wall, elevationFor(wall.levelRef, elevations), home.walls))
   }
   for (const room of home.rooms) {
-    if (room.floorVisible === false || room.points.length < 3) continue
-    root.add(roomMesh(room, elevationFor(room.levelRef, elevations)))
+    if (room.points.length < 3) continue
+    const elev = elevationFor(room.levelRef, elevations)
+    if (room.floorVisible !== false) root.add(roomMesh(room, elev))
+    const ceiling = ceilingMesh(room, elev, home.levels)
+    if (ceiling) root.add(ceiling)
   }
   const selectionSet = new Set(home.selection)
   for (const item of home.furniture) {

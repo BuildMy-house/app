@@ -119,4 +119,46 @@ test.describe('plan ↔ 3D sync', () => {
     await page.keyboard.press('Escape')
     // Should be back in selection tool (empty chain → selection)
   })
+
+  test('ceiling toggle in properties panel (M56)', async ({ page }) => {
+    // Create a room programmatically via the exposed model API.
+    // The room tool draws polygons, so a single click doesn't auto-fill.
+    const roomId: string = await page.evaluate(() => {
+      const model = (window as any).__model
+      const room = model.addRoom(
+        [[0, 0], [300, 0], [300, 300], [0, 300]],
+        { ceilingVisible: true },
+      )
+      model.setSelection([room.id])
+      return room.id
+    })
+
+    // Verify room was created and selected
+    const selection: string[] = await page.evaluate(() => {
+      return (window as any).__model.getStore().getHome().selection
+    })
+    expect(selection).toContain(roomId)
+
+    // Properties panel should show Ceiling checkbox
+    const ceilingCheckbox = page.locator('#properties-panel input[type="checkbox"]').last()
+    await expect(ceilingCheckbox).toBeVisible()
+
+    // Verify initial state: ceiling checked (we created with ceilingVisible: true)
+    await expect(ceilingCheckbox).toBeChecked()
+
+    // Ad-hoc screenshot with ceiling on
+    const view3d = page.locator('#view3d')
+    await expect(view3d).toBeVisible()
+    await page.waitForTimeout(300)
+    await view3d.screenshot({ path: 'test-results/m56-ceiling-on.png' })
+
+    // Toggle ceiling off
+    await ceilingCheckbox.uncheck({ force: true })
+
+    // Verify toggle worked
+    await expect(ceilingCheckbox).not.toBeChecked()
+
+    // Ad-hoc screenshot with ceiling off
+    await view3d.screenshot({ path: 'test-results/m56-ceiling-off.png' })
+  })
 })

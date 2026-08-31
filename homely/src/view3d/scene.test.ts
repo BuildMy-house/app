@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { createEmptyHome } from '../core/home'
+import { createEmptyHome, DEFAULT_WALL_HEIGHT_CM } from '../core/home'
 import { buildScene, remapExtrudeUvs } from './scene'
 
 /**
@@ -30,6 +30,14 @@ function wallMeshes(scene: THREE.Scene): THREE.Mesh[] {
   const meshes: THREE.Mesh[] = []
   scene.traverse((obj) => {
     if (obj instanceof THREE.Mesh && obj.name.startsWith('wall:')) meshes.push(obj)
+  })
+  return meshes
+}
+
+function ceilingMeshes(scene: THREE.Scene): THREE.Mesh[] {
+  const meshes: THREE.Mesh[] = []
+  scene.traverse((obj) => {
+    if (obj instanceof THREE.Mesh && obj.name.startsWith('ceiling:')) meshes.push(obj)
   })
   return meshes
 }
@@ -181,5 +189,67 @@ describe('remapExtrudeUvs', () => {
     expect(uAtX50.length).toBeGreaterThan(0)
     const avgU = uAtX50.reduce((a, b) => a + b, 0) / uAtX50.length
     expect(avgU).toBeCloseTo(50 / 100, 1)
+  })
+})
+
+// ── M56: ceiling mesh Y uses level.height, not level.elevation ──────────────
+
+describe('ceiling mesh height (M56)', () => {
+  it('ground-floor room (elevation=0, height=250) puts ceiling at Y≈250', () => {
+    const home = createEmptyHome()
+    home.levels.push({
+      id: 'L0', name: 'Ground', elevation: 0,
+      floorThickness: 0, height: 250, visible: true, viewable: true,
+    })
+    home.rooms.push({
+      id: 'r1', points: [[0, 0], [100, 0], [100, 100], [0, 100]],
+      levelRef: 'L0',
+    })
+    const scene = buildScene(home)
+    const ceilings = ceilingMeshes(scene)
+    expect(ceilings.length).toBe(1)
+    expect(ceilings[0]!.position.y).toBeCloseTo(250, 0)
+  })
+
+  it('raised level (elevation=100, height=300) puts ceiling at Y≈400', () => {
+    const home = createEmptyHome()
+    home.levels.push({
+      id: 'L1', name: 'Upper', elevation: 100,
+      floorThickness: 0, height: 300, visible: true, viewable: true,
+    })
+    home.rooms.push({
+      id: 'r1', points: [[0, 0], [100, 0], [100, 100], [0, 100]],
+      levelRef: 'L1',
+    })
+    const scene = buildScene(home)
+    const ceilings = ceilingMeshes(scene)
+    expect(ceilings.length).toBe(1)
+    expect(ceilings[0]!.position.y).toBeCloseTo(400, 0)
+  })
+
+  it('room with no levelRef uses DEFAULT_WALL_HEIGHT_CM', () => {
+    const home = createEmptyHome()
+    home.rooms.push({
+      id: 'r1', points: [[0, 0], [100, 0], [100, 100], [0, 100]],
+    })
+    const scene = buildScene(home)
+    const ceilings = ceilingMeshes(scene)
+    expect(ceilings.length).toBe(1)
+    expect(ceilings[0]!.position.y).toBeCloseTo(DEFAULT_WALL_HEIGHT_CM, 0)
+  })
+
+  it('ceilingVisible=false suppresses ceiling mesh', () => {
+    const home = createEmptyHome()
+    home.levels.push({
+      id: 'L0', name: 'Ground', elevation: 0,
+      floorThickness: 0, height: 250, visible: true, viewable: true,
+    })
+    home.rooms.push({
+      id: 'r1', points: [[0, 0], [100, 0], [100, 100], [0, 100]],
+      levelRef: 'L0', ceilingVisible: false,
+    })
+    const scene = buildScene(home)
+    const ceilings = ceilingMeshes(scene)
+    expect(ceilings.length).toBe(0)
   })
 })
