@@ -323,6 +323,11 @@ export function drawPlan(
   // Walls as filled thick shapes with mitered corners.
   for (const wall of home.walls) {
     if (!matchesLevel(wall.levelRef, activeLevelId)) continue
+    const wDx = wall.xEnd - wall.xStart
+    const wDy = wall.yEnd - wall.yStart
+    const wLen = Math.hypot(wDx, wDy)
+    const wUx = wLen > 0 ? wDx / wLen : 0
+    const wUy = wLen > 0 ? wDy / wLen : 0
     const outline = wallOutlinePoints(wall, home.walls)
     if (outline.length === 0) continue
     ctx.beginPath()
@@ -369,6 +374,46 @@ export function drawPlan(
     ctx.strokeStyle = cssColor(wall.rightSideColor, WALL_COLOR)
     ctx.lineWidth = 0.5
     ctx.stroke()
+
+    // Door swing arcs — quarter-circle + leaf line per door on this wall.
+    // MVP: always swings to one consistent side (no per-door swing-direction data).
+    const doorFurniture = home.furniture.filter(
+      (f) => f.doorOrWindow === true && /door/i.test(f.name) && f.wallRef === wall.id && matchesLevel(f.levelRef, activeLevelId),
+    )
+    for (const f of doorFurniture) {
+      const hw = f.width / 2
+      const doorWidth = f.width
+
+      let centerDist: number
+      if (f.wallOffset != null) {
+        centerDist = f.wallOffset
+      } else {
+        const t = ((f.x - wall.xStart) * wDx + (f.y - wall.yStart) * wDy) / (wLen * wLen)
+        centerDist = t * wLen
+      }
+
+      // Hinge point: left edge of door along wall (in model coords).
+      const hx = wall.xStart + wUx * centerDist - wUx * hw
+      const hy = wall.yStart + wUy * centerDist - wUy * hw
+
+      const hpx = mapper.sx(hx)
+      const hpy = mapper.sy(hy)
+      const radius = doorWidth * view.scale
+      const wallAngle = Math.atan2(wUy, wUx)
+      const endAngle = wallAngle + Math.PI / 2
+
+      ctx.beginPath()
+      ctx.arc(hpx, hpy, radius, wallAngle, endAngle)
+      ctx.strokeStyle = DIMENSION_COLOR
+      ctx.lineWidth = 1
+      ctx.stroke()
+
+      // Door leaf: straight line from hinge to the arc's far edge.
+      ctx.beginPath()
+      ctx.moveTo(hpx, hpy)
+      ctx.lineTo(hpx + radius * Math.cos(endAngle), hpy + radius * Math.sin(endAngle))
+      ctx.stroke()
+    }
   }
 
   // Endpoint handles for selected walls.

@@ -230,3 +230,56 @@ describe('drawPlan wall textures', () => {
     setTestImageCache(new Map())
   })
 })
+
+describe('drawPlan door swing arcs', () => {
+  it('draws a quarter-circle arc and leaf line for a door', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+    })
+    home.furniture.push({
+      id: 'd1', name: 'Door',
+      x: 200, y: 0, angleDeg: 0,
+      width: 90, depth: 15, height: 210,
+      elevation: 0,
+      doorOrWindow: true,
+      wallRef: 'w1',
+      wallOffset: 200,
+    })
+
+    const ctx = new MockContext()
+    drawPlan(home, null, ctx, IDENTITY_VIEW)
+
+    const arcCalls = ctx.ops.filter(op => op.type === 'arc')
+    expect(arcCalls.length).toBeGreaterThanOrEqual(1)
+    const [, , r, sa, ea] = arcCalls[0]!.args as [number, number, number, number, number]
+    expect(r).toBe(90)
+    expect(ea - sa).toBeCloseTo(Math.PI / 2)
+
+    const lineToCalls = ctx.ops.filter(op => op.type === 'lineTo')
+    expect(lineToCalls.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('does NOT draw a swing arc for a window', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+    })
+    home.furniture.push({
+      id: 'w1f', name: 'Window',
+      x: 200, y: 0, angleDeg: 0,
+      width: 120, depth: 15, height: 120,
+      elevation: 90,
+      doorOrWindow: true,
+      wallRef: 'w1',
+      wallOffset: 200,
+    })
+
+    const ctx = new MockContext()
+    const arcCountBefore = ctx.ops.filter(op => op.type === 'arc').length
+    drawPlan(home, null, ctx, IDENTITY_VIEW)
+    const arcCountAfter = ctx.ops.filter(op => op.type === 'arc').length
+
+    expect(arcCountAfter).toBe(arcCountBefore)
+  })
+})
