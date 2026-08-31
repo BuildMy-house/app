@@ -3,7 +3,7 @@ import { ModelError, NEW_WALL_PATTERN_ID, NEW_WALL_THICKNESS_CM } from '../core/
 import { DEFAULT_WALL_HEIGHT_CM } from '../core/home'
 import type { NormalizedHomeState } from '../core/home'
 import { normalizeAngle } from '../core/export'
-import { wallPointMagnetism } from './magnetism'
+import { pointWithAngleMagnetism, wallPointMagnetism } from './magnetism'
 import { snapFurniturePlacement } from './furniture-snap'
 import {
   distance,
@@ -242,12 +242,37 @@ export class PlanEngine {
             this.model.setSelection([hit.wallId])
           }
         }
-        const newX = this.vertexDrag.startX + (to.x - from.x)
-        const newY = this.vertexDrag.startY + (to.y - from.y)
-        this.model.setWallEndpoint(this.vertexDrag.wallId, this.vertexDrag.endpoint, newX, newY)
-        for (const cw of this.vertexDrag.connectedWalls) {
-          this.model.setWallEndpoint(cw.wallId, cw.endpoint, newX, newY)
+        const vd = this.vertexDrag
+        if (!vd) return
+        const rawX = vd.startX + (to.x - from.x)
+        const rawY = vd.startY + (to.y - from.y)
+        const draggedWall = home.walls.find((w) => w.id === vd.wallId)
+        if (!draggedWall) return
+        const oppositeEnd = vd.endpoint === 'start'
+          ? { x: draggedWall.xEnd, y: draggedWall.yEnd }
+          : { x: draggedWall.xStart, y: draggedWall.yStart }
+        // SH3D WallResizeState.moveMouse: WallPointWithAngleMagnetism anchors
+        // on the opposite endpoint and snaps to OTHER walls' endpoints.
+        // Gate the whole magnetizer on the toggle (the helper keeps snapping
+        // endpoints even with enabled:false, so gate here for SH3D parity).
+        const snapped = this.magnetismEnabled
+          ? wallPointMagnetism(
+              oppositeEnd,
+              { x: rawX, y: rawY },
+              home.walls.filter((w) => w.id !== vd.wallId),
+              {
+                enabled: true,
+                maxDelta: PLAN_SCALE,
+                endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+              },
+            )
+          : { x: rawX, y: rawY }
+        this.model.getStore().beginCompoundEdit()
+        this.model.setWallEndpoint(vd.wallId, vd.endpoint, snapped.x, snapped.y)
+        for (const cw of vd.connectedWalls) {
+          this.model.setWallEndpoint(cw.wallId, cw.endpoint, snapped.x, snapped.y)
         }
+        this.model.getStore().endCompoundEdit()
         this.vertexDrag = null
         return
       }
@@ -262,10 +287,33 @@ export class PlanEngine {
           }
         }
         const state = this.roomVertexDrag!
-        const newX = state.startX + (to.x - from.x)
-        const newY = state.startY + (to.y - from.y)
+        const rawX = state.startX + (to.x - from.x)
+        const rawY = state.startY + (to.y - from.y)
         const room = home.rooms.find((r) => r.id === state.roomId)
         if (!room) return
+        let newX = rawX
+        let newY = rawY
+        if (this.magnetismEnabled) {
+          // SH3D RoomResizeState.moveMouse: first try an exact corner-to-corner
+          // snap onto another room vertex or wall endpoint (clean join), else
+          // round onto the previous vertex's 15° rays and length grid.
+          const snapped = this.snapRoomPointToClosestCorner(room, state.vertexIndex, { x: rawX, y: rawY })
+          if (snapped) {
+            newX = snapped.x
+            newY = snapped.y
+          } else {
+            const previous = room.points[
+              state.vertexIndex === 0 ? room.points.length - 1 : state.vertexIndex - 1
+            ]!
+            const magnetized = pointWithAngleMagnetism(
+              { x: previous[0], y: previous[1] },
+              { x: rawX, y: rawY },
+              PLAN_SCALE,
+            )
+            newX = magnetized.x
+            newY = magnetized.y
+          }
+        }
         const points = room.points.map((point, i) =>
           i === state.vertexIndex
             ? ([newX, newY] as [number, number])
@@ -614,6 +662,42 @@ export class PlanEngine {
       maxDelta: PLAN_SCALE,
       endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
     })
+  }
+
+  /**
+   * SH3D PointMagnetizedToClosestWallOrRoomPoint: snap a dragged room vertex
+   * onto the nearest other room vertex or wall endpoint within PIXEL_MARGIN.
+   */
+  private snapRoomPointToClosestCorner(
+    room: NormalizedHomeState['rooms'][number],
+    vertexIndex: number,
+    point: Point,
+  ): Point | null {
+    const home = this.homeSnapshot()
+    let best: Point | null = null
+    let bestDist = PIXEL_MARGIN
+    for (let i = 0; i < room.points.length; i++) {
+      if (i === vertexIndex) continue
+      const other = room.points[i]!
+      const dist = distance({ x: other[0], y: other[1] }, point)
+      if (dist < bestDist) {
+        bestDist = dist
+        best = { x: other[0], y: other[1] }
+      }
+    }
+    for (const wall of home.walls) {
+      for (const endpoint of [
+        { x: wall.xStart, y: wall.yStart },
+        { x: wall.xEnd, y: wall.yEnd },
+      ]) {
+        const dist = distance(endpoint, point)
+        if (dist < bestDist) {
+          bestDist = dist
+          best = endpoint
+        }
+      }
+    }
+    return best
   }
 
   private freeEndpointAt(

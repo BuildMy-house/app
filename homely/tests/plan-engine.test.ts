@@ -802,3 +802,126 @@ describe('furniture drag wall-snap', () => {
     expect(placed.angleDeg).toBe(0)
   })
 })
+
+describe('wall endpoint drag magnetism', () => {
+  function makeTwoParallelWalls() {
+    const s = setup()
+    s.engine.setTool('wall')
+    s.engine.setMagnetism(false)
+    s.click(0, 0)
+    s.click(100, 0)
+    s.engine.key('escape')
+    s.click(0, 40)
+    s.click(100, 40)
+    s.engine.key('escape')
+    s.engine.setTool('selection')
+    return s
+  }
+
+  it('snaps a dragged wall endpoint onto another wall endpoint', () => {
+    const s = makeTwoParallelWalls()
+    s.engine.setMagnetism(true)
+    const { drag, store } = s
+    // Wall A: (0,0)-(100,0), wall B: (0,40)-(100,40). Drag A's end near B's start.
+    drag(100, 0, 1, 38)
+    const a = store.getHome().walls.find((w) => w.xStart === 0 && w.yStart === 0)!
+    const b = store.getHome().walls.find((w) => w.xStart === 0 && w.yStart === 40)!
+    expect([a.xEnd, a.yEnd]).toEqual([0, 40])
+    expect([b.xStart, b.yStart]).toEqual([0, 40])
+  })
+
+  it('magnetism off keeps the raw delta even near another endpoint', () => {
+    const s = makeTwoParallelWalls()
+    const { drag, store } = s
+    drag(100, 0, 1, 38)
+    const a = store.getHome().walls.find((w) => w.xStart === 0 && w.yStart === 0)!
+    expect([a.xEnd, a.yEnd]).toEqual([1, 38])
+  })
+
+  it('magnetized drag of a shared join is ONE undo step for every connected wall', () => {
+    const s = setup()
+    s.engine.setTool('wall')
+    s.engine.setMagnetism(false)
+    s.click(0, 0)
+    s.click(100, 0)
+    s.click(100, 80)
+    s.engine.key('escape')
+    s.engine.setTool('selection')
+    s.engine.setMagnetism(true)
+    const { drag, store } = s
+    const before = wallGraph(store)
+    // Two walls joined at (100,0). Magnetized drag moves the whole join.
+    drag(100, 0, 140, 10)
+    const w0 = store.getHome().walls[0]!
+    const w1 = store.getHome().walls[1]!
+    // Both walls still share one point, on the 15° ray from the hit wall's
+    // opposite anchor (x≈140, y small) — independent of which wall was hit.
+    expect([w0.xEnd, w0.yEnd]).toEqual([w1.xStart, w1.yStart])
+    expect(Math.abs(w0.xEnd - 140)).toBeLessThan(1)
+    expect(Math.abs(w0.yEnd)).toBeLessThan(10)
+    // Exactly one undo reverts the drag; the next reverts the wall creation.
+    expect(store.undo()).toBe(true)
+    expect(wallGraph(store)).toEqual(before)
+    expect(store.undo()).toBe(true)
+    expect(store.getHome().walls).toHaveLength(0)
+    expect(store.canUndo()).toBe(false)
+  })
+})
+
+describe('room vertex drag magnetism', () => {
+  it('snaps a dragged room corner onto a nearby wall endpoint', () => {
+    const s = setup()
+    s.engine.setTool('wall')
+    s.engine.setMagnetism(false)
+    s.click(200, 0)
+    s.click(200, 150)
+    s.engine.key('escape')
+    s.engine.setTool('room')
+    s.engine.setMagnetism(false)
+    s.click(0, 0)
+    s.click(50, 0)
+    s.click(50, 50)
+    s.click(0, 50)
+    s.click(25, 25, { dbl: true })
+    s.engine.setTool('selection')
+    s.engine.setMagnetism(true)
+    const { drag, store } = s
+    // Point[1]=(50,0) dragged within PIXEL_MARGIN of wall start (200,0).
+    drag(50, 0, 197, 0)
+    expect(store.getHome().rooms[0]!.points[1]).toEqual([200, 0])
+  })
+
+  it('snaps a dragged room corner onto another room vertex', () => {
+    const s = setup()
+    s.engine.setTool('room')
+    s.engine.setMagnetism(false)
+    s.click(0, 0)
+    s.click(200, 0)
+    s.click(200, 150)
+    s.click(0, 150)
+    s.click(50, 75, { dbl: true })
+    s.engine.setTool('selection')
+    s.engine.setMagnetism(true)
+    const { drag, store } = s
+    // Point[2]=(200,150) dragged within PIXEL_MARGIN of point[1]=(200,0).
+    drag(200, 150, 198, -2)
+    expect(store.getHome().rooms[0]!.points[2]).toEqual([200, 0])
+  })
+
+  it('away from any corner, falls back to 15° angle magnetism from the previous vertex', () => {
+    const s = setup()
+    s.engine.setTool('room')
+    s.engine.setMagnetism(false)
+    s.click(0, 0)
+    s.click(200, 0)
+    s.click(200, 150)
+    s.click(0, 150)
+    s.click(50, 75, { dbl: true })
+    s.engine.setTool('selection')
+    s.engine.setMagnetism(true)
+    const { drag, store } = s
+    // Point[1]=(200,0) dragged to (240,25): ~6° off the 0° ray from (0,0).
+    drag(200, 0, 240, 25)
+    expect(store.getHome().rooms[0]!.points[1]).toEqual([241, 0])
+  })
+})
