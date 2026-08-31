@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import dataclasses
 import enum
 import json
 import sys
@@ -124,7 +125,6 @@ def resolve_preset(settings: RenderSettings) -> RenderSettings:
         )
     # Build a dict from settings, then overlay preset values only for fields
     # that were NOT explicitly provided (i.e., still at their dataclass default).
-    import dataclasses
     defaults = {f.name: f.default for f in dataclasses.fields(RenderSettings) if f.name != "preset"}
     current = dataclasses.asdict(settings)
     merged = {}
@@ -144,6 +144,11 @@ def resolve_preset(settings: RenderSettings) -> RenderSettings:
 
 
 def validate_settings(settings: RenderSettings) -> RenderSettings:
+    if isinstance(settings.denoise, str):
+        try:
+            settings = dataclasses.replace(settings, denoise=DenoiseBackend(settings.denoise))
+        except ValueError as exc:
+            raise ValueError(f"unknown denoise backend: {settings.denoise}") from exc
     settings = resolve_preset(settings)
     if not 1 <= settings.width <= 4096 or not 1 <= settings.height <= 4096:
         raise ValueError("width and height must be between 1 and 4096")
