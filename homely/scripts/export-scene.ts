@@ -11,8 +11,31 @@
  */
 import { readFileSync } from 'node:fs'
 import { writeFileSync } from 'node:fs'
-import type { NormalizedHomeState } from '../src/core/home'
+import type { NormalizedHomeState, CamerasState } from '../src/core/home'
 import { buildRenderableScene } from '../src/render/scene-builder'
+
+const DEFAULT_TOP_CAMERA: CamerasState['top'] = {
+  id: 'camera-top-1',
+  x: 50,
+  y: 1050,
+  z: 1010,
+  yawDeg: 180,
+  pitchDeg: 45,
+  fovDeg: 63,
+  lens: 'PINHOLE',
+}
+
+const DEFAULT_OBSERVER_CAMERA: CamerasState['observer'] = {
+  id: 'camera-observer-1',
+  x: 50,
+  y: 50,
+  z: 170,
+  yawDeg: 315,
+  pitchDeg: 11.25,
+  fovDeg: 63,
+  lens: 'PINHOLE',
+  fixedSize: false,
+}
 
 function fail(message: string): never {
   console.error(`[export-scene] ERROR: ${message}`)
@@ -51,11 +74,19 @@ function main(): void {
   }
 }
 
+/** Default missing camera sub-objects to match createEmptyHome() shape. */
+function normalizeCameras(raw: Partial<CamerasState> | undefined): CamerasState {
+  return {
+    top: { ...DEFAULT_TOP_CAMERA, ...(raw?.top ?? {}) },
+    observer: { ...DEFAULT_OBSERVER_CAMERA, ...(raw?.observer ?? {}) },
+  }
+}
+
 /** Fill in optional fields so a saved home (possibly missing env/compass) is usable. */
-function normalizeHome(raw: unknown): NormalizedHomeState {
+export function normalizeHome(raw: unknown): NormalizedHomeState {
   const h = (raw ?? {}) as Record<string, unknown>
   return {
-    schemaVersion: Number(h.schemaVersion ?? 1),
+    schemaVersion: 1 as const,
     name: typeof h.name === 'string' ? h.name : 'Untitled',
     levels: Array.isArray(h.levels) ? (h.levels as NormalizedHomeState['levels']) : [],
     walls: Array.isArray(h.walls) ? (h.walls as NormalizedHomeState['walls']) : [],
@@ -64,7 +95,7 @@ function normalizeHome(raw: unknown): NormalizedHomeState {
     dimensionLines: Array.isArray(h.dimensionLines) ? (h.dimensionLines as NormalizedHomeState['dimensionLines']) : [],
     labels: Array.isArray(h.labels) ? (h.labels as NormalizedHomeState['labels']) : [],
     selection: Array.isArray(h.selection) ? (h.selection as NormalizedHomeState['selection']) : [],
-    cameras: (h.cameras ?? {}) as NormalizedHomeState['cameras'],
+    cameras: normalizeCameras(h.cameras as Partial<CamerasState> | undefined),
     compass: (h.compass ?? null) as NormalizedHomeState['compass'],
     environment: (h.environment ?? {}) as NormalizedHomeState['environment'],
     activeTool: h.activeTool as NormalizedHomeState['activeTool'],
@@ -72,4 +103,4 @@ function normalizeHome(raw: unknown): NormalizedHomeState {
   }
 }
 
-main()
+if (process.argv[1]?.includes('export-scene')) main()
