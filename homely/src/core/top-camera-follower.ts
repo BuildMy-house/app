@@ -86,7 +86,7 @@ function arcExtentOf(wall: Wall): number {
 }
 
 /** A wall renders as an arc only when it has a nonzero extent and a real chord. */
-function isArcWall(wall: Wall): boolean {
+export function isArcWall(wall: Wall): boolean {
   const dx = wall.xEnd - wall.xStart
   const dy = wall.yEnd - wall.yStart
   return Math.abs(arcExtentOf(wall)) > 0 && dx * dx + dy * dy > 1e-10

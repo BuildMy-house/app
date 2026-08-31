@@ -9,6 +9,7 @@ import {
   type Room,
   type Wall,
 } from '../core/home'
+import { isArcWall, wallOutlinePoints } from '../core/top-camera-follower'
 
 export const DEFAULT_WALL_COLOR = 0xd2d2d2
 export const DEFAULT_FLOOR_COLOR = 0xc8c8c8
@@ -166,18 +167,19 @@ function computeWallMiteredOutline(wall: Wall, allWalls: Wall[]): [Pt, Pt, Pt, P
 }
 
 /**
- * Convert a mitered 4-corner outline into a THREE.Shape suitable for
- * ExtrudeGeometry. The shape is centered at the wall's midpoint so
- * position/rotation on the resulting mesh are straightforward.
+ * Convert a closed 2D wall outline (4 corners for straight walls, N points
+ * for arc walls) into a THREE.Shape suitable for ExtrudeGeometry. The shape
+ * is centered at the wall's midpoint so position/rotation on the resulting
+ * mesh are straightforward.
  */
 function miteredShape(
-  outline: [Pt, Pt, Pt, Pt],
+  outline: Pt[],
   midX: number,
   midY: number,
 ): THREE.Shape {
   const shape = new THREE.Shape()
   shape.moveTo(outline[0]![0] - midX, -(outline[0]![1] - midY))
-  for (let i = 1; i < 4; i++) {
+  for (let i = 1; i < outline.length; i++) {
     shape.lineTo(outline[i]![0] - midX, -(outline[i]![1] - midY))
   }
   shape.closePath()
@@ -253,6 +255,25 @@ function wallMesh(
   const uy = dy / (length || 1)
   const midX = (wall.xStart + wall.xEnd) / 2
   const midY = (wall.yStart + wall.yEnd) / 2
+
+  if (isArcWall(wall)) {
+    // Arc walls extrude the full curved outline. Door/window openings on a
+    // curved wall are not yet supported (computeWallOpenings assumes a
+    // straight segment), so the uncut extrusion is rendered — a known,
+    // intentional limitation deferred to a future ticket, not a bug.
+    const outline = wallOutlinePoints(wall, allWalls)
+    const shape = miteredShape(outline, midX, midY)
+    const geometry = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false })
+    geometry.rotateX(-Math.PI / 2)
+    if (wallTexture) remapExtrudeUvs(geometry)
+    const mesh = new THREE.Mesh(geometry, material)
+    mesh.name = `wall:${wall.id}`
+    mesh.position.set(midX, elevation, midY)
+    mesh.castShadow = true
+    mesh.receiveShadow = true
+    return mesh
+  }
+
   const openings = computeWallOpenings(wall, furniture)
 
   if (openings.length === 0) {
@@ -327,7 +348,9 @@ function wallEdges(wall: Wall, elevation: number, allWalls: Wall[]): THREE.LineS
   const height = wall.height ?? DEFAULT_WALL_HEIGHT_CM
   const midX = (wall.xStart + wall.xEnd) / 2
   const midY = (wall.yStart + wall.yEnd) / 2
-  const outline = computeWallMiteredOutline(wall, allWalls)
+  const outline = isArcWall(wall)
+    ? wallOutlinePoints(wall, allWalls)
+    : computeWallMiteredOutline(wall, allWalls)
   const shape = miteredShape(outline, midX, midY)
   const geometry = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false })
   geometry.rotateX(-Math.PI / 2)

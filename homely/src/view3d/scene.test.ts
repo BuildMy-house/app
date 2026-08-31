@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { createEmptyHome, DEFAULT_WALL_HEIGHT_CM } from '../core/home'
+import { wallOutlinePoints } from '../core/top-camera-follower'
 import { buildScene, remapExtrudeUvs } from './scene'
 
 /**
@@ -41,6 +42,65 @@ function ceilingMeshes(scene: THREE.Scene): THREE.Mesh[] {
   })
   return meshes
 }
+
+// ── M53b: arc walls extrude as a curved 3D shape ────────────────────────────
+
+describe('arc wall 3D extrusion (M53b)', () => {
+  const ARC = { id: 'arc', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 15, arcExtent: Math.PI / 2 }
+
+  function sortedXZ(positions: Array<[number, number]>): Array<[number, number]> {
+    return [...positions].sort((a, b) => a[0] - b[0] || a[1] - b[1])
+  }
+
+  it('a straight wall still extrudes as the exact flat box (byte-identical)', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0,
+      thickness: 15, leftSideColor: 0xd2d2d2,
+    })
+    const scene = buildScene(home)
+    const mesh = wallMeshes(scene)[0]!
+    const half = 7.5
+    expect(sortedXZ(worldXZPositions(mesh))).toEqual(sortedXZ([
+      [0, -half], [0, half], [100, -half], [100, half],
+    ]))
+  })
+
+  it("an arc wall's XZ vertices trace the same curved outline as wallOutlinePoints", () => {
+    const home = createEmptyHome()
+    home.walls.push(ARC)
+    const scene = buildScene(home)
+    const mesh = wallMeshes(scene)[0]!
+
+    const outline = wallOutlinePoints(ARC, [ARC])
+    const world = worldXZPositions(mesh)
+
+    // Every outline point must appear as a geometry vertex in the XZ plane.
+    for (const [ox, oy] of outline) {
+      const hit = world.some(([x, z]) => Math.abs(x - ox) < 1e-3 && Math.abs(z - oy) < 1e-3)
+      expect(hit).toBe(true)
+    }
+
+    // The curved outline bulges well past the ±thickness/2 flat-box bound.
+    const minZ = Math.min(...world.map(([, z]) => z))
+    expect(minZ).toBeLessThan(-7.5)
+    expect(outline.length).toBeGreaterThan(4)
+  })
+
+  it('an arc wall ignores door/window openings (full uncut extrusion, single mesh)', () => {
+    const home = createEmptyHome()
+    home.walls.push(ARC)
+    home.furniture.push({
+      id: 'd1', name: 'Door',
+      x: 50, y: 0, angleDeg: 0,
+      width: 90, depth: 15, height: 210,
+      elevation: 0,
+      doorOrWindow: true, wallRef: 'arc', wallOffset: 50,
+    })
+    const scene = buildScene(home)
+    expect(wallMeshes(scene).length).toBe(1)
+  })
+})
 
 // ── M50: wall corners join correctly at shared endpoints ─────────────
 
