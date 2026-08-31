@@ -17,6 +17,23 @@ const SCHEMA = `
     password_hash TEXT NOT NULL,
     created_at    TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS assets (
+    id          TEXT PRIMARY KEY,
+    user_id     TEXT NOT NULL,
+    catalog_id  TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    category    TEXT NOT NULL,
+    width       REAL NOT NULL,
+    depth       REAL NOT NULL,
+    height      REAL NOT NULL,
+    color       INTEGER,
+    blob_key    TEXT NOT NULL,
+    glb_path    TEXT NOT NULL,
+    source_path TEXT,
+    created_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_assets_user ON assets (user_id);
 `;
 
 // Idempotent init-on-boot: safe to call once per server start, and safe to
