@@ -3,6 +3,7 @@ import { HomeModel } from '../src/core/model'
 import { HomeStore } from '../src/core/store'
 import { PlanEngine } from '../src/plan/engine'
 import { fitToBounds } from '../src/plan/renderer'
+import { HomelyCommandHandler } from '../src/automation/homely-handler'
 
 function setup() {
   const store = new HomeStore()
@@ -156,5 +157,48 @@ describe('level scoping — hitTest filtering', () => {
     engine.setTool('selection')
     expect(engine.hitTestPoint({ x: 50, y: 0 })).not.toBeNull()
     expect(engine.hitTestPoint({ x: 50, y: 100 })).not.toBeNull()
+  })
+})
+
+describe('set_active_level command', () => {
+  function handlerWithEngine() {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const engine = new PlanEngine(model)
+    const handler = new HomelyCommandHandler(store, { planEngine: engine })
+    return { store, model, engine, handler }
+  }
+
+  it('switches active level and stamps levelRef on created walls', () => {
+    const { model, handler } = handlerWithEngine()
+    const level = model.addLevel({ name: 'Floor 1', elevation: 0, floorThickness: 20, height: 250, visible: true, viewable: true })
+
+    const res = handler.execute('set_active_level', { levelId: level.id })
+    expect(res).toEqual({ ok: true, data: { levelId: level.id } })
+
+    handler.execute('select_tool', { tool: 'wall' })
+    handler.execute('click', { x: 0, y: 0 })
+    handler.execute('click', { x: 100, y: 0 })
+    handler.execute('key', { key: 'escape' })
+
+    const home = model.getStore().getHome()
+    expect(home.walls).toHaveLength(1)
+    expect(home.walls[0]!.levelRef).toBe(level.id)
+  })
+
+  it('sets levelId to null to show all levels', () => {
+    const { handler } = handlerWithEngine()
+    const res = handler.execute('set_active_level', { levelId: null })
+    expect(res).toEqual({ ok: true, data: { levelId: null } })
+  })
+
+  it('rejects unknown level ids', () => {
+    const { handler } = handlerWithEngine()
+    const res = handler.execute('set_active_level', { levelId: 'nonexistent-id' })
+    expect(res.ok).toBe(false)
+    if (!res.ok) {
+      expect(res.code).toBe('INVALID_PARAMS')
+      expect(res.error).toContain('nonexistent-id')
+    }
   })
 })

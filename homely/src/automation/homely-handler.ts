@@ -49,6 +49,7 @@ const COMMANDS = [
   'duplicate',
   'modify_selected',
   'add_room',
+  'set_active_level',
   'add_level',
   'remove_level',
   'add_dimension_line',
@@ -372,6 +373,19 @@ export class HomelyCommandHandler implements CommandHandler {
           viewable: params.viewable === undefined ? true : Boolean(params.viewable),
         })
         return { ok: true, data: { id: level.id } }
+      }
+      case 'set_active_level': {
+        const levelId = params.levelId
+        assert(
+          levelId === null || (typeof levelId === 'string' && levelId.length > 0),
+          'param levelId must be null or a non-empty string',
+        )
+        if (levelId !== null) {
+          const exists = this.store.getHome().levels.some((l) => l.id === levelId)
+          assert(exists, `unknown level id: ${levelId}`)
+        }
+        this.plan.setActiveLevel(levelId)
+        return { ok: true, data: { levelId } }
       }
       case 'remove_level': {
         const id = params.id
