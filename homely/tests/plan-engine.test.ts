@@ -717,3 +717,88 @@ describe('furniture rotation handle', () => {
     expect(store.getHome().furniture[0]!.angleDeg).toBe(originalAngle)
   })
 })
+
+describe('furniture drag wall-snap', () => {
+  function setupFurnitureWithWall() {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const engine = new PlanEngine(model)
+    engine.setTool('selection')
+
+    model.addWall({
+      xStart: 0,
+      yStart: 0,
+      xEnd: 500,
+      yEnd: 0,
+      thickness: NEW_WALL_THICKNESS_CM,
+      height: 250,
+    })
+
+    const f = model.addFurniture({
+      name: 'Chair',
+      x: 200,
+      y: 100,
+      width: 60,
+      depth: 60,
+      height: 80,
+      elevation: 0,
+      angleDeg: 0,
+    })
+
+    const drag = (fromX: number, fromY: number, toX: number, toY: number) =>
+      engine.drag({ fromX, fromY, toX, toY })
+    return { store, model, engine, drag, furniture: f }
+  }
+
+  it('dragging near a wall snaps furniture flush against it', () => {
+    const { drag, store, furniture } = setupFurnitureWithWall()
+    const origX = furniture.x
+    const origY = furniture.y
+
+    drag(origX, origY, origX, 20)
+
+    const placed = store.getHome().furniture[0]!
+    expect(placed.y).toBeCloseTo(30, 0)
+    expect(placed.angleDeg).toBe(0)
+  })
+
+  it('dragging far from any wall applies raw delta unchanged', () => {
+    const { drag, store, furniture } = setupFurnitureWithWall()
+    const origX = furniture.x
+    const origY = furniture.y
+
+    drag(origX, origY, origX + 100, origY + 300)
+
+    const placed = store.getHome().furniture[0]!
+    expect(placed.x).toBeCloseTo(origX + 100)
+    expect(placed.y).toBeCloseTo(origY + 300)
+    expect(placed.angleDeg).toBe(0)
+  })
+
+  it('drag-snap is ONE undo step', () => {
+    const { drag, store, furniture } = setupFurnitureWithWall()
+    const origX = furniture.x
+    const origY = furniture.y
+
+    drag(origX, origY, origX, 20)
+
+    expect(store.getHome().furniture[0]!.y).toBeCloseTo(30, 0)
+    expect(store.undo()).toBe(true)
+    const reverted = store.getHome().furniture[0]!
+    expect(reverted.x).toBe(origX)
+    expect(reverted.y).toBe(origY)
+  })
+
+  it('magnetism disabled prevents snap even near a wall', () => {
+    const { engine, drag, store, furniture } = setupFurnitureWithWall()
+    engine.setMagnetism(false)
+    const origX = furniture.x
+    const origY = furniture.y
+
+    drag(origX, origY, origX, 20)
+
+    const placed = store.getHome().furniture[0]!
+    expect(placed.y).toBeCloseTo(20, 0)
+    expect(placed.angleDeg).toBe(0)
+  })
+})

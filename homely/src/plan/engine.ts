@@ -4,6 +4,7 @@ import { DEFAULT_WALL_HEIGHT_CM } from '../core/home'
 import type { NormalizedHomeState } from '../core/home'
 import { normalizeAngle } from '../core/export'
 import { wallPointMagnetism } from './magnetism'
+import { snapFurniturePlacement } from './furniture-snap'
 import {
   distance,
   distToSegment,
@@ -287,6 +288,41 @@ export class PlanEngine {
         const angleDeg = (angleRad * 180) / Math.PI
         this.model.updateFurniture(hit.id, { angleDeg: normalizeAngle(angleDeg) })
         this.furnitureRotateDrag = null
+        return
+      }
+      if (hit.kind === 'furniture') {
+        if (!home.selection.includes(hit.id)) {
+          this.model.setSelection([hit.id])
+        }
+        const f = home.furniture.find((f) => f.id === hit.id)
+        if (f) {
+          const naive = {
+            x: f.x + (to.x - from.x),
+            y: f.y + (to.y - from.y),
+          }
+          const snap = snapFurniturePlacement({
+            walls: home.walls,
+            point: naive,
+            depthCm: f.depth,
+            magnetismEnabled: this.magnetismEnabled,
+          })
+          const snapped =
+            snap.x !== naive.x || snap.y !== naive.y
+          if (snapped) {
+            const dx = snap.x - f.x
+            const dy = snap.y - f.y
+            this.model.getStore().beginCompoundEdit()
+            this.model.moveSelection(dx, dy)
+            this.model.updateFurniture(hit.id, {
+              angleDeg: normalizeAngle(snap.angleDeg),
+            })
+            this.model.getStore().endCompoundEdit()
+          } else {
+            this.model.moveSelection(to.x - from.x, to.y - from.y)
+          }
+          return
+        }
+        this.model.moveSelection(to.x - from.x, to.y - from.y)
         return
       }
       if (!home.selection.includes(hit.id)) {
