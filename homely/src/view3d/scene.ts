@@ -568,9 +568,21 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
   scene.add(fillLight)
 
   if (home.environment.groundColor !== null) {
+    const groundTexId = home.environment.groundTextureId
+    const mat = groundTexId
+      ? (() => {
+          const tex = loadWallTexture(groundTexId)
+          if (tex) {
+            const size = GROUND_SIZE_CM / TEXTURE_TILE_CM
+            tex.repeat.set(size, size)
+            return new THREE.MeshStandardMaterial({ map: tex })
+          }
+          return new THREE.MeshStandardMaterial({ color: home.environment.groundColor })
+        })()
+      : new THREE.MeshStandardMaterial({ color: home.environment.groundColor })
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(GROUND_SIZE_CM, GROUND_SIZE_CM),
-      new THREE.MeshStandardMaterial({ color: home.environment.groundColor }),
+      mat,
     )
     ground.rotation.x = -Math.PI / 2
     ground.name = 'ground'

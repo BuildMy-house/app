@@ -168,7 +168,11 @@ export interface EnvironmentState {
   lightColor: number | null
   /** SH3D walls TRANSPARENCY: 0 = opaque (default), 1 = invisible. */
   wallsAlpha: number | null
+  groundTextureId?: string | null
 }
+
+/** Ground textures reuse the same PNG catalog as walls (SH3D parity). */
+export const GROUND_TEXTURES = WALL_TEXTURES
 
 export interface CapabilitiesState {
   canUndo: boolean

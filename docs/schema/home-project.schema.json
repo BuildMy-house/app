@@ -183,7 +183,8 @@
         "skyColor": { "$ref": "#/$defs/colorNullable" },
         "groundColor": { "$ref": "#/$defs/colorNullable" },
         "lightColor": { "$ref": "#/$defs/colorNullable" },
-        "wallsAlpha": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+        "wallsAlpha": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "groundTextureId": { "type": ["string", "null"] }
       }
     },
     "selection": {

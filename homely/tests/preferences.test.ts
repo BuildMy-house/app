@@ -70,6 +70,7 @@ describe('preference persistence (localStorage)', () => {
       wallHeightCm: 300,
       wallThicknessCm: 10,
       groundColor: '#ff0000',
+      groundTextureId: null,
     }
     savePreferences(custom)
     const loaded = loadPreferences()

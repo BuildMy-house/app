@@ -1,6 +1,7 @@
-import { DEFAULT_WALL_HEIGHT_CM } from '../core/home'
+import { DEFAULT_WALL_HEIGHT_CM, GROUND_TEXTURES } from '../core/home'
 import { NEW_WALL_THICKNESS_CM } from '../core/model'
 import type { HomeStore } from '../core/store'
+import { telemetry } from '../telemetry/logger'
 
 export const PREFS_KEY = 'homely-preferences'
 
@@ -9,6 +10,7 @@ export interface Preferences {
   wallHeightCm: number
   wallThicknessCm: number
   groundColor: string
+  groundTextureId: string | null
 }
 
 const DEFAULTS: Preferences = {
@@ -16,6 +18,7 @@ const DEFAULTS: Preferences = {
   wallHeightCm: DEFAULT_WALL_HEIGHT_CM,
   wallThicknessCm: NEW_WALL_THICKNESS_CM,
   groundColor: '#a8a8a8',
+  groundTextureId: null,
 }
 
 export function loadPreferences(): Preferences {
@@ -77,8 +80,26 @@ export class PreferencesDialog {
           <input id="prefs-wall-thickness" type="number" min="1" max="100" step="0.5" value="${prefs.wallThicknessCm}" />
         </div>
         <div class="prefs-row">
+          <label>Ground appearance</label>
+          <div class="prefs-ground-mode">
+            <label><input type="radio" name="prefs-ground-mode" value="color" ${!prefs.groundTextureId ? 'checked' : ''} /> Color</label>
+            <label><input type="radio" name="prefs-ground-mode" value="texture" ${prefs.groundTextureId ? 'checked' : ''} /> Texture</label>
+          </div>
+        </div>
+        <div class="prefs-row prefs-ground-color-row" style="display:${prefs.groundTextureId ? 'none' : ''}">
           <label for="prefs-ground-color">Ground color</label>
           <input id="prefs-ground-color" type="color" value="${prefs.groundColor}" />
+        </div>
+        <div class="prefs-row prefs-ground-texture-row" style="display:${prefs.groundTextureId ? '' : 'none'}">
+          <label for="prefs-ground-texture">Ground texture</label>
+          <select id="prefs-ground-texture">
+            <option value="">None</option>
+            ${GROUND_TEXTURES.map((t) => `<option value="${t.id}"${prefs.groundTextureId === t.id ? ' selected' : ''}>${t.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="prefs-row">
+          <label for="prefs-telemetry-tier2">Usage analytics (Tier 2)</label>
+          <input id="prefs-telemetry-tier2" type="checkbox" ${telemetry.tier2Enabled ? 'checked' : ''} />
         </div>
         <div class="prefs-actions">
           <button class="prefs-btn prefs-cancel">Cancel</button>
@@ -93,6 +114,16 @@ export class PreferencesDialog {
       if (e.target === this.overlay) this.close()
     })
     this.overlay.querySelector('.prefs-ok')!.addEventListener('click', () => this.apply())
+
+    const colorRow = this.overlay.querySelector<HTMLElement>('.prefs-ground-color-row')!
+    const textureRow = this.overlay.querySelector<HTMLElement>('.prefs-ground-texture-row')!
+    this.overlay.querySelectorAll<HTMLInputElement>('input[name="prefs-ground-mode"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        const isTexture = radio.value === 'texture' && radio.checked
+        colorRow.style.display = isTexture ? 'none' : ''
+        textureRow.style.display = isTexture ? '' : 'none'
+      })
+    })
 
     const escHandler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -119,9 +150,12 @@ export class PreferencesDialog {
     const wallHeightCm = Number(this.overlay.querySelector<HTMLInputElement>('#prefs-wall-height')?.value) || DEFAULT_WALL_HEIGHT_CM
     const wallThicknessCm = Number(this.overlay.querySelector<HTMLInputElement>('#prefs-wall-thickness')?.value) || NEW_WALL_THICKNESS_CM
     const groundColor = this.overlay.querySelector<HTMLInputElement>('#prefs-ground-color')?.value ?? '#a8a8a8'
+    const groundTextureId = this.overlay.querySelector<HTMLSelectElement>('#prefs-ground-texture')?.value || null
+    const tier2 = this.overlay.querySelector<HTMLInputElement>('#prefs-telemetry-tier2')?.checked ?? true
 
-    const prefs: Preferences = { unit, wallHeightCm, wallThicknessCm, groundColor }
+    const prefs: Preferences = { unit, wallHeightCm, wallThicknessCm, groundColor, groundTextureId }
     savePreferences(prefs)
+    telemetry.setTier2(tier2)
     this.close()
     this.onClose(prefs)
   }
