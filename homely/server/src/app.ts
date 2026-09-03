@@ -2,7 +2,7 @@ import express from 'express';
 import type { Database } from 'better-sqlite3';
 import path from 'node:path';
 import { assetsRouter } from './assets.js';
-import { loginHandler, registerHandler } from './auth.js';
+import { loginHandler, registerHandler, changePasswordHandler, requireAuth } from './auth.js';
 import { homesRouter } from './homes.js';
 import { initDb } from './db.js';
 import { AssetStorage } from './storage.js';
@@ -20,6 +20,7 @@ export function createApp(
   app.use(express.json({ limit: '256mb' }));
   app.post('/api/auth/register', registerHandler(db));
   app.post('/api/auth/login', loginHandler(db));
+  app.put('/api/auth/password', requireAuth, changePasswordHandler(db));
   app.use('/api/assets', assetsRouter(db, new AssetStorage(assetRoot)));
   app.use('/api/homes', homesRouter(db));
 

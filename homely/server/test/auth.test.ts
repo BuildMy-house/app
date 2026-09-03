@@ -4,7 +4,7 @@ import Database from 'better-sqlite3';
 import type { Express, Request, Response } from 'express';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
-import { requireAuth, signToken } from '../src/auth.js';
+import { requireAuth, signToken, _resetRegRateLimit } from '../src/auth.js';
 import { getJwtSecret } from '../src/config.js';
 import type { UserRow } from '../src/db.js';
 
@@ -86,6 +86,47 @@ describe('POST /api/auth/register', () => {
 
     const res = await request(app).post('/api/auth/register').send({});
     expect(res.status).toBe(400);
+  });
+
+  it('rate-limits registrations per IP: 6th from same IP gets 429', async () => {
+    const { app, db } = makeApp();
+    app.set('trust proxy', true);
+    openDbs.push(db);
+
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .set('X-Forwarded-For', '10.0.0.1')
+        .send({ email: `user${i}@example.com`, password: 'password123' });
+      expect(res.status).toBe(201);
+    }
+
+    const blocked = await request(app)
+      .post('/api/auth/register')
+      .set('X-Forwarded-For', '10.0.0.1')
+      .send({ email: 'user5@example.com', password: 'password123' });
+    expect(blocked.status).toBe(429);
+    expect(blocked.body.error).toMatch(/too many registration attempts/i);
+  });
+
+  it('rate-limit is independent per IP', async () => {
+    const { app, db } = makeApp();
+    app.set('trust proxy', true);
+    openDbs.push(db);
+
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .set('X-Forwarded-For', '10.0.0.1')
+        .send({ email: `a${i}@example.com`, password: 'password123' });
+      expect(res.status).toBe(201);
+    }
+
+    const fromOtherIp = await request(app)
+      .post('/api/auth/register')
+      .set('X-Forwarded-For', '10.0.0.2')
+      .send({ email: 'other@example.com', password: 'password123' });
+    expect(fromOtherIp.status).toBe(201);
   });
 });
 
@@ -190,6 +231,81 @@ describe('requireAuth middleware', () => {
     const res = await request(app).get('/api/protected').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.userId).toBe('user-42');
+  });
+});
+
+describe('PUT /api/auth/password', () => {
+  it('updates the password hash and allows login with the new password', async () => {
+    const { app, db } = makeApp();
+    openDbs.push(db);
+
+    const reg = await register(app, 'pw@example.com', 'password123');
+    const token = reg.body.token;
+
+    const res = await request(app)
+      .put('/api/auth/password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: 'password123', newPassword: 'newpassword456' });
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+
+    // old password no longer works
+    const oldLogin = await login(app, 'pw@example.com', 'password123');
+    expect(oldLogin.status).toBe(401);
+
+    // new password works
+    const newLogin = await login(app, 'pw@example.com', 'newpassword456');
+    expect(newLogin.status).toBe(200);
+    expect(typeof newLogin.body.token).toBe('string');
+  });
+
+  it('rejects wrong current password with 401', async () => {
+    const { app, db } = makeApp();
+    openDbs.push(db);
+
+    const reg = await register(app, 'wrong@example.com', 'password123');
+    const res = await request(app)
+      .put('/api/auth/password')
+      .set('Authorization', `Bearer ${reg.body.token}`)
+      .send({ currentPassword: 'wrong-password', newPassword: 'newpassword456' });
+    expect(res.status).toBe(401);
+    expect(res.body.error).toMatch(/current password/i);
+  });
+
+  it('rejects weak new password with 400', async () => {
+    const { app, db } = makeApp();
+    openDbs.push(db);
+
+    const reg = await register(app, 'weak@example.com', 'password123');
+    const res = await request(app)
+      .put('/api/auth/password')
+      .set('Authorization', `Bearer ${reg.body.token}`)
+      .send({ currentPassword: 'password123', newPassword: 'short' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/newPassword must be at least/i);
+  });
+
+  it('rejects missing currentPassword with 400', async () => {
+    const { app, db } = makeApp();
+    openDbs.push(db);
+
+    const reg = await register(app, 'missing@example.com', 'password123');
+    const res = await request(app)
+      .put('/api/auth/password')
+      .set('Authorization', `Bearer ${reg.body.token}`)
+      .send({ newPassword: 'newpassword456' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/currentPassword/i);
+  });
+
+  it('rejects unauthenticated requests with 401', async () => {
+    const { app, db } = makeApp();
+    openDbs.push(db);
+
+    const res = await request(app)
+      .put('/api/auth/password')
+      .send({ currentPassword: 'password123', newPassword: 'newpassword456' });
+    expect(res.status).toBe(401);
   });
 });
 

@@ -23,6 +23,7 @@ export interface AuthAdapter {
   getToken(): string | null
   login(email: string, password: string): Promise<void>
   register(email: string, password: string): Promise<void>
+  changePassword(currentPassword: string, newPassword: string): Promise<void>
   logout(): void
 }
 
@@ -85,6 +86,24 @@ export class HttpAuth implements AuthAdapter {
 
   async register(email: string, password: string): Promise<void> {
     await this.post('/api/auth/register', email, password)
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    const token = this.getToken()
+    if (!token) throw new Error('not signed in')
+    const response = await fetch('/api/auth/password', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    })
+    if (!response.ok) {
+      let message = `change password failed (${response.status})`
+      try {
+        const data = (await response.json()) as { error?: unknown }
+        if (typeof data.error === 'string' && data.error) message = data.error
+      } catch { /* non-JSON */ }
+      throw new Error(message)
+    }
   }
 
   logout(): void {
