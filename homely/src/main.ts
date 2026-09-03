@@ -12,11 +12,13 @@ import { PlanEngine, type PlanPreview, type PlanTool } from './plan/engine'
 import { snapFurniturePlacement } from './plan/furniture-snap'
 import { ViewMapper, drawPlan, fitToBounds, type PlanRenderingContext, type ViewTransform } from './plan/renderer'
 import { saveHomeFile, loadHomeFile } from './services/adapters/home-persistence'
-import { exportPlanPng, export3dPng } from './services/adapters/plan-export'
+import { exportPlanPng, export3dPng, renderPlanPng } from './services/adapters/plan-export'
+import { buildRenderableScene } from './render/scene-builder'
 import { PreferencesDialog, loadPreferences, hexToIntColor } from './ui/preferences'
 import { HttpAuth } from './services/auth'
 import { RemoteHomeStore } from './services/adapters/remote-home-store'
 import { AuthDialog } from './ui/auth-dialog'
+import { ChangePasswordDialog } from './ui/change-password-dialog'
 import { HomeListDialog } from './ui/home-list-dialog'
 import { ClipboardManager } from './plan/clipboard'
 
@@ -249,12 +251,15 @@ function refreshMenus(): void {
         ...(auth.currentUser()
           ? [
               { label: `Signed in as ${auth.currentUser()}`, disabled: true },
+              { label: 'Change Password…', action: () => { new ChangePasswordDialog(auth, () => {}).open() } },
               { label: 'Log Out', action: () => { auth.logout(); currentAccountHomeId = null; refreshAll() } },
             ]
           : [{ label: 'Log In / Register…', action: () => promptLogin() }]),
         { label: '---' },
         { label: 'Export Plan as PNG…', action: () => { exportPlanPng(store.getHome()) } },
         { label: 'Export 3D View as PNG…', action: () => { if (view3d) export3dPng(view3d.scene, view3d.camera) } },
+        { label: 'Export Scene for LuxCore Render…', action: () => exportSceneJson() },
+        { label: 'Print Plan…', action: () => printPlan() },
       ],
     },
     {
@@ -288,6 +293,40 @@ function refreshMenus(): void {
       ],
     },
   ])
+}
+
+function printPlan(): void {
+  const bytes = renderPlanPng(store.getHome())
+  const blob = new Blob([bytes], { type: 'image/png' })
+  const url = URL.createObjectURL(blob)
+  const container = document.getElementById('print-plan') ?? document.createElement('div')
+  container.id = 'print-plan'
+  container.innerHTML = ''
+  const img = document.createElement('img')
+  img.src = url
+  img.alt = 'Plan'
+  container.appendChild(img)
+  document.body.appendChild(container)
+
+  const cleanup = () => {
+    URL.revokeObjectURL(url)
+    container.remove()
+  }
+  window.addEventListener('afterprint', cleanup, { once: true })
+  setTimeout(cleanup, 60_000)
+  window.print()
+}
+
+function exportSceneJson(): void {
+  const { scene } = buildRenderableScene(store.getHome())
+  const json = JSON.stringify(scene, null, 2)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'scene.json'
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 function openPreferences(): void {
@@ -385,6 +424,7 @@ function buildToolbar(): void {
     </div>
     <div class="tool-separator"></div>
     <label><input id="magnetism" type="checkbox" checked /> Mag</label>
+    <label><input id="grid-snap" type="checkbox" /> Grid</label>
     <div class="toolbar-spacer"></div>
     <button class="tool-btn" id="btn-fit" title="Zoom to fit (double-click middle)">Fit</button>
     <div class="tool-separator"></div>
@@ -415,6 +455,10 @@ function buildToolbar(): void {
 
   toolbar.querySelector('#magnetism')!.addEventListener('change', (e) => {
     engine.setMagnetism((e.target as HTMLInputElement).checked)
+  })
+
+  toolbar.querySelector('#grid-snap')!.addEventListener('change', (e) => {
+    engine.setGridSnap((e.target as HTMLInputElement).checked)
   })
 
   toolbar.querySelector('#btn-fit')!.addEventListener('click', () => {
@@ -448,6 +492,8 @@ function refreshToolbar(): void {
   }
   const magBox = toolbar.querySelector<HTMLInputElement>('#magnetism')
   if (magBox) magBox.checked = engine.isMagnetismEnabled()
+  const gridBox = toolbar.querySelector<HTMLInputElement>('#grid-snap')
+  if (gridBox) gridBox.checked = engine.isGridSnapEnabled()
 
   const undoBtn = toolbar.querySelector<HTMLButtonElement>('#btn-undo')!
   const redoBtn = toolbar.querySelector<HTMLButtonElement>('#btn-redo')!
@@ -759,14 +805,15 @@ canvas.addEventListener('pointerup', (event) => {
   // snapped to the nearest wall when magnetism is on.
   if (!pointer.moved && catalogPanel?.isArmed()) {
     const item = catalogPanel.armedItem
+    const raw = engine.isGridSnapEnabled() ? engine.snapToGrid(point.x, point.y) : point
     const snap = item
       ? snapFurniturePlacement({
           walls: store.getHome().walls,
-          point,
+          point: raw,
           depthCm: item.depth,
           magnetismEnabled: engine.isMagnetismEnabled(),
         })
-      : { x: point.x, y: point.y, angleDeg: 0 }
+      : { x: raw.x, y: raw.y, angleDeg: 0 }
     catalogPanel.place(snap.x, snap.y, snap.angleDeg)
     refreshToolbar()
     refreshStatus()
@@ -1087,9 +1134,10 @@ view3d = new View3D(store, {
   onFloorClick: (p) => {
     if (!catalogPanel?.isArmed()) return
     const item = catalogPanel.armedItem!
+    const raw = engine.isGridSnapEnabled() ? engine.snapToGrid(p.x, p.y) : p
     const snap = snapFurniturePlacement({
       walls: store.getHome().walls,
-      point: p,
+      point: raw,
       depthCm: item.depth,
       magnetismEnabled: engine.isMagnetismEnabled(),
     })
@@ -1101,6 +1149,8 @@ view3d = new View3D(store, {
 // Expose for E2E testing
 ;(window as unknown as { __view3d: View3D }).__view3d = view3d
 ;(window as unknown as { __model: HomeModel }).__model = model
+;(window as unknown as { __printPlan: () => void }).__printPlan = printPlan
+;(window as unknown as { __exportSceneJson: () => void }).__exportSceneJson = exportSceneJson
 
 // Properties panel — right sidebar
 const mainArea = root.querySelector<HTMLDivElement>('#main-area')!

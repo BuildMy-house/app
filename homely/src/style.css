@@ -950,3 +950,56 @@ body {
     max-height: none;
   }
 }
+
+/* ── Print plan (ticket M70) ─────────────────────────────────────────────── */
+
+#print-plan {
+  display: none;
+}
+
+@media print {
+  #menu-bar,
+  #toolbar,
+  #catalog-host,
+  #properties-panel,
+  #status-bar,
+  #divider,
+  #view3d-panel,
+  #context-menu,
+  #plan-panel {
+    display: none !important;
+  }
+
+  html, body {
+    height: auto;
+    overflow: visible;
+  }
+
+  #root {
+    display: block;
+    height: auto;
+  }
+
+  #main-area {
+    display: block;
+  }
+
+  #print-plan {
+    display: block;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #fff;
+  }
+
+  #print-plan img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  @page {
+    margin: 0;
+  }
+}
