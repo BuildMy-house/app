@@ -107,3 +107,109 @@ describe('invalid panel input never reaches the model', () => {
     expect(after.angleDeg).toBe(before.angleDeg)
   })
 })
+
+describe('label editing updates the model and is undoable', () => {
+  it('updating text, position, angle, and color persists', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const label = model.addLabel({ text: 'Hello', x: 100, y: 200 })
+
+    model.updateLabel(label.id, { text: 'World' })
+    expect(store.getHome().labels[0]!.text).toBe('World')
+
+    model.updateLabel(label.id, { x: 50, y: 75 })
+    const updated = store.getHome().labels[0]!
+    expect(updated.x).toBe(50)
+    expect(updated.y).toBe(75)
+
+    model.updateLabel(label.id, { angleDeg: 45, color: 0xff0000 })
+    const updated2 = store.getHome().labels[0]!
+    expect(updated2.angleDeg).toBe(45)
+    expect(updated2.color).toBe(0xff0000)
+  })
+
+  it('edits are undoable', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const label = model.addLabel({ text: 'original', x: 0, y: 0 })
+
+    model.updateLabel(label.id, { text: 'changed' })
+    expect(store.getHome().labels[0]!.text).toBe('changed')
+
+    store.undo()
+    expect(store.getHome().labels[0]!.text).toBe('original')
+
+    store.redo()
+    expect(store.getHome().labels[0]!.text).toBe('changed')
+  })
+
+  it('an invalid label commit keeps the label unchanged', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const label = model.addLabel({ text: 'keep', x: 10, y: 20 })
+    const before = store.getHome().labels[0]!
+    const invalidInputs = ['', 'not-a-number', 'NaN', 'Infinity']
+    for (const raw of invalidInputs) {
+      const x = validateFinite(raw, store.getHome().labels[0]!.x ?? 0)
+      const y = validateFinite(raw, store.getHome().labels[0]!.y ?? 0)
+      model.updateLabel(label.id, { x, y })
+    }
+    const after = store.getHome().labels[0]!
+    expect(after.x).toBe(before.x)
+    expect(after.y).toBe(before.y)
+  })
+})
+
+describe('dimension line editing updates the model and is undoable', () => {
+  it('updating endpoints, offset, and elevation persists', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const dim = model.addDimensionLine({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, offset: 5 })
+
+    model.updateDimensionLine(dim.id, { xEnd: 200 })
+    expect(store.getHome().dimensionLines[0]!.xEnd).toBe(200)
+
+    model.updateDimensionLine(dim.id, { offset: 10, yEnd: 50 })
+    const updated = store.getHome().dimensionLines[0]!
+    expect(updated.offset).toBe(10)
+    expect(updated.yEnd).toBe(50)
+
+    model.updateDimensionLine(dim.id, { elevationStart: 5, elevationEnd: 10 })
+    const updated2 = store.getHome().dimensionLines[0]!
+    expect(updated2.elevationStart).toBe(5)
+    expect(updated2.elevationEnd).toBe(10)
+  })
+
+  it('edits are undoable', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const dim = model.addDimensionLine({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, offset: 5 })
+
+    model.updateDimensionLine(dim.id, { xEnd: 200 })
+    expect(store.getHome().dimensionLines[0]!.xEnd).toBe(200)
+
+    store.undo()
+    expect(store.getHome().dimensionLines[0]!.xEnd).toBe(100)
+
+    store.redo()
+    expect(store.getHome().dimensionLines[0]!.xEnd).toBe(200)
+  })
+
+  it('an invalid dimension line commit keeps it unchanged', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const dim = model.addDimensionLine({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, offset: 5 })
+    const before = store.getHome().dimensionLines[0]!
+    const invalidInputs = ['', 'not-a-number', 'NaN', 'Infinity']
+    for (const raw of invalidInputs) {
+      const xStart = validateFinite(raw, store.getHome().dimensionLines[0]!.xStart ?? 0)
+      const xEnd = validateFinite(raw, store.getHome().dimensionLines[0]!.xEnd ?? 0)
+      const offset = validateFinite(raw, store.getHome().dimensionLines[0]!.offset ?? 0)
+      model.updateDimensionLine(dim.id, { xStart, xEnd, offset })
+    }
+    const after = store.getHome().dimensionLines[0]!
+    expect(after.xStart).toBe(before.xStart)
+    expect(after.xEnd).toBe(before.xEnd)
+    expect(after.offset).toBe(before.offset)
+  })
+})

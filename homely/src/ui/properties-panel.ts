@@ -1,6 +1,6 @@
 import type { HomeStore } from '../core/store'
 import { HomeModel } from '../core/model'
-import type { Wall, Room, Furniture, NormalizedHomeState } from '../core/home'
+import type { Wall, Room, Furniture, Label, DimensionLine, NormalizedHomeState } from '../core/home'
 import { WALL_TEXTURES } from '../core/home'
 import { normalizeAngle } from '../core/export'
 import { observeStore } from '../view3d/watch'
@@ -164,6 +164,8 @@ export class PropertiesPanel {
     if (obj.kind === 'Wall') this.renderWall(body, obj.item as Wall, store)
     else if (obj.kind === 'Room') this.renderRoom(body, obj.item as Room, store)
     else if (obj.kind === 'Furniture') this.renderFurniture(body, obj.item as Furniture, store)
+    else if (obj.kind === 'Label') this.renderLabel(body, obj.item as Label, store)
+    else if (obj.kind === 'DimensionLine') this.renderDimensionLine(body, obj.item as DimensionLine, store)
 
     this.root.appendChild(body)
   }
@@ -175,13 +177,17 @@ export class PropertiesPanel {
     return el
   }
 
-  private findObject(home: NormalizedHomeState, id: string): { kind: string; item: Wall | Room | Furniture } | null {
+  private findObject(home: NormalizedHomeState, id: string): { kind: string; item: Wall | Room | Furniture | Label | DimensionLine } | null {
     const w = home.walls.find((w) => w.id === id)
     if (w) return { kind: 'Wall', item: w }
     const r = home.rooms.find((r) => r.id === id)
     if (r) return { kind: 'Room', item: r }
     const f = home.furniture.find((f) => f.id === id)
     if (f) return { kind: 'Furniture', item: f }
+    const l = home.labels.find((l) => l.id === id)
+    if (l) return { kind: 'Label', item: l }
+    const d = home.dimensionLines.find((d) => d.id === id)
+    if (d) return { kind: 'DimensionLine', item: d }
     return null
   }
 
@@ -427,6 +433,144 @@ export class PropertiesPanel {
     const mirrorCheck = checkboxInput(f.modelMirrored === true)
     mirrorCheck.addEventListener('change', () => commit({ modelMirrored: mirrorCheck.checked }))
     body.appendChild(fieldRow('Flip Horizontal', mirrorCheck))
+  }
+
+  private renderLabel(body: HTMLDivElement, label: Label, _store: HomeStore): void {
+    const commit = (patch: Partial<Omit<Label, 'id'>>) => {
+      this.model.updateLabel(label.id, patch)
+    }
+
+    // Text
+    const textIn = textInput(label.text)
+    textIn.addEventListener('change', () => commit({ text: textIn.value }))
+    body.appendChild(fieldRow('Text', textIn))
+
+    // Position
+    const posGroup = this.group('Position')
+    const xInput = numInput(num(label.x), { step: 0.01 })
+    xInput.addEventListener('change', () => {
+      const n = validateFinite(xInput.value, label.x)
+      xInput.value = String(n)
+      commit({ x: n })
+    })
+    const yInput = numInput(num(label.y), { step: 0.01 })
+    yInput.addEventListener('change', () => {
+      const n = validateFinite(yInput.value, label.y)
+      yInput.value = String(n)
+      commit({ y: n })
+    })
+    posGroup.appendChild(fieldRow('x', xInput))
+    posGroup.appendChild(fieldRow('y', yInput))
+    body.appendChild(posGroup)
+
+    // Angle
+    const angleInput = numInput(num(label.angleDeg), { step: 0.01 })
+    angleInput.addEventListener('change', () => {
+      const n = normalizeAngle(validateFinite(angleInput.value, label.angleDeg ?? 0))
+      angleInput.value = String(n)
+      commit({ angleDeg: n })
+    })
+    body.appendChild(fieldRow('Angle', angleInput))
+
+    // Elevation
+    const elevInput = numInput(num(label.elevation), { step: 0.01 })
+    elevInput.addEventListener('change', () => {
+      const n = validateFinite(elevInput.value, label.elevation ?? 0)
+      elevInput.value = String(n)
+      commit({ elevation: n })
+    })
+    body.appendChild(fieldRow('Elevation', elevInput))
+
+    // Color
+    const colorIn = colorInput(label.color)
+    colorIn.addEventListener('input', () => commit({ color: parseColor(colorIn.value) }))
+    body.appendChild(fieldRow('Color', colorIn))
+
+    // Level (read-only)
+    const levelText = document.createElement('span')
+    levelText.className = 'prop-static'
+    levelText.textContent = label.levelRef ?? '(none)'
+    body.appendChild(fieldRow('Level', levelText))
+  }
+
+  private renderDimensionLine(body: HTMLDivElement, dim: DimensionLine, _store: HomeStore): void {
+    const commit = (patch: Partial<Omit<DimensionLine, 'id'>>) => {
+      this.model.updateDimensionLine(dim.id, patch)
+    }
+
+    // Start point
+    const startGroup = this.group('Start')
+    const sxInput = numInput(num(dim.xStart), { step: 0.01 })
+    sxInput.addEventListener('change', () => {
+      const n = validateFinite(sxInput.value, dim.xStart)
+      sxInput.value = String(n)
+      commit({ xStart: n })
+    })
+    const syInput = numInput(num(dim.yStart), { step: 0.01 })
+    syInput.addEventListener('change', () => {
+      const n = validateFinite(syInput.value, dim.yStart)
+      syInput.value = String(n)
+      commit({ yStart: n })
+    })
+    startGroup.appendChild(fieldRow('x', sxInput))
+    startGroup.appendChild(fieldRow('y', syInput))
+    body.appendChild(startGroup)
+
+    // End point
+    const endGroup = this.group('End')
+    const exInput = numInput(num(dim.xEnd), { step: 0.01 })
+    exInput.addEventListener('change', () => {
+      const n = validateFinite(exInput.value, dim.xEnd)
+      exInput.value = String(n)
+      commit({ xEnd: n })
+    })
+    const eyInput = numInput(num(dim.yEnd), { step: 0.01 })
+    eyInput.addEventListener('change', () => {
+      const n = validateFinite(eyInput.value, dim.yEnd)
+      eyInput.value = String(n)
+      commit({ yEnd: n })
+    })
+    endGroup.appendChild(fieldRow('x', exInput))
+    endGroup.appendChild(fieldRow('y', eyInput))
+    body.appendChild(endGroup)
+
+    // Length (read-only)
+    const length = Math.hypot(dim.xEnd - dim.xStart, dim.yEnd - dim.yStart)
+    const lengthInput = numInput(length, { readonly: true })
+    body.appendChild(fieldRow('Length', lengthInput))
+
+    // Offset
+    const offsetInput = numInput(num(dim.offset), { step: 0.01 })
+    offsetInput.addEventListener('change', () => {
+      const n = validateFinite(offsetInput.value, dim.offset)
+      offsetInput.value = String(n)
+      commit({ offset: n })
+    })
+    body.appendChild(fieldRow('Offset', offsetInput))
+
+    // Elevation start
+    const elevStartInput = numInput(num(dim.elevationStart ?? 0), { step: 0.01 })
+    elevStartInput.addEventListener('change', () => {
+      const n = validateFinite(elevStartInput.value, dim.elevationStart ?? 0)
+      elevStartInput.value = String(n)
+      commit({ elevationStart: n })
+    })
+    body.appendChild(fieldRow('Elev Start', elevStartInput))
+
+    // Elevation end
+    const elevEndInput = numInput(num(dim.elevationEnd ?? 0), { step: 0.01 })
+    elevEndInput.addEventListener('change', () => {
+      const n = validateFinite(elevEndInput.value, dim.elevationEnd ?? 0)
+      elevEndInput.value = String(n)
+      commit({ elevationEnd: n })
+    })
+    body.appendChild(fieldRow('Elev End', elevEndInput))
+
+    // Level (read-only)
+    const levelText = document.createElement('span')
+    levelText.className = 'prop-static'
+    levelText.textContent = dim.levelRef ?? '(none)'
+    body.appendChild(fieldRow('Level', levelText))
   }
 
   private group(label: string): HTMLDivElement {
