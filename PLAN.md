@@ -311,6 +311,92 @@ do not silently re-decide these choices ticket-by-ticket.
 
 | H5 | wire-up-account-ui-login-save-load | H1,H3 | homely/src/main.ts + homely/src/services/auth.ts + homely/src/services/adapters/remote-home-store.ts | opencode-go/deepseek-v4-pro (architecture-tier — real UX/auth design decisions) | | done | P1, CRITICAL — found during manager-driven hands-on user testing; now landed (commit 764659d) and independently re-verified by the manager. Built: `HttpAuth` (real `AuthAdapter` calling `/api/auth/register`+`/api/auth/login`, JWT session persisted in `localStorage`), `AuthDialog` (login/register modal mirroring `PreferencesDialog`'s pattern), `HomeListDialog` (simple picker for "Open from My Account"), `Authorization: Bearer` header support added to `remote-home-store.ts` via a token-getter callback, and File-menu entries ("Save to My Account…", "Open from My Account…", "Log In / Register…", "Log Out", signed-in-as-email status indicator). `remote-model-store.ts` intentionally left untouched per scope. Manager found and the worker fixed a real duplicate-save bug during verification: saving an account-loaded home a second time created a new record instead of updating in place, because the loaded home's server id was never tracked client-side (`currentAccountHomeId`, reset on New/local-Open/Log-Out, set on load and every successful save). Manager independently proved the fix live end-to-end (fresh server+Vite instances, real Playwright run through the actual UI, not just unit tests): registered a new user, saved the same document twice, confirmed via authenticated `GET /api/homes` that exactly one record existed both times with the same `id` and an advancing `updatedAt`; then reloaded the page, reopened the home from the account, saved again, and confirmed it was still a single record. `tsc --noEmit` clean, `eslint` clean, `vitest run` 535 passed / 4 pre-existing unrelated failures (belong to the separately-managed agent's `home-persistence-tauri.test.ts`, documented all session, no regressions). `main.ts` changes staged hunk-by-hunk via `git add -p` to exclude that agent's concurrent uncommitted telemetry work in the same file; verified 0 telemetry references in the staged diff before committing. |
 
+## Track X — Exterior design (roof, terrain/site, exterior facade) (2026-09-03, user-requested, manager-driven)
+
+User explicitly asked to be able to design both house interiors AND
+exteriors. Manager audit (source reading + live `npm run dev` check,
+2026-09-03) confirmed this app today is a pure interior floor-plan tool:
+
+1. **No roof concept at all.** `grep -rni "roof" homely/src/core/*.ts`
+   returns zero matches. Checked the real SH3D reference source at
+   `sweethome3d-7.5-wayland-patch/` (`grep -rli roof --include=*.java src/`
+   also returns ZERO matches) — **SH3D itself has no built-in roof
+   generation** (roofs in real SH3D are built manually by users out of
+   angled walls/rooms, or via a separate third-party plugin, not a core
+   feature). This means, unlike M53 (rounded walls) where a half-built
+   `arcExtent` field and a real `Wall.java` reference existed to port,
+   **there is no SH3D reference behavior to port for roofs** — this sub-
+   epic is genuinely new mechanics, not a port. Treat any "port SH3D
+   behavior" instinct as N/A here; design decisions below are the
+   manager's own reasonable calls, documented as such.
+2. **Terrain/ground is NOT 100% greenfield** — `homely/src/view3d/scene.ts`
+   (~line 570-578) already renders a large flat `THREE.PlaneGeometry`
+   ground mesh (`GROUND_SIZE_CM = 100_000`, i.e. 1km, effectively
+   "infinite" relative to any house) colored via
+   `home.environment.groundColor` (int, default `0xa8a8a8`), editable today
+   via `homely/src/ui/preferences.ts`'s ground-color swatch. What's
+   missing, matching a real SH3D gap (confirmed:
+   `Home3DAttributesPanel.java` has a `groundColorRadioButton` **and** a
+   `groundTextureRadioButton` + texture chooser — SH3D lets you pick a flat
+   color OR a tileable ground texture, mutually exclusive) is the texture
+   option: homely only has flat color, no ground texture at all. There is
+   no "terrain size" concept in SH3D either (its ground is effectively
+   infinite same as homely's already-large plane) — do NOT build an
+   editable terrain footprint/size feature, it has no real precedent and
+   homely's existing 1km plane already solves "house floats in a void."
+3. **Exterior facade materials**: M51 (`homely/src/core/home.ts`
+   `leftSideTextureId`/`rightSideTextureId`) + M52 (3D render, `scene.ts`)
+   already shipped a real, working per-wall-side texture system —
+   confirmed `done` and re-readable in `core/home.ts` today. This DOES
+   already cover "brick outside, drywall inside" at the individual-wall
+   level. The only remaining real gap is convenience UX: there is no way
+   to say "make every wall's OUTWARD-facing side brick" in one action —
+   a user must set left/right texture on every exterior wall individually
+   and must reason about which side (left/right, defined by wall draw
+   direction) actually faces outward for their building shape. This is a
+   real but low-severity gap (a workaround already exists: manual
+   per-wall edits) — filed below as **X5**, explicitly LOWER priority than
+   roof/ground, not dispatched this round.
+
+Given the size (schema, 2D representation/editing, 3D extrusion, LuxCore
+export support, plus the separate ground-texture feature), this is NOT
+attempted as one giant ticket — same reasoning as M53's split. Roadmap:
+
+- **X1 (ground texture)** — smallest, most proven-pattern, dispatch first.
+  Mirrors M51+M52's already-established wall-texture pattern but for the
+  single global ground plane. No dependency on X2+.
+- **X2 (roof: schema + footprint + 2D plan representation)** — first roof
+  sub-ticket. Schema + a `Roof` model type + auto-computed footprint from
+  a level's outer walls + basic 2D plan drawing/editing of pitch/overhang.
+  NOT 3D yet.
+- **X3 (roof: 3D extrusion)** — depends on X2. Extrude the gable/hip shape
+  into `view3d/scene.ts` using the same footprint X2 computes, mirroring
+  M53b's "reuse the same outline-computation function, don't re-derive
+  curve math twice" discipline.
+- **X4 (roof: LuxCore export support)** — depends on X3. Add roof geometry
+  to `buildRenderableScene()` (`homely/src/render/scene-builder.ts`) so a
+  LuxCore render actually shows the roof.
+- **X5 (exterior-facade bulk-apply UX)** — depends on nothing above,
+  lower priority, NOT dispatched this round, filed as a placeholder only:
+  add a "mark this wall side as exterior-facing" flag or a one-click
+  "apply texture to all exterior-facing wall sides for the whole
+  building" action on top of M51/M52's existing per-wall fields. Needs a
+  product decision on how "exterior-facing" is determined automatically
+  (e.g. the side away from the nearest enclosing room) — do not dispatch
+  until that's scoped with the same rigor as the tickets above.
+
+Do not dispatch X3/X4/X5 until their immediate dependency has landed and
+been manager-verified, same discipline as every other track.
+
+| Ticket | Title | Deps | Owner dir | Track | Claimed-by | Status | Notes |
+|--------|-------|------|-----------|-------|------------|--------|-------|
+| X1 | ground-texture | M52 | homely/src/core/home.ts + homely/src/ui/preferences.ts + homely/src/view3d/scene.ts + homely/docs/schema/home-project.schema.json | opencode/mimo-v2.5-free | | todo | P3, feature — exterior-design epic, ground texture. ROOT CAUSE/CONTEXT: `EnvironmentState` (`core/home.ts` ~line 165) has only `groundColor: number \| null`, no texture option, confirmed via grep. Real SH3D (`sweethome3d-7.5-wayland-patch/src/com/eteks/sweethome3d/swing/Home3DAttributesPanel.java`) has a mutually-exclusive `groundColorRadioButton`/`groundTextureRadioButton` choice — port that UX shape (color OR texture, not both at once), not a new invention. `homely/assets/textures/` already has 6 tileable PNGs (`carpet.png`, `concrete.png`, `plaster-white.png`, `tile-floor.png`, `wood-oak.png`, `wood-pine.png`) — reuse `WALL_TEXTURES` catalog shape from `core/home.ts` (~line 39-46) as your pattern (create a small `GROUND_TEXTURES` catalog, likely just re-exporting/aliasing `WALL_TEXTURES` or a subset of it — your call, but do not duplicate the PNG asset list into a third catalog if `WALL_TEXTURES` already covers the needed ids). TASK: (1) schema — add `groundTextureId?: string \| null` to `EnvironmentState` in `core/home.ts`; update `docs/schema/home-project.schema.json` to match (this schema is FROZEN per the top-of-file contract note, but M51 already set the precedent of extending it for a new optional field — follow that precedent, additive-only, do not break existing fields); when `groundTextureId` is set, it should take precedence over `groundColor` for rendering (color remains the fallback/default state). (2) UI — in `homely/src/ui/preferences.ts`, add a ground-texture picker next to the existing ground-color swatch, radio-style (color vs texture, mirroring the SH3D dialog's mutual exclusivity) — mirror this file's existing field-row markup/wiring conventions exactly, do not invent a new UI pattern. (3) 3D render — in `homely/src/view3d/scene.ts`, when building the ground mesh (~line 570-578), if `groundTextureId` is set, load the referenced PNG via `THREE.TextureLoader` and reuse the EXACT SAME texture-loading/caching pattern M52 already established for wall textures in this same file (cache-by-url, `THREE.RepeatWrapping`, computed `repeat` from a sensible real-world tile size e.g. 100cm per tile matching M52's documented default) — do not reinvent texture loading/caching, mirror the existing function. DoD: a unit test proving `groundTextureId` round-trips through the schema/export normalization the same way `leftSideTextureId` does (mirror M51's test pattern); a scene.ts test (or DOM-free unit test on any pure remap/repeat-computation helper, per the M52 lesson that Node/vitest silently no-ops `THREE.TextureLoader`) proving the ground mesh gets a `map` set when `groundTextureId` is set and none when only `groundColor` is set. Live-verify via Playwright: open Preferences, pick a ground texture, confirm the 3D view's ground plane visibly shows the tiled texture instead of a flat color (screenshot). `npx tsc --noEmit` clean, `npx eslint .` clean, `npx vitest run` clean (baseline before this ticket: 567 passed, 4 pre-existing unrelated failures in `tests/home-persistence-tauri.test.ts` — do not regress that count). Do not touch `src/plan/`, `src/main.ts`, `src/core/model.ts` beyond whatever minimal validation hookup is needed for the new field (check `model.ts`'s existing environment-update path first), `src/core/top-camera-follower.ts`, or `equivalence/`. |
+| X2 | roof-schema-footprint-2d | M2 | homely/src/core/home.ts + homely/src/core/model.ts + homely/src/plan/engine.ts + homely/src/plan/renderer.ts + homely/docs/schema/home-project.schema.json | opencode-go/kimi-k2.7-code (balanced/scarce-tier — new geometry mechanics, no reference implementation to copy, genuinely needs design judgement; if opencode-go is unavailable/budget-exhausted at dispatch time, use the highest-capability available alternative rather than downgrading a design-judgement ticket to a mechanical-tier model) | | todo | P3, feature — exterior-design epic, first real roof sub-ticket (schema + footprint + 2D only; 3D extrusion is X3, LuxCore export is X4 — do not attempt those here). CONTEXT: no `Roof` concept exists anywhere in the schema or model (confirmed via grep, see Track X epic note above) and — unlike most of this app's other features — there is no real SH3D implementation to port (confirmed zero `Roof`-related matches in `sweethome3d-7.5-wayland-patch/src/`), so design the simplest reasonable version yourself and document each call in your final report rather than asking. DESIGN DECISIONS (manager's calls, follow these rather than re-deciding): a roof is a new top-level array `roofs: Roof[]` in `NormalizedHomeState`, each with `{ id: string, levelRef?: string | null, points: Array<[number, number]>, style: 'gable' | 'hip', pitchDeg: number, overhangCm: number, ridgeAngleDeg?: number | null, color?: number | null }` — mirror `Room`'s existing shape/conventions in `core/home.ts` (`points`, `levelRef`) exactly since a roof footprint is structurally the same "polygon tied to a level" concept a Room already is. `points` is the roof's footprint polygon (in cm, same coordinate system as walls/rooms) — auto-computed once at creation time from that level's outer wall outline, then stored as plain editable data (same "compute once via a tool action, then it's just data the user can drag" pattern `Room` already uses, NOT continuously recomputed from walls after creation). `pitchDeg` default 30, `overhangCm` default 30 (document these as your defaults, no other precedent to match). Add `addRoof`/`updateRoof`/`deleteRoof` methods to `core/model.ts` mirroring `addRoom`/`updateRoom`/`deleteRoom`'s exact existing conventions (compound-edit wrapping, undo/redo) — read those methods first and copy the shape, do not invent a new mutation pattern. FOOTPRINT COMPUTATION: add a "Roof" tool to `PlanEngine` (`plan/engine.ts`) — on click/double-click inside a level's wall enclosure with the roof tool active, compute the outer building footprint. `PlanEngine.findEnclosingWallLoop(point)` (~line 780) already walks the wall graph to find the SMALLEST enclosing cycle at a point — for a roof you instead want the LARGEST/outermost boundary of the whole level's walls, which is a different algorithm; if implementing an exact concave outer-boundary trace is too large for this ticket, it is acceptable (per project convention: ship the simpler version and document the simplification) to compute a convex hull of all wall endpoints on the current level instead — document this simplification clearly in your report and in a code comment, do not silently ship a wrong-looking result without disclosure. Do NOT touch or import from `homely/src/core/top-camera-follower.ts` (owned by ticket M53c, may be mid-edit) — implement footprint math as a new self-contained pure function in `plan/engine.ts` or a new small adjacent file, not by reusing M53c's in-flight mitering code. 2D REPRESENTATION: render the roof footprint in `plan/renderer.ts` as a distinct dashed outline (do not reuse Room's solid floor-fill style, a roof is conceptually "above," not a floor) plus a simple ridge-line indicator (a single line down the long axis of the footprint's bounding box is an acceptable simplification for gable) and a small text label showing style+pitch (e.g. "Roof (gable, 30°)"). Selecting a roof should show it in the existing selection-highlight style consistent with how Rooms/Walls already render selection. TASK SUMMARY: schema + model CRUD + a Roof plan-tool (auto-footprint from level's outer walls, click/double-click to place) + basic 2D rendering + pitch/overhang editable via typed input (properties panel wiring is OPTIONAL/stretch for this ticket — if time-constrained, a temporary/debug way to set pitch/overhang, e.g. via `model.updateRoof()` callable from tests, is acceptable and the properties-panel UI can be a fast-follow, document this choice if made). DoD: unit tests in `homely/tests/plan-engine.test.ts` (or a new `roof.test.ts`) proving: placing a roof via the tool on a simple rectangular 4-wall enclosure produces a footprint polygon covering that rectangle (within the overhang), the roof is undoable in one compound-edit step, and it round-trips through save/export (schema validation). Live-verify via Playwright: draw a 4-wall rectangle, use the Roof tool, screenshot the 2D plan showing the dashed roof outline + ridge line + label. `npx tsc --noEmit` clean, `npx eslint .` clean, `npx vitest run` clean (do not regress the 567/4 baseline noted above — check the actual current baseline right before you start, since other tickets landing concurrently may shift the passing count; call out any pre-existing failures you observe by name). Do not touch `homely/src/view3d/scene.ts`, `homely/src/core/top-camera-follower.ts`, `homely/src/main.ts`, `homely/src/ui/properties-panel.ts` (unless you choose to do the optional properties-panel stretch goal), or `equivalence/`. |
+| X3 | roof-3d-extrusion | X2 | homely/src/view3d/scene.ts | (not yet dispatched — scope once X2 lands: extrude X2's footprint+pitch+overhang into a sloped roof mesh in scene.ts, reusing X2's footprint-computation function rather than re-deriving the geometry, same discipline as M53b reusing M53a's arc-outline function) | | todo | P3, placeholder — do not dispatch until X2 is manager-verified `done`. |
+| X4 | roof-luxcore-export | X3 | homely/src/render/scene-builder.ts | (not yet dispatched — scope once X3 lands: add roof geometry to `buildRenderableScene()` so LuxCore renders show the roof, mirroring however walls/furniture are already represented in that file's output shape) | | todo | P3, placeholder — do not dispatch until X3 is manager-verified `done`. |
+| X5 | exterior-facade-bulk-apply | — | TBD (needs product scoping first: how is "exterior-facing side" determined automatically) | (not yet dispatched — lower priority than X1-X4; M51/M52 already provide the underlying capability, this is a convenience-UX layer on top) | | todo | P4, placeholder — needs a product decision on automatic exterior-side detection before it can be scoped with the same DoD rigor as other tickets. Not blocking the rest of Track X. |
+
+
 ## Sequencing waves
 
 ```
