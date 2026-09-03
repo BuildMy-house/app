@@ -54,7 +54,7 @@ test.describe('layout', () => {
     await page.locator('.menu-trigger').first().click()
     const dropdown = page.locator('.menu-item.open .menu-dropdown')
     await expect(dropdown).toBeVisible()
-    await expect(dropdown.locator('.menu-entry')).toHaveCount(5) // New, Save, Open, Export Plan as PNG, Export 3D View as PNG (separators are not .menu-entry)
+    await expect(dropdown.locator('.menu-entry')).toHaveCount(10) // New, Save, Open, Save to My Account…, Open from My Account…, Log In / Register…, Export Plan as PNG…, Export 3D View as PNG…, Export Scene for LuxCore Render…, Print Plan… — signed-out default (separators are not .menu-entry)
   })
 
   test('clicking elsewhere closes the menu', async ({ page }) => {
