@@ -331,3 +331,77 @@ describe('wall arc outlines', () => {
     expect(Math.max(...ys)).toBeCloseTo(sagitta + 3.5, 0)
   })
 })
+
+describe('wall arc mitering (M53c)', () => {
+  const THICKNESS = 10
+
+  function capPoints(outline: [number, number][], atStart: boolean): [[number, number], [number, number]] {
+    const i0 = atStart ? 0 : Math.floor(outline.length / 2) - 1
+    const i1 = atStart ? outline.length - 1 : Math.floor(outline.length / 2)
+    return [outline[i0]!, outline[i1]!]
+  }
+
+  it('straight wall meeting arc wall (CCW) shares mitered corners at joint', () => {
+    const straight = { id: 's', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: THICKNESS }
+    const arc = { id: 'a', xStart: 100, yStart: 0, xEnd: 200, yEnd: 0, thickness: THICKNESS, arcExtent: Math.PI / 2 }
+
+    const sPts = wallOutlinePoints(straight, [straight, arc])
+    const aPts = wallOutlinePoints(arc, [straight, arc])
+
+    const [sEndL, sEndR] = capPoints(sPts, false)
+    const [aStartExt, aStartInt] = capPoints(aPts, true)
+
+    expect(sEndL[0]).toBeCloseTo(aStartInt[0], 6)
+    expect(sEndL[1]).toBeCloseTo(aStartInt[1], 6)
+    expect(sEndR[0]).toBeCloseTo(aStartExt[0], 6)
+    expect(sEndR[1]).toBeCloseTo(aStartExt[1], 6)
+  })
+
+  it('straight wall meeting arc wall (CW) shares mitered corners at joint', () => {
+    const straight = { id: 's', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: THICKNESS }
+    const arc = { id: 'a', xStart: 100, yStart: 0, xEnd: 200, yEnd: 0, thickness: THICKNESS, arcExtent: -Math.PI / 2 }
+
+    const sPts = wallOutlinePoints(straight, [straight, arc])
+    const aPts = wallOutlinePoints(arc, [straight, arc])
+
+    const [sEndL, sEndR] = capPoints(sPts, false)
+    const [aStartExt, aStartInt] = capPoints(aPts, true)
+
+    expect(sEndL[0]).toBeCloseTo(aStartInt[0], 6)
+    expect(sEndL[1]).toBeCloseTo(aStartInt[1], 6)
+    expect(sEndR[0]).toBeCloseTo(aStartExt[0], 6)
+    expect(sEndR[1]).toBeCloseTo(aStartExt[1], 6)
+  })
+
+  it('arc wall meeting arc wall (both CCW) shares mitered corners at joint', () => {
+    const arc1 = { id: 'a1', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: THICKNESS, arcExtent: Math.PI / 2 }
+    const arc2 = { id: 'a2', xStart: 100, yStart: 0, xEnd: 200, yEnd: 0, thickness: THICKNESS, arcExtent: Math.PI / 2 }
+
+    const a1Pts = wallOutlinePoints(arc1, [arc1, arc2])
+    const a2Pts = wallOutlinePoints(arc2, [arc1, arc2])
+
+    const [a1EndExt, a1EndInt] = capPoints(a1Pts, false)
+    const [a2StartExt, a2StartInt] = capPoints(a2Pts, true)
+
+    expect(a1EndExt[0]).toBeCloseTo(a2StartInt[0], 6)
+    expect(a1EndExt[1]).toBeCloseTo(a2StartInt[1], 6)
+    expect(a1EndInt[0]).toBeCloseTo(a2StartExt[0], 6)
+    expect(a1EndInt[1]).toBeCloseTo(a2StartExt[1], 6)
+  })
+
+  it('arc wall meeting straight wall in L-junction shares mitered corners', () => {
+    const arc = { id: 'a', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: THICKNESS, arcExtent: Math.PI / 2 }
+    const straight = { id: 's', xStart: 100, yStart: 0, xEnd: 100, yEnd: 100, thickness: THICKNESS }
+
+    const aPts = wallOutlinePoints(arc, [arc, straight])
+    const sPts = wallOutlinePoints(straight, [arc, straight])
+
+    const [aEndExt, aEndInt] = capPoints(aPts, false)
+    const [sStartL, sStartR] = capPoints(sPts, true)
+
+    expect(aEndExt[0]).toBeCloseTo(sStartR[0], 6)
+    expect(aEndExt[1]).toBeCloseTo(sStartR[1], 6)
+    expect(aEndInt[0]).toBeCloseTo(sStartL[0], 6)
+    expect(aEndInt[1]).toBeCloseTo(sStartL[1], 6)
+  })
+})

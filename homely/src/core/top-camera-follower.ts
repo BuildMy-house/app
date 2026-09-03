@@ -233,21 +233,155 @@ function miterEnd(
   }
 }
 
+/** Indices of the two `outline` points closest to `point` (the end-cap). */
+function capIndicesForEnd(outline: Pt[], point: Pt): [number, number] {
+  const scored = outline.map((p, i) => ({
+    i,
+    d2: (p[0] - point[0]) * (p[0] - point[0]) + (p[1] - point[1]) * (p[1] - point[1]),
+  }))
+  scored.sort((a, b) => a.d2 - b.d2 || a.i - b.i)
+  return [scored[0]!.i, scored[1]!.i]
+}
+
+/** Miter one end of a straight wall against an arc wall end-cap. */
+function miterStraightToArcEnd(
+  pts: [Pt, Pt, Pt, Pt],
+  atStart: boolean,
+  arcPts: Pt[],
+  theirAtStart: boolean,
+  limit: number,
+  other: Wall,
+): void {
+  const myLeft = atStart ? 0 : 1
+  const myRight = atStart ? 3 : 2
+  const myLeftN = atStart ? 1 : 0
+  const myRightN = atStart ? 2 : 3
+
+  const theirCap = capIndicesForEnd(arcPts, endpoint(other, theirAtStart))
+  const theirA = arcPts[theirCap[0]]
+  const theirB = arcPts[theirCap[1]]
+  if (!theirA || !theirB) return
+
+  for (const [capIndex, neighborIndex] of [
+    [myLeft, myLeftN],
+    [myRight, myRightN],
+  ] as const) {
+    const cap = pts[capIndex]
+    const neighbor = pts[neighborIndex]
+    if (!cap || !neighbor) continue
+    const moved = lineIntersect(cap, neighbor, theirA, theirB)
+    if (!moved) continue
+    const dx = moved[0] - cap[0]
+    const dy = moved[1] - cap[1]
+    if (dx * dx + dy * dy < limit * limit) {
+      cap[0] = moved[0]
+      cap[1] = moved[1]
+    }
+  }
+}
+
+/** Miter one end of an arc wall against a straight or arc neighbor. */
+function miterArcEnd(
+  pts: Pt[],
+  atStart: boolean,
+  theirPts: Pt[],
+  otherIsArc: boolean,
+  theirAtStart: boolean,
+  limit: number,
+  self: Wall,
+  other: Wall,
+): void {
+  const myCap = capIndicesForEnd(pts, endpoint(self, atStart))
+  const myA = pts[myCap[0]]
+  const myB = pts[myCap[1]]
+  if (!myA || !myB) return
+
+  const theirCap = capIndicesForEnd(theirPts, endpoint(other, theirAtStart))
+  const theirA = theirPts[theirCap[0]]
+  const theirB = theirPts[theirCap[1]]
+  if (!theirA || !theirB) return
+
+  if (otherIsArc) {
+    const moved = lineIntersect(myA, myB, theirA, theirB)
+    if (!moved) return
+    for (const idx of myCap) {
+      const cap = pts[idx]
+      if (!cap) continue
+      const dx = moved[0] - cap[0]
+      const dy = moved[1] - cap[1]
+      if (dx * dx + dy * dy < limit * limit) {
+        cap[0] = moved[0]
+        cap[1] = moved[1]
+      }
+    }
+    return
+  }
+
+  // Neighbor is straight: choose its left/right side line by which side of the
+  // neighbor's centerline each cap point lies on.
+  const odx = other.xEnd - other.xStart
+  const ody = other.yEnd - other.yStart
+  const olen = Math.hypot(odx, ody) || 1
+  const ohalf = other.thickness / 2
+  const onx = (-ody / olen) * ohalf
+  const ony = (odx / olen) * ohalf
+
+  const leftStart = theirPts[theirAtStart ? 0 : 1]
+  const leftEnd = theirPts[theirAtStart ? 1 : 0]
+  const rightStart = theirPts[theirAtStart ? 3 : 2]
+  const rightEnd = theirPts[theirAtStart ? 2 : 3]
+
+  for (const idx of myCap) {
+    const cap = pts[idx]
+    if (!cap) continue
+    const vx = cap[0] - other.xStart
+    const vy = cap[1] - other.yStart
+    const side = vx * onx + vy * ony
+    const [s, e] = side >= 0 ? [leftStart, leftEnd] : [rightStart, rightEnd]
+    if (!s || !e) continue
+    const moved = lineIntersect(myA, myB, s, e)
+    if (!moved) continue
+    const dx = moved[0] - cap[0]
+    const dy = moved[1] - cap[1]
+    if (dx * dx + dy * dy < limit * limit) {
+      cap[0] = moved[0]
+      cap[1] = moved[1]
+    }
+  }
+}
+
 /**
  * Thick-polygon corner points with mitered joins where walls share an exact
  * endpoint (geometric equivalent of SH3D wallAtStart/wallAtEnd outlines).
- * Round walls (nonzero arcExtent) return their concentric-arc outline with no
- * mitering — curved-to-straight joins are a later milestone (M53c).
+ * Round walls (nonzero arcExtent) also have their end-cap straight segment
+ * mitered against straight or arc neighbors (M53c).
  */
 export function wallOutlinePoints(wall: Wall, allWalls: Wall[]): Pt[] {
-  if (isArcWall(wall)) return arcWallOutlinePoints(wall)
+  if (isArcWall(wall)) {
+    const pts = arcWallOutlinePoints(wall)
+    for (const atStart of [true, false]) {
+      const join = findJoin(allWalls, wall, atStart)
+      if (!join) continue
+      const theirPts = isArcWall(join.other) ? arcWallOutlinePoints(join.other) : unjoinedCorners(join.other)
+      const limit = 2 * Math.max(wall.thickness, join.other.thickness)
+      miterArcEnd(pts, atStart, theirPts, isArcWall(join.other), join.otherAtStart, limit, wall, join.other)
+    }
+    return pts
+  }
+
   const pts = unjoinedCorners(wall)
   for (const atStart of [true, false]) {
     const join = findJoin(allWalls, wall, atStart)
     if (!join) continue
-    const theirs = unjoinedCorners(join.other)
-    const limit = 2 * Math.max(wall.thickness, join.other.thickness)
-    miterEnd(pts, atStart, theirs, join.otherAtStart, limit)
+    if (isArcWall(join.other)) {
+      const theirPts = arcWallOutlinePoints(join.other)
+      const limit = 2 * Math.max(wall.thickness, join.other.thickness)
+      miterStraightToArcEnd(pts, atStart, theirPts, join.otherAtStart, limit, join.other)
+    } else {
+      const theirs = unjoinedCorners(join.other)
+      const limit = 2 * Math.max(wall.thickness, join.other.thickness)
+      miterEnd(pts, atStart, theirs, join.otherAtStart, limit)
+    }
   }
   return pts
 }
