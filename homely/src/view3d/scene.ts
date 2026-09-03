@@ -11,6 +11,8 @@ import {
 } from '../core/home'
 import { isArcWall, wallOutlinePoints } from '../core/top-camera-follower'
 
+type Pt = [number, number]
+
 export const DEFAULT_WALL_COLOR = 0xd2d2d2
 export const DEFAULT_FLOOR_COLOR = 0xc8c8c8
 export const DEFAULT_FURNITURE_COLOR = 0x9e9e9e
@@ -29,142 +31,10 @@ function elevationFor(ref: string | null | undefined, levels: Map<string, number
   return levels.get(ref) ?? 0
 }
 
-// ── Wall mitering (M50) ─────────────────────────────────────────────────────
+// ── Wall outline (M50/M53c) ─────────────────────────────────────────────────
 //
-// Re-derives the same 2D thick-wall outline + mitered corners that
-// wallOutlinePoints() in top-camera-follower.ts uses for the 2D plan and
-// camera bounds, but kept local to avoid cross-module imports.  Kept
-// structurally identical so future readers can compare the two side-by-side.
-
-const JOIN_EPSILON = 1e-6
-const PARALLEL_EPSILON = 1e-9
-
-type Pt = [number, number]
-
-function miterSamePoint(a: Pt, b: Pt): boolean {
-  return Math.abs(a[0] - b[0]) < JOIN_EPSILON && Math.abs(a[1] - b[1]) < JOIN_EPSILON
-}
-
-function miterEndpoint(wall: Wall, atStart: boolean): Pt {
-  return atStart ? [wall.xStart, wall.yStart] : [wall.xEnd, wall.yEnd]
-}
-
-function miterFindJoin(
-  allWalls: Wall[],
-  self: Wall,
-  atStart: boolean,
-): { other: Wall; otherAtStart: boolean } | undefined {
-  const point = miterEndpoint(self, atStart)
-  for (const other of allWalls) {
-    if (other.id === self.id) continue
-    if (miterSamePoint(point, miterEndpoint(other, true))) return { other, otherAtStart: true }
-    if (miterSamePoint(point, miterEndpoint(other, false))) return { other, otherAtStart: false }
-  }
-  return undefined
-}
-
-function miterLineIntersect(p1: Pt, p2: Pt, p3: Pt, p4: Pt): Pt | null {
-  const d1x = p2[0] - p1[0]
-  const d1y = p2[1] - p1[1]
-  const d2x = p4[0] - p3[0]
-  const d2y = p4[1] - p3[1]
-  const denom = d1x * d2y - d1y * d2x
-  if (Math.abs(denom) < PARALLEL_EPSILON) return null
-  const t = ((p3[0] - p1[0]) * d2y - (p3[1] - p1[1]) * d2x) / denom
-  return [p1[0] + t * d1x, p1[1] + t * d1y]
-}
-
-function miterCorner(
-  pts: [Pt, Pt, Pt, Pt],
-  capIndex: number,
-  neighborIndex: number,
-  theirPts: [Pt, Pt, Pt, Pt],
-  theirCapIndex: number,
-  theirNeighborIndex: number,
-  limit: number,
-): void {
-  const cap = pts[capIndex]
-  const neighbor = pts[neighborIndex]
-  const theirCap = theirPts[theirCapIndex]
-  const theirNeighbor = theirPts[theirNeighborIndex]
-  if (!cap || !neighbor || !theirCap || !theirNeighbor) return
-  const moved = miterLineIntersect(cap, neighbor, theirCap, theirNeighbor)
-  if (!moved) return
-  const dx = moved[0] - cap[0]
-  const dy = moved[1] - cap[1]
-  if (dx * dx + dy * dy < limit * limit) {
-    cap[0] = moved[0]
-    cap[1] = moved[1]
-  }
-}
-
-// Unjoined corner order: [startL(0), endL(1), endR(2), startR(3)]
-function miterEnd(
-  pts: [Pt, Pt, Pt, Pt],
-  atStart: boolean,
-  theirs: [Pt, Pt, Pt, Pt],
-  theirAtStart: boolean,
-  limit: number,
-): void {
-  const myLeft = atStart ? 0 : 1
-  const myRight = atStart ? 3 : 2
-  const myLeftN = atStart ? 1 : 0
-  const myRightN = atStart ? 2 : 3
-  const theirLeft = theirAtStart ? 0 : 1
-  const theirRight = theirAtStart ? 3 : 2
-  const theirLeftN = theirAtStart ? 1 : 0
-  const theirRightN = theirAtStart ? 2 : 3
-  if (atStart === theirAtStart) {
-    miterCorner(pts, myLeft, myLeftN, theirs, theirRight, theirRightN, limit)
-    miterCorner(pts, myRight, myRightN, theirs, theirLeft, theirLeftN, limit)
-  } else {
-    miterCorner(pts, myLeft, myLeftN, theirs, theirLeft, theirLeftN, limit)
-    miterCorner(pts, myRight, myRightN, theirs, theirRight, theirRightN, limit)
-  }
-}
-
-/**
- * 2D wall outline with mitered corners at shared endpoints (local mirror of
- * wallOutlinePoints from top-camera-follower.ts). Returns [startL, endL,
- * endR, startR] — the four thick-wall rectangle corners, with any shared
- * endpoints extended to the correct miter intersection.
- */
-function computeWallMiteredOutline(wall: Wall, allWalls: Wall[]): [Pt, Pt, Pt, Pt] {
-  const dx = wall.xEnd - wall.xStart
-  const dy = wall.yEnd - wall.yStart
-  const len = Math.hypot(dx, dy) || 1
-  const half = wall.thickness / 2
-  const nx = (-dy / len) * half
-  const ny = (dx / len) * half
-  const pts: [Pt, Pt, Pt, Pt] = [
-    [wall.xStart + nx, wall.yStart + ny],
-    [wall.xEnd + nx, wall.yEnd + ny],
-    [wall.xEnd - nx, wall.yEnd - ny],
-    [wall.xStart - nx, wall.yStart - ny],
-  ]
-  for (const atStart of [true, false]) {
-    const join = miterFindJoin(allWalls, wall, atStart)
-    if (!join) continue
-    // Use unjoined (pre-miter) rectangle of the neighbor — same as
-    // wallOutlinePoints in top-camera-follower.ts: pairwise miter only
-    // needs the neighbor's own rectangle, not its recursive miter result.
-    const odx = join.other.xEnd - join.other.xStart
-    const ody = join.other.yEnd - join.other.yStart
-    const olen = Math.hypot(odx, ody) || 1
-    const ohalf = join.other.thickness / 2
-    const onx = (-ody / olen) * ohalf
-    const ony = (odx / olen) * ohalf
-    const theirs: [Pt, Pt, Pt, Pt] = [
-      [join.other.xStart + onx, join.other.yStart + ony],
-      [join.other.xEnd + onx, join.other.yEnd + ony],
-      [join.other.xEnd - onx, join.other.yEnd - ony],
-      [join.other.xStart - onx, join.other.yStart - ony],
-    ]
-    const limit = 2 * Math.max(wall.thickness, join.other.thickness)
-    miterEnd(pts, atStart, theirs, join.otherAtStart, limit)
-  }
-  return pts
-}
+// Reuses wallOutlinePoints() from top-camera-follower.ts for straight and arc
+// walls so 2D plan bounds, 3D extrusion, and edge highlights stay identical.
 
 /**
  * Convert a closed 2D wall outline (4 corners for straight walls, N points
@@ -278,7 +148,7 @@ function wallMesh(
 
   if (openings.length === 0) {
     // No openings — single extruded mitered shape.
-    const outline = computeWallMiteredOutline(wall, allWalls)
+    const outline = wallOutlinePoints(wall, allWalls)
     const shape = miteredShape(outline, midX, midY)
     const geometry = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false })
     // ExtrudeGeometry builds in XY extruded along +Z.
@@ -348,9 +218,7 @@ function wallEdges(wall: Wall, elevation: number, allWalls: Wall[]): THREE.LineS
   const height = wall.height ?? DEFAULT_WALL_HEIGHT_CM
   const midX = (wall.xStart + wall.xEnd) / 2
   const midY = (wall.yStart + wall.yEnd) / 2
-  const outline = isArcWall(wall)
-    ? wallOutlinePoints(wall, allWalls)
-    : computeWallMiteredOutline(wall, allWalls)
+  const outline = wallOutlinePoints(wall, allWalls)
   const shape = miteredShape(outline, midX, midY)
   const geometry = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false })
   geometry.rotateX(-Math.PI / 2)
@@ -432,6 +300,14 @@ function getCachedModel(url: string): THREE.Object3D | null {
 
 function cacheModel(url: string, obj: THREE.Object3D): void {
   if (!modelCache.has(url)) modelCache.set(url, obj)
+}
+
+/**
+ * Test-only hook: seed the model cache so unit tests can exercise the
+ * addModel → clone-materials path synchronously without a real GLB load.
+ */
+export function __seedModelCache(url: string, obj: THREE.Object3D): void {
+  cacheModel(url, obj)
 }
 
 /**
@@ -532,9 +408,16 @@ function swapInModel(mesh: THREE.Mesh, item: Furniture, isSelected: boolean, onR
 
   const addModel = (source: THREE.Object3D): void => {
     const model = fitModelToBox(source.clone(), item)
-    // Mark every mesh in the subtree shared so disposeSceneObjects skips
-    // disposing geometry/material that the cache still owns.
+    // Object3D.clone() shares material references with the cache.
+    // Clone each material per-instance so tintEmissive / clearEmissive
+    // never mutates the shared cache entry or another furniture instance.
     model.traverse((o) => {
+      const m = o as THREE.Mesh
+      if (m.isMesh) {
+        m.material = Array.isArray(m.material)
+          ? m.material.map((mat) => mat.clone())
+          : m.material.clone()
+      }
       o.userData.shared = true
     })
     mesh.geometry.dispose()
@@ -591,10 +474,10 @@ function furnitureMesh(item: Furniture, elevation: number, onReady?: () => void,
   return mesh
 }
 
-const SELECTION_EMISSIVE_COLOR = 0x1a66d6
-const SELECTION_EMISSIVE_INTENSITY = 0.3
+export const SELECTION_EMISSIVE_COLOR = 0x1a66d6
+export const SELECTION_EMISSIVE_INTENSITY = 0.3
 
-function tintEmissive(object: THREE.Object3D): void {
+export function tintEmissive(object: THREE.Object3D): void {
   object.traverse((child) => {
     if ('material' in child) {
       const mesh = child as THREE.Mesh
@@ -609,11 +492,31 @@ function tintEmissive(object: THREE.Object3D): void {
   })
 }
 
+export function clearEmissive(object: THREE.Object3D): void {
+  object.traverse((child) => {
+    if ('material' in child) {
+      const mesh = child as THREE.Mesh
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+      for (const m of mats) {
+        if ('emissive' in m) {
+          ;(m as THREE.MeshStandardMaterial).emissive.set(0x000000)
+          ;(m as THREE.MeshStandardMaterial).emissiveIntensity = 0
+        }
+      }
+    }
+  })
+}
+
 function applySelectionHighlight(scene: THREE.Scene, selectionSet: Set<string>): void {
   scene.traverse((object) => {
     const colonIdx = object.name.indexOf(':')
-    if (colonIdx >= 0 && selectionSet.has(object.name.slice(colonIdx + 1))) {
-      tintEmissive(object)
+    if (colonIdx >= 0) {
+      const id = object.name.slice(colonIdx + 1)
+      if (selectionSet.has(id)) {
+        tintEmissive(object)
+      } else if (object.name.startsWith('furniture:')) {
+        clearEmissive(object)
+      }
     }
   })
 }

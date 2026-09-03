@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { createEmptyHome, DEFAULT_WALL_HEIGHT_CM } from '../core/home'
 import { wallOutlinePoints } from '../core/top-camera-follower'
-import { buildScene, remapExtrudeUvs } from './scene'
+import {
+  buildScene,
+  remapExtrudeUvs,
+  __seedModelCache,
+  SELECTION_EMISSIVE_COLOR,
+} from './scene'
 
 /**
  * Extract every unique XZ position from a THREE.BufferGeometry's position
@@ -400,5 +405,164 @@ describe('furniture mirror (M60)', () => {
     const mesh = meshes[0]!
     expect(mesh.scale.x).toBe(-1)
     expect(mesh.rotation.y).toBeCloseTo(Math.PI / 2, 10)
+  })
+})
+
+// ── M66: selecting furniture must not permanently tint shared model materials ─
+//
+// Root cause: Object3D.clone() shares material references with the cached GLB.
+// tintEmissive() mutated that one shared material in place, blue-tinting every
+// other instance of the same catalog model permanently. Fixed by cloning each
+// material per-instance in addModel() before any highlight mutation.
+
+/** Build a fake cached catalog model: a group with meshes sharing one material. */
+function fakeCatalogModel(): THREE.Group {
+  const group = new THREE.Group()
+  const sharedBox = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({ color: 0xffffff }),
+  )
+  group.add(sharedBox)
+  const sharedSphere = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 8, 8),
+    // Reuse the SAME material instance (as a real GLB cache would) to prove
+    // per-instance cloning breaks the shared reference.
+    sharedBox.material as THREE.MeshStandardMaterial,
+  )
+  group.add(sharedSphere)
+  return group
+}
+
+/** Collect emissive state from all materials on a single mesh (handles arrays). */
+function meshEmissives(mesh: THREE.Mesh): Array<{ hex: number; intensity: number }> {
+  const out: Array<{ hex: number; intensity: number }> = []
+  for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+    const std = m as THREE.MeshStandardMaterial
+    out.push({ hex: std.emissive.getHex(), intensity: std.emissiveIntensity })
+  }
+  return out
+}
+
+/**
+ * Gather emissives from every mesh descendant of each `furniture:*` root,
+ * including the root's own material AND all child-model sub-mesh materials.
+ * This catches the actual M66 bug: child sub-meshes sharing a cached material.
+ */
+function allFurnitureEmissives(scene: THREE.Scene): Map<string, Array<{ hex: number; intensity: number }>> {
+  const map = new Map<string, Array<{ hex: number; intensity: number }>>()
+  scene.traverse((obj) => {
+    if (obj instanceof THREE.Mesh && obj.name.startsWith('furniture:')) {
+      const id = obj.name.slice('furniture:'.length)
+      const mats = meshEmissives(obj)
+      obj.traverse((child) => {
+        if (child !== obj && child instanceof THREE.Mesh) {
+          mats.push(...meshEmissives(child))
+        }
+      })
+      map.set(id, mats)
+    }
+  })
+  return map
+}
+
+function furnitureWithModel(id: string, modelPath: string) {
+  return {
+    id, name: 'Bookshelf', modelPath,
+    x: 0, y: 0, angleDeg: 0,
+    width: 100, depth: 40, height: 200,
+    elevation: 0,
+  }
+}
+
+describe('furniture selection material isolation (M66)', () => {
+  const MODEL_URL = 'assets/bookshelf.glb'
+
+  function makeScenes(selected: string[]) {
+    const home = createEmptyHome()
+    home.furniture.push(furnitureWithModel('A', 'bookshelf.glb'))
+    home.furniture.push(furnitureWithModel('B', 'bookshelf.glb'))
+    home.selection = selected
+    return buildScene(home, { modelUrlResolver: (p) => `assets/${p}` })
+  }
+
+  it('clones cached model materials per-instance (no shared mutation)', () => {
+    __seedModelCache(MODEL_URL, fakeCatalogModel())
+    const scene = makeScenes([])
+    const emissives = allFurnitureEmissives(scene)
+    expect(emissives.size).toBe(2)
+
+    // Fresh instance materials must not be the shared cache material reference.
+    for (const [, mats] of emissives) {
+      for (const m of mats) {
+        expect(m.hex).toBe(0x000000)
+      }
+    }
+  })
+
+  it('child sub-mesh material references differ between instances', () => {
+    __seedModelCache(MODEL_URL, fakeCatalogModel())
+    const scene = makeScenes([])
+    const matsA: THREE.Material[] = []
+    const matsB: THREE.Material[] = []
+    scene.traverse((obj) => {
+      if (!(obj instanceof THREE.Mesh)) return
+      if (obj.name === 'furniture:A' || obj.name === 'furniture:B') {
+        const id = obj.name.slice('furniture:'.length)
+        const dest = id === 'A' ? matsA : matsB
+        obj.traverse((child) => {
+          if (child !== obj && child instanceof THREE.Mesh) {
+            const m = child.material
+            if (Array.isArray(m)) dest.push(...m)
+            else dest.push(m)
+          }
+        })
+      }
+    })
+    expect(matsA.length).toBeGreaterThan(0)
+    expect(matsB.length).toBe(matsA.length)
+    // Every corresponding material must be a distinct object instance.
+    for (let i = 0; i < matsA.length; i++) {
+      expect(matsA[i]).not.toBe(matsB[i])
+    }
+  })
+
+  it("selecting one instance leaves the other exactly black", () => {
+    __seedModelCache(MODEL_URL, fakeCatalogModel())
+    const scene = makeScenes(['A'])
+    const emissives = allFurnitureEmissives(scene)
+    const a = emissives.get('A')!
+    const b = emissives.get('B')!
+    for (const m of a) expect(m.hex).toBe(SELECTION_EMISSIVE_COLOR)
+    for (const m of b) {
+      expect(m.hex).toBe(0x000000)
+      expect(m.intensity).toBe(0)
+    }
+  })
+
+  it('deselecting returns the previously-selected material to black', () => {
+    __seedModelCache(MODEL_URL, fakeCatalogModel())
+    let scene = makeScenes(['A'])
+    expect(allFurnitureEmissives(scene).get('A')![0]!.hex).toBe(SELECTION_EMISSIVE_COLOR)
+    scene = makeScenes([])
+    for (const [, mats] of allFurnitureEmissives(scene)) {
+      for (const m of mats) {
+        expect(m.hex).toBe(0x000000)
+      }
+    }
+  })
+
+  it('selecting A then B never leaves A tinted (implicit deselect)', () => {
+    __seedModelCache(MODEL_URL, fakeCatalogModel())
+    let scene = makeScenes(['A'])
+    expect(allFurnitureEmissives(scene).get('A')![0]!.hex).toBe(SELECTION_EMISSIVE_COLOR)
+    scene = makeScenes(['B'])
+    const emissives = allFurnitureEmissives(scene)
+    for (const m of emissives.get('A')!) {
+      expect(m.hex).toBe(0x000000)
+      expect(m.intensity).toBe(0)
+    }
+    for (const m of emissives.get('B')!) {
+      expect(m.hex).toBe(SELECTION_EMISSIVE_COLOR)
+    }
   })
 })
