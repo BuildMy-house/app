@@ -186,6 +186,7 @@ export class HomeStore {
       ...home.furniture,
       ...home.dimensionLines,
       ...home.labels,
+      ...home.roofs,
     ]
     for (const item of all) {
       const match = /-(\d+)$/.exec(item.id)

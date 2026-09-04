@@ -115,6 +115,10 @@ export function serializeHome(home: NormalizedHomeState): NormalizedHomeState {
       angleDeg: label.angleDeg === undefined ? undefined : roundAngle(label.angleDeg),
       elevation: label.elevation === undefined ? undefined : roundLen(label.elevation),
     })),
+    roofs: home.roofs.map((roof) => ({
+      ...roof,
+      points: roof.points.map(roundPoint),
+    })),
     cameras: {
       top: {
         ...home.cameras.top,

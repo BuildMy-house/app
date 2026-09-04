@@ -72,6 +72,7 @@ export type HitResult =
   | { kind: 'furniture'; id: string }
   | { kind: 'room'; id: string }
   | { kind: 'room-vertex'; roomId: string; vertexIndex: number }
+  | { kind: 'roof'; id: string }
   | { kind: 'label'; id: string }
   | { kind: 'dimension'; id: string }
 
@@ -83,6 +84,7 @@ export type PlanTool =
   | 'polyline'
   | 'dimensionLine'
   | 'label'
+  | 'roof'
 
 export interface ClickInput {
   x: number
@@ -702,6 +704,10 @@ export class PlanEngine {
       this.labelClick(point)
       return
     }
+    if (this.tool === 'roof') {
+      this.roofClick(point)
+      return
+    }
     if (this.tool === 'polyline') {
       throw new ModelError('polyline tool is not supported')
     }
@@ -731,6 +737,19 @@ export class PlanEngine {
   private doubleClick(point: Point): void {
     this.marqueeFrom = null
     this.marqueeTo = null
+    if (this.tool === 'roof') {
+      const loop = this.findLargestEnclosingWallLoop(point)
+      if (loop) {
+        this.model.getStore().beginCompoundEdit()
+        const roof = this.model.addRoof(
+          loop.map((p) => [p.x, p.y] as [number, number]),
+          { levelRef: this.activeLevelId ?? undefined },
+        )
+        this.model.setSelection([roof.id])
+        this.model.getStore().endCompoundEdit()
+      }
+      return
+    }
     if (this.tool === 'room') {
       // A real browser double-click fires pointerup→click before dblclick,
       // so singleClick→roomClick has already added 1-2 phantom points at
@@ -951,6 +970,101 @@ export class PlanEngine {
     return bestCycle ? bestCycle.map((i) => pts[i]!) : null
   }
 
+  /**
+   * Like findEnclosingWallLoop but returns the LARGEST cycle enclosing the
+   * point (max area) — used by the roof tool for footprint auto-detection.
+   */
+  private findLargestEnclosingWallLoop(point: Point): Array<Point> | null {
+    const home = this.homeSnapshot()
+    const walls = home.walls.filter((w) => this.matchesActiveLevel(w.levelRef))
+    if (walls.length < 3) return null
+
+    const pts: Point[] = []
+    function canonicalize(p: Point): number {
+      for (let i = 0; i < pts.length; i++) {
+        if (distance(pts[i] as Point, p) <= CONNECTED_WALL_EPSILON) return i
+      }
+      pts.push({ x: p.x, y: p.y })
+      return pts.length - 1
+    }
+
+    const edges: Array<[number, number]> = []
+    for (const wall of walls) {
+      const si = canonicalize({ x: wall.xStart, y: wall.yStart })
+      const ei = canonicalize({ x: wall.xEnd, y: wall.yEnd })
+      edges.push([si, ei])
+    }
+
+    const n = pts.length
+    const neighbors: Array<Array<{ node: number; wallIdx: number }>> = Array.from(
+      { length: n },
+      () => [],
+    )
+    for (let wi = 0; wi < edges.length; wi++) {
+      const [si, ei] = edges[wi]!
+      neighbors[si]!.push({ node: ei, wallIdx: wi })
+      neighbors[ei]!.push({ node: si, wallIdx: wi })
+    }
+
+    let bestCycle: number[] | null = null
+    let bestArea = -1
+
+    for (let start = 0; start < n; start++) {
+      const adj = neighbors[start]
+      if (!adj || adj.length === 0) continue
+
+      const stack: Array<{
+        node: number
+        path: number[]
+        usedWalls: Set<number>
+      }> = []
+      for (const { node, wallIdx } of adj) {
+        if (node < start) continue
+        stack.push({
+          node,
+          path: [start, node],
+          usedWalls: new Set([wallIdx]),
+        })
+      }
+
+      while (stack.length > 0) {
+        const current = stack.pop()!
+        const { node, path, usedWalls } = current
+
+        if (node === start && path.length >= 3) {
+          if (!this.pointInPolygon(point, path.map((i) => [pts[i]!.x, pts[i]!.y]))) continue
+          const area = Math.abs(
+            path.reduce((sum, idx, i) => {
+              const next = path[(i + 1) % path.length]!
+              return sum + pts[idx]!.x * pts[next]!.y - pts[next]!.x * pts[idx]!.y
+            }, 0) / 2,
+          )
+          if (area > bestArea) {
+            bestArea = area
+            bestCycle = [...path]
+          }
+          continue
+        }
+
+        if (path.length > n) continue
+        const seen = new Set(path)
+        for (const { node: next, wallIdx: wi } of neighbors[node]!) {
+          if (seen.has(next) && next !== start) continue
+          if (usedWalls.has(wi)) continue
+          const nextUsed = new Set(usedWalls)
+          nextUsed.add(wi)
+          stack.push({
+            node: next,
+            path: [...path, next],
+            usedWalls: nextUsed,
+          })
+        }
+      }
+    }
+
+    return bestCycle ? bestCycle.map((i) => pts[i]!) : null
+  }
+
   // ── Dimension-line tool ───────────────────────────────────────────────────
 
   private dimensionLineClick(point: Point): void {
@@ -991,6 +1105,16 @@ export class PlanEngine {
     this.model.getStore().beginCompoundEdit()
     const label = this.model.addLabel({ text: 'Text', x: point.x, y: point.y, levelRef: this.activeLevelId ?? undefined })
     this.model.setSelection([label.id])
+    this.model.getStore().endCompoundEdit()
+  }
+
+  private roofClick(point: Point): void {
+    this.model.getStore().beginCompoundEdit()
+    const roof = this.model.addRoof(
+      [[point.x, point.y], [point.x + 100, point.y], [point.x + 50, point.y + 100]],
+      { levelRef: this.activeLevelId ?? undefined },
+    )
+    this.model.setSelection([roof.id])
     this.model.getStore().endCompoundEdit()
   }
 
@@ -1215,6 +1339,11 @@ export class PlanEngine {
       }
       if (this.pointInPolygon(point, room.points)) return { kind: 'room', id: room.id }
     }
+    // 5b. Roofs (polygon containment)
+    for (const roof of home.roofs) {
+      if (!this.matchesActiveLevel(roof.levelRef)) continue
+      if (this.pointInPolygon(point, roof.points)) return { kind: 'roof', id: roof.id }
+    }
     // 6. Labels
     for (const label of home.labels) {
       if (!this.matchesActiveLevel(label.levelRef)) continue
@@ -1259,6 +1388,7 @@ export class PlanEngine {
       'polyline',
       'dimensionLine',
       'label',
+      'roof',
     ]
     if (!allowed.includes(tool)) {
       throw new ModelError(`unknown tool ${JSON.stringify(tool)}`)

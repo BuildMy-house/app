@@ -68,6 +68,7 @@ describe('ground texture schema', () => {
       furniture: [],
       dimensionLines: [],
       labels: [],
+      roofs: [],
       selection: [],
       cameras: { top: { x: 0, y: 0, z: 1000, yawDeg: 0, pitchDeg: 45, fovDeg: 63, lens: 'PINHOLE' }, observer: { x: 0, y: 0, z: 170, yawDeg: 315, pitchDeg: 11.25, fovDeg: 63, lens: 'PINHOLE' } },
       compass: { x: 0, y: 0, diameter: 100, northDirectionDeg: 0, latitudeRad: 0, longitudeRad: 0, visible: true },

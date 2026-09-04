@@ -29,6 +29,7 @@ export function isNormalizedHome(value: unknown): value is NormalizedHomeState {
     Array.isArray(h.levels) &&
     Array.isArray(h.walls) &&
     Array.isArray(h.rooms) &&
+    Array.isArray(h.roofs) &&
     Array.isArray(h.furniture) &&
     Array.isArray(h.dimensionLines) &&
     Array.isArray(h.labels) &&

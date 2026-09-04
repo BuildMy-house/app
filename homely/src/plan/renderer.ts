@@ -393,6 +393,23 @@ export function drawPlan(
     }
   }
 
+  // Roofs (dashed outline polygon).
+  for (const roof of home.roofs) {
+    if (!matchesLevel(roof.levelRef, activeLevelId)) continue
+    if (roof.points.length < 3) continue
+    ctx.beginPath()
+    roof.points.forEach(([x, y], index) => {
+      if (index === 0) ctx.moveTo(mapper.sx(x), mapper.sy(y))
+      else ctx.lineTo(mapper.sx(x), mapper.sy(y))
+    })
+    ctx.closePath()
+    ctx.setLineDash([8, 4])
+    ctx.strokeStyle = selected.has(roof.id) ? SELECTION_COLOR : cssColor(roof.color ?? null, '#888888')
+    ctx.lineWidth = selected.has(roof.id) ? 2 : 1
+    ctx.stroke()
+    ctx.setLineDash([])
+  }
+
   // Walls as filled thick shapes with mitered corners.
   for (const wall of home.walls) {
     if (!matchesLevel(wall.levelRef, activeLevelId)) continue

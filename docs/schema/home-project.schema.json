@@ -4,7 +4,7 @@
   "title": "NormalizedHomeState",
   "description": "Canonical, renderer-independent representation of a home design. Mirrors Sweet Home 3D 7.5 model classes (Home, Wall, Room, HomePieceOfFurniture, Level, Camera...). Units: centimeters for lengths, degrees for angles. Coordinates: plan space, x right / y down as in SH3D plan model.",
   "type": "object",
-  "required": ["schemaVersion", "levels", "walls", "rooms", "furniture", "dimensionLines", "labels", "selection", "capabilities"],
+  "required": ["schemaVersion", "levels", "walls", "rooms", "furniture", "dimensionLines", "labels", "roofs", "selection", "capabilities"],
   "properties": {
     "schemaVersion": { "const": 1 },
     "name": { "type": ["string", "null"] },
@@ -133,6 +133,24 @@
         }
       }
     },
+    "roofs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "points"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": ["string", "null"] },
+          "points": {
+            "type": "array",
+            "minItems": 3,
+            "items": { "type": "array", "items": { "$ref": "#/$defs/length" }, "minItems": 2, "maxItems": 2 }
+          },
+          "color": { "$ref": "#/$defs/colorNullable" },
+          "levelRef": { "$ref": "#/$defs/ref" }
+        }
+      }
+    },
     "compass": {
       "type": ["object", "null"],
       "properties": {
@@ -194,7 +212,7 @@
     },
     "activeTool": {
       "type": ["string", "null"],
-      "enum": [null, "selection", "panning", "wall", "room", "polyline", "dimensionLine", "label"]
+      "enum": [null, "selection", "panning", "wall", "room", "polyline", "dimensionLine", "label", "roof"]
     },
     "capabilities": {
       "type": "object",

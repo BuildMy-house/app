@@ -7,6 +7,7 @@ import type {
   Label,
   Level,
   NormalizedHomeState,
+  Roof,
   Room,
   Wall,
 } from './home'
@@ -26,7 +27,7 @@ export const NEW_WALL_PATTERN_ID = 'hatchUp'
 export class ModelError extends Error {}
 
 type IdLike = { id: string }
-type CollectionKey = 'levels' | 'walls' | 'rooms' | 'furniture' | 'dimensionLines' | 'labels'
+type CollectionKey = 'levels' | 'walls' | 'rooms' | 'furniture' | 'dimensionLines' | 'labels' | 'roofs'
 
 export function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new ModelError(message)
@@ -125,6 +126,21 @@ function validatePatch(key: CollectionKey, patch: Record<string, unknown>): void
       }
       break
     }
+    case 'roofs': {
+      if (patch.points !== undefined) {
+        const points = patch.points
+        assert(
+          Array.isArray(points) && points.length >= 3,
+          `roof needs at least 3 points, got ${Array.isArray(points) ? points.length : typeof points}`,
+        )
+        for (const point of points) {
+          assert(Array.isArray(point) && point.length === 2, 'roof point must be [x, y]')
+          requireFinite(point[0], 'point x')
+          requireFinite(point[1], 'point y')
+        }
+      }
+      break
+    }
   }
 }
 
@@ -163,7 +179,7 @@ export class HomeModel {
     const snapshot = this.store.getHome()
     assert(snapshot.levels.some((level) => level.id === id), `unknown level: ${id}`)
     const cascadeIds = new Set<string>()
-    for (const key of ['walls', 'rooms', 'furniture', 'dimensionLines', 'labels'] as const) {
+    for (const key of ['walls', 'rooms', 'furniture', 'dimensionLines', 'labels', 'roofs'] as const) {
       for (const item of snapshot[key] as Array<IdLike & { levelRef?: string | null }>) {
         if (item.levelRef === id) cascadeIds.add(item.id)
       }
@@ -171,7 +187,7 @@ export class HomeModel {
     const allRemovable = new Set([id, ...cascadeIds])
     this.store.apply((h) => {
       h.levels = h.levels.filter((l) => l.id !== id)
-      for (const key of ['walls', 'rooms', 'furniture', 'dimensionLines', 'labels'] as const) {
+      for (const key of ['walls', 'rooms', 'furniture', 'dimensionLines', 'labels', 'roofs'] as const) {
         const list = h[key] as unknown as IdLike[]
         ;(h as unknown as Record<typeof key, IdLike[]>)[key] = list.filter(
           (item) => !allRemovable.has(item.id),
@@ -416,6 +432,37 @@ export class HomeModel {
     return this.removeFrom('labels', id, 'label')
   }
 
+  addRoof(points: Array<[number, number]>, input: Partial<Omit<Roof, 'id' | 'points'>> = {}): Roof {
+    assert(
+      Array.isArray(points) && points.length >= 3,
+      `roof needs at least 3 points, got ${points?.length}`,
+    )
+    for (const [x, y] of points) {
+      requireFinite(x, 'point x')
+      requireFinite(y, 'point y')
+    }
+    let created!: Roof
+    this.store.apply((h) => {
+      created = {
+        id: this.store.generateId('roof'),
+        points: points.map(([x, y]) => [x, y] as [number, number]),
+        name: input.name ?? null,
+        color: input.color ?? null,
+        levelRef: input.levelRef ?? null,
+      }
+      h.roofs.push(created)
+    })
+    return structuredClone(created)
+  }
+
+  updateRoof(id: string, patch: Partial<Omit<Roof, 'id'>>): Roof {
+    return this.updateIn('roofs', id, patch)
+  }
+
+  removeRoof(id: string): boolean {
+    return this.removeFrom('roofs', id, 'roof')
+  }
+
   setSelection(ids: string[]): string[] {
     assert(Array.isArray(ids), 'selection must be an array of ids')
     const snapshot = this.store.getHome()
@@ -427,7 +474,7 @@ export class HomeModel {
       return [...ids]
     }
     const known = new Set<string>()
-    for (const key of ['levels', 'walls', 'rooms', 'furniture', 'dimensionLines', 'labels'] as const) {
+    for (const key of ['levels', 'walls', 'rooms', 'furniture', 'dimensionLines', 'labels', 'roofs'] as const) {
       for (const item of snapshot[key]) known.add(item.id)
     }
     for (const id of ids) {
@@ -519,7 +566,7 @@ export class HomeModel {
     const wanted = new Set(ids)
     const snapshot = this.store.getHome()
     const found = new Set<string>()
-    for (const key of ['levels', 'walls', 'rooms', 'furniture', 'dimensionLines', 'labels'] as const) {
+    for (const key of ['levels', 'walls', 'rooms', 'furniture', 'dimensionLines', 'labels', 'roofs'] as const) {
       for (const item of snapshot[key] as IdLike[]) {
         if (wanted.has(item.id)) found.add(item.id)
       }
@@ -540,7 +587,7 @@ export class HomeModel {
       }
     }
     if (levelIds.size > 0) {
-      for (const key of ['walls', 'rooms', 'furniture', 'dimensionLines', 'labels'] as const) {
+      for (const key of ['walls', 'rooms', 'furniture', 'dimensionLines', 'labels', 'roofs'] as const) {
         for (const item of snapshot[key] as Array<IdLike & { levelRef?: string | null }>) {
           if (item.levelRef && levelIds.has(item.levelRef)) cascadeIds.add(item.id)
         }
@@ -548,7 +595,7 @@ export class HomeModel {
     }
     const allRemovable = new Set([...wanted, ...cascadeIds])
     this.store.apply((h) => {
-      for (const key of ['levels', 'walls', 'rooms', 'furniture', 'dimensionLines', 'labels'] as const) {
+      for (const key of ['levels', 'walls', 'rooms', 'furniture', 'dimensionLines', 'labels', 'roofs'] as const) {
         const list = h[key] as unknown as IdLike[]
         ;(h as unknown as Record<typeof key, IdLike[]>)[key] = list.filter(
           (item) => !allRemovable.has(item.id),
@@ -593,6 +640,10 @@ export class HomeModel {
         if (!selection.has(l.id)) continue
         l.x += dx
         l.y += dy
+      }
+      for (const roof of h.roofs) {
+        if (!selection.has(roof.id)) continue
+        roof.points = roof.points.map(([x, y]) => [x + dx, y + dy] as [number, number])
       }
     })
     return true

@@ -94,6 +94,7 @@ export function normalizeHome(raw: unknown): NormalizedHomeState {
     furniture: Array.isArray(h.furniture) ? (h.furniture as NormalizedHomeState['furniture']) : [],
     dimensionLines: Array.isArray(h.dimensionLines) ? (h.dimensionLines as NormalizedHomeState['dimensionLines']) : [],
     labels: Array.isArray(h.labels) ? (h.labels as NormalizedHomeState['labels']) : [],
+    roofs: Array.isArray(h.roofs) ? (h.roofs as NormalizedHomeState['roofs']) : [],
     selection: Array.isArray(h.selection) ? (h.selection as NormalizedHomeState['selection']) : [],
     cameras: normalizeCameras(h.cameras as Partial<CamerasState> | undefined),
     compass: (h.compass ?? null) as NormalizedHomeState['compass'],

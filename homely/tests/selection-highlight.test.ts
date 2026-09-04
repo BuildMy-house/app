@@ -226,6 +226,7 @@ function emptyHome() {
     furniture: [],
     dimensionLines: [],
     labels: [],
+    roofs: [],
     selection: [],
     cameras: {
       top: { x: 50, y: 1050, z: 1010, yawDeg: 180, pitchDeg: 45, fovDeg: 63, lens: 'PINHOLE' as const },

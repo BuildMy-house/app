@@ -26,6 +26,7 @@ export type ActiveTool =
   | 'polyline'
   | 'dimensionLine'
   | 'label'
+  | 'roof'
 
 export interface Level {
   id: string
@@ -132,6 +133,14 @@ export interface Label {
   levelRef?: string | null
 }
 
+export interface Roof {
+  id: string
+  points: Array<[number, number]>
+  name?: string | null
+  color?: number | null
+  levelRef?: string | null
+}
+
 export interface CameraState {
   id?: string
   x: number
@@ -188,6 +197,7 @@ export interface NormalizedHomeState {
   furniture: Furniture[]
   dimensionLines: DimensionLine[]
   labels: Label[]
+  roofs: Roof[]
   selection: string[]
   cameras: CamerasState
   compass: CompassState
@@ -218,6 +228,7 @@ export function createEmptyHome(timeZoneId?: string | null): NormalizedHomeState
     furniture: [],
     dimensionLines: [],
     labels: [],
+    roofs: [],
     selection: [],
     cameras: {
       top: {
