@@ -22,12 +22,12 @@ describe('closestPointOnSegment', () => {
 describe('snapFurniturePlacement', () => {
   it('returns the raw point when magnetism is off', () => {
     const r = snapFurniturePlacement({ walls: [wallH], point: { x: 50, y: 40 }, depthCm: 40, magnetismEnabled: false })
-    expect(r).toEqual({ x: 50, y: 40, angleDeg: 0 })
+    expect(r).toEqual({ x: 50, y: 40, angleDeg: 0, wallRef: null, wallOffset: null })
   })
 
   it('returns the raw point when no wall is within range', () => {
     const r = snapFurniturePlacement({ walls: [wallH], point: { x: 50, y: 200 }, depthCm: 40, magnetismEnabled: true })
-    expect(r).toEqual({ x: 50, y: 200, angleDeg: 0 })
+    expect(r).toEqual({ x: 50, y: 200, angleDeg: 0, wallRef: null, wallOffset: null })
   })
 
   it('snaps onto a horizontal wall, offset by half depth and aligned', () => {
@@ -37,6 +37,9 @@ describe('snapFurniturePlacement', () => {
     expect(r.y).toBeCloseTo(20)
     // Wall runs along +x → angle 0.
     expect(r.angleDeg).toBeCloseTo(0)
+    // No wall id → wallRef null, but wallOffset should be computed (t * len).
+    expect(r.wallRef).toBeNull()
+    expect(r.wallOffset).toBeCloseTo(50) // midpoint of 0→100
   })
 
   it('snaps onto a vertical wall from either side', () => {
@@ -45,6 +48,19 @@ describe('snapFurniturePlacement', () => {
     expect(r.y).toBeCloseTo(0)
     // Vertical wall runs along +y → angle 90.
     expect(Math.abs(r.angleDeg)).toBeCloseTo(90)
+  })
+
+  it('returns wallRef and wallOffset when wall has an id', () => {
+    const wallWithId: WallLike = { id: 'wall-1', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0 }
+    const r = snapFurniturePlacement({ walls: [wallWithId], point: { x: 30, y: 10 }, depthCm: 20, magnetismEnabled: true })
+    expect(r.wallRef).toBe('wall-1')
+    expect(r.wallOffset).toBeCloseTo(30) // t=0.3, len=100
+  })
+
+  it('returns wallRef null for walls without id', () => {
+    const r = snapFurniturePlacement({ walls: [wallH], point: { x: 50, y: 10 }, depthCm: 20, magnetismEnabled: true })
+    expect(r.wallRef).toBeNull()
+    expect(typeof r.wallOffset).toBe('number')
   })
 
   it('uses the closest wall when several exist', () => {

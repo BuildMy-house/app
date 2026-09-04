@@ -14,6 +14,7 @@ import { distance } from './geometry'
  */
 
 export interface WallLike {
+  id?: string
   xStart: number
   yStart: number
   xEnd: number
@@ -32,6 +33,10 @@ export interface FurnitureSnapResult {
   x: number
   y: number
   angleDeg: number
+  /** Matched wall id when snapped within range, null otherwise. */
+  wallRef: string | null
+  /** Along-wall offset (cm) from the wall start to the nearest point, null if no snap. */
+  wallOffset: number | null
 }
 
 /** Max distance (cm) from a wall within which a placement magnetizes to it. */
@@ -61,20 +66,20 @@ function normalizeAngle180(deg: number): number {
 export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnapResult {
   const { walls, point, depthCm, magnetismEnabled } = input
   if (!magnetismEnabled || walls.length === 0) {
-    return { x: point.x, y: point.y, angleDeg: 0 }
+    return { x: point.x, y: point.y, angleDeg: 0, wallRef: null, wallOffset: null }
   }
 
-  let best: { dist: number; point: Point; wall: WallLike } | null = null
+  let best: { dist: number; point: Point; wall: WallLike; t: number } | null = null
   for (const wall of walls) {
     const a = { x: wall.xStart, y: wall.yStart }
     const b = { x: wall.xEnd, y: wall.yEnd }
     const seg = closestPointOnSegment(point, a, b)
     const dist = distance(point, seg.point)
-    if (!best || dist < best.dist) best = { dist, point: seg.point, wall }
+    if (!best || dist < best.dist) best = { dist, point: seg.point, wall, t: seg.t }
   }
 
   if (!best || best.dist > FURNITURE_SNAP_DISTANCE_CM) {
-    return { x: point.x, y: point.y, angleDeg: 0 }
+    return { x: point.x, y: point.y, angleDeg: 0, wallRef: null, wallOffset: null }
   }
 
   const a = { x: best.wall.xStart, y: best.wall.yStart }
@@ -92,5 +97,8 @@ export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnap
   const y = best.point.y + ny * side * offset
   const angleDeg = normalizeAngle180((Math.atan2(dy, dx) * 180) / Math.PI)
 
-  return { x, y, angleDeg }
+  const wallRef = best.wall.id ?? null
+  const wallOffset = best.t * len
+
+  return { x, y, angleDeg, wallRef, wallOffset }
 }

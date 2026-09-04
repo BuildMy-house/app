@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { HomeStore } from '../src/core/store'
 import { HomeModel, ModelError } from '../src/core/model'
 import { serializeHome } from '../src/core/export'
+import { nextLevelElevation, DEFAULT_WALL_HEIGHT_CM, type Level } from '../src/core/home'
 
 function wallInput() {
   return { xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 10 }
@@ -558,5 +559,26 @@ describe('HomeModel validation', () => {
     const wall = model.addWall(wallInput())
     model.updateWall(wall.id, { id: 'hacked' } as unknown as Partial<typeof wall>)
     expect(store.getHome().walls[0]?.id).toBe(wall.id)
+  })
+})
+
+describe('nextLevelElevation', () => {
+  it('returns DEFAULT_WALL_HEIGHT_CM for empty levels (first added level)', () => {
+    expect(nextLevelElevation([])).toBe(DEFAULT_WALL_HEIGHT_CM)
+  })
+
+  it('stacks above the highest existing level', () => {
+    const levels: Level[] = [
+      { id: 'l1', name: 'Ground+1', elevation: 250, floorThickness: 20, height: 250, visible: true, viewable: true },
+    ]
+    expect(nextLevelElevation(levels)).toBe(500) // 250 + 250
+  })
+
+  it('handles non-uniform level heights', () => {
+    const levels: Level[] = [
+      { id: 'l1', name: 'Mezzanine', elevation: 125, floorThickness: 10, height: 200, visible: true, viewable: true },
+      { id: 'l2', name: 'Upper', elevation: 500, floorThickness: 15, height: 180, visible: true, viewable: true },
+    ]
+    expect(nextLevelElevation(levels)).toBe(680) // max(125+200, 500+180) = 680
   })
 })

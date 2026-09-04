@@ -261,3 +261,12 @@ export function createEmptyHome(timeZoneId?: string | null): NormalizedHomeState
     capabilities: { canUndo: false, canRedo: false },
   }
 }
+
+/** Compute the elevation for the next level to add above the existing ones.
+ *  Ground floor is implicit (not in levels[]), so the first added level sits
+ *  at DEFAULT_WALL_HEIGHT_CM; subsequent levels stack at the top of the
+ *  highest existing level. */
+export function nextLevelElevation(levels: ReadonlyArray<Level>): number {
+  if (levels.length === 0) return DEFAULT_WALL_HEIGHT_CM
+  return Math.max(...levels.map((l) => l.elevation + l.height))
+}

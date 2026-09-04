@@ -14,6 +14,7 @@ import { ViewMapper, drawPlan, fitToBounds, type PlanRenderingContext, type View
 import { saveHomeFile, loadHomeFile } from './services/adapters/home-persistence'
 import { exportPlanPng, export3dPng, renderPlanPng } from './services/adapters/plan-export'
 import { buildRenderableScene } from './render/scene-builder'
+import { nextLevelElevation } from './core/home'
 import { PreferencesDialog, loadPreferences, hexToIntColor } from './ui/preferences'
 import { HttpAuth } from './services/auth'
 import { RemoteHomeStore } from './services/adapters/remote-home-store'
@@ -103,6 +104,7 @@ const bootPrefs = loadPreferences()
 engine.setWallDefaults(bootPrefs.wallHeightCm, bootPrefs.wallThicknessCm)
 store.patchNonUndoable((h) => {
   h.environment.groundColor = hexToIntColor(bootPrefs.groundColor)
+  h.environment.groundTextureId = bootPrefs.groundTextureId ?? null
 })
 
 // Catalog panel — declared here (used by canvas/key closures) and
@@ -334,6 +336,7 @@ function openPreferences(): void {
     engine.setWallDefaults(prefs.wallHeightCm, prefs.wallThicknessCm)
     store.patchNonUndoable((h) => {
       h.environment.groundColor = hexToIntColor(prefs.groundColor)
+      h.environment.groundTextureId = prefs.groundTextureId ?? null
     })
     refreshAll()
   })
@@ -566,7 +569,7 @@ function refreshLevelButtons(): void {
   group.querySelector('#btn-add-level')!.addEventListener('click', () => {
     const name = window.prompt('Level name:', `Level ${home.levels.length + 1}`)
     if (!name || !name.trim()) return
-    const elevation = home.levels.length * 250
+    const elevation = nextLevelElevation(home.levels)
     const created = model.addLevel({
       name: name.trim(),
       elevation,
@@ -813,7 +816,9 @@ canvas.addEventListener('pointerup', (event) => {
           depthCm: item.depth,
           magnetismEnabled: engine.isMagnetismEnabled(),
         })
-      : { x: raw.x, y: raw.y, angleDeg: 0 }
+      : { x: raw.x, y: raw.y, angleDeg: 0, wallRef: null, wallOffset: null }
+    pendingSnapWallRef = snap.wallRef
+    pendingSnapWallOffset = snap.wallOffset
     catalogPanel.place(snap.x, snap.y, snap.angleDeg)
     refreshToolbar()
     refreshStatus()
@@ -1049,12 +1054,25 @@ function render(): void {
   if (!ctx) return
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   const home = store.getHome()
+
+  // One-time auto-fit: when the document transitions from empty to having its
+  // first wall/room/furniture, fit the view exactly once (M76 fix 4).  Skipped
+  // while the user is mid-draw (engine preview phase === 'drawing') to avoid
+  // the M1 regression of warping the view during a multi-click wall chain.
+  if (!firstGeometryFitted && engine.getPreview().phase !== 'drawing') {
+    if (home.walls.length > 0 || home.rooms.length > 0 || home.furniture.length > 0) {
+      firstGeometryFitted = true
+      doFit()
+    }
+  }
+
   const preview: PlanPreview | null = engine.getPreview()
   const rc = ctx as unknown as PlanRenderingContext
   drawPlan(home, preview, rc, currentView, canvas.width, canvas.height, activeLevelId)
 }
 
 let userHasZoomed = false
+let firstGeometryFitted = false
 
 function frame(): void {
   render()
@@ -1141,6 +1159,8 @@ view3d = new View3D(store, {
       depthCm: item.depth,
       magnetismEnabled: engine.isMagnetismEnabled(),
     })
+    pendingSnapWallRef = snap.wallRef
+    pendingSnapWallOffset = snap.wallOffset
     catalogPanel.place(snap.x, snap.y, snap.angleDeg)
     refreshToolbar()
     refreshStatus()
@@ -1155,6 +1175,11 @@ view3d = new View3D(store, {
 // Properties panel — right sidebar
 const mainArea = root.querySelector<HTMLDivElement>('#main-area')!
 const propsPanel = new PropertiesPanel(store, mainArea)
+
+// Pending snap wall-ref data set before catalogPanel.place() and consumed in
+// onPlace — bridges the gap because CatalogPanel.place() only forwards (x, y, angleDeg).
+let pendingSnapWallRef: string | null = null
+let pendingSnapWallOffset: number | null = null
 
 // Furniture catalog panel — left sidebar (ticket U7). Loaded async from the
 // bundled manifest; until it resolves, place mode is unavailable. connectAutomation
@@ -1190,6 +1215,8 @@ const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
         doorOrWindow: item.doorOrWindow ?? false,
         modelPath: item.modelPath ?? null,
         levelRef: activeLevelId,
+        wallRef: item.doorOrWindow ? pendingSnapWallRef : undefined,
+        wallOffset: item.doorOrWindow ? pendingSnapWallOffset : undefined,
       })
       model.setSelection([placed.id])
       model.getStore().endCompoundEdit()
