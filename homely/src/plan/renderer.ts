@@ -1,4 +1,4 @@
-import type { NormalizedHomeState, Wall, Furniture } from '../core/home'
+import type { NormalizedHomeState, Wall, Furniture, Level } from '../core/home'
 import { WALL_TEXTURES } from '../core/home'
 import { wallOutlinePoints } from '../core/top-camera-follower'
 import { wallArcHandlePos } from './engine'
@@ -32,6 +32,7 @@ export interface PlanRenderingContext {
   save(): void
   restore(): void
   globalCompositeOperation: GlobalCompositeOperation
+  globalAlpha: number
   createPattern?(image: unknown, repetition: string): unknown
 }
 
@@ -96,6 +97,33 @@ function patternOrNull(
 function matchesLevel(levelRef: string | null | undefined, activeLevelId: string | null): boolean {
   if (activeLevelId === null) return true
   return (levelRef ?? null) === activeLevelId
+}
+
+function matchesLevelId(levelRef: string | null | undefined, levelId: string | null): boolean {
+  if (levelId === null) return true
+  return (levelRef ?? null) === levelId
+}
+
+const REFERENCE_OVERLAY_ALPHA = 0.3
+const REFERENCE_WALL_COLOR = '#888888'
+const REFERENCE_ROOM_FILL = 'rgba(180, 180, 180, 0.15)'
+
+export function findReferenceLevelId(
+  levels: ReadonlyArray<Level>,
+  activeLevelId: string | null,
+): string | null {
+  if (activeLevelId === null) return null
+  const active = levels.find((l) => l.id === activeLevelId)
+  if (!active) return null
+  let best: string | null = null
+  let bestElevation = -Infinity
+  for (const l of levels) {
+    if (l.elevation < active.elevation && l.elevation > bestElevation) {
+      bestElevation = l.elevation
+      best = l.id
+    }
+  }
+  return best
 }
 
 /** Shoelace formula — returns area in cm². */
@@ -266,12 +294,56 @@ export function drawPlan(
   canvasWidth?: number,
   canvasHeight?: number,
   activeLevelId: string | null = null,
+  overlayEnabled?: boolean,
 ): void {
   const mapper = new ViewMapper(view)
   const selected = new Set(home.selection)
 
   if (canvasWidth != null && canvasHeight != null) {
     drawGrid(ctx, view, canvasWidth, canvasHeight)
+  }
+
+  // Reference-level ghost overlay (walls + rooms at low alpha).
+  if (overlayEnabled && activeLevelId != null) {
+    const refLevelId = findReferenceLevelId(home.levels, activeLevelId)
+    if (refLevelId != null) {
+      ctx.save()
+      ctx.globalAlpha = REFERENCE_OVERLAY_ALPHA
+
+      // Ghost rooms.
+      for (const room of home.rooms) {
+        if (!matchesLevelId(room.levelRef, refLevelId)) continue
+        if (room.points.length < 3) continue
+        ctx.beginPath()
+        room.points.forEach(([x, y], index) => {
+          if (index === 0) ctx.moveTo(mapper.sx(x), mapper.sy(y))
+          else ctx.lineTo(mapper.sx(x), mapper.sy(y))
+        })
+        ctx.closePath()
+        ctx.fillStyle = REFERENCE_ROOM_FILL
+        ctx.fill()
+      }
+
+      // Ghost walls as filled thick shapes.
+      for (const wall of home.walls) {
+        if (!matchesLevelId(wall.levelRef, refLevelId)) continue
+        const outline = wallOutlinePoints(wall, home.walls)
+        if (outline.length === 0) continue
+        ctx.beginPath()
+        ctx.moveTo(mapper.sx(outline[0]![0]), mapper.sy(outline[0]![1]))
+        for (let i = 1; i < outline.length; i++) {
+          ctx.lineTo(mapper.sx(outline[i]![0]), mapper.sy(outline[i]![1]))
+        }
+        ctx.closePath()
+        ctx.fillStyle = REFERENCE_WALL_COLOR
+        ctx.fill()
+        ctx.strokeStyle = REFERENCE_WALL_COLOR
+        ctx.lineWidth = 0.5
+        ctx.stroke()
+      }
+
+      ctx.restore()
+    }
   }
 
   // Rooms (floor fill + area label).

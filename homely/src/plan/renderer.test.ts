@@ -14,6 +14,7 @@ class MockContext implements PlanRenderingContext {
   textAlign: CanvasTextAlign = 'start'
   textBaseline: CanvasTextBaseline = 'alphabetic'
   patternResult: string | null = null
+  globalAlpha = 1
 
   get globalCompositeOperation(): GlobalCompositeOperation { return this._gco }
   set globalCompositeOperation(v: GlobalCompositeOperation) {

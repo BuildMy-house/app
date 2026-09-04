@@ -142,6 +142,7 @@ export class PlanEngine {
   private furnitureRotateDrag: { id: string } | null = null
   private wallArcDrag: { id: string } | null = null
   private activeLevelId: string | null = null
+  private referenceOverlayEnabled = true
   private wallHeightCm = DEFAULT_WALL_HEIGHT_CM
   private wallThicknessCm = NEW_WALL_THICKNESS_CM
   /** Marquee selection state: set on drag-start on empty space, updated on
@@ -203,6 +204,21 @@ export class PlanEngine {
 
   isMagnetismEnabled(): boolean {
     return this.magnetismEnabled
+  }
+
+  setReferenceOverlay(enabled: boolean): void {
+    this.referenceOverlayEnabled = enabled === true
+  }
+
+  isReferenceOverlayEnabled(): boolean {
+    return this.referenceOverlayEnabled
+  }
+
+  /** Resolve the overlay toggle from a persisted preference. Missing or
+   *  'true' → on (the default for new users); 'false' → explicitly off.
+   */
+  static referenceOverlayFromStored(stored: string | null): boolean {
+    return stored !== 'false'
   }
 
   private gridSnapEnabled = false
@@ -335,18 +351,43 @@ export class PlanEngine {
         // on the opposite endpoint and snaps to OTHER walls' endpoints.
         // Gate the whole magnetizer on the toggle (the helper keeps snapping
         // endpoints even with enabled:false, so gate here for SH3D parity).
-        const snapped = this.magnetismEnabled
-          ? wallPointMagnetism(
-              oppositeEnd,
-              { x: rawX, y: rawY },
-              home.walls.filter((w) => w.id !== vd.wallId),
-              {
-                enabled: true,
-                maxDelta: PLAN_SCALE,
-                endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
-              },
+        let snapped: Point
+        if (this.magnetismEnabled) {
+          const otherWalls = home.walls.filter((w) => w.id !== vd.wallId && this.matchesActiveLevel(w.levelRef))
+          snapped = wallPointMagnetism(
+            oppositeEnd,
+            { x: rawX, y: rawY },
+            otherWalls,
+            {
+              enabled: true,
+              maxDelta: PLAN_SCALE,
+              endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+            },
+          )
+          // Cross-level: if same-level didn't snap, try reference walls.
+          if (
+            this.referenceOverlayEnabled && this.activeLevelId != null
+            && snapped.x === rawX && snapped.y === rawY
+          ) {
+            const refWalls = home.walls.filter(
+              (w) => w.id !== vd.wallId && !this.matchesActiveLevel(w.levelRef),
             )
-          : { x: rawX, y: rawY }
+            if (refWalls.length > 0) {
+              snapped = wallPointMagnetism(
+                oppositeEnd,
+                { x: rawX, y: rawY },
+                refWalls,
+                {
+                  enabled: true,
+                  maxDelta: PLAN_SCALE,
+                  endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+                },
+              )
+            }
+          }
+        } else {
+          snapped = { x: rawX, y: rawY }
+        }
         this.model.getStore().beginCompoundEdit()
         this.model.setWallEndpoint(vd.wallId, vd.endpoint, snapped.x, snapped.y)
         for (const cw of vd.connectedWalls) {
@@ -976,11 +1017,27 @@ export class PlanEngine {
     const free = this.freeEndpointAt(home, point, PIXEL_MARGIN)
     if (free) return free
     const base = this.gridSnapEnabled ? this.snapToGrid(point.x, point.y) : point
-    return wallPointMagnetism(start, base, home.walls, {
+    const sameResult = wallPointMagnetism(start, base, home.walls, {
       enabled: this.magnetismEnabled,
       maxDelta: PLAN_SCALE,
       endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
     })
+    // Cross-level: if same-level magnetism didn't move the point, try with reference walls.
+    if (
+      this.referenceOverlayEnabled && this.magnetismEnabled && this.activeLevelId != null
+      && sameResult.x === base.x && sameResult.y === base.y
+    ) {
+      const refWalls = home.walls.filter((w) => !this.matchesActiveLevel(w.levelRef))
+      if (refWalls.length > 0) {
+        const refResult = wallPointMagnetism(start, base, refWalls, {
+          enabled: true,
+          maxDelta: PLAN_SCALE,
+          endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+        })
+        return refResult
+      }
+    }
+    return sameResult
   }
 
   /**

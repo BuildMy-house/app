@@ -107,6 +107,14 @@ store.patchNonUndoable((h) => {
   h.environment.groundTextureId = bootPrefs.groundTextureId ?? null
 })
 
+// Restore reference overlay toggle. New users default to ON; an explicit
+// stored `false` (user toggled it off previously) is respected on reload.
+const REFERENCE_OVERLAY_KEY = 'homely-reference-overlay'
+{
+  const stored = localStorage.getItem(REFERENCE_OVERLAY_KEY)
+  if (!PlanEngine.referenceOverlayFromStored(stored)) engine.setReferenceOverlay(false)
+}
+
 // Catalog panel — declared here (used by canvas/key closures) and
 // instantiated in boot once the DOM host exists.
 let catalogPanel: CatalogPanel | null = null
@@ -428,6 +436,7 @@ function buildToolbar(): void {
     <div class="tool-separator"></div>
     <label><input id="magnetism" type="checkbox" checked /> Mag</label>
     <label><input id="grid-snap" type="checkbox" /> Grid</label>
+    <label><input id="reference-overlay" type="checkbox" /> Ref</label>
     <div class="toolbar-spacer"></div>
     <button class="tool-btn" id="btn-fit" title="Zoom to fit (double-click middle)">Fit</button>
     <div class="tool-separator"></div>
@@ -464,6 +473,12 @@ function buildToolbar(): void {
     engine.setGridSnap((e.target as HTMLInputElement).checked)
   })
 
+  toolbar.querySelector('#reference-overlay')!.addEventListener('change', (e) => {
+    const enabled = (e.target as HTMLInputElement).checked
+    engine.setReferenceOverlay(enabled)
+    localStorage.setItem(REFERENCE_OVERLAY_KEY, String(enabled))
+  })
+
   toolbar.querySelector('#btn-fit')!.addEventListener('click', () => {
     doFit()
   })
@@ -497,6 +512,8 @@ function refreshToolbar(): void {
   if (magBox) magBox.checked = engine.isMagnetismEnabled()
   const gridBox = toolbar.querySelector<HTMLInputElement>('#grid-snap')
   if (gridBox) gridBox.checked = engine.isGridSnapEnabled()
+  const refBox = toolbar.querySelector<HTMLInputElement>('#reference-overlay')
+  if (refBox) refBox.checked = engine.isReferenceOverlayEnabled()
 
   const undoBtn = toolbar.querySelector<HTMLButtonElement>('#btn-undo')!
   const redoBtn = toolbar.querySelector<HTMLButtonElement>('#btn-redo')!
@@ -1068,7 +1085,7 @@ function render(): void {
 
   const preview: PlanPreview | null = engine.getPreview()
   const rc = ctx as unknown as PlanRenderingContext
-  drawPlan(home, preview, rc, currentView, canvas.width, canvas.height, activeLevelId)
+  drawPlan(home, preview, rc, currentView, canvas.width, canvas.height, activeLevelId, engine.isReferenceOverlayEnabled())
 }
 
 let userHasZoomed = false

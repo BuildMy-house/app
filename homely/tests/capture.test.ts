@@ -25,6 +25,7 @@ class RecordingPlanContext implements PlanRenderingContext {
   font = ''
   textAlign: CanvasTextAlign = 'start'
   textBaseline: CanvasTextBaseline = 'alphabetic'
+  globalAlpha = 1
 
   private set(prop: string, value: unknown): void {
     this.ops.push(['set', prop, value])
