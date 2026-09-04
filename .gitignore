@@ -1,3 +1,7 @@
+# Secrets / local MCP config (contains live bearer tokens)
+/opencode.json
+/.mcp.json
+
 # Python
 __pycache__/
 *.py[cod]
