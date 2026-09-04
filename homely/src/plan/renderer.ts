@@ -617,4 +617,20 @@ export function drawPlan(
     ctx.textAlign = 'start'
     ctx.textBaseline = 'alphabetic'
   }
+
+  // Marquee selection rectangle (live during drag on empty space).
+  if (preview && preview.marquee) {
+    const { from, to } = preview.marquee
+    const x = mapper.sx(Math.min(from.x, to.x))
+    const y = mapper.sy(Math.max(from.y, to.y))
+    const w = Math.abs(to.x - from.x) * view.scale
+    const h = Math.abs(to.y - from.y) * view.scale
+    ctx.fillStyle = 'rgba(26, 102, 214, 0.08)'
+    ctx.fillRect(x, y, w, h)
+    ctx.strokeStyle = SELECTION_COLOR
+    ctx.lineWidth = 1
+    ctx.setLineDash([4, 3])
+    ctx.strokeRect(x, y, w, h)
+    ctx.setLineDash([])
+  }
 }

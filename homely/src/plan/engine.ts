@@ -115,6 +115,7 @@ export interface PlanPreview {
   pendingWalls: Array<Segment>
   roomPoints: Array<[number, number]>
   dimensionLine: { start: Point; end: Point; length: number } | null
+  marquee: { from: Point; to: Point } | null
 }
 
 function samePoint(a: Point, b: Point): boolean {
@@ -143,6 +144,11 @@ export class PlanEngine {
   private activeLevelId: string | null = null
   private wallHeightCm = DEFAULT_WALL_HEIGHT_CM
   private wallThicknessCm = NEW_WALL_THICKNESS_CM
+  /** Marquee selection state: set on drag-start on empty space, updated on
+   *  drag-move, cleared on drag-end (selection is applied at the same time). */
+  private marqueeFrom: Point | null = null
+  private marqueeTo: Point | null = null
+  private _marqueeActive = false
 
   constructor(model: HomeModel) {
     this.model = model
@@ -175,6 +181,9 @@ export class PlanEngine {
 
   setTool(tool: PlanTool): void {
     this.validateTool(tool)
+    if (this._marqueeActive) this._endMarqueeDrag(false)
+    this.marqueeFrom = null
+    this.marqueeTo = null
     if (this.phase === 'drawing') {
       if (this.tool === 'room') this.cancelRoomDrawing()
       else if (this.tool === 'dimensionLine') this.cancelDimensionLine()
@@ -194,6 +203,28 @@ export class PlanEngine {
 
   isMagnetismEnabled(): boolean {
     return this.magnetismEnabled
+  }
+
+  private gridSnapEnabled = false
+  private gridSnapSizeCm = 10
+
+  setGridSnap(enabled: boolean, sizeCm?: number): void {
+    this.gridSnapEnabled = enabled === true
+    if (sizeCm != null && sizeCm > 0) this.gridSnapSizeCm = sizeCm
+  }
+
+  isGridSnapEnabled(): boolean {
+    return this.gridSnapEnabled
+  }
+
+  getGridSnapSize(): number {
+    return this.gridSnapSizeCm
+  }
+
+  /** Snap a model-space point to the nearest grid intersection. */
+  snapToGrid(x: number, y: number): Point {
+    const s = this.gridSnapSizeCm
+    return { x: Math.round(x / s) * s, y: Math.round(y / s) * s }
   }
 
   /** Records the cursor position (SH3D moveMouse). Clicks carry explicit
@@ -227,6 +258,10 @@ export class PlanEngine {
       pendingWalls: [],
       roomPoints: this.roomPoints.map(([x, y]) => [x, y] as [number, number]),
       dimensionLine: dim,
+      marquee:
+        this._marqueeActive && this.marqueeFrom && this.marqueeTo
+          ? { from: this.marqueeFrom, to: this.marqueeTo }
+          : null,
     }
   }
 
@@ -252,10 +287,15 @@ export class PlanEngine {
     this.validateDrag(input)
     const from = { x: input.fromX, y: input.fromY }
     const to = { x: input.toX, y: input.toY }
-    if (this.tool !== 'selection') return
+    if (this.tool !== 'selection') {
+      if (this._marqueeActive) this._endMarqueeDrag(false)
+      return
+    }
     const home = this.homeSnapshot()
     const hit = this.hitTest(home, from)
+
     if (hit) {
+      if (this._marqueeActive) this._endMarqueeDrag(input.shift === true)
       if (hit.kind === 'wall-endpoint') {
         if (!this.vertexDrag) {
           const wall = home.walls.find((w) => w.id === hit.wallId)
@@ -279,8 +319,13 @@ export class PlanEngine {
         }
         const vd = this.vertexDrag
         if (!vd) return
-        const rawX = vd.startX + (to.x - from.x)
-        const rawY = vd.startY + (to.y - from.y)
+        let rawX = vd.startX + (to.x - from.x)
+        let rawY = vd.startY + (to.y - from.y)
+        if (this.gridSnapEnabled) {
+          const g = this.snapToGrid(rawX, rawY)
+          rawX = g.x
+          rawY = g.y
+        }
         const draggedWall = home.walls.find((w) => w.id === vd.wallId)
         if (!draggedWall) return
         const oppositeEnd = vd.endpoint === 'start'
@@ -348,8 +393,13 @@ export class PlanEngine {
           }
         }
         const state = this.roomVertexDrag!
-        const rawX = state.startX + (to.x - from.x)
-        const rawY = state.startY + (to.y - from.y)
+        let rawX = state.startX + (to.x - from.x)
+        let rawY = state.startY + (to.y - from.y)
+        if (this.gridSnapEnabled) {
+          const snapped = this.snapToGrid(rawX, rawY)
+          rawX = snapped.x
+          rawY = snapped.y
+        }
         const room = home.rooms.find((r) => r.id === state.roomId)
         if (!room) return
         let newX = rawX
@@ -405,10 +455,11 @@ export class PlanEngine {
         }
         const f = home.furniture.find((f) => f.id === hit.id)
         if (f) {
-          const naive = {
+          let naive = {
             x: f.x + (to.x - from.x),
             y: f.y + (to.y - from.y),
           }
+          if (this.gridSnapEnabled) naive = this.snapToGrid(naive.x, naive.y)
           const snap = snapFurniturePlacement({
             walls: home.walls,
             point: naive,
@@ -426,6 +477,14 @@ export class PlanEngine {
               angleDeg: normalizeAngle(snap.angleDeg),
             })
             this.model.getStore().endCompoundEdit()
+          } else if (this.gridSnapEnabled) {
+            const gridX = Math.round((f.x + (to.x - from.x)) / this.gridSnapSizeCm) * this.gridSnapSizeCm
+            const gridY = Math.round((f.y + (to.y - from.y)) / this.gridSnapSizeCm) * this.gridSnapSizeCm
+            const dx = gridX - f.x
+            const dy = gridY - f.y
+            this.model.getStore().beginCompoundEdit()
+            this.model.moveSelection(dx, dy)
+            this.model.getStore().endCompoundEdit()
           } else {
             this.model.moveSelection(to.x - from.x, to.y - from.y)
           }
@@ -439,42 +498,82 @@ export class PlanEngine {
       }
       this.model.moveSelection(to.x - from.x, to.y - from.y)
     } else {
-      const minX = Math.min(from.x, to.x)
-      const maxX = Math.max(from.x, to.x)
-      const minY = Math.min(from.y, to.y)
-      const maxY = Math.max(from.y, to.y)
-      const inside = (p: Point) =>
-        p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY
-      const picked = new Set<string>()
-      for (const wall of home.walls) {
-        const mid = {
-          x: (wall.xStart + wall.xEnd) / 2,
-          y: (wall.yStart + wall.yEnd) / 2,
-        }
-        if (
-          inside({ x: wall.xStart, y: wall.yStart }) ||
-          inside({ x: wall.xEnd, y: wall.yEnd }) ||
-          inside(mid)
-        ) {
-          picked.add(wall.id)
-        }
+      if (!this._marqueeActive) {
+        this._marqueeActive = true
+        this.marqueeFrom = from
+        this.marqueeTo = to
+      } else if (this.marqueeFrom && samePoint(this.marqueeFrom, from)) {
+        this.marqueeTo = to
+      } else {
+        this._endMarqueeDrag(input.shift === true)
+        this._marqueeActive = true
+        this.marqueeFrom = from
+        this.marqueeTo = to
       }
-      for (const room of home.rooms) {
-        const sumX = room.points.reduce((acc: number, pt) => acc + pt[0], 0)
-        const sumY = room.points.reduce((acc: number, pt) => acc + pt[1], 0)
-        const cx = sumX / room.points.length
-        const cy = sumY / room.points.length
-        if (inside({ x: cx, y: cy })) picked.add(room.id)
-      }
-      for (const furniture of home.furniture) {
-        if (inside({ x: furniture.x, y: furniture.y })) picked.add(furniture.id)
-      }
-      const merged =
-        input.shift === true
-          ? [...new Set([...home.selection, ...picked])]
-          : [...picked]
-      this.model.setSelection(merged)
+      this._applyMarqueeSelection(input.shift === true)
     }
+  }
+
+  private _applyMarqueeSelection(shift: boolean): void {
+    if (!this.marqueeFrom || !this.marqueeTo) return
+    const home = this.homeSnapshot()
+    const minX = Math.min(this.marqueeFrom.x, this.marqueeTo.x)
+    const maxX = Math.max(this.marqueeFrom.x, this.marqueeTo.x)
+    const minY = Math.min(this.marqueeFrom.y, this.marqueeTo.y)
+    const maxY = Math.max(this.marqueeFrom.y, this.marqueeTo.y)
+    const inside = (p: Point) =>
+      p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY
+    const picked = new Set<string>()
+    for (const wall of home.walls) {
+      const mid = {
+        x: (wall.xStart + wall.xEnd) / 2,
+        y: (wall.yStart + wall.yEnd) / 2,
+      }
+      if (
+        inside({ x: wall.xStart, y: wall.yStart }) ||
+        inside({ x: wall.xEnd, y: wall.yEnd }) ||
+        inside(mid)
+      ) {
+        picked.add(wall.id)
+      }
+    }
+    for (const room of home.rooms) {
+      const sumX = room.points.reduce((acc: number, pt) => acc + pt[0], 0)
+      const sumY = room.points.reduce((acc: number, pt) => acc + pt[1], 0)
+      const cx = sumX / room.points.length
+      const cy = sumY / room.points.length
+      if (inside({ x: cx, y: cy })) picked.add(room.id)
+    }
+    for (const furniture of home.furniture) {
+      if (inside({ x: furniture.x, y: furniture.y })) picked.add(furniture.id)
+    }
+    for (const dim of home.dimensionLines) {
+      const midX = (dim.xStart + dim.xEnd) / 2
+      const midY = (dim.yStart + dim.yEnd) / 2
+      if (
+        inside({ x: dim.xStart, y: dim.yStart }) ||
+        inside({ x: dim.xEnd, y: dim.yEnd }) ||
+        inside({ x: midX, y: midY })
+      ) {
+        picked.add(dim.id)
+      }
+    }
+    for (const label of home.labels) {
+      if (inside({ x: label.x, y: label.y })) picked.add(label.id)
+    }
+    const merged =
+      shift
+        ? [...new Set([...home.selection, ...picked])]
+        : [...picked]
+    this.model.setSelection(merged)
+  }
+
+  private _endMarqueeDrag(shift: boolean): void {
+    if (!this._marqueeActive) return
+    this._applyMarqueeSelection(shift)
+    this._marqueeActive = false
+    this.marqueeFrom = null
+    this.marqueeTo = null
   }
 
   key(key: PlanKey, shift = false): void {
@@ -496,6 +595,8 @@ export class PlanEngine {
     }
     if (key !== 'escape') return
 
+    if (this._marqueeActive) this._endMarqueeDrag(false)
+
     if (this.tool === 'wall' && this.phase === 'drawing') {
       this.validateDrawnWalls()
       return
@@ -512,6 +613,12 @@ export class PlanEngine {
   }
 
   private singleClick(point: Point, shift: boolean): void {
+    if (this._marqueeActive) {
+      this._marqueeActive = false
+      this.marqueeFrom = null
+      this.marqueeTo = null
+      return
+    }
     if (this.tool === 'selection') {
       const home = this.homeSnapshot()
       const hit = this.hitTest(home, point)
@@ -581,6 +688,8 @@ export class PlanEngine {
   }
 
   private doubleClick(point: Point): void {
+    this.marqueeFrom = null
+    this.marqueeTo = null
     if (this.tool === 'room') {
       // A real browser double-click fires pointerup→click before dblclick,
       // so singleClick→roomClick has already added 1-2 phantom points at
@@ -658,21 +767,22 @@ export class PlanEngine {
   // ── Room tool ─────────────────────────────────────────────────────────────
 
   private roomClick(point: Point): void {
+    const pt = this.gridSnapEnabled ? this.snapToGrid(point.x, point.y) : point
     if (this.phase === 'idle') {
-      this.roomPoints = [[point.x, point.y]]
+      this.roomPoints = [[pt.x, pt.y]]
       this.phase = 'drawing'
-      this.chainStart = point
+      this.chainStart = pt
       return
     }
     if (this.roomPoints.length >= 3) {
       const first = this.roomPoints[0]!
-      if (distance(point, { x: first[0], y: first[1] }) <= ENDPOINT_HIT_RADIUS) {
+      if (distance(pt, { x: first[0], y: first[1] }) <= ENDPOINT_HIT_RADIUS) {
         this.closeRoom()
         return
       }
     }
-    this.roomPoints.push([point.x, point.y])
-    this.chainStart = point
+    this.roomPoints.push([pt.x, pt.y])
+    this.chainStart = pt
   }
 
   private closeRoom(): void {
@@ -803,9 +913,10 @@ export class PlanEngine {
   // ── Dimension-line tool ───────────────────────────────────────────────────
 
   private dimensionLineClick(point: Point): void {
+    const pt = this.gridSnapEnabled ? this.snapToGrid(point.x, point.y) : point
     if (this.phase === 'idle') {
-      this.dimensionStart = point
-      this.chainStart = point
+      this.dimensionStart = pt
+      this.chainStart = pt
       this.phase = 'drawing'
       return
     }
@@ -813,13 +924,13 @@ export class PlanEngine {
     this.dimensionStart = null
     this.chainStart = null
     this.phase = 'idle'
-    if (distance(start, point) <= 0) return
+    if (distance(start, pt) <= 0) return
     this.model.getStore().beginCompoundEdit()
     const dim = this.model.addDimensionLine({
       xStart: start.x,
       yStart: start.y,
-      xEnd: point.x,
-      yEnd: point.y,
+      xEnd: pt.x,
+      yEnd: pt.y,
       offset: 0,
       levelRef: this.activeLevelId ?? undefined,
     })
@@ -851,6 +962,7 @@ export class PlanEngine {
     const home = this.homeSnapshot()
     const free = this.freeEndpointAt(home, point, PIXEL_MARGIN)
     if (free) return free
+    if (this.gridSnapEnabled) return this.snapToGrid(point.x, point.y)
     return point
   }
 
@@ -863,7 +975,8 @@ export class PlanEngine {
     const home = this.homeSnapshot()
     const free = this.freeEndpointAt(home, point, PIXEL_MARGIN)
     if (free) return free
-    return wallPointMagnetism(start, point, home.walls, {
+    const base = this.gridSnapEnabled ? this.snapToGrid(point.x, point.y) : point
+    return wallPointMagnetism(start, base, home.walls, {
       enabled: this.magnetismEnabled,
       maxDelta: PLAN_SCALE,
       endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,

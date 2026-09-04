@@ -1080,3 +1080,143 @@ describe('room vertex drag magnetism', () => {
     expect(store.getHome().rooms[0]!.points[1]).toEqual([241, 0])
   })
 })
+
+describe('marquee selection', () => {
+  it('selects walls, rooms, furniture inside the rectangle', () => {
+    const s = setup()
+    const { model, store, drag, click } = s
+    // Add walls
+    const w1 = model.addWall({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 10, height: 250 })
+    const w2 = model.addWall({ xStart: 200, yStart: 200, xEnd: 300, yEnd: 200, thickness: 10, height: 250 })
+    // Add a room
+    const r1 = model.addRoom([[50, 50], [150, 50], [150, 150], [50, 150]])
+    // Add furniture
+    const f1 = model.addFurniture({ name: 'chair', x: 75, y: 75, width: 40, depth: 40, height: 80, elevation: 0, angleDeg: 0 })
+    // w2 is outside the marquee rectangle
+    drag(-10, -10, 160, 160)
+    // Click to end marquee drag and apply selection
+    click(500, 500)
+    const sel = new Set(store.getHome().selection)
+    expect(sel.has(w1.id)).toBe(true)
+    expect(sel.has(r1.id)).toBe(true)
+    expect(sel.has(f1.id)).toBe(true)
+    expect(sel.has(w2.id)).toBe(false)
+  })
+
+  it('clears selection when marquee covers nothing', () => {
+    const s = setup()
+    const { model, store, drag, click } = s
+    const w1 = model.addWall({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 10, height: 250 })
+    model.setSelection([w1.id])
+    expect(store.getHome().selection).toContain(w1.id)
+    // Marquee in empty area
+    drag(500, 500, 600, 600)
+    // Click to end marquee drag and apply selection (empty marquee clears selection)
+    click(500, 500)
+    expect(store.getHome().selection).toEqual([])
+  })
+
+  it('union with existing selection when shift is held', () => {
+    const s = setup()
+    const { model, store, drag, click } = s
+    const w1 = model.addWall({ xStart: 0, yStart: 0, xEnd: 50, yEnd: 0, thickness: 10, height: 250 })
+    const w2 = model.addWall({ xStart: 200, yStart: 200, xEnd: 300, yEnd: 200, thickness: 10, height: 250 })
+    model.setSelection([w1.id])
+    // Marquee covers only w2 area
+    drag(190, 190, 310, 210, { shift: true })
+    // Click to end marquee drag and apply selection
+    click(500, 500)
+    const sel = new Set(store.getHome().selection)
+    expect(sel.has(w1.id)).toBe(true)
+    expect(sel.has(w2.id)).toBe(true)
+  })
+
+  it('reports marquee bounds in preview during drag', () => {
+    const s = setup()
+    const { model, drag, engine } = s
+    model.addWall({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 10, height: 250 })
+    drag(-10, -10, 110, 10)
+    const preview = engine.getPreview()
+    expect(preview.marquee).not.toBeNull()
+    expect(preview.marquee!.from).toEqual({ x: -10, y: -10 })
+    expect(preview.marquee!.to).toEqual({ x: 110, y: 10 })
+  })
+
+  it('clears marquee on next click', () => {
+    const s = setup()
+    const { model, drag, engine, click } = s
+    model.addWall({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 10, height: 250 })
+    drag(-10, -10, 110, 10)
+    expect(engine.getPreview().marquee).not.toBeNull()
+    click(500, 500)
+    expect(engine.getPreview().marquee).toBeNull()
+  })
+
+  it('selects dimension lines inside the marquee', () => {
+    const s = setup()
+    const { model, store, drag, click } = s
+    engine_setTool(s, 'dimensionLine')
+    const d1 = model.addDimensionLine({ xStart: 10, yStart: 10, xEnd: 90, yEnd: 10, offset: 0 })
+    const d2 = model.addDimensionLine({ xStart: 200, yStart: 200, xEnd: 300, yEnd: 200, offset: 0 })
+    engine_setTool(s, 'selection')
+    drag(0, 0, 100, 20)
+    click(500, 500)
+    const sel = new Set(store.getHome().selection)
+    expect(sel.has(d1.id)).toBe(true)
+    expect(sel.has(d2.id)).toBe(false)
+  })
+
+  it('selects labels inside the marquee', () => {
+    const s = setup()
+    const { model, store, drag, click } = s
+    engine_setTool(s, 'label')
+    const l1 = model.addLabel({ x: 50, y: 50, text: 'Kitchen' })
+    const l2 = model.addLabel({ x: 250, y: 250, text: 'Garage' })
+    engine_setTool(s, 'selection')
+    drag(0, 0, 100, 100)
+    click(500, 500)
+    const sel = new Set(store.getHome().selection)
+    expect(sel.has(l1.id)).toBe(true)
+    expect(sel.has(l2.id)).toBe(false)
+  })
+
+  it('marquee drag over multiple items selects all; empty marquee clears unless shift', () => {
+    const s = setup()
+    const { model, store, drag, click } = s
+    const w1 = model.addWall({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 10, height: 250 })
+    const w2 = model.addWall({ xStart: 50, yStart: 50, xEnd: 150, yEnd: 50, thickness: 10, height: 250 })
+    const r1 = model.addRoom([[25, 25], [75, 25], [75, 75], [25, 75]])
+    const f1 = model.addFurniture({ name: 'table', x: 50, y: 50, width: 40, depth: 40, height: 80, elevation: 0, angleDeg: 0 })
+    const d1 = model.addDimensionLine({ xStart: 10, yStart: 10, xEnd: 90, yEnd: 10, offset: 0 })
+    const l1 = model.addLabel({ x: 30, y: 30, text: 'Test' })
+
+    // Marquee covering all items
+    drag(-10, -10, 200, 200)
+    click(500, 500)
+    const sel = new Set(store.getHome().selection)
+    expect(sel.has(w1.id)).toBe(true)
+    expect(sel.has(w2.id)).toBe(true)
+    expect(sel.has(r1.id)).toBe(true)
+    expect(sel.has(f1.id)).toBe(true)
+    expect(sel.has(d1.id)).toBe(true)
+    expect(sel.has(l1.id)).toBe(true)
+
+    // Empty marquee without shift clears selection
+    drag(500, 500, 600, 600)
+    click(500, 500)
+    expect(store.getHome().selection).toEqual([])
+
+    // Re-select w1
+    model.setSelection([w1.id])
+    expect(store.getHome().selection).toContain(w1.id)
+
+    // Empty marquee with shift held is a no-op union (keeps existing selection)
+    drag(500, 500, 600, 600, { shift: true })
+    click(500, 500)
+    expect(store.getHome().selection).toContain(w1.id)
+  })
+})
+
+function engine_setTool(s: ReturnType<typeof setup>, tool: 'selection' | 'wall' | 'room' | 'dimensionLine' | 'label' | 'panning'): void {
+  s.engine.setTool(tool)
+}
