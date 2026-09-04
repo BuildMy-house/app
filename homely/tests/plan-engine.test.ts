@@ -1217,6 +1217,76 @@ describe('marquee selection', () => {
   })
 })
 
+describe('grid snap', () => {
+  it('is disabled by default and reports its size', () => {
+    const { engine } = setup()
+    expect(engine.isGridSnapEnabled()).toBe(false)
+    expect(engine.getGridSnapSize()).toBe(10)
+  })
+
+  it('enabling grid-snap (default size) lands a wall placement on a multiple of the grid', () => {
+    const { engine, click, store } = setup()
+    engine.setTool('wall')
+    engine.setMagnetism(false)
+    engine.setGridSnap(true) // default 10 cm
+    click(0, 0)
+    click(53, 27) // off-grid; nearest 10 cm intersection is (50, 30)
+    engine.key('escape')
+    expect(wallGraph(store)).toEqual([[0, 0, 50, 30]])
+  })
+
+  it('enabling grid-snap with a custom size snaps to that size', () => {
+    const { engine, click, store } = setup()
+    engine.setTool('wall')
+    engine.setMagnetism(false)
+    engine.setGridSnap(true, 5)
+    expect(engine.getGridSnapSize()).toBe(5)
+    click(100, 0)
+    click(142, 58) // nearest 5 cm intersection is (140, 60)
+    engine.key('escape')
+    expect(wallGraph(store)).toEqual([[100, 0, 140, 60]])
+  })
+
+  it('disabling grid-snap restores the unsnapped behavior for the same placement', () => {
+    const { engine, click, store } = setup()
+    engine.setTool('wall')
+    engine.setMagnetism(false)
+    engine.setGridSnap(false)
+    click(0, 0)
+    click(53, 27)
+    engine.key('escape')
+    // Same drag with no grid-snap keeps the raw coordinates.
+    expect(wallGraph(store)).toEqual([[0, 0, 53, 27]])
+  })
+
+  it('magnetism wins over plain grid-snap when a wall is close enough', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const engine = new PlanEngine(model)
+    engine.setTool('selection')
+    engine.setGridSnap(true) // 10 cm grid
+
+    model.addWall({ xStart: 0, yStart: 0, xEnd: 500, yEnd: 0, thickness: NEW_WALL_THICKNESS_CM, height: 250 })
+    const f = model.addFurniture({
+      name: 'Chair',
+      x: 200,
+      y: 100,
+      width: 60,
+      depth: 60,
+      height: 80,
+      elevation: 0,
+      angleDeg: 0,
+    })
+
+    // Grid-snap alone would leave y on a multiple of 10 (y=20 is already a
+    // multiple), but wall magnetism overrides it and flushes the furniture to
+    // the wall at y=30 — proving magnetism wins over the plain grid-snap.
+    engine.drag({ fromX: f.x, fromY: f.y, toX: f.x, toY: 20 })
+    expect(store.getHome().furniture[0]!.y).toBeCloseTo(30, 0)
+    expect(store.getHome().furniture[0]!.angleDeg).toBe(0)
+  })
+})
+
 function engine_setTool(s: ReturnType<typeof setup>, tool: 'selection' | 'wall' | 'room' | 'dimensionLine' | 'label' | 'panning'): void {
   s.engine.setTool(tool)
 }
