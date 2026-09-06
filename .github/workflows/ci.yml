@@ -42,3 +42,55 @@ jobs:
       - run: pip install uv
       - run: uv sync --dev
       - run: uv run pytest -q
+
+  company-ops:
+    name: company-ops (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: company-ops
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: localtestpw
+          POSTGRES_DB: homely_company
+        ports:
+          - 5544:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install postgresql-client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Apply company schema
+        run: psql -h localhost -p 5544 -U postgres -d homely_company -f sql/company_schema.sql
+        env:
+          PGPASSWORD: localtestpw
+      - name: Apply observer schema
+        run: psql -h localhost -p 5544 -U postgres -d homely_company -f sql/observer_schema.sql
+        env:
+          PGPASSWORD: localtestpw
+      - name: Apply roles
+        run: psql -h localhost -p 5544 -U postgres -d homely_company -f sql/roles.sql
+        env:
+          PGPASSWORD: localtestpw
+      - name: Set CI role passwords
+        run: |
+          psql -h localhost -p 5544 -U postgres -d homely_company -c "ALTER ROLE hermes_company WITH PASSWORD 'citest_company';"
+          psql -h localhost -p 5544 -U postgres -d homely_company -c "ALTER ROLE hermes_observer_writer WITH PASSWORD 'citest_observer';"
+          psql -h localhost -p 5544 -U postgres -d homely_company -c "ALTER ROLE hermes_analytics WITH PASSWORD 'citest_analytics';"
+        env:
+          PGPASSWORD: localtestpw
+      - run: pip install -e ".[test,discord]"
+      - name: Run tests
+        run: python -m pytest tests/ -v
+        env:
+          TEST_COMPANY_DATABASE_URL: postgresql://hermes_company:citest_company@localhost:5544/homely_company
+          TEST_OBSERVER_DATABASE_URL: postgresql://hermes_observer_writer:citest_observer@localhost:5544/homely_company
