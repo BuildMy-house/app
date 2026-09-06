@@ -1,0 +1,91 @@
+name: Release (binaries)
+
+# Builds native installers on every `v*` tag push and uploads them to a
+# GitHub Release. Triggered on tags only (plus manual dispatch for testing).
+#
+# Outputs (attached to the release draft):
+#   macOS   -> Homely...dmg        (universal: arm64 + x86_64)
+#   Windows -> Homely...Setup.exe  (NSIS) + Homely...msi (WiX)
+#   Linux   -> Homely...AppImage   + homely...deb
+#
+# Unsigned (per decision): macOS users run `xattr -cr /Applications/Homely.app`,
+# Windows users click through the SmartScreen warning.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: '--target universal-apple-darwin --bundles dmg'
+            rustTargets: 'aarch64-apple-darwin,x86_64-apple-darwin'
+          - platform: windows-latest
+            args: '--bundles nsis,msi'
+            rustTargets: ''
+          - platform: ubuntu-22.04
+            args: '--bundles appimage,deb'
+            rustTargets: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: homely/package-lock.json
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rustTargets }}
+
+      - name: Install Linux build deps
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Detect pre-release tag
+        id: pre
+        run: |
+          if [[ "${{ github.ref_name }}" =~ -beta\.|-rc\. ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build & upload (tauri-action)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: homely
+          tagName: ${{ github.ref_name }}
+          releaseName: 'homely ${{ github.ref_name }}'
+          releaseBody: |
+            Download the asset for your platform.
+
+            - **macOS**: `Homely…dmg` — after installing, clear Gatekeeper:
+              `xattr -cr /Applications/Homely.app` (or right-click → Open).
+            - **Windows**: `…Setup.exe` (NSIS) or `….msi` — SmartScreen may warn
+              "unrecognized publisher"; click More info → Run anyway.
+            - **Linux**: `…AppImage` (portable) or the `.deb`.
+
+            See docs/RELEASE.md for details and store (Flathub / Snap) installs.
+          releaseDraft: true
+          prerelease: ${{ steps.pre.outputs.is_prerelease }}
+          args: ${{ matrix.args }}
