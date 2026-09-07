@@ -23,10 +23,13 @@ import pathlib
 import sys
 
 EQ_DIR = pathlib.Path(__file__).resolve().parent.parent / "equivalence"
+COMPANY_OPS_DIR = pathlib.Path(__file__).resolve().parent.parent / "company-ops"
 sys.path.insert(0, str(EQ_DIR))
+sys.path.insert(0, str(COMPANY_OPS_DIR))
 
 from eq.adapters.server import AutomationServer, Session
 from mcp.server.fastmcp import FastMCP, Image
+from company_ops.axiom_client import AxiomClient
 
 # SECURITY (M17 audit): loopback-only by default, on purpose. The automation
 # protocol has no auth, so anything that can reach this port can register a
@@ -322,6 +325,29 @@ async def undo() -> dict:
 async def redo() -> dict:
     """Redo the last undone edit. Returns {canUndo, canRedo}."""
     return await _session().request("redo")
+
+
+@mcp.tool()
+async def telemetry_query(aql: str, timeframe: str = "24h") -> dict:
+    """Query Homely telemetry from Axiom. Pass an AQL query string.
+    Examples:
+      "['error.caught'] | stats count() as cnt by message | sort cnt desc"
+      "['perf.frame_time'] | stats avg(p50) as avg_p50 by bin(1h, ts)"
+    Timeframe: 24h, 7d, 30d, etc."""
+    client = AxiomClient()
+    if not client.token:
+        return {"error": "AXIOM_TOKEN not set"}
+    return client.query(aql, timeframe=timeframe)
+
+
+@mcp.tool()
+async def telemetry_summary(metric: str = "errors", timeframe: str = "7d") -> dict:
+    """Get a pre-built telemetry summary. metric: errors|performance|usage.
+    Returns aggregated stats for the given timeframe."""
+    client = AxiomClient()
+    if not client.token:
+        return {"error": "AXIOM_TOKEN not set"}
+    return client.summary(metric, timeframe=timeframe)
 
 
 def main() -> None:

@@ -10,7 +10,7 @@
  * exports a `.glb` per catalogId into assets/models/.
  *
  * For catalog items that have a matching Sweet Home 3D OBJ in
- * ../../sweethome3d-7.5-wayland-patch/src/com/eteks/sweethome3d/io/resources/,
+ * ../assets/models/sh3d/,
  * the real SH3D geometry is loaded, uniformly scaled to the catalog bounds,
  * centered on the floor, and exported. Missing or failing items fall back to
  * the procedural low-poly shapes.

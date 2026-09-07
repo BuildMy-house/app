@@ -2,6 +2,7 @@ import { serializeHome } from '../../core/export'
 import { isNormalizedHome } from '../../core/project-store'
 import type { NormalizedHomeState } from '../../core/home'
 import { isTauri, TauriFsStorage } from './tauri-fs'
+import { telemetry } from '../../telemetry/logger'
 
 interface TauriDialogPlugin {
   save(options?: { defaultPath?: string }): Promise<string | null>
@@ -29,15 +30,18 @@ export function parseHomeFile(json: string): NormalizedHomeState {
 
 /** Save the home to disk. Tauri: native save dialog. Browser: download trigger. */
 export async function saveHomeFile(home: NormalizedHomeState): Promise<void> {
+  const start = performance.now()
   if (isTauri()) {
     const dialog = await tauriDialog()
     const path = await dialog.save({ defaultPath: 'home.json' })
     if (!path) return
     try {
       await new TauriFsStorage().writeText(path, serializeForSave(home))
+      telemetry.fileIo('save', performance.now() - start, true, path)
     } catch (err) {
-      console.error(`Failed to save home file to ${path}:`, err)
-      throw new Error(`Failed to save home file to ${path}: ${err instanceof Error ? err.message : String(err)}`)
+      const msg = err instanceof Error ? err.message : String(err)
+      telemetry.fileIo('save', performance.now() - start, false, path, msg)
+      throw new Error(`Failed to save home file to ${path}: ${msg}`)
     }
     return
   }
@@ -48,6 +52,7 @@ export async function saveHomeFile(home: NormalizedHomeState): Promise<void> {
   a.download = 'home.json'
   a.click()
   URL.revokeObjectURL(url)
+  telemetry.fileIo('save', performance.now() - start, true)
 }
 
 /**
@@ -58,16 +63,19 @@ export async function saveHomeFile(home: NormalizedHomeState): Promise<void> {
  * (main.ts) can distinguish it from cancel and surface it to the user.
  */
 export async function loadHomeFile(): Promise<NormalizedHomeState | null> {
+  const start = performance.now()
   if (isTauri()) {
     const dialog = await tauriDialog()
     const path = await dialog.open({ filters: [{ name: 'Homely', extensions: ['json'] }] })
     if (!path) return null
     try {
       const text = await new TauriFsStorage().readText(path as string)
+      telemetry.fileIo('open', performance.now() - start, true, path as string)
       return parseHomeFile(text)
     } catch (err) {
-      console.error('Failed to load home file:', err)
-      throw new Error(`Failed to load home file from ${path}: ${err instanceof Error ? err.message : String(err)}`)
+      const msg = err instanceof Error ? err.message : String(err)
+      telemetry.fileIo('open', performance.now() - start, false, path as string, msg)
+      throw new Error(`Failed to load home file from ${path}: ${msg}`)
     }
   }
   return await new Promise<NormalizedHomeState | null>((resolve, reject) => {
@@ -80,9 +88,11 @@ export async function loadHomeFile(): Promise<NormalizedHomeState | null> {
       file.text().then((text) => {
         try {
           resolve(parseHomeFile(text))
+          telemetry.fileIo('open', performance.now() - start, true, file.name)
         } catch (err) {
-          console.error('Failed to load home file:', err)
-          reject(new Error(`Failed to load home file from ${file.name}: ${err instanceof Error ? err.message : String(err)}`))
+          const msg = err instanceof Error ? err.message : String(err)
+          telemetry.fileIo('open', performance.now() - start, false, file.name, msg)
+          reject(new Error(`Failed to load home file from ${file.name}: ${msg}`))
         }
       }, reject)
     }

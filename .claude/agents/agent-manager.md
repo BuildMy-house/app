@@ -84,6 +84,17 @@ tickets:
 
 ## Ticket-writing checklist
 
+**For any Homely/buildmy.house bug-fix or debugging ticket, tell the worker
+to check real Axiom telemetry first** (`company-ops telemetry-query`, or a
+direct `company_ops.axiom_client.AxiomClient` query against the
+`homely-telemetry` dataset — see `company-ops/NAHAR-TODO.md` Group I for
+credential status) before it starts guessing at root cause from reading code
+alone. The app's telemetry pipeline captures real errors/events from actual
+usage; a worker that skips this and reasons purely from static code reading
+can miss what's actually happening in practice. This applies once real
+Axiom credentials exist — if Group I is still unresolved, note that
+explicitly in the ticket rather than silently assuming telemetry data exists.
+
 A ticket a worker can execute unsupervised needs all of these:
 
 - **Exact owner dirs/files.** Name the specific files/directories the

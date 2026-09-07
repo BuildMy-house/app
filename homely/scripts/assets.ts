@@ -138,7 +138,7 @@ function copyDirContents(src: string, dest: string): void {
   mkdirSync(dest, { recursive: true })
   for (const entry of readdirSync(src)) {
     // Build-time tooling is never a runtime asset.
-    if (entry === 'generate.py') continue
+    if (entry === 'generate.py' || entry === 'sh3d') continue
     const from = join(src, entry)
     const to = join(dest, entry)
     if (statSync(from).isDirectory()) {

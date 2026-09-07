@@ -124,3 +124,44 @@ describe('Roof tool — PlanEngine', () => {
     expect(engine.getTool()).toBe('selection')
   })
 })
+
+describe('Roof schema fields', () => {
+  it('addRoof without explicit style/pitch/overhang gets defaults (gable/30/30)', () => {
+    const { model } = setup()
+    const roof = model.addRoof([[0, 0], [100, 0], [50, 80]])
+    expect(roof.style).toBe('gable')
+    expect(roof.pitchDeg).toBe(30)
+    expect(roof.overhangCm).toBe(30)
+    expect(roof.ridgeAngleDeg).toBeNull()
+  })
+
+  it('addRoof with explicit values stores exactly those', () => {
+    const { model } = setup()
+    const roof = model.addRoof([[0, 0], [100, 0], [50, 80]], {
+      style: 'hip',
+      pitchDeg: 45,
+      overhangCm: 50,
+      ridgeAngleDeg: 15,
+    })
+    expect(roof.style).toBe('hip')
+    expect(roof.pitchDeg).toBe(45)
+    expect(roof.overhangCm).toBe(50)
+    expect(roof.ridgeAngleDeg).toBe(15)
+  })
+
+  it('updateRoof can patch style/pitchDeg/overhangCm/ridgeAngleDeg', () => {
+    const { model, store } = setup()
+    const roof = model.addRoof([[0, 0], [100, 0], [50, 80]])
+    model.updateRoof(roof.id, {
+      style: 'hip',
+      pitchDeg: 60,
+      overhangCm: 20,
+      ridgeAngleDeg: 30,
+    })
+    const updated = store.getHome().roofs.find((r) => r.id === roof.id)!
+    expect(updated.style).toBe('hip')
+    expect(updated.pitchDeg).toBe(60)
+    expect(updated.overhangCm).toBe(20)
+    expect(updated.ridgeAngleDeg).toBe(30)
+  })
+})

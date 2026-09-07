@@ -408,6 +408,44 @@ export function drawPlan(
     ctx.lineWidth = selected.has(roof.id) ? 2 : 1
     ctx.stroke()
     ctx.setLineDash([])
+
+    // Roof label.
+    const centroidX = roof.points.reduce((acc, [x]) => acc + x, 0) / roof.points.length
+    const centroidY = roof.points.reduce((acc, [, y]) => acc + y, 0) / roof.points.length
+    ctx.fillStyle = '#444444'
+    ctx.font = '11px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(`Roof (${roof.style}, ${roof.pitchDeg}°)`, mapper.sx(centroidX), mapper.sy(centroidY))
+
+    // Ridge-line indicator: line along the long axis of the bounding box.
+    if (roof.points.length >= 3) {
+      let minX = Infinity, maxX = -Infinity
+      let minY = Infinity, maxY = -Infinity
+      for (const [px, py] of roof.points) {
+        if (px < minX) minX = px
+        if (px > maxX) maxX = px
+        if (py < minY) minY = py
+        if (py > maxY) maxY = py
+      }
+      const bboxDx = maxX - minX
+      const bboxDy = maxY - minY
+      ctx.beginPath()
+      ctx.setLineDash([4, 3])
+      ctx.strokeStyle = selected.has(roof.id) ? SELECTION_COLOR : '#888888'
+      ctx.lineWidth = 1
+      if (bboxDx >= bboxDy) {
+        const midY = (minY + maxY) / 2
+        ctx.moveTo(mapper.sx(minX), mapper.sy(midY))
+        ctx.lineTo(mapper.sx(maxX), mapper.sy(midY))
+      } else {
+        const midX = (minX + maxX) / 2
+        ctx.moveTo(mapper.sx(midX), mapper.sy(minY))
+        ctx.lineTo(mapper.sx(midX), mapper.sy(maxY))
+      }
+      ctx.stroke()
+      ctx.setLineDash([])
+    }
   }
 
   // Walls as filled thick shapes with mitered corners.

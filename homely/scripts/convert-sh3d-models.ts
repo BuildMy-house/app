@@ -11,14 +11,9 @@ import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js'
 const SH3D_RESOURCES = join(
   dirname(fileURLToPath(import.meta.url)),
   '..',
-  '..',
-  'sweethome3d-7.5-wayland-patch',
-  'src',
-  'com',
-  'eteks',
-  'sweethome3d',
-  'io',
-  'resources',
+  'assets',
+  'models',
+  'sh3d',
 )
 
 interface CatalogItem {

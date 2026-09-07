@@ -13,6 +13,7 @@ import {
   saveViewportQuality,
   type ViewportQuality,
 } from './viewport-quality'
+import { telemetry } from '../telemetry/logger'
 
 export interface View3DOptions {
   /** DOM container; when absent the view stays a headless scene graph. */
@@ -53,6 +54,10 @@ export class View3D {
   private _lastSelectionKey = ''
   private _animationFrame: number | undefined
   private readonly resizeObserver?: ResizeObserver
+  // Frame time tracking: sliding window of 100 samples, reported every 30s.
+  private _frameSamples: number[] = []
+  private _frameLastTime = 0
+  private _frameReportTimer: ReturnType<typeof setTimeout> | undefined
   private readonly handleResize = (): void => {
     const container = this.domElement?.parentElement
     if (!container) return
@@ -107,6 +112,8 @@ export class View3D {
       container.appendChild(renderer.domElement)
       this.renderer = renderer
       this.applyQualityToScene()
+
+      renderer.domElement.addEventListener('webglcontextlost', () => telemetry.webglContextLost())
 
       this.controls = new OrbitControls(this.perspectiveCamera, renderer.domElement)
       this.controls.enableDamping = true
@@ -420,6 +427,20 @@ export class View3D {
     if (this._animationFrame !== undefined) return
     const tick = (): void => {
       this._animationFrame = undefined
+      const now = performance.now()
+      if (this._frameLastTime > 0) {
+        const dt = now - this._frameLastTime
+        this._frameSamples.push(dt)
+        if (this._frameSamples.length > 100) this._frameSamples.shift()
+        if (!this._frameReportTimer) {
+          this._frameReportTimer = setTimeout(() => {
+            telemetry.frameTime(this._frameSamples)
+            this._frameSamples = []
+            this._frameReportTimer = undefined
+          }, 30_000)
+        }
+      }
+      this._frameLastTime = now
       const moving = this.controls ? this.controls.update() : false
       this.renderer?.render(this._scene, this.perspectiveCamera)
       if (moving) this._animationFrame = requestAnimationFrame(tick)
@@ -429,6 +450,7 @@ export class View3D {
 
   dispose(): void {
     this.cancelAnimation()
+    if (this._frameReportTimer) clearTimeout(this._frameReportTimer)
     this.unobserve()
     this.controls?.dispose()
     this.resizeObserver?.disconnect()

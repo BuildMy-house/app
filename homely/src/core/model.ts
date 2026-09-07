@@ -449,6 +449,10 @@ export class HomeModel {
         name: input.name ?? null,
         color: input.color ?? null,
         levelRef: input.levelRef ?? null,
+        style: input.style ?? 'gable',
+        pitchDeg: input.pitchDeg ?? 30,
+        overhangCm: input.overhangCm ?? 30,
+        ridgeAngleDeg: input.ridgeAngleDeg ?? null,
       }
       h.roofs.push(created)
     })

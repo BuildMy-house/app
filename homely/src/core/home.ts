@@ -139,6 +139,10 @@ export interface Roof {
   name?: string | null
   color?: number | null
   levelRef?: string | null
+  style: 'gable' | 'hip'
+  pitchDeg: number
+  overhangCm: number
+  ridgeAngleDeg?: number | null
 }
 
 export interface CameraState {
