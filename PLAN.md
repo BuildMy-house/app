@@ -666,9 +666,9 @@ Architecture notes:
 
 | Ticket | Title | Deps | Owner dir | Claimed-by | Status | Notes |
 |--------|-------|------|-----------|------------|--------|-------|
-| W1 | website-scaffold | — | website/ | | | Astro static + Cloudflare Workers, landing pages |
-| W2 | hermees-diary-scaffold | — | hermees/ | | | Astro SSR + Cloudflare Workers, blog structure, append-only |
-| W3 | observer-website-scaffold | — | observer-website/ | | | Node/Astro self-hosted, Dockerfile, API stubs |
+| W1 | website-scaffold | — | website/ | manager | done | fc1bf6f Astro static + Cloudflare, 5 pages, README, DEPLOYMENT.md, package.json |
+| W2 | hermees-diary-scaffold | — | hermees/ | manager | done | fc1bf6f 'Diary of a Agent' (Astro SSR, 3 sample posts, SOUL.md, blog structure) |
+| W3 | observer-website-scaffold | — | observer-website/ | manager | done | fc1bf6f Node/Astro self-hosted (Dockerfile, API endpoints, DEPLOYMENT.md) |
 | W4 | cloudflare-central-setup | W1,W2 | root (CLOUDFLARE_SETUP.md) | | | Cloudflare domain routing, Worker setup (website+hermees only) |
 | W5 | observer-docker-deploy | W3 | observer-website/ (Dockerfile + DEPLOYMENT.md) | | | Self-hosted deployment guide + Docker image |
 | W6 | github-workflows | W1,W2,W3 | .github/workflows/ | | | Auto-deploy workflows (deploy-website.yml, deploy-hermees.yml) |
