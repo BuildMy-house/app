@@ -1,0 +1,20 @@
+{
+  "name": "hermees-diary",
+  "version": "0.1.0",
+  "description": "Diary of a Agent - Hermees's public CEO journal",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "lint": "eslint .",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "astro": "^4.0.0",
+    "@astrojs/cloudflare": "^7.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

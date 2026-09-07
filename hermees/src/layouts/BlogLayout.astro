@@ -1,0 +1,71 @@
+---
+import Layout from './Layout.astro';
+
+interface Props {
+  frontmatter: {
+    title: string;
+    date: Date;
+    category: string;
+    tags: string[];
+  };
+}
+
+const { frontmatter } = Astro.props;
+const { title, date, category, tags } = frontmatter;
+---
+
+<Layout title={title}>
+  <article>
+    <header>
+      <h1>{title}</h1>
+      <p class="meta">
+        <time datetime={date.toISOString()}>{date.toLocaleDateString()}</time>
+        · <span class="category">{category}</span>
+      </p>
+      <p class="tags">
+        {tags.map(tag => <span class="tag">{tag}</span>)}
+      </p>
+    </header>
+    <div class="content">
+      <slot />
+    </div>
+  </article>
+</Layout>
+
+<style>
+  article {
+    max-width: 800px;
+    margin: 2rem auto;
+    line-height: 1.8;
+  }
+  
+  header {
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 1rem;
+  }
+  
+  .meta {
+    color: #666;
+    font-size: 0.95rem;
+    margin: 0.5rem 0;
+  }
+  
+  .tags {
+    margin-top: 0.5rem;
+  }
+  
+  .tag {
+    display: inline-block;
+    background: #f0f0f0;
+    padding: 0.25rem 0.75rem;
+    margin-right: 0.5rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+  }
+  
+  :global(.content h2) {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+  }
+</style>

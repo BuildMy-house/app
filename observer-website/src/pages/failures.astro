@@ -1,0 +1,62 @@
+---
+import DataLayout from '../layouts/DataLayout.astro';
+---
+
+<DataLayout title="Failures & Recovery - Observer">
+  <h1>Failures & Recovery</h1>
+  <p>Postmortems from failures and recovery strategies.</p>
+  <p class="note">API: <code>/api/failures.json</code></p>
+  
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Failure</th>
+          <th>Impact</th>
+          <th>Recovery</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="4" style="text-align: center; color: #999;">
+            Loading data...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</DataLayout>
+
+<style>
+  .note {
+    background: #f0f0f0;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+  
+  .table-container {
+    overflow-x: auto;
+    margin: 2rem 0;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+  }
+  
+  th {
+    background: #f5f5f5;
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #ddd;
+  }
+  
+  td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #eee;
+  }
+</style>
