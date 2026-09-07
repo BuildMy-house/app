@@ -74,3 +74,20 @@ step, and exits non-zero if any step fails. Run it before committing — it is
 the automated check that prevents a "done" ticket from shipping with broken
 stubs (the U3 regression that motivated this CI). Once a GitHub remote is
 added, `ci.yml` runs the identical checks automatically on push/PR.
+
+## Delegated manager subagents (agent-manager and similar)
+
+When dispatching a manager-style subagent (e.g. `agent-manager`) for a
+multi-phase, multi-step piece of work — whether for `homely/` or for
+`company-ops/` — **spawn a fresh instance of that subagent at each
+phase/step boundary rather than resuming one instance across the whole
+workstream.** A "step" is a phase or a distinct verification pass (e.g. an
+end-to-end smoke test); individual tickets within one step still share the
+same instance. Lean on the ticket board and any project plan file as the
+durable handoff state — a fresh instance reads those plus a short "what's
+verified vs. still open" briefing and picks up cleanly, without needing
+the prior instance's own accumulated context. See
+`.claude/agents/agent-manager.md`'s "How to use this subagent" section
+for the full rationale. (Renamed from `opencode-manager` 2026-09-07 — the
+subagent dispatches to opencode, Codex, and Antigravity/Gemini workers,
+not just OpenCode, so the old name undersold its actual scope.)
