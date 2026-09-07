@@ -13,6 +13,7 @@ let _flushing = false
 /** Enqueue an event for batched delivery. */
 export function enqueue(event: TelemetryEvent): void {
   const config = getTelemetryConfig()
+  if (!config.enabled) return
   if (!config.token) return
   if (event.tier === 2 && !config.tier2Enabled) return
 
@@ -40,7 +41,7 @@ export async function flush(): Promise<void> {
   _buffer = []
 
   const config = getTelemetryConfig()
-  if (!config.token) {
+  if (!config.enabled || !config.token) {
     _flushing = false
     return
   }

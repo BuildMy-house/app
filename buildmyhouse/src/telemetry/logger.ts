@@ -26,6 +26,7 @@ function makeEvent(event: string, tier: TelemetryTier, extra?: Record<string, un
 }
 
 function emit(event: string, tier: TelemetryTier, extra?: Record<string, unknown>): void {
+  if (!getTelemetryConfig().enabled) return
   enqueue(makeEvent(event, tier, extra))
 }
 
@@ -38,7 +39,8 @@ function percentile(sorted: number[], p: number): number {
 export const telemetry = {
   /** Initialize telemetry. Call once at app start. */
   init(version?: string): void {
-    initTelemetryConfig()
+    const config = initTelemetryConfig()
+    if (!config.enabled) return
     initContext(version ?? '0.1.0')
     registerUnload()
   },
