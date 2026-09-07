@@ -1,0 +1,51 @@
+{
+  "name": "buildmyhouse",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "predev": "npm run assets",
+    "assets": "tsx scripts/assets.ts",
+    "assets:check": "tsx scripts/assets.ts --check",
+    "models": "tsx scripts/generate-models.ts",
+    "models:check": "tsx scripts/generate-models.ts --check",
+    "prebuild": "npm run assets:check && npm run models:check && npm run assets && npm run models",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "e2e:open": "playwright open",
+    "smoke": "tsx scripts/smoke-automation.ts",
+    "export:scene": "tsx scripts/export-scene.ts",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@types/three": "^0.185.4",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "@playwright/test": "^1.62.1",
+    "@tauri-apps/cli": "^2",
+    "@types/node": "^24",
+    "@types/ws": "^8",
+    "ajv": "^8.20.0",
+    "eslint": "^9",
+    "jsdom": "^30.0.1",
+    "prettier": "^3",
+    "tsx": "^4",
+    "typescript": "^5",
+    "typescript-eslint": "^8",
+    "vite": "^6",
+    "vitest": "^3",
+    "ws": "^8"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "esbuild@0.25.12": true
+  }
+}

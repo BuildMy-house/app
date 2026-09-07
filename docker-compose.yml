@@ -1,0 +1,22 @@
+services:
+  homely:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: homely:local
+    container_name: homely
+    ports:
+      - "${HOMELY_PORT:-3000}:3000"
+    environment:
+      # Required: no default is provided. Set it in a .env file or in your shell.
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be set (e.g. in a .env file)}"
+      DB_PATH: /data/homely.db
+      ASSET_DIR: /data/assets
+      STATIC_DIR: /app/dist-static
+      PORT: "3000"
+    volumes:
+      - homely-data:/data
+    restart: unless-stopped
+
+volumes:
+  homely-data:

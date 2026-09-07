@@ -1,0 +1,4 @@
+# Keep the models/ directory in the repo so the asset pipeline and
+# Vite public sync have a stable location for furniture 3D models
+# (GLB/GLTF/OBJ). No binary model files are committed — the
+# `modelPath` field on catalog items is for future model authors.
