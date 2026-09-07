@@ -24,7 +24,7 @@ export function serializeForSave(home: NormalizedHomeState): string {
 /** Parse and validate a JSON string as a NormalizedHomeState; throw if invalid. */
 export function parseHomeFile(json: string): NormalizedHomeState {
   const value: unknown = JSON.parse(json)
-  if (!isNormalizedHome(value)) throw new Error('File is not a valid Homely project')
+  if (!isNormalizedHome(value)) throw new Error('File is not a valid buildmy.house project')
   return value
 }
 
@@ -66,7 +66,7 @@ export async function loadHomeFile(): Promise<NormalizedHomeState | null> {
   const start = performance.now()
   if (isTauri()) {
     const dialog = await tauriDialog()
-    const path = await dialog.open({ filters: [{ name: 'Homely', extensions: ['json'] }] })
+    const path = await dialog.open({ filters: [{ name: 'buildmy.house', extensions: ['json'] }] })
     if (!path) return null
     try {
       const text = await new TauriFsStorage().readText(path as string)

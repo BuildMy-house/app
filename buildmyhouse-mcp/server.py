@@ -65,7 +65,7 @@ async def _lifespan(_app):
         _SERVER = None
 
 
-mcp = FastMCP("homely", instructions=INSTRUCTIONS, lifespan=_lifespan)
+mcp = FastMCP("buildmyhouse", instructions=INSTRUCTIONS, lifespan=_lifespan)
 
 _SERVER: AutomationServer | None = None
 
@@ -74,7 +74,7 @@ def _session() -> Session:
     if _SERVER is None:
         raise RuntimeError("server not started")
     # Prefer the clone; fall back to the original driver if that is what connected.
-    for preferred in ("homely", "sh3d-driver"):
+    for preferred in ("buildmyhouse", "sh3d-driver"):
         if preferred in _SERVER.sessions:
             return _SERVER.sessions[preferred]
     port = _SERVER.ws_port

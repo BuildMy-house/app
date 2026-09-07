@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "homely",
+  "productName": "buildmyhouse",
   "version": "0.1.0",
-  "identifier": "com.house-designer.homely",
+  "identifier": "com.buildmyhouse.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Homely",
+        "title": "buildmy.house",
         "width": 1280,
         "height": 800
       }

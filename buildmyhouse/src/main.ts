@@ -299,7 +299,7 @@ function refreshMenus(): void {
     {
       label: 'Help',
       items: [
-        { label: 'About Homely', action: () => alert('Homely — Sweet Home 3D clone\nTauri + Three.js + TypeScript') },
+        { label: 'About buildmy.house', action: () => alert('buildmy.house — Sweet Home 3D clone\nTauri + Three.js + TypeScript') },
       ],
     },
   ])
