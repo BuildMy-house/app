@@ -1,0 +1,57 @@
+name: Build observer-website Docker image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'observer-website/**'
+      - '.github/workflows/deploy-observer-website.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: cd observer-website && npm install
+
+      - name: Build
+        run: cd observer-website && npm run build
+
+      - name: Lint
+        run: cd observer-website && npm run lint || true
+
+      - name: Type check
+        run: cd observer-website && npm run check || true
+
+      - name: Build Docker image
+        run: |
+          cd observer-website
+          docker build -t observer-website:${{ github.sha }} .
+          docker tag observer-website:${{ github.sha }} observer-website:latest
+
+      - name: Push to Docker registry (optional)
+        # This step is optional - configure your Docker registry credentials
+        if: secrets.DOCKER_REGISTRY_URL != ''
+        run: |
+          cd observer-website
+          echo ${{ secrets.DOCKER_REGISTRY_PASSWORD }} | docker login -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin ${{ secrets.DOCKER_REGISTRY_URL }}
+          docker push observer-website:${{ github.sha }}
+          docker push observer-website:latest
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Observer-website Docker image built successfully\n\nImage: `observer-website:${{ github.sha }}`\n\nDeploy with: `docker run -e DATABASE_URL=... observer-website`'
+            })
