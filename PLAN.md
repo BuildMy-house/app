@@ -652,51 +652,50 @@ Runs W0/W3/W4, reviews `review` rows, owns contracts and merges.
 
 ## Track W — External Sites (2026-09-08, new workstream)
 
-Three public-facing websites deployed to Cloudflare Workers:
-1. **website** — BuildMyHouse product marketing site (Astro + Cloudflare Workers)
-2. **hermees** — "Diary of a Agent" — Hermees's public CEO journal (blog/narrative, static or dynamic)
-3. **observer-website** — Observer technical data interface (read-only dashboard querying Company PG)
+Three public-facing websites with different architectures and deployment targets:
+1. **website** — BuildMyHouse product marketing (static Astro + Cloudflare Workers)
+2. **hermees** — "Diary of a Agent" (Astro SSR + Cloudflare Workers, queries Observer DB)
+3. **observer-website** — Observer data interface (Node/Astro, self-hosted, queries Company PG)
 
-Each repo:
-- `npm run dev` locally (Astro dev server or equivalent)
-- `npm run build` creates Cloudflare-ready bundle
-- GitHub Actions workflow auto-deploys on push
-- DEPLOYMENT.md step-by-step setup
-- .env.example + package.json with Cloudflare deps
-
-Central file: `CLOUDFLARE_SETUP.md` documents:
-- Domain routing (subdomains or path-based)
-- Worker configuration steps (connect GitHub, set env vars, deploy)
-- Monitoring setup
+Architecture notes:
+- website: @astrojs/cloudflare (static), no database
+- hermees: @astrojs/cloudflare (SSR mode), queries Observer DB for decisions/experiments to publish
+- observer-website: default Node adapter (self-hosted), Dockerfile provided, queries Company PG (hermes_analytics role)
+- Both DB-connected sites: append-only entries (timestamps, no updated_at), immutability enforced in UI/schema
+- Deployment: website/hermees → GitHub Actions → Cloudflare Workers; observer-website → self-hosted Node/Docker
 
 | Ticket | Title | Deps | Owner dir | Claimed-by | Status | Notes |
 |--------|-------|------|-----------|------------|--------|-------|
-| W1 | website-scaffold | — | website/ | | | Astro + Cloudflare Workers adapter, landing + basic pages |
-| W2 | hermees-diary-scaffold | — | hermees/ | | | "Diary of a Agent" — Hermees's public journal (blog post structure, narrative-driven) |
-| W3 | observer-website-scaffold | — | observer-website/ | | | Technical Observer data interface (decisions/experiments/failures API) |
-| W4 | cloudflare-central-setup | W1,W2,W3 | root (CLOUDFLARE_SETUP.md) | | | Domain routing, Worker setup steps, monitoring |
-| W5 | github-workflows | W1,W2,W3 | .github/workflows/ (deploy-*.yml) | | | Auto-deploy on push to each site's workflow |
+| W1 | website-scaffold | — | website/ | | | Astro static + Cloudflare Workers, landing pages |
+| W2 | hermees-diary-scaffold | — | hermees/ | | | Astro SSR + Cloudflare Workers, blog structure, append-only |
+| W3 | observer-website-scaffold | — | observer-website/ | | | Node/Astro self-hosted, Dockerfile, API stubs |
+| W4 | cloudflare-central-setup | W1,W2 | root (CLOUDFLARE_SETUP.md) | | | Cloudflare domain routing, Worker setup (website+hermees only) |
+| W5 | observer-docker-deploy | W3 | observer-website/ (Dockerfile + DEPLOYMENT.md) | | | Self-hosted deployment guide + Docker image |
+| W6 | github-workflows | W1,W2,W3 | .github/workflows/ | | | Auto-deploy workflows (deploy-website.yml, deploy-hermees.yml) |
 
-**Domain placeholder:** User will provide domain; CLOUDFLARE_SETUP.md documents routing to subdomains:
-- `website.domain.com` → BuildMyHouse marketing site
-- `hermees.domain.com` → Diary of a Agent (Hermees public journal)
-- `observer.domain.com` (or `data.domain.com`) → Observer technical data interface
+**Domain routing:**
+- website.domain.com → BuildMyHouse marketing site
+- hermees.domain.com → Diary of a Agent (Hermees journal)
+- observer.domain.com → Observer data (self-hosted, customer's server)
 
-**W2 branding (Diary of a Agent — Hermees's Public Journal):**
+**W2 branding (Diary of a Agent — append-only journal):**
 - Tagline: "The autonomous CEO's weekly updates, decisions, experiments, and learning"
-- Content: Weekly CEO updates, decision narratives, experiment reports, failure postmortems + recovery stories
-- Aesthetic: Human-readable blog format with timestamps, narrative-driven, personal voice
-- Data: Can be hand-authored blog posts, or pull from a backend journal database (scaffolding as static/simple dynamic for now)
+- Aesthetic: Human-readable blog format with timestamps, narrative-driven
+- Database: Queries Observer DB for decision/experiment records; appends to Astro content/ at publish time
+- Immutability: UI explicitly states "This journal is append-only" — no edit/delete, only timestamps
+- Deployment: GitHub Actions → Cloudflare Workers
 
-**W3 (Observer-website — Technical Data Interface):**
-- Tagline: "Observer system — read-only decision log, experiment results, failure recovery"
-- Pages: Decisions (list + search), Experiments (results + metrics), Failures & Recovery (postmortems)
-- Aesthetic: Data-driven dashboard with tables, charts, APIs (raw JSON also available)
-- Data: Queries Company PG (read-only hermes_analytics role) for observer records
+**W3 (Observer-website — self-hosted data interface):**
+- Tagline: "Read-only decision log, experiment results, failure recovery"
+- Database: Direct Company PG connection (hermes_analytics role)
+- Immutability: No updated_at field; created_at timestamps only
+- API endpoints: /api/decisions.json, /api/experiments.json, /api/failures.json
+- Deployment: Self-hosted Node server (Docker image) on customer's infrastructure
+- Requires: Company PG connection string in .env, port config
 
 **Notes:**
-- `npm run dev` works locally in each repo root
-- `npm run build` + test locally before GitHub push
-- Worker environment vars documented in each DEPLOYMENT.md
-- Observer-website needs live PG connection (env var for DATABASE_URL); details in W3's ticket
-- User configures Cloudflare account + connects GitHub repos (not done by manager)
+- All sites use Astro.js but different adapters/deployment
+- Both hermees and observer-website query databases at request time (SSR/dynamic)
+- Append-only immutability enforced in schema + UI/docs
+- User provides database credentials (Observer DB for hermees, Company PG for observer-website)
+- Cloudflare setup (W4) covers website+hermees only; observer-website has its own Docker/Node deployment (W5)
