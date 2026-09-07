@@ -7,7 +7,7 @@ version tag.
 
 ## Prerequisites (one-time)
 
-1. **GitHub remote is configured** (`github.com/NaharEmet/homely.git`) and CI
+1. **GitHub remote is configured** (`github.com/BuildMy-house/app.git`) and CI
    runs on every push. Pushing `v*` tags triggers the release pipelines.
 2. **Pick a license.** A `LICENSE` (MIT) is committed; Flathub and the Snap
    Store both require one. Swap it if you prefer another license, and update
