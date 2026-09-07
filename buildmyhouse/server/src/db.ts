@@ -2,6 +2,15 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
+import { Pool } from 'pg';
+
+export type DeploymentMode = 'sqlite' | 'postgres';
+
+export function getDeploymentMode(): DeploymentMode {
+  const url = process.env.DATABASE_URL;
+  if (url && url.startsWith('postgresql://')) return 'postgres';
+  return 'sqlite';
+}
 
 export interface UserRow {
   id: string;
@@ -52,11 +61,20 @@ export function initDb(db: Database.Database): void {
   db.exec(SCHEMA);
 }
 
-export function openDatabase(path: string): Database.Database {
+function openSqlite(path: string): Database.Database {
   mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path);
   db.pragma('journal_mode = WAL');
   return db;
+}
+
+function openPostgres(): Database.Database {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  return { exec: (sql: string) => pool.query(sql) } as unknown as Database.Database;
+}
+
+export function openDatabase(path: string): Database.Database {
+  return getDeploymentMode() === 'postgres' ? openPostgres() : openSqlite(path);
 }
 
 export function defaultDbPath(): string {

@@ -1,3 +1,5 @@
+export { getDeploymentMode } from './db.js';
+
 export function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
