@@ -653,9 +653,9 @@ Runs W0/W3/W4, reviews `review` rows, owns contracts and merges.
 ## Track W — External Sites (2026-09-08, new workstream)
 
 Three public-facing websites deployed to Cloudflare Workers:
-1. **website** — BuildMyHouse marketing site (Astro + Cloudflare Workers)
-2. **hermees** — Hermees agent public interface (static docs, read-only)
-3. **diary** — "Diary of a Agent" — Hermees's public decision/experiment log (live queries to Company PG)
+1. **website** — BuildMyHouse product marketing site (Astro + Cloudflare Workers)
+2. **hermees** — "Diary of a Agent" — Hermees's public CEO journal (blog/narrative, static or dynamic)
+3. **observer-website** — Observer technical data interface (read-only dashboard querying Company PG)
 
 Each repo:
 - `npm run dev` locally (Astro dev server or equivalent)
@@ -672,25 +672,31 @@ Central file: `CLOUDFLARE_SETUP.md` documents:
 | Ticket | Title | Deps | Owner dir | Claimed-by | Status | Notes |
 |--------|-------|------|-----------|------------|--------|-------|
 | W1 | website-scaffold | — | website/ | | | Astro + Cloudflare Workers adapter, landing + basic pages |
-| W2 | hermees-scaffold | — | hermees/ | | | Docs site, README, SOUL.md link, static build |
-| W3 | diary-scaffold | — | diary-of-a-agent/ | | | "Diary of a Agent" — journal interface (Decisions, Experiments, Failures & Recovery, Learning) |
+| W2 | hermees-diary-scaffold | — | hermees/ | | | "Diary of a Agent" — Hermees's public journal (blog post structure, narrative-driven) |
+| W3 | observer-website-scaffold | — | observer-website/ | | | Technical Observer data interface (decisions/experiments/failures API) |
 | W4 | cloudflare-central-setup | W1,W2,W3 | root (CLOUDFLARE_SETUP.md) | | | Domain routing, Worker setup steps, monitoring |
 | W5 | github-workflows | W1,W2,W3 | .github/workflows/ (deploy-*.yml) | | | Auto-deploy on push to each site's workflow |
 
 **Domain placeholder:** User will provide domain; CLOUDFLARE_SETUP.md documents routing to subdomains:
 - `website.domain.com` → BuildMyHouse marketing site
-- `hermees.domain.com` → Hermees public interface
-- `diary.domain.com` → Diary of a Agent (Hermees's decision log)
+- `hermees.domain.com` → Diary of a Agent (Hermees public journal)
+- `observer.domain.com` (or `data.domain.com`) → Observer technical data interface
 
-**W3 branding (Diary of a Agent):**
-- Tagline: "The autonomous CEO's decision log, experiments, and recovery"
-- Pages: Decisions, Experiments, Failures & Recovery, Learning
-- Aesthetic: journal/log format with timestamps, human-readable narratives, not raw data tables
-- Data: queries Company PG (read-only hermes_analytics role) for decision/experiment records
+**W2 branding (Diary of a Agent — Hermees's Public Journal):**
+- Tagline: "The autonomous CEO's weekly updates, decisions, experiments, and learning"
+- Content: Weekly CEO updates, decision narratives, experiment reports, failure postmortems + recovery stories
+- Aesthetic: Human-readable blog format with timestamps, narrative-driven, personal voice
+- Data: Can be hand-authored blog posts, or pull from a backend journal database (scaffolding as static/simple dynamic for now)
+
+**W3 (Observer-website — Technical Data Interface):**
+- Tagline: "Observer system — read-only decision log, experiment results, failure recovery"
+- Pages: Decisions (list + search), Experiments (results + metrics), Failures & Recovery (postmortems)
+- Aesthetic: Data-driven dashboard with tables, charts, APIs (raw JSON also available)
+- Data: Queries Company PG (read-only hermes_analytics role) for observer records
 
 **Notes:**
 - `npm run dev` works locally in each repo root
 - `npm run build` + test locally before GitHub push
 - Worker environment vars documented in each DEPLOYMENT.md
-- Diary needs live PG connection (env var for DATABASE_URL); details in W3's ticket
+- Observer-website needs live PG connection (env var for DATABASE_URL); details in W3's ticket
 - User configures Cloudflare account + connects GitHub repos (not done by manager)
