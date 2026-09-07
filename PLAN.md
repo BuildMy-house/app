@@ -669,9 +669,9 @@ Architecture notes:
 | W1 | website-scaffold | — | website/ | manager | done | fc1bf6f Astro static + Cloudflare, 5 pages, README, DEPLOYMENT.md, package.json |
 | W2 | hermees-diary-scaffold | — | hermees/ | manager | done | fc1bf6f 'Diary of a Agent' (Astro SSR, 3 sample posts, SOUL.md, blog structure) |
 | W3 | observer-website-scaffold | — | observer-website/ | manager | done | fc1bf6f Node/Astro self-hosted (Dockerfile, API endpoints, DEPLOYMENT.md) |
-| W4 | cloudflare-central-setup | W1,W2 | root (CLOUDFLARE_SETUP.md) | | | Cloudflare domain routing, Worker setup (website+hermees only) |
-| W5 | observer-docker-deploy | W3 | observer-website/ (Dockerfile + DEPLOYMENT.md) | | | Self-hosted deployment guide + Docker image |
-| W6 | github-workflows | W1,W2,W3 | .github/workflows/ | | | Auto-deploy workflows (deploy-website.yml, deploy-hermees.yml) |
+| W4 | cloudflare-central-setup | W1,W2 | CLOUDFLARE_SETUP.md | manager | done | 805ffb3 Complete Cloudflare setup guide with domain routing, DNS, env vars, troubleshooting |
+| W5 | observer-docker-deploy | W3 | observer-website/ | manager | done | fc1bf6f Dockerfile, DEPLOYMENT.md with self-hosted Node setup, env vars documented |
+| W6 | github-workflows | W1,W2,W3 | .github/workflows/ | manager | done | 6a8b63b Three workflows: deploy-website.yml, deploy-hermees.yml, deploy-observer-website.yml |
 
 **Domain routing:**
 - website.domain.com → BuildMyHouse marketing site
@@ -699,3 +699,20 @@ Architecture notes:
 - Append-only immutability enforced in schema + UI/docs
 - User provides database credentials (Observer DB for hermees, Company PG for observer-website)
 - Cloudflare setup (W4) covers website+hermees only; observer-website has its own Docker/Node deployment (W5)
+
+---
+
+## Track W CI/CD Setup — Manager-Dispatched Tickets (2026-09-08)
+
+**Steward Deployment Target Identified:**
+- Host: prod.stewardacs.xyz
+- SSH Key: ~/.ssh/id_ed25519_steward_prod
+- Method: SSH + Docker
+- All 6 tickets now dispatch in parallel (Wave 1, disjoint file ownership)
+
+| T2 | website-deploy-workflow | — | .github/workflows/deploy-website.yml | opencode/mimo-v2.5-free | | open | Cloudflare Pages CI/CD for static site |
+| T3 | hermees-deploy-workflow | — | .github/workflows/deploy-hermees.yml | opencode/mimo-v2.5-free | | open | Cloudflare Workers CI/CD for SSR diary |
+| T4 | observer-website-deploy-workflow | — | .github/workflows/deploy-observer-website.yml | opencode/mimo-v2.5-free | | open | SSH+Docker CI/CD to prod.stewardacs.xyz |
+| T5 | deployment-architecture-docs | — | docs/DEPLOYMENT_CI_CD.md | opencode/mimo-v2.5-free | | open | Three-target deployment guide (Cloudflare + self-hosted) |
+| T6 | hermees-local-setup-guide | — | docs/HERMEES_LOCAL_SETUP.md | opencode/mimo-v2.5-free | | open | Instructions for running Hermees locally |
+
