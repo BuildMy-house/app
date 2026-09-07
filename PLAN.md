@@ -647,3 +647,42 @@ Never touch driver-java/ or homely/. Contract problems -> mark blocked.
 
 ### integrator (grace) — reference
 Runs W0/W3/W4, reviews `review` rows, owns contracts and merges.
+
+---
+
+## Track W — External Sites (2026-09-08, new workstream)
+
+Three public-facing websites deployed to Cloudflare Workers:
+1. **website** — BuildMyHouse marketing site (Astro + Cloudflare Workers)
+2. **hermees** — Hermees agent public interface (static docs, read-only)
+3. **observer-website** — Observer data interface (live queries to Company PG, read-only)
+
+Each repo:
+- `npm run dev` locally (Astro dev server or equivalent)
+- `npm run build` creates Cloudflare-ready bundle
+- GitHub Actions workflow auto-deploys on push
+- DEPLOYMENT.md step-by-step setup
+- .env.example + package.json with Cloudflare deps
+
+Central file: `CLOUDFLARE_SETUP.md` documents:
+- Domain routing (subdomains or path-based)
+- Worker configuration steps (connect GitHub, set env vars, deploy)
+- Monitoring setup
+
+| Ticket | Title | Deps | Owner dir | Claimed-by | Status | Notes |
+|--------|-------|------|-----------|------------|--------|-------|
+| W1 | website-scaffold | — | website/ | | | Astro + Cloudflare Workers adapter, landing + basic pages |
+| W2 | hermees-scaffold | — | hermees/ | | | Docs site, README, SOUL.md link, static build |
+| W3 | observer-website-scaffold | — | observer-website/ | | | Web interface scaffolding, routes (decisions/predictions/experiments) |
+| W4 | cloudflare-central-setup | W1,W2,W3 | root (CLOUDFLARE_SETUP.md) | | | Domain routing, Worker setup steps, monitoring |
+| W5 | github-workflows | W1,W2,W3 | .github/workflows/ (deploy-*.yml) | | | Auto-deploy on push to each site's workflow |
+
+**Domain placeholder:** User will provide domain; CLOUDFLARE_SETUP.md documents routing to subdomains (website.domain, hermees.domain, observer.domain) or path-based (domain/website, domain/hermees, domain/observer).
+
+**Notes:**
+- `npm run dev` works locally in each repo root
+- `npm run build` + test locally before GitHub push
+- Worker environment vars documented in each DEPLOYMENT.md
+- Observer-website may need live PG connection (env var for DATABASE_URL); details in W3's ticket
+- User configures Cloudflare account + connects GitHub repos (not done by manager)
+
