@@ -998,3 +998,30 @@ company-ops/scripts/test-engineering-container.sh
 
 Tickets are ready for dispatch. Proceeding now.
 
+
+### Phase 3 Execution Summary (In Progress)
+
+**Wave 1 - Parallel Infrastructure Changes:**
+- T1 (Dockerfile.engineering): ✓ DONE - Commit 5804c9a
+  - Added `npm install -g ai-cli-mcp@latest`
+  - Added `mkdir -p /root/.config/ai-cli`
+  - Build successful, all CLI tools verified
+- T3 (docker-compose.yml): ✓ DONE - Commit c3fad4a
+  - Added ANTHROPIC_API_KEY, CODEX_API_KEY, OPENCODE_API_KEY env vars
+  - Added ai-cli config volume mount
+  - YAML syntax valid
+
+**Wave 2 - Entrypoint Configuration:**
+- T2 (engineering-entrypoint.sh): ✓ DONE - Commit 43999e4
+  - Added ai-cli-mcp configuration section at startup
+  - Seeds /root/.config/ai-cli/config.toml with 4 worker tiers if not present
+  - Exports API keys (ANTHROPIC_API_KEY, CODEX_API_KEY, OPENCODE_API_KEY)
+  - Logs "[ai-cli] ai-cli-mcp configured and ready" on success
+  - 55 lines added, existing entrypoint logic preserved
+
+**Wave 3 - Verification:**
+- T4 (test-engineering-container.sh): IN PROGRESS
+  - Adding ai-cli-mcp verification step to existing test script
+  - Will verify: ai-cli CLI resolves, config file exists, worker tiers present
+  - Running full test suite...
+
