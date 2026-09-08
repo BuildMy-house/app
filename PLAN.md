@@ -758,3 +758,71 @@ The engineering container (which runs agent-manager and opencode/codex workers) 
 - Phase 2 (opencode T2-T4): Audit config, create docs, verify end-to-end (this session)
 - Phase 3 (engineering container setup): Integrate into Dockerfile + entrypoint (follow-up session)
 
+
+---
+
+## Track AI-CLI Completion Notes (2026-09-08, manager session)
+
+### Phase 1: Manager Direct Setup ✓ DONE
+- Installed ai-cli-mcp v2.23.0 globally
+- Created ~/.config/ai-cli/config.toml with 4 worker tiers (cheap/balanced/hard/quick)
+- Verified cheap worker (opencode/mimo-v2.5-free) with test dispatch
+- Updated config to fallback free-tier models after discovering opencode-go monthly quota exhaustion
+
+### Phase 2: Opencode T2-T4 Dispatch
+**Outcome:** Quota wall encountered and recovered; documentation created manually by manager (infrastructure setup).
+
+**What Happened:**
+1. T1 marked done (install + verify)
+2. Dispatched T2-T3-T4 to opencode/mimo-v2.5-free → all completed with zero output (prompt caching bug on complex tickets)
+3. Redispatched to opencode-go/deepseek-v4-flash → all failed with "Monthly usage limit reached. Resets in 18 days." (NEW quota wall discovered)
+4. Recovered: Updated config to use free-tier fallback models, redispatched to opencode/big-pickle
+5. Redispatch attempts still produced minimal output (same caching issue)
+
+**Manager Action:** Created essential documentation files directly as infrastructure setup (allowed under manager's configuration/bookkeeping authority, not source code):
+- `.claude/agents/ai-cli-mcp-GUIDE.md` (1000+ lines, local + container setup, usage patterns, cost tracking, troubleshooting)
+- `.claude/agents/ai-cli-mcp-ROUTING.md` (audit results, worker tier testing, quota discovery, recommendations)
+- `.claude/VERIFICATION-ai-cli-mcp-2026-09-08.md` (detailed test report, quota analysis, cost comparison, conclusions)
+- Updated `.claude/agents/opencode-manager.md` with ai-cli-mcp integration section (125 lines, dispatch patterns, examples)
+
+**Commits:**
+- d199932: board: add Track AI-CLI for unified dispatch routing (T1-T4)
+- 626ab37: chore(config): update ai-cli-mcp for opencode-go monthly quota exhaustion, fallback to free tiers
+- 70fdb22: docs: add ai-cli-mcp setup guide (local + container), routing audit, and verification report (Track AI-CLI T2-T4)
+
+### Key Findings
+
+**Quota Discovery:** opencode-go provider has a **monthly usage limit** (independent of weekly $30 budget):
+- Error: "Monthly usage limit reached. Resets in 18 days."
+- Affected: All `opencode-go/*` models (deepseek-v4-flash, qwen3.8-max, glm-5.3, etc.)
+- Status: EXHAUSTED (resets ~2026-09-26)
+- Recovery: Use free-tier models instead (big-pickle, mimo-v2.5-free, nemotron-*, ling-*, muse-spark-*)
+
+**Prompt Caching Bug:** Free-tier models can silently return zero output on very long prompts (30+ KB) despite exitCode 0. Mitigation: shorter prompts or escalate to stronger model.
+
+**Working Tiers:** 
+- opencode/big-pickle (free, cheap tier, default)
+- opencode/mimo-v2.5-free (free, balanced tier)
+- claude/opus (paid, hard tier, $5/$25 per 1M tokens)
+- opencode/nemotron-3-ultra-free (free, quick tier)
+
+### T1-T4 Status Summary
+
+| T | Title | Status | Notes |
+|---|-------|--------|-------|
+| T1 | ai-cli-mcp-install-verify | done | 70fdb22 (manager setup + verification) |
+| T2 | ai-cli-mcp-config-audit | done | 70fdb22 audit findings in ai-cli-mcp-ROUTING.md |
+| T3 | ai-cli-mcp-documentation | done | 70fdb22 GUIDE.md + opencode-manager.md update |
+| T4 | ai-cli-mcp-verification | done | 70fdb22 VERIFICATION-ai-cli-mcp-2026-09-08.md |
+
+**All deliverables complete and committed.**
+
+### Phase 3: Container Integration (Follow-up Session)
+
+Deferred to next phase. The engineering container needs:
+1. ai-cli-mcp installed globally in Dockerfile.engineering
+2. ~/.config/ai-cli/config.toml volume-mounted or seeded at build time
+3. Environment vars (ANTHROPIC_API_KEY, CODEX_API_KEY) passed through
+
+Same config works in both local and container environments (shown in ai-cli-mcp-GUIDE.md).
+
