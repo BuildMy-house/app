@@ -826,3 +826,175 @@ Deferred to next phase. The engineering container needs:
 
 Same config works in both local and container environments (shown in ai-cli-mcp-GUIDE.md).
 
+
+---
+
+## Phase 3: Container Integration (this session)
+
+**Objective:** Wire ai-cli-mcp into the engineering container for unified dispatch inside Docker.
+
+**Track coordinator:** manager (this session)
+
+### T1: Update Dockerfile.engineering
+
+**Owner scope:** company-ops/Dockerfile.engineering only
+
+**Dependencies:** None (can start immediately)
+
+**Requirements:**
+1. Add `npm install -g ai-cli-mcp@latest` to the base image build (after claude/opencode/codex installs)
+2. Create ~/.config/ai-cli directory in the image
+3. Verify claude, codex, opencode already installed (they are)
+4. Keep existing ai-cli-mcp MCP registration (`claude mcp add` and `codex mcp add` lines) as-is
+5. No other files touched
+
+**DoD:**
+```bash
+# Build the image to tag engineering:candidate
+docker buildx build \
+  -f company-ops/Dockerfile.engineering \
+  --build-context manager-def=./.claude/agents \
+  --build-context skills-src=./.agents/skills \
+  -t engineering:candidate \
+  company-ops
+
+# Verify ai-cli-mcp is installed
+docker run --rm --entrypoint bash engineering:candidate -c "ai-cli --version"
+# Expected: v2.23.0+ or similar version string
+
+# Verify no conflicts with other CLIs
+docker run --rm --entrypoint bash engineering:candidate -c "claude --version && opencode --version && codex --version"
+# Expected: All three resolve without error
+```
+
+**Commit message:** `feat(engineering): add ai-cli-mcp global install in Dockerfile`
+
+---
+
+### T2: Configure container entrypoint
+
+**Owner scope:** company-ops/scripts/engineering-entrypoint.sh only
+
+**Dependencies:** T1 (image must have ai-cli-mcp installed)
+
+**Requirements:**
+1. At startup, check if /root/.config/ai-cli/config.toml exists
+2. If NOT present, copy from a seeded location (either company-ops/ai-cli-config.toml in repo, or use a fallback config embedded in script)
+3. Set environment variables so ai-cli can see them:
+   - Export ANTHROPIC_API_KEY (from env if present)
+   - Export CODEX_API_KEY (from env if present)
+   - Export OPENCODE_API_KEY (from env if present)
+4. Test ai-cli resolves: `ai-cli --version` should succeed
+5. Log a success message "ai-cli-mcp configured and ready"
+6. Continue with existing logic (repo sync, infisical, github token, mcp-proxy)
+7. No other files touched
+
+**Implementation note:** The config.toml can be seeded one of two ways:
+- Option A: Copy a repo-stored config file (company-ops/ai-cli-config.toml) if it exists
+- Option B: Embed a minimal fallback config in the script if not found
+Pick the simpler option (A is cleaner if we add the file; B is self-contained). Use your judgment. Either way, the container must end up with a valid config at /root/.config/ai-cli/config.toml.
+
+**DoD:**
+```bash
+# Run a test container with entrypoint
+docker run --rm \
+  -e ANTHROPIC_API_KEY=test-key \
+  -e CODEX_API_KEY=test-key \
+  -e OPENCODE_API_KEY=test-key \
+  --entrypoint bash \
+  engineering:candidate \
+  -c "source /opt/company-ops/scripts/engineering-entrypoint.sh 2>&1 | head -20"
+
+# Expected in logs: "ai-cli-mcp configured and ready" or similar success message
+# Expected: No errors about missing config file
+# Expected: ai-cli --version works
+```
+
+**Commit message:** `feat(engineering): seed and configure ai-cli-mcp in entrypoint`
+
+---
+
+### T3: Update docker-compose.yml
+
+**Owner scope:** company-ops/docker-compose.yml (engineering service section only)
+
+**Dependencies:** T1 (Dockerfile updated)
+
+**Requirements:**
+1. Add volume mount for ai-cli config: bind-mount ~/.config/ai-cli from host to /root/.config/ai-cli in container (or leave commented with clear instructions for optional use)
+2. Add environment variable pass-through:
+   - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+   - CODEX_API_KEY=${CODEX_API_KEY}
+   - OPENCODE_API_KEY=${OPENCODE_API_KEY}
+3. Verify port 8000 is still exposed (it already is)
+4. No other services/sections modified
+
+**Implementation note:** The config.toml mount can be:
+- Uncommented as an optional volume mount (user can enable if they want local config persistence)
+- Left disabled in docker-compose.yml (config is seeded in entrypoint)
+Either way is fine; document the choice clearly in a comment.
+
+**DoD:**
+```bash
+# Verify docker-compose syntax is valid
+docker-compose -f company-ops/docker-compose.yml config > /dev/null
+# Expected: No errors, valid YAML output
+
+# Verify environment variables are present in the engineering service
+docker-compose -f company-ops/docker-compose.yml config | grep -A5 "engineering:" | grep ANTHROPIC_API_KEY
+# Expected: ANTHROPIC_API_KEY line visible in output
+```
+
+**Commit message:** `feat(engineering): add ai-cli-mcp config volume and environment variables in docker-compose`
+
+---
+
+### T4: Verify end-to-end
+
+**Owner scope:** company-ops/scripts/test-engineering-container.sh (add ai-cli-mcp verification step only)
+
+**Dependencies:** T1, T2, T3 (all infrastructure complete)
+
+**Requirements:**
+1. Run test-engineering-container.sh with the updated image (tag engineering:candidate)
+2. Script should include a new step (after CLI resolution check, before MCP endpoint check):
+   - Inside container: `ai-cli --version` should succeed
+   - Inside container: Test a small dispatch to verify it works: `ai-cli run --model oc-opencode/big-pickle --prompt "Return: configured_ok"` (or similar test)
+   - Capture result and verify it completed without error
+3. Add pass/fail result for this step to the script's output
+4. Ensure no conflicts between ai-cli-mcp and existing CLIs (they should coexist cleanly)
+
+**Implementation note:** The ai-cli dispatch test should be quick (trivial prompt), non-interactive (no user prompts), and self-contained. You may need to set a timeout or check credentials first. Keep it simple: if it runs without crashing, that's a pass.
+
+**DoD:**
+```bash
+# Run the full test script
+cd /home/nahar/Documents/code/house_designer
+company-ops/scripts/test-engineering-container.sh
+
+# Expected: All steps pass, including new ai-cli-mcp step
+# Expected: No FAIL results
+# Expected: Output shows "ai-cli-mcp configured and working" or similar
+
+# If any step fails, show the specific failure
+# If all pass: "Self-test completed (no FAIL results)"
+```
+
+**Commit message:** `test(engineering): add ai-cli-mcp verification to container self-test`
+
+---
+
+### Dispatch Plan
+
+**Wave 1 (parallel, no file conflicts):**
+- T1 (Dockerfile.engineering)
+- T3 (docker-compose.yml)
+
+**Wave 2 (after Wave 1 lands):**
+- T2 (entrypoint.sh — depends on T1 image)
+
+**Wave 3 (after Waves 1-2 land):**
+- T4 (test script — depends on all infrastructure)
+
+Tickets are ready for dispatch. Proceeding now.
+
