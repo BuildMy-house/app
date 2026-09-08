@@ -7,13 +7,15 @@
     "dev": "astro dev",
     "build": "astro build",
     "lint": "eslint .",
-    "check": "tsc --noEmit"
+    "check": "astro sync && tsc --noEmit"
   },
   "dependencies": {
     "astro": "^4.0.0",
-    "@astrojs/cloudflare": "^7.0.0"
+    "@astrojs/cloudflare": "^9.0.0"
   },
   "devDependencies": {
+    "@typescript-eslint/parser": "^8.0.0",
+    "astro-eslint-parser": "^1.0.0",
     "eslint": "^8.0.0",
     "typescript": "^5.0.0"
   }
