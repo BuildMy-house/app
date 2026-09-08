@@ -716,3 +716,45 @@ Architecture notes:
 | T5 | deployment-architecture-docs | — | docs/DEPLOYMENT_CI_CD.md | opencode/mimo-v2.5-free | | open | Three-target deployment guide (Cloudflare + self-hosted) |
 | T6 | hermees-local-setup-guide | — | docs/HERMEES_LOCAL_SETUP.md | opencode/mimo-v2.5-free | | open | Instructions for running Hermees locally |
 
+
+---
+
+## Track AI-CLI — Unified Dispatch Routing (2026-09-08, new workstream)
+
+ai-cli-mcp setup for agent-manager to dispatch work to Claude/Codex/OpenCode through one unified interface with cost-aware routing, async background jobs, and stall detection.
+
+**Objective:** Enable agent-manager to dispatch tickets intelligently across multiple worker tiers (cheap/balanced/hard/quick) with automatic cost optimization and quota awareness.
+
+**Architecture:**
+- ai-cli-mcp: MCP server wrapping Claude, Codex, OpenCode, Gemini CLIs
+- Worker tiers: cheap (free opencode), balanced (codex), hard (claude opus), quick (fast paid opencode)
+- Deployment: local development + engineering container
+- Config: ~/.config/ai-cli/config.toml (installed, can be bind-mounted in container)
+
+**Track coordinator:** manager (this session)
+
+| Ticket | Title | Deps | Owner scope | Claimed-by | Status | Notes |
+|--------|-------|------|-------------|------------|--------|-------|
+| T1 | ai-cli-mcp-install-verify | — | ~/.config/ai-cli/, ai-cli binary | manager | done | 1) Install ai-cli-mcp globally; 2) Verify each CLI backend (claude/codex/opencode/gemini); 3) Test cheap worker (opencode/mimo-v2.5-free) — PASSED; 4) Document available models and quota walls in findings. Config: ~/.config/ai-cli/config.toml with 4 tiers (cheap/balanced/hard/quick). Ready for dispatch. |
+| T2 | ai-cli-mcp-config-audit | T1 | .claude/agents/ai-cli-mcp-config.toml (read), ~/.config/ai-cli/config.toml (audit) | opencode/mimo-v2.5-free | open | 1) Audit ~/.config/ai-cli/config.toml for correctness (model names match `ai-cli models`, agent routing valid); 2) Test each tier with small dispatch (verify response format, cost tracking); 3) Identify additional worker variants (experimental, cost-optimize) for future use; 4) Document findings in .claude/agents/ai-cli-mcp-ROUTING.md. Read-only, no edits to config file itself (manager maintains). Commit: `docs: audit ai-cli-mcp worker routing and cost tiers`. |
+| T3 | ai-cli-mcp-documentation | T1 | .claude/agents/ai-cli-mcp-GUIDE.md (create), .claude/agents/opencode-manager.md (update) | opencode/mimo-v2.5-free | open | 1) Create .claude/agents/ai-cli-mcp-GUIDE.md: a) Local development setup (install, config, cli examples); b) Container setup (engineering container: Dockerfile changes, entrypoint, volume mounts, env var routing); c) Usage patterns for agent-manager dispatch; d) Cost tracking (checking token/cost output); e) Quota/stall detection & recovery procedures. 2) Update .claude/agents/opencode-manager.md §dispatch with ai-cli-mcp section (alternative to direct opencode CLI, model tier selection). Show equivalence: same config works local + in container. Commit: `docs: add ai-cli-mcp setup guide (local + container) and opencode-manager integration`. |
+| T4 | ai-cli-mcp-verification | T1,T2,T3 | .claude/VERIFICATION-ai-cli-mcp-2026-09-08.md (create) | opencode/mimo-v2.5-free | open | 1) Launch a fresh agent-manager instance; 2) Dispatch identical test prompt to cheap/balanced/hard concurrently via ai-cli (3 parallel jobs); 3) Collect results: response, tokens, cost, latency per tier; 4) Compare cost/speed tradeoffs; 5) Document findings in .claude/VERIFICATION-ai-cli-mcp-2026-09-08.md (table: model | latency | tokens | cost | observations); 6) Verify no stalls (stall watcher should detect none). Commit: `test: verify ai-cli-mcp concurrent dispatch, cost routing, and latency`. |
+
+**Container Integration (T3 scope detail):**
+The engineering container (which runs agent-manager and opencode/codex workers) needs ai-cli-mcp installed and configured the same way as local development:
+- Dockerfile: install ai-cli-mcp globally (npm -g)
+- Entrypoint: ensure ~/.config/ai-cli/config.toml exists (can be seeded from repo or host-mounted)
+- Volume mount: bind ~/.config/ai-cli from host (for config persistence) OR seed from repo copy
+- Environment: pass-through ANTHROPIC_API_KEY, CODEX_API_KEY (if using balanced/hard tiers)
+
+**Cost Tracking & Quota Awareness (per .claude/CLAUDE.md):**
+- opencode-go: $30/week budget (may exhaust mid-week) → check logs for "Weekly usage limit reached"
+- opencode free: can rate-limit after ~12 dispatches/day → recovers in 30min
+- codex: ChatGPT subscription quota (login required, persistent)
+- claude: API key cost ($5/$25 per 1M input/output)
+
+**Deployment:**
+- Phase 1 (manager): Install, config, verify locally ✓ DONE
+- Phase 2 (opencode T2-T4): Audit config, create docs, verify end-to-end (this session)
+- Phase 3 (engineering container setup): Integrate into Dockerfile + entrypoint (follow-up session)
+
