@@ -1,0 +1,56 @@
+name: homely
+title: Homely
+base: core22
+version: '0.1.0'
+summary: Sweet Home 3D-style house designer
+description: |
+  Homely is a Sweet Home 3D-style house designer: draw floor plans, arrange
+  furniture, and view your design in an interactive 3D view. Built with
+  Tauri and Three.js.
+grade: stable
+confinement: strict
+license: CC-BY-NC-4.0
+apps:
+  homely:
+    command: bin/homely
+    extensions: [gnome]
+    plugs:
+      - network
+      - network-bind
+      - opengl
+      - wayland
+      - x11
+      - desktop
+      - desktop-legacy
+      - home
+parts:
+  homely:
+    plugin: nil
+    source: .
+    build-packages:
+      - curl
+      - build-essential
+      - pkg-config
+      - libssl-dev
+      - libwebkit2gtk-4.1-dev
+      - librsvg2-dev
+      - libappindicator3-dev
+      - patchelf
+      - file
+    override-build: |
+      set -eux
+      # Node.js 20
+      curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+      apt-get install -y nodejs
+      # Rust
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      . "$HOME/.cargo/env"
+      cd homely
+      npm ci
+      npm run build
+      cd src-tauri
+      cargo build --release
+      install -Dm755 target/release/homely "$CRAFT_PART_INSTALL/bin/homely"
+      install -Dm644 ../flatpak/com.house-designer.homely.desktop "$CRAFT_PART_INSTALL/share/applications/com.house-designer.homely.desktop"
+      install -Dm644 ../flatpak/com.house-designer.homely.metainfo.xml "$CRAFT_PART_INSTALL/share/metainfo/com.house-designer.homely.metainfo.xml"
+      install -Dm644 icons/icon.png "$CRAFT_PART_INSTALL/share/icons/hicolor/512x512/apps/com.house-designer.homely.png"

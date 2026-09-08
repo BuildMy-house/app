@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
-    "target": "ES2024",
+    "target": "ES2022",
     "module": "ESNext",
     "jsx": "preserve",
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "moduleResolution": "bundler",
+    "strict": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "skipLibCheck": true

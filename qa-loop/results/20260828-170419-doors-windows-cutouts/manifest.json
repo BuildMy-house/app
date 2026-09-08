@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260828-170419-doors-windows-cutouts",
+  "startedAt": "2026-08-28T17:04:19.580882+00:00",
+  "scenarioName": "Doors windows cutouts",
+  "description": "Draw a wall, then attach a door and a window to it via add_door/add_window; assert both create wall-attached furniture (M5).",
+  "target": {
+    "os": [
+      "linux"
+    ],
+    "mode": [
+      "web"
+    ]
+  },
+  "adapters": [
+    "homely"
+  ],
+  "stepCount": 8,
+  "checkpoints": [
+    {
+      "afterStep": 8,
+      "capture": [
+        "state",
+        "plan",
+        "3d"
+      ]
+    }
+  ],
+  "assertions": [
+    {
+      "at": 8,
+      "artifact": "state",
+      "kind": "count",
+      "path": "walls",
+      "value": 1,
+      "tolerance": 0.01
+    },
+    {
+      "at": 8,
+      "artifact": "state",
+      "kind": "count",
+      "path": "furniture",
+      "value": 2,
+      "tolerance": 0.01
+    }
+  ],
+  "assertionsEvaluatedBy": "eq.comparators (C3/C4)"
+}

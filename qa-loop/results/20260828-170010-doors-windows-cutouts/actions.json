@@ -1,0 +1,40 @@
+[
+  {
+    "phase": "steps",
+    "step": 1,
+    "command": "add_door",
+    "params": {
+      "wallId": "w1",
+      "x": 100,
+      "width": 90
+    },
+    "responses": {
+      "homely": {
+        "ok": false,
+        "command": "add_door",
+        "error": "unknown wall id: w1",
+        "code": "INVALID_PARAMS"
+      }
+    },
+    "elapsedMs": 3.469
+  },
+  {
+    "phase": "steps",
+    "step": 2,
+    "command": "add_window",
+    "params": {
+      "wallId": "w1",
+      "x": 200,
+      "width": 120
+    },
+    "responses": {
+      "homely": {
+        "ok": false,
+        "command": "add_window",
+        "error": "unknown wall id: w1",
+        "code": "INVALID_PARAMS"
+      }
+    },
+    "elapsedMs": 1.596
+  }
+]

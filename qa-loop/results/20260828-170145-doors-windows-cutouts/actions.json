@@ -1,0 +1,138 @@
+[
+  {
+    "phase": "steps",
+    "step": 1,
+    "command": "set_view",
+    "params": {
+      "view": "plan"
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "view": "plan"
+        }
+      }
+    },
+    "elapsedMs": 0.973
+  },
+  {
+    "phase": "steps",
+    "step": 2,
+    "command": "select_tool",
+    "params": {
+      "tool": "wall"
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "tool": "wall"
+        }
+      }
+    },
+    "elapsedMs": 0.705
+  },
+  {
+    "phase": "steps",
+    "step": 3,
+    "command": "set_magnetism",
+    "params": {
+      "enabled": false
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "magnetismEnabled": false
+        }
+      }
+    },
+    "elapsedMs": 0.49
+  },
+  {
+    "phase": "steps",
+    "step": 4,
+    "command": "click",
+    "params": {
+      "x": 0,
+      "y": 0
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 58.432
+  },
+  {
+    "phase": "steps",
+    "step": 5,
+    "command": "click",
+    "params": {
+      "x": 400,
+      "y": 0
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 116.237
+  },
+  {
+    "phase": "steps",
+    "step": 6,
+    "command": "key",
+    "params": {
+      "key": "escape"
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 76.807
+  },
+  {
+    "phase": "steps",
+    "step": 7,
+    "command": "add_door",
+    "params": {
+      "wallId": "wall-1",
+      "x": 100,
+      "width": 90
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "id": "furniture-7"
+        }
+      }
+    },
+    "elapsedMs": 84.517
+  },
+  {
+    "phase": "steps",
+    "step": 8,
+    "command": "add_window",
+    "params": {
+      "wallId": "wall-1",
+      "x": 300,
+      "width": 120
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "id": "furniture-8"
+        }
+      }
+    },
+    "elapsedMs": 75.763
+  }
+]

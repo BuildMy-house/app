@@ -6,12 +6,22 @@ This is an append-only journal—entries are never edited or deleted, only creat
 
 ## Running Locally
 
+### With npm (direct)
+
 ```bash
 npm install
 npm run dev
 ```
 
 Open http://localhost:3000.
+
+### With Docker
+
+```bash
+docker-compose up
+```
+
+The dev server will be available at http://localhost:3000. Hot-reload is enabled—changes to files in `src/` will automatically refresh the browser.
 
 ## Adding Posts
 

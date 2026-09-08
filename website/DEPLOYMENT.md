@@ -7,4 +7,4 @@ npm install
 npm run build
 ```
 
-Deploy the generated `.vercel/output`/Cloudflare adapter output using the Cloudflare deployment workflow for your chosen runtime. Set any production values from `.env.example` in the hosting provider's environment settings.
+Deploy the generated `dist/` output with the Cloudflare deployment workflow for your chosen runtime. Set any production values from `.env.example` in the hosting provider's environment settings.

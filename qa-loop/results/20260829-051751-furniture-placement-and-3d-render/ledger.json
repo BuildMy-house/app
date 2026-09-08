@@ -1,0 +1,25 @@
+[
+  {
+    "adapter": "homely",
+    "step": 3,
+    "created": {
+      "walls": [],
+      "rooms": [
+        "room-1"
+      ],
+      "furniture": [
+        "furniture-2",
+        "furniture-3"
+      ],
+      "dimensionLines": [],
+      "labels": []
+    },
+    "removed": {
+      "walls": [],
+      "rooms": [],
+      "furniture": [],
+      "dimensionLines": [],
+      "labels": []
+    }
+  }
+]

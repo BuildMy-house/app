@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260829-051751-second-level-with-levelref-scoping",
+  "startedAt": "2026-08-29T05:17:51.919363+00:00",
+  "scenarioName": "Second level with levelRef scoping",
+  "description": "Add a second level, place room/dimension/label on it via levelRef param, assert levelRef fields are set.",
+  "target": {
+    "os": [
+      "linux"
+    ],
+    "mode": [
+      "web"
+    ]
+  },
+  "adapters": [
+    "homely"
+  ],
+  "stepCount": 4,
+  "checkpoints": [
+    {
+      "afterStep": 4,
+      "capture": [
+        "state",
+        "plan",
+        "3d"
+      ]
+    }
+  ],
+  "assertions": [
+    {
+      "at": 4,
+      "artifact": "state",
+      "kind": "count",
+      "path": "levels",
+      "value": 1,
+      "tolerance": 0.01
+    },
+    {
+      "at": 4,
+      "artifact": "state",
+      "kind": "count",
+      "path": "rooms",
+      "value": 1,
+      "tolerance": 0.01
+    },
+    {
+      "at": 4,
+      "artifact": "state",
+      "kind": "equals",
+      "path": "rooms.0.levelRef",
+      "value": "level-1",
+      "tolerance": 0.01
+    },
+    {
+      "at": 4,
+      "artifact": "state",
+      "kind": "count",
+      "path": "dimensionLines",
+      "value": 1,
+      "tolerance": 0.01
+    },
+    {
+      "at": 4,
+      "artifact": "state",
+      "kind": "equals",
+      "path": "dimensionLines.0.levelRef",
+      "value": "level-1",
+      "tolerance": 0.01
+    },
+    {
+      "at": 4,
+      "artifact": "state",
+      "kind": "count",
+      "path": "labels",
+      "value": 1,
+      "tolerance": 0.01
+    },
+    {
+      "at": 4,
+      "artifact": "state",
+      "kind": "equals",
+      "path": "labels.0.levelRef",
+      "value": "level-1",
+      "tolerance": 0.01
+    }
+  ],
+  "assertionsEvaluatedBy": "eq.comparators (C3/C4)"
+}

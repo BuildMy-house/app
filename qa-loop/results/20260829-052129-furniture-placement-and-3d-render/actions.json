@@ -1,0 +1,87 @@
+[
+  {
+    "phase": "setup",
+    "step": 1,
+    "command": "new_home",
+    "params": {},
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 2.813
+  },
+  {
+    "phase": "steps",
+    "step": 1,
+    "command": "add_room",
+    "params": {
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          600,
+          0
+        ],
+        [
+          600,
+          400
+        ],
+        [
+          0,
+          400
+        ]
+      ]
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "id": "room-1"
+        }
+      }
+    },
+    "elapsedMs": 5.577
+  },
+  {
+    "phase": "steps",
+    "step": 2,
+    "command": "add_furniture",
+    "params": {
+      "catalogId": "eTeks#sofa2",
+      "x": 300,
+      "y": 200
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "id": "furniture-2"
+        }
+      }
+    },
+    "elapsedMs": 37.97
+  },
+  {
+    "phase": "steps",
+    "step": 3,
+    "command": "add_furniture",
+    "params": {
+      "catalogId": "eTeks#armchair",
+      "x": 120,
+      "y": 120
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "id": "furniture-3"
+        }
+      }
+    },
+    "elapsedMs": 40.913
+  }
+]
