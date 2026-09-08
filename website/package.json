@@ -9,7 +9,15 @@
     "preview": "astro preview"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^12.6.0",
-    "astro": "^5.13.5"
+    "@astrojs/cloudflare": "^14.2.5",
+    "astro": "^7.2.9"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "astro-eslint-parser": "^1.0.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-astro": "^1.0.0",
+    "typescript": "^5.5.0"
   }
 }
