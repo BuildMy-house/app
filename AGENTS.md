@@ -1,3 +1,9 @@
+## Steward ACS Coordination
+
+Check if `AGENTS_STEWARD.md` exists. If yes, follow the instructions there.
+
+---
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

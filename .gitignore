@@ -42,3 +42,4 @@ ruff_cache/
 
 # SSH keys and certs
 certs/
+.claude/mcp.json
