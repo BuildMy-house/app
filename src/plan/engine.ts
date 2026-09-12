@@ -557,6 +557,12 @@ export class PlanEngine {
         for (const cw of vd.connectedWalls) {
           this.model.setWallEndpoint(cw.wallId, cw.endpoint, snapped.x, snapped.y)
         }
+        // T11: rooms whose boundary loop contains a moved wall follow the new
+        // geometry. Inside the same compound edit so one undo reverts both.
+        this.updateRoomsAfterWallMove(
+          home,
+          [vd.wallId, ...vd.connectedWalls.map((cw) => cw.wallId)],
+        )
         this.model.getStore().endCompoundEdit()
         this.vertexDrag = null
         return
@@ -696,6 +702,21 @@ export class PlanEngine {
           return
         }
         this.model.moveSelection(to.x - from.x, to.y - from.y)
+        return
+      }
+      // T11: whole-wall body drag moves walls via moveSelection — rooms on
+      // those walls must follow (same release-time update as endpoint drags).
+      if (hit.kind === 'wall-body') {
+        if (!home.selection.includes(hit.id)) {
+          this.model.setSelection([hit.id])
+        }
+        const moved = new Set<string>(home.selection)
+        moved.add(hit.id)
+        this.model.moveSelection(to.x - from.x, to.y - from.y)
+        this.updateRoomsAfterWallMove(
+          home,
+          [...moved].filter((id) => home.walls.some((w) => w.id === id)),
+        )
         return
       }
       if (!home.selection.includes(hit.id)) {
@@ -1070,6 +1091,16 @@ export class PlanEngine {
     vertices: Array<{ x: number; y: number }>,
     home: NormalizedHomeState,
   ): boolean {
+    return this.findRoomByVertices(vertices, home) !== null
+  }
+
+  /** Find the room (active level) whose points exactly match `vertices`
+   *  (same count, all points within EPSILON) — the same matching used to
+   *  de-duplicate auto-created rooms. */
+  private findRoomByVertices(
+    vertices: Array<{ x: number; y: number }>,
+    home: NormalizedHomeState,
+  ): NormalizedHomeState['rooms'][number] | null {
     for (const room of home.rooms) {
       if (!this.matchesActiveLevel(room.levelRef)) continue
       if (room.points.length !== vertices.length) continue
@@ -1080,9 +1111,73 @@ export class PlanEngine {
         )
         if (!found) { match = false; break }
       }
-      if (match) return true
+      if (match) return room
     }
-    return false
+    return null
+  }
+
+  /**
+   * T11: recompute the polygon of rooms whose boundary loop contains a
+   * moved wall (replaces PlanController.wallChangeListener from the SH3D
+   * reference — in this clone wall moves commit through drag(), which fires
+   * once per pointer gesture on mouse release, so updates are inherently
+   * debounced to release time; no timer is needed).
+   *
+   * checkIfWallIsInLoop equivalent: detectClosedLoops + wall membership.
+   *
+   * Room identification: match against the PRE-move loop by exact vertices
+   * (the room's stale polygon is the old loop), then re-point it to the
+   * POST-move loop with the same wall-id set. If the loop dissolved (walls
+   * no longer close), the room keeps its last polygon — no update needed
+   * per ticket. Never writes a degenerate polygon.
+   */
+  private updateRoomsAfterWallMove(
+    before: NormalizedHomeState,
+    movedWallIds: string[],
+  ): void {
+    if (movedWallIds.length === 0) return
+    const moved = new Set(movedWallIds)
+    const levelWalls = before.walls.filter((w) => this.matchesActiveLevel(w.levelRef))
+    if (levelWalls.length < 3) return
+
+    const toDetector = (w: { id: string; xStart: number; yStart: number; xEnd: number; yEnd: number }) => ({
+      id: w.id,
+      start: { x: w.xStart, y: w.yStart },
+      end: { x: w.xEnd, y: w.yEnd },
+    })
+
+    const preLoops = detectClosedLoops(levelWalls.map(toDetector))
+    const affected = preLoops.filter((loop) => loop.walls.some((w) => moved.has(w.id)))
+    if (affected.length === 0) return
+
+    const after = this.homeSnapshot()
+    const postLoops = detectClosedLoops(
+      after.walls.filter((w) => this.matchesActiveLevel(w.levelRef)).map(toDetector),
+    )
+
+    for (const preLoop of affected) {
+      const room = this.findRoomByVertices(preLoop.vertices, before)
+      if (!room) {
+        // Loop exists but no room was ever created for it (or it was edited
+        // manually) — warn, don't crash, don't invent an update target.
+        console.warn(`T11: wall loop moved but no matching room found (walls: ${preLoop.walls.map((w) => w.id).join(', ')})`)
+        continue
+      }
+      const preIds = new Set(preLoop.walls.map((w) => w.id))
+      const post = postLoops.find(
+        (l) => l.walls.length === preIds.size && l.walls.every((w) => preIds.has(w.id)),
+      )
+      if (!post) continue // loop dissolved — leave the room as-is
+      const points = post.vertices.map((v) => [v.x, v.y] as [number, number])
+      if (
+        points.length < 3 ||
+        points.some(([x, y]) => !Number.isFinite(x) || !Number.isFinite(y))
+      ) {
+        console.warn(`T11: skipped degenerate polygon for room ${room.id}`)
+        continue
+      }
+      this.model.updateRoom(room.id, { points })
+    }
   }
 
   // ── Room tool ─────────────────────────────────────────────────────────────
