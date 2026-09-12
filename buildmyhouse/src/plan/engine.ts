@@ -5,6 +5,7 @@ import type { NormalizedHomeState } from '../core/home'
 import { normalizeAngle } from '../core/export'
 import type { WallLoop } from '../core/wall-loop-detector'
 import { detectClosedLoops } from '../core/wall-loop-detector'
+import { AutoFloorDialog } from '../ui/AutoFloorDialog'
 import { pointWithAngleMagnetism, wallPointMagnetism } from './magnetism'
 import { snapFurniturePlacement } from './furniture-snap'
 import {
@@ -156,9 +157,6 @@ export class PlanEngine {
   private marqueeTo: Point | null = null
   private _marqueeActive = false
 
-  /** Auto-floor dialog state: shown when a closed wall loop is detected. */
-  private dialogOpen = false
-  private detectedLoop: WallLoop | null = null
 
   constructor(model: HomeModel) {
     this.model = model
@@ -223,43 +221,27 @@ export class PlanEngine {
     return this.referenceOverlayEnabled
   }
 
-  /** Open the auto-floor confirmation dialog for a detected wall loop. */
+  /**
+   * Open the auto-floor confirmation dialog for a detected wall loop.
+   * Instantiates the real AutoFloorDialog UI and wires confirm/cancel callbacks.
+   */
   openAutoFloorDialog(loop: WallLoop): void {
-    this.dialogOpen = true
-    this.detectedLoop = loop
+    const dialog = new AutoFloorDialog(
+      loop,
+      () => this.createRoomFromLoop(loop),
+      () => { /* skip — user cancelled */ },
+    )
+    dialog.open()
   }
 
-  /** Confirm auto-floor: trigger room creation and close the dialog. */
-  confirmAutoFloor(): void {
-    const loop = this.detectedLoop
-    this.dialogOpen = false
-    this.detectedLoop = null
-    // TODO(T2): call room creation logic here once T2 integrates it.
-    // For now the dialog flow is in place; room creation will be wired in T2.
-    if (loop) {
-      this.model.getStore().beginCompoundEdit()
-      this.model.addRoom(
-        loop.vertices.map((p) => [p.x, p.y] as [number, number]),
-        { levelRef: this.activeLevelId ?? undefined },
-      )
-      this.model.getStore().endCompoundEdit()
-    }
-  }
-
-  /** Cancel auto-floor: discard the detected loop and close the dialog. */
-  cancelAutoFloor(): void {
-    this.dialogOpen = false
-    this.detectedLoop = null
-  }
-
-  /** Whether the auto-floor dialog is currently open. */
-  isAutoFloorDialogOpen(): boolean {
-    return this.dialogOpen
-  }
-
-  /** Get the currently detected loop (if any). */
-  getDetectedLoop(): WallLoop | null {
-    return this.detectedLoop
+  /** Create a room from a detected wall loop. */
+  createRoomFromLoop(loop: WallLoop): void {
+    this.model.getStore().beginCompoundEdit()
+    this.model.addRoom(
+      loop.vertices.map((p) => [p.x, p.y] as [number, number]),
+      { floorColor: DEFAULT_FLOOR_COLOR, levelRef: this.activeLevelId ?? undefined },
+    )
+    this.model.getStore().endCompoundEdit()
   }
 
   /**

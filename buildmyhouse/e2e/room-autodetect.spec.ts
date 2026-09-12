@@ -38,6 +38,12 @@ test.describe('room tool auto-detect enclosure (M64)', () => {
     expect(await wallCount(page)).toBe(4)
     expect(await roomCount(page)).toBe(0)
 
+    // Auto-floor dialog appears — dismiss it (we want room tool auto-detect, not auto-floor)
+    const dialog = page.locator('.auto-floor-dialog')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+    await dialog.locator('.prefs-cancel').click()
+    await expect(dialog).not.toBeVisible()
+
     // Switch to room tool
     await page.locator('button[data-tool="room"]').click()
 
@@ -105,6 +111,12 @@ test.describe('room tool auto-detect enclosure (M64)', () => {
     await page.mouse.dblclick(x0, y0)
     expect(await wallCount(page)).toBe(4)
 
+    // Auto-floor dialog appears — dismiss it
+    const dialog = page.locator('.auto-floor-dialog')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+    await dialog.locator('.prefs-cancel').click()
+    await expect(dialog).not.toBeVisible()
+
     // Switch to room tool
     await page.locator('button[data-tool="room"]').click()
 
@@ -144,6 +156,12 @@ test.describe('room tool auto-detect enclosure (M64)', () => {
     await page.mouse.click(x0, y1)
     await page.mouse.dblclick(x0, y0)
     expect(await wallCount(page)).toBe(4)
+
+    // Auto-floor dialog appears — dismiss it
+    const dialog = page.locator('.auto-floor-dialog')
+    await expect(dialog).toBeVisible({ timeout: 5000 })
+    await dialog.locator('.prefs-cancel').click()
+    await expect(dialog).not.toBeVisible()
 
     // Switch to room tool and auto-detect
     await page.locator('button[data-tool="room"]').click()
