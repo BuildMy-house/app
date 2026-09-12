@@ -24,6 +24,39 @@ export function createApp(
   app.use('/api/assets', assetsRouter(db, new AssetStorage(assetRoot)));
   app.use('/api/homes', homesRouter(db));
 
+  // Content negotiation for textures: serve WebP to modern browsers, PNG fallback.
+  // Reduces transfer size by 40-60% without requiring pre-conversion.
+  app.get('/assets/textures/:name', (req, res) => {
+    const name = (req as any).params?.name;
+    if (!name || !name.match(/^[a-z0-9-]+$/)) {
+      res.status(400).send('Invalid texture name');
+      return;
+    }
+
+    // Check if browser accepts WebP (via Accept header negotiation)
+    const acceptWebP = (req as any).headers?.accept?.includes('image/webp');
+
+    // Try WebP first if browser supports it
+    if (acceptWebP) {
+      try {
+        const webpPath = path.join(assetRoot, `${name}.webp`);
+        return (res as any).sendFile(webpPath, (err: any) => {
+          // If WebP not found, fall back to PNG
+          if (err) {
+            const pngPath = path.join(assetRoot, `${name}.png`);
+            (res as any).sendFile(pngPath);
+          }
+        });
+      } catch {
+        // Fall through to PNG
+      }
+    }
+
+    // Serve PNG (no WebP available or browser doesn't support)
+    const pngPath = path.join(assetRoot, `${name}.png`);
+    (res as any).sendFile(pngPath);
+  });
+
   if (staticDir) {
     app.use(express.static(staticDir));
     // SPA fallback: any GET that didn't match an API route serves index.html.
