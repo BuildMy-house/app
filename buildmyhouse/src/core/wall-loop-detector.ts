@@ -44,9 +44,10 @@ function shoelaceArea(vertices: Array<{ x: number; y: number }>): number {
   let area = 0
   const n = vertices.length
   for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n
-    area += vertices[i].x * vertices[j].y
-    area -= vertices[j].x * vertices[i].y
+    const curr = vertices[i]!
+    const next = vertices[(i + 1) % n]!
+    area += curr.x * next.y
+    area -= next.x * curr.y
   }
   return area / 2
 }
@@ -73,8 +74,8 @@ function buildGraph(
 
   for (let i = 0; i < walls.length; i++) {
     for (let j = i + 1; j < walls.length; j++) {
-      const a = walls[i]
-      const b = walls[j]
+      const a = walls[i]!
+      const b = walls[j]!
 
       // a.start ↔ b.start
       if (endpointsMatch(a.start, b.start, toleranceSq)) {
@@ -203,8 +204,8 @@ export function detectClosedLoops(walls: Wall[], tolerance = 0.01): WallLoop[] {
     // Compute vertices: walk the cycle and collect the endpoint that connects forward
     const vertices: Array<{ x: number; y: number }> = []
     for (let i = 0; i < cycle.length; i++) {
-      const curr = cycle[i]
-      const next = cycle[(i + 1) % cycle.length]
+      const curr = cycle[i]!
+      const next = cycle[(i + 1) % cycle.length]!
       // Find which endpoint of curr connects to next
       if (
         endpointsMatch(curr.end, next.start, toleranceSq) ||
