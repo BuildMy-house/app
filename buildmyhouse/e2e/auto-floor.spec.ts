@@ -8,7 +8,7 @@ test.describe('Auto-floor E2E', () => {
   })
 
   async function roomCount(page: any): Promise<number> {
-    return page.evaluate(() => (window as any).__model?.getRooms()?.length ?? 0)
+    return page.evaluate(() => (window as any).__model?.getStore()?.getHome()?.rooms?.length ?? 0)
   }
 
   async function wallCount(page: any): Promise<number> {
