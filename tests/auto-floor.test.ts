@@ -23,7 +23,7 @@ describe('Auto-floor integration', () => {
     const loops = detectClosedLoops(walls)
     expect(loops).toHaveLength(1)
 
-    const loop = loops[0]
+    const loop = loops[0]!
     expect(loop.vertices).toHaveLength(4)
     expect(loop.area).toBeCloseTo(80, 1)
 
@@ -44,8 +44,8 @@ describe('Auto-floor integration', () => {
     ]
     const loops = detectClosedLoops(walls)
     expect(loops).toHaveLength(1)
-    expect(loops[0].vertices).toHaveLength(3)
-    expect(loops[0].area).toBeGreaterThan(0)
+    expect(loops[0]!.vertices).toHaveLength(3)
+    expect(loops[0]!.area).toBeGreaterThan(0)
   })
 
   it('simulates undo: room removed, loop still detectable', () => {
@@ -54,7 +54,7 @@ describe('Auto-floor integration', () => {
 
     // Create room
     const loops = detectClosedLoops(walls)
-    rooms.push(loops[0])
+    rooms.push(loops[0]!)
     expect(rooms).toHaveLength(1)
 
     // Undo: remove room
@@ -73,7 +73,7 @@ describe('Auto-floor integration', () => {
 
     // Create
     const loops = detectClosedLoops(walls)
-    rooms.push(loops[0])
+    rooms.push(loops[0]!)
     history.push([...rooms])
 
     // Undo
@@ -81,7 +81,7 @@ describe('Auto-floor integration', () => {
     history.push([...rooms])
 
     // Redo: restore from history
-    const prev = history[history.length - 2]
+    const prev = history[history.length - 2]!
     rooms.length = 0
     rooms.push(...prev)
     expect(rooms).toHaveLength(1)
@@ -89,7 +89,7 @@ describe('Auto-floor integration', () => {
 
   it('dialog confirm triggers room creation callback', () => {
     const walls = rectWalls(0, 0, 10, 8)
-    const loops = detectClosedLoops(walls)
+    detectClosedLoops(walls)
     const onConfirm = vi.fn()
     const onCancel = vi.fn()
 
@@ -101,7 +101,7 @@ describe('Auto-floor integration', () => {
 
   it('dialog cancel does not trigger room creation', () => {
     const walls = rectWalls(0, 0, 10, 8)
-    const loops = detectClosedLoops(walls)
+    detectClosedLoops(walls)
     const onConfirm = vi.fn()
     const onCancel = vi.fn()
 
@@ -141,20 +141,20 @@ describe('Auto-floor integration', () => {
     const loops = detectClosedLoops(walls)
     // Should still detect the rectangle (may or may not count the duplicate)
     expect(loops.length).toBeGreaterThanOrEqual(1)
-    expect(loops[0].area).toBeCloseTo(100, 1)
+    expect(loops[0]!.area).toBeCloseTo(100, 1)
   })
 
   it('detects smaller loop when walls are modified to enclose less area', () => {
     // Original large rectangle
     const walls = rectWalls(0, 0, 10, 10)
     const loops = detectClosedLoops(walls)
-    expect(loops[0].area).toBeCloseTo(100, 1)
+    expect(loops[0]!.area).toBeCloseTo(100, 1)
 
     // Modified: smaller rectangle (walls moved inward)
     const smallWalls = rectWalls(2, 2, 6, 6)
     const smallLoops = detectClosedLoops(smallWalls)
     expect(smallLoops).toHaveLength(1)
-    expect(smallLoops[0].area).toBeCloseTo(36, 1)
-    expect(smallLoops[0].area).toBeLessThan(loops[0].area)
+    expect(smallLoops[0]!.area).toBeCloseTo(36, 1)
+    expect(smallLoops[0]!.area).toBeLessThan(loops[0]!.area)
   })
 })

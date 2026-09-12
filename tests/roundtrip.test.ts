@@ -381,7 +381,7 @@ describe('parseHomeFile error handling', () => {
   })
 
   it('rejects missing required top-level keys', () => {
-    expect(() => parseHomeFile('{"schemaVersion":1}')).toThrow('not a valid Homely project')
+    expect(() => parseHomeFile('{"schemaVersion":1}')).toThrow('not a valid buildmy.house project')
   })
 
   it('rejects non-array for levels', () => {
@@ -389,7 +389,7 @@ describe('parseHomeFile error handling', () => {
     const json = serializeForSave(home)
     const parsed = JSON.parse(json) as Record<string, unknown>
     parsed.levels = 'not an array'
-    expect(() => parseHomeFile(JSON.stringify(parsed))).toThrow('not a valid Homely project')
+    expect(() => parseHomeFile(JSON.stringify(parsed))).toThrow('not a valid buildmy.house project')
   })
 
   it('rejects missing cameras', () => {
@@ -397,11 +397,11 @@ describe('parseHomeFile error handling', () => {
     const json = serializeForSave(home)
     const parsed = JSON.parse(json) as Record<string, unknown>
     delete parsed.cameras
-    expect(() => parseHomeFile(JSON.stringify(parsed))).toThrow('not a valid Homely project')
+    expect(() => parseHomeFile(JSON.stringify(parsed))).toThrow('not a valid buildmy.house project')
   })
 
   it('rejects completely unrelated JSON object', () => {
-    expect(() => parseHomeFile('{"hello":"world"}')).toThrow('not a valid Homely project')
+    expect(() => parseHomeFile('{"hello":"world"}')).toThrow('not a valid buildmy.house project')
   })
 
   it('rejects a plain array instead of object', () => {
@@ -410,6 +410,6 @@ describe('parseHomeFile error handling', () => {
 
   it('rejects null input', () => {
     // JSON.parse("null") returns null, which fails isNormalizedHome
-    expect(() => parseHomeFile('null')).toThrow('not a valid Homely project')
+    expect(() => parseHomeFile('null')).toThrow('not a valid buildmy.house project')
   })
 })

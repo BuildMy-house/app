@@ -32,9 +32,9 @@ describe('detectClosedLoops', () => {
     const loops = detectClosedLoops(walls)
 
     expect(loops).toHaveLength(1)
-    expect(loops[0].walls).toHaveLength(4)
-    expect(loops[0].area).toBeCloseTo(80, 1)
-    expect(loops[0].vertices).toHaveLength(4)
+    expect(loops[0]!.walls).toHaveLength(4)
+    expect(loops[0]!.area).toBeCloseTo(80, 1)
+    expect(loops[0]!.vertices).toHaveLength(4)
   })
 
   it('detects a triangle', () => {
@@ -46,8 +46,8 @@ describe('detectClosedLoops', () => {
     const loops = detectClosedLoops(walls)
 
     expect(loops).toHaveLength(1)
-    expect(loops[0].walls).toHaveLength(3)
-    expect(loops[0].area).toBeGreaterThan(0)
+    expect(loops[0]!.walls).toHaveLength(3)
+    expect(loops[0]!.area).toBeGreaterThan(0)
   })
 
   it('detects a hexagon', () => {
@@ -65,9 +65,9 @@ describe('detectClosedLoops', () => {
     const loops = detectClosedLoops(hex)
 
     expect(loops).toHaveLength(1)
-    expect(loops[0].walls).toHaveLength(6)
+    expect(loops[0]!.walls).toHaveLength(6)
     const expectedArea = (3 * Math.sqrt(3) * r * r) / 2
-    expect(loops[0].area).toBeCloseTo(expectedArea, 0)
+    expect(loops[0]!.area).toBeCloseTo(expectedArea, 0)
   })
 
   it('returns empty for an open chain', () => {
