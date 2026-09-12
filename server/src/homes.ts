@@ -3,12 +3,14 @@ import { Router } from 'express';
 import type { Database } from 'better-sqlite3';
 import type { Request, Response } from 'express';
 import { requireAuth } from './auth.js';
+import { isTeamMember } from './teams.js';
 
 interface HomeRow {
   id: string;
   owner_user_id: string;
   name: string;
   json: string;
+  team_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -116,8 +118,14 @@ export function homesRouter(db: Database): Router {
   router.get('/', (req: Request, res: Response) => {
     const userId = req.userId!;
     const rows = db
-      .prepare('SELECT * FROM homes WHERE owner_user_id = ? ORDER BY updated_at DESC')
-      .all(userId) as unknown as HomeRow[];
+      .prepare(
+        `SELECT h.* FROM homes h
+         LEFT JOIN team_members tm ON tm.team_id = h.team_id AND tm.user_id = ?
+         WHERE h.owner_user_id = ? OR (h.team_id IS NOT NULL AND tm.user_id IS NOT NULL)
+         GROUP BY h.id
+         ORDER BY h.updated_at DESC`,
+      )
+      .all(userId, userId) as unknown as HomeRow[];
     // List omits the JSON blob; callers pick a home then load it by id.
     res.json({ items: rows.map((r) => ({ id: r.id, name: r.name, createdAt: r.created_at, updatedAt: r.updated_at })) });
   });
@@ -129,24 +137,33 @@ export function homesRouter(db: Database): Router {
 
   router.post('/', (req: Request, res: Response) => {
     const userId = req.userId!;
-    const { name, json } = (req.body ?? {}) as { name?: unknown; json?: unknown };
+    const { name, json, teamId } = (req.body ?? {}) as { name?: unknown; json?: unknown; teamId?: unknown };
     if (typeof json !== 'string') {
       res.status(400).json({ error: 'json (serialized home) is required' });
       return;
     }
+    // If teamId provided, verify caller is a member of that team
+    if (typeof teamId === 'string' && teamId) {
+      if (!isTeamMember(db, teamId, userId)) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+    }
     const homeName = typeof name === 'string' && name.trim() ? name.trim() : 'Untitled home';
     const now = new Date().toISOString();
+    const effectiveTeamId = typeof teamId === 'string' && teamId ? teamId : null;
     const row: HomeRow = {
       id: randomUUID(),
       owner_user_id: userId,
       name: homeName,
       json,
+      team_id: effectiveTeamId,
       created_at: now,
       updated_at: now,
     };
     db.prepare(
-      `INSERT INTO homes (id, owner_user_id, name, json, created_at, updated_at)
-       VALUES (@id, @owner_user_id, @name, @json, @created_at, @updated_at)`,
+      `INSERT INTO homes (id, owner_user_id, name, json, team_id, created_at, updated_at)
+       VALUES (@id, @owner_user_id, @name, @json, @team_id, @created_at, @updated_at)`,
     ).run(row);
     res.status(201).json(toRecord(row));
   });
@@ -178,8 +195,10 @@ export function homesRouter(db: Database): Router {
 /**
  * Resolve a home by id for the authenticated user, enforcing the tenant
  * boundary: 404 if no home with that id exists, 403 if it belongs to another
- * user (never reveal the existence of another user's home vs. a plain 404 —
- * the 403 mirrors H2's tenant-guard convention for the cross-user case).
+ * user and the caller is not a team member (never reveal the existence of
+ * another user's home vs. a plain 404 — the 403 mirrors H2's tenant-guard
+ * convention for the cross-user case). When team_id is non-null, access is
+ * granted to any member of that team, not just the owner.
  * Writes the response and returns the row, or null after responding.
  */
 function resolveOwnedHome(
@@ -193,9 +212,18 @@ function resolveOwnedHome(
     res.status(404).json({ error: 'not found' });
     return null;
   }
-  if (row.owner_user_id !== userId) {
-    res.status(403).json({ error: 'forbidden' });
-    return null;
+  if (row.team_id) {
+    // Team-owned home: any team member can access
+    if (!isTeamMember(db, row.team_id, userId)) {
+      res.status(403).json({ error: 'forbidden' });
+      return null;
+    }
+  } else {
+    // Personal home: owner-only
+    if (row.owner_user_id !== userId) {
+      res.status(403).json({ error: 'forbidden' });
+      return null;
+    }
   }
   return row;
 }

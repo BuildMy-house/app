@@ -53,12 +53,32 @@ const SCHEMA = `
     updated_at    TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_homes_owner ON homes (owner_user_id);
+
+  CREATE TABLE IF NOT EXISTS teams (
+    id         TEXT PRIMARY KEY,
+    name       TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS team_members (
+    team_id   TEXT NOT NULL,
+    user_id   TEXT NOT NULL,
+    role      TEXT NOT NULL,
+    joined_at TEXT NOT NULL,
+    PRIMARY KEY (team_id, user_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_team_members_user ON team_members (user_id);
 `;
 
 // Idempotent init-on-boot: safe to call once per server start, and safe to
 // call again (CREATE ... IF NOT EXISTS). No migration framework needed at this scale.
 export function initDb(db: Database.Database): void {
   db.exec(SCHEMA);
+  // Guarded migration: add team_id to homes if missing (existing rows get NULL).
+  const cols = db.pragma('table_info(homes)') as { name: string }[];
+  if (!cols.some((c) => c.name === 'team_id')) {
+    db.exec('ALTER TABLE homes ADD COLUMN team_id TEXT');
+  }
 }
 
 function openSqlite(path: string): Database.Database {
