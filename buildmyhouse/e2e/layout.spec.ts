@@ -96,4 +96,30 @@ test.describe('layout', () => {
     expect([...file.slice(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
     expect(file.byteLength).toBeGreaterThan(1000)
   })
+
+  test('Edit > Preferences edits and persists default materials', async ({ page }) => {
+    const openPrefs = async () => {
+      await page.locator('.menu-trigger').nth(1).click()
+      const entry = page.locator('.menu-item.open .menu-entry', { hasText: 'Preferences…' })
+      await expect(entry).toBeVisible()
+      await entry.click()
+      await expect(page.locator('.prefs-dialog')).toBeVisible()
+    }
+    await openPrefs()
+    const dialog = page.locator('.prefs-dialog')
+    const floorColor = dialog.locator('#mat-floor-color')
+    const ceilingVisible = dialog.locator('#mat-ceiling-visible')
+    await expect(floorColor).toHaveValue('#f0f0f0')
+    await expect(ceilingVisible).toBeChecked()
+
+    await floorColor.fill('#ff8800')
+    await ceilingVisible.uncheck()
+    await dialog.locator('.prefs-ok').click()
+    await expect(dialog).not.toBeVisible()
+
+    await openPrefs()
+    await expect(page.locator('.prefs-dialog #mat-floor-color')).toHaveValue('#ff8800')
+    await expect(page.locator('.prefs-dialog #mat-ceiling-visible')).not.toBeChecked()
+    await page.locator('.prefs-cancel').click()
+  })
 })
