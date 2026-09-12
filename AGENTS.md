@@ -97,3 +97,30 @@ the prior instance's own accumulated context. See
 for the full rationale. (Renamed from `opencode-manager` 2026-09-07 — the
 subagent dispatches to opencode, Codex, and Antigravity/Gemini workers,
 not just OpenCode, so the old name undersold its actual scope.)
+
+## Multiple concurrent agents work this repo — assume it, don't fight it
+
+**This checkout can have more than one agent session (Claude Code, OpenCode, Codex)
+working in it at the same time**, each possibly running its own sub-dispatches. This
+is normal and expected — not something to "fix" by trying to claim exclusive
+ownership of the tree. Two concrete rules follow:
+
+1. **Never delete, revert, overwrite, or "clean up" a change you did not make, unless
+   you have positively confirmed it's abandoned or superseded.** An unrecognized
+   modification to a file — even one that looks unfinished, wrong, or unrelated to your
+   ticket — is very likely another live session's in-progress or already-verified work,
+   not garbage. Don't `git checkout --`, don't stash-and-drop, don't silently rewrite
+   over it. If it's genuinely in your way, say so and ask, or work around it.
+
+2. **Land your own verified work as a real git commit as soon as it's confirmed
+   correct — don't leave it sitting as an uncommitted diff in the shared working tree.**
+   An uncommitted diff has zero protection: another session's process can overwrite the
+   same file within seconds and there is no git history to recover it (no stash, no
+   reflog, nothing). A commit is the only thing that survives a concurrent write.
+
+**Incident (2026-09-10, GMC/mind_chat project):** with 5+ concurrent Claude Code
+sessions active in one checkout, a verified and test-passing fix was silently destroyed
+— no trace in `git stash list`, `git reflog`, or `git fsck --unreachable` — because it
+was left uncommitted while another session's OpenCode dispatch rewrote the same file
+with unrelated work. Multiple other in-progress features were lost the same way. This
+is a cross-project hazard: commit real work immediately, always.

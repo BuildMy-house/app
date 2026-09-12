@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh run *)",
+      "Bash(git worktree list)",
+      "Bash(git rev-list *)",
+      "ToolSearch"
+    ]
+  }
+}
