@@ -11,13 +11,13 @@ import { loadHomeFile, saveHomeFile } from '../src/services/adapters/home-persis
  *
  * Contract under test:
  * - saveHomeFile: a writeText rejection must not escape unhandled — it is
- *   logged and rethrown as a wrapped Error with a clear message (save has no
- *   browser-path failure mode to mirror, so the caller (main.ts) can
- *   catch-and-alert).
+ *   reported via telemetry.fileIo and rethrown as a wrapped Error with a
+ *   clear message (save has no browser-path failure mode to mirror, so the
+ *   caller (main.ts) can catch-and-alert).
  * - loadHomeFile: resolves null ONLY for user-cancel (no path selected).
- *   A genuine readText rejection or parseHomeFile failure is logged and
- *   rethrown as a wrapped Error so the caller (main.ts) can distinguish it
- *   from cancel and alert the user.
+ *   A genuine readText rejection or parseHomeFile failure is reported via
+ *   telemetry.fileIo and rethrown as a wrapped Error so the caller (main.ts)
+ *   can distinguish it from cancel and alert the user.
  */
 
 const mocks = vi.hoisted(() => ({
@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   readText: vi.fn(),
   dialogSave: vi.fn(),
   dialogOpen: vi.fn(),
+  fileIo: vi.fn(),
 }))
 
 vi.mock('../src/services/adapters/tauri-fs', () => ({
@@ -33,6 +34,10 @@ vi.mock('../src/services/adapters/tauri-fs', () => ({
     writeText = mocks.writeText
     readText = mocks.readText
   },
+}))
+
+vi.mock('../src/telemetry/logger', () => ({
+  telemetry: { fileIo: mocks.fileIo },
 }))
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({
@@ -44,7 +49,6 @@ const PATH = '/tmp/home.json'
 
 describe('saveHomeFile (Tauri path)', () => {
   beforeEach(() => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
     mocks.dialogSave.mockResolvedValue(PATH)
   })
 
@@ -59,12 +63,15 @@ describe('saveHomeFile (Tauri path)', () => {
     )
   })
 
-  it('logs the failure with the target path before rethrowing', async () => {
+  it('reports the failure with the target path before rethrowing', async () => {
     mocks.writeText.mockRejectedValue(new Error('EACCES'))
     await saveHomeFile(createEmptyHome()).catch(() => {})
-    expect(console.error).toHaveBeenCalledWith(
-      `Failed to save home file to ${PATH}:`,
-      expect.any(Error),
+    expect(mocks.fileIo).toHaveBeenCalledWith(
+      'save',
+      expect.any(Number),
+      false,
+      PATH,
+      'EACCES',
     )
   })
 
@@ -77,7 +84,6 @@ describe('saveHomeFile (Tauri path)', () => {
 
 describe('loadHomeFile (Tauri path)', () => {
   beforeEach(() => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
     mocks.dialogOpen.mockResolvedValue(PATH)
   })
 
@@ -90,19 +96,37 @@ describe('loadHomeFile (Tauri path)', () => {
     await expect(loadHomeFile()).rejects.toThrow(
       `Failed to load home file from ${PATH}: file vanished`,
     )
-    expect(console.error).toHaveBeenCalledWith('Failed to load home file:', expect.any(Error))
+    expect(mocks.fileIo).toHaveBeenCalledWith(
+      'open',
+      expect.any(Number),
+      false,
+      PATH,
+      'file vanished',
+    )
   })
 
   it('malformed JSON throws', async () => {
     mocks.readText.mockResolvedValue('{"levelCount":')
     await expect(loadHomeFile()).rejects.toThrow(/Failed to load home file from /)
-    expect(console.error).toHaveBeenCalledWith('Failed to load home file:', expect.any(Error))
+    expect(mocks.fileIo).toHaveBeenCalledWith(
+      'open',
+      expect.any(Number),
+      false,
+      PATH,
+      expect.any(String),
+    )
   })
 
   it('valid JSON but invalid project shape throws', async () => {
     mocks.readText.mockResolvedValue('42')
     await expect(loadHomeFile()).rejects.toThrow(/Failed to load home file from /)
-    expect(console.error).toHaveBeenCalledWith('Failed to load home file:', expect.any(Error))
+    expect(mocks.fileIo).toHaveBeenCalledWith(
+      'open',
+      expect.any(Number),
+      false,
+      PATH,
+      expect.any(String),
+    )
   })
 
   it('valid file resolves the parsed home', async () => {
