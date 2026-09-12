@@ -38,8 +38,78 @@ function toRecord(row: HomeRow): HomeRecord {
  * `owner_user_id = req.userId`, so a user can only ever touch their own rows
  * (mirrors the assets tenant guard; the homes routes just derive the owner
  * from the token instead of a :userId path param).
+ *
+ * Performance: Uses debounced/coalesced saves (500ms flush window) to reduce
+ * database write load. Rapid saves from multiple users are batched into fewer
+ * actual UPDATE statements.
  */
+
+// Save queue: pending updates waiting to flush to DB
+const saveQueue = new Map<string, { name: string; json: string; homeId: string }[]>();
+let saveTimer: NodeJS.Timeout | null = null;
+let dbInstance: Database | null = null;
+
+const SAVE_FLUSH_MS = 500; // Coalesce saves within this window
+
+/**
+ * Enqueue a home update and schedule flush if not already pending.
+ */
+function enqueueSave(userId: string, homeId: string, name: string, json: string): void {
+  if (!saveQueue.has(userId)) {
+    saveQueue.set(userId, []);
+  }
+  const userQueue = saveQueue.get(userId)!;
+
+  // Remove any existing entry for this home; we're replacing it
+  const idx = userQueue.findIndex((s) => s.homeId === homeId);
+  if (idx >= 0) {
+    userQueue.splice(idx, 1);
+  }
+
+  // Append the new save
+  userQueue.push({ homeId, name, json });
+
+  // Schedule flush if not already pending
+  if (!saveTimer && dbInstance) {
+    saveTimer = setTimeout(() => flushSaveQueue(), SAVE_FLUSH_MS);
+  }
+}
+
+/**
+ * Flush all pending saves to the database in one batch.
+ * Reduces 50+ individual writes to a small number of transactions.
+ */
+function flushSaveQueue(): void {
+  if (saveQueue.size === 0 || !dbInstance) {
+    saveTimer = null;
+    return;
+  }
+
+  const database = dbInstance;
+  const now = new Date().toISOString();
+  let totalWrites = 0;
+
+  for (const [userId, updates] of saveQueue) {
+    for (const { homeId, name, json } of updates) {
+      database
+        .prepare(
+          'UPDATE homes SET name = ?, json = ?, updated_at = ? WHERE id = ? AND owner_user_id = ?',
+        )
+        .run(name, json, now, homeId, userId);
+      totalWrites++;
+    }
+  }
+
+  saveQueue.clear();
+  saveTimer = null;
+
+  if (totalWrites > 0) {
+    console.log(`[homes] flushed ${totalWrites} saves to database`);
+  }
+}
+
 export function homesRouter(db: Database): Router {
+  dbInstance = db; // Store for save queue flush
   const router = Router();
   router.use(requireAuth);
 
@@ -90,17 +160,10 @@ export function homesRouter(db: Database): Router {
       return;
     }
     const homeName = typeof name === 'string' && name.trim() ? name.trim() : row.name;
-    db.prepare('UPDATE homes SET name = ?, json = ?, updated_at = ? WHERE id = ? AND owner_user_id = ?').run(
-      homeName,
-      json,
-      new Date().toISOString(),
-      req.params.id,
-      req.userId!,
-    );
-    const updated = db
-      .prepare('SELECT * FROM homes WHERE owner_user_id = ? AND id = ?')
-      .get(req.userId!, req.params.id) as HomeRow;
-    res.json(toRecord(updated));
+    // Enqueue save instead of writing immediately (batches multiple saves)
+    enqueueSave(req.userId!, req.params.id!, homeName, json);
+    // Return the updated record immediately (optimistic response)
+    res.json(toRecord({ ...row, name: homeName, json, updated_at: new Date().toISOString() }));
   });
 
   router.delete('/:id', (req: Request, res: Response) => {

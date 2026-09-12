@@ -81,6 +81,25 @@ the automated check that prevents a "done" ticket from shipping with broken
 stubs (the U3 regression that motivated this CI). Once a GitHub remote is
 added, `ci.yml` runs the identical checks automatically on push/PR.
 
+## Model selection — TokenRouter is free, exploit it
+
+`TOKENROUTER_API_KEY` (`https://api.tokenrouter.com/v1`, provider name
+`tokenrouter` in `opencode.json`) is a **free-tier** provider — e.g.
+`tokenrouter/z-ai/glm-5.3-free`. It costs nothing to use. When any agent
+(hermes, engineering-manager, agent-manager, or a dispatched OpenCode
+worker) is choosing a model/worker for a task, default to TokenRouter
+first and use it as heavily as it can plausibly handle — mechanical
+edits, standard features, even most code-review-style tickets — before
+reaching for a paid or quota-limited provider (OpenCode Go, Z.AI Coding
+Plan subscription hours, Anthropic API tokens). Learn its actual rate
+limits and model roster by using it (`opencode models`, or watch for
+throttling in `~/.local/share/opencode/log/opencode.log`) and push
+usage up to whatever ceiling it actually has, rather than assuming a
+conservative cap. Only escalate to a paid/limited provider once
+TokenRouter demonstrably can't handle the ticket (wrong output quality,
+missing model capability, or an actual rate-limit error) — not
+preemptively.
+
 ## Delegated manager subagents (agent-manager and similar)
 
 When dispatching a manager-style subagent (e.g. `agent-manager`) for a
