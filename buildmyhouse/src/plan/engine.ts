@@ -1,6 +1,6 @@
 import type { HomeModel } from '../core/model'
 import { ModelError, NEW_WALL_PATTERN_ID, NEW_WALL_THICKNESS_CM } from '../core/model'
-import { DEFAULT_WALL_HEIGHT_CM } from '../core/home'
+import { DEFAULT_WALL_HEIGHT_CM, getDefaultFloorColor, getDefaultCeilingVisibility } from '../core/home'
 import type { NormalizedHomeState } from '../core/home'
 import { normalizeAngle } from '../core/export'
 import type { WallLoop } from '../core/wall-loop-detector'
@@ -19,7 +19,6 @@ export const PLAN_SCALE = 1
 export const PIXEL_MARGIN = 4 * PLAN_SCALE
 export const WALL_ENDS_PIXEL_MARGIN = 2 * PLAN_SCALE
 const EPSILON = 1e-6
-const DEFAULT_FLOOR_COLOR = 0xc8c8c8
 const ENDPOINT_HIT_RADIUS = 10
 const CONNECTED_WALL_EPSILON = 0.1
 const ROTATION_HANDLE_OFFSET = 20
@@ -122,6 +121,8 @@ export interface PlanPreview {
   roomPoints: Array<[number, number]>
   dimensionLine: { start: Point; end: Point; length: number } | null
   marquee: { from: Point; to: Point } | null
+  closurePolygon: Array<Point> | null
+  closureTooltip: { text: string; x: number; y: number } | null
 }
 
 function samePoint(a: Point, b: Point): boolean {
@@ -156,7 +157,8 @@ export class PlanEngine {
   private marqueeFrom: Point | null = null
   private marqueeTo: Point | null = null
   private _marqueeActive = false
-
+  private closurePolygon: Array<Point> | null = null
+  private closureTooltip: { text: string; x: number; y: number } | null = null
 
   constructor(model: HomeModel) {
     this.model = model
@@ -198,6 +200,8 @@ export class PlanEngine {
       else this.validateDrawnWalls()
     }
     this.tool = tool
+    this.closurePolygon = null
+    this.closureTooltip = null
     if (tool !== 'wall' && tool !== 'room' && tool !== 'dimensionLine' && tool !== 'label') this.phase = 'idle'
     // Mirror the tool into home state without polluting undo history.
     this.model.getStore().patchNonUndoable((h) => {
@@ -241,10 +245,15 @@ export class PlanEngine {
 
   /** Create a room from a detected wall loop. */
   createRoomFromLoop(loop: WallLoop): void {
+    const home = this.homeSnapshot()
     this.model.getStore().beginCompoundEdit()
     this.model.addRoom(
       loop.vertices.map((p) => [p.x, p.y] as [number, number]),
-      { floorColor: DEFAULT_FLOOR_COLOR, levelRef: this.activeLevelId ?? undefined },
+      {
+        floorColor: getDefaultFloorColor(home),
+        ceilingVisible: getDefaultCeilingVisibility(home),
+        levelRef: this.activeLevelId ?? undefined,
+      },
     )
     this.model.getStore().endCompoundEdit()
   }
@@ -321,10 +330,75 @@ export class PlanEngine {
       throw new ModelError('move_mouse params x,y must be finite numbers')
     }
     this.lastMove = { x, y }
+    if (this.tool === 'wall' && this.phase === 'drawing') {
+      this.detectClosurePreview({ x, y })
+    }
   }
 
   getLastMove(): Point | null {
     return this.lastMove
+  }
+
+  /**
+   * During wall drawing, check if releasing the next wall endpoint at `point`
+   * (connected back to `chainStart`) would close a loop. If so, set the
+   * closure preview polygon and tooltip for live feedback.
+   */
+  private detectClosurePreview(point: Point): void {
+    if (this.tool !== 'wall' || this.phase !== 'drawing' || !this.chainStart) {
+      this.closurePolygon = null
+      this.closureTooltip = null
+      return
+    }
+
+    // Don't show preview if cursor is at the chain start (zero-length wall).
+    if (distance(this.chainStart, point) <= ENDPOINT_HIT_RADIUS) {
+      this.closurePolygon = null
+      this.closureTooltip = null
+      return
+    }
+
+    const home = this.homeSnapshot()
+    const levelWalls = home.walls.filter((w) => this.matchesActiveLevel(w.levelRef))
+
+    // Simulate adding a closing wall from chainStart to the cursor.
+    const closingWall = {
+      id: '__closure_preview__',
+      start: { x: this.chainStart.x, y: this.chainStart.y },
+      end: { x: point.x, y: point.y },
+    }
+
+    const allWalls = [
+      ...levelWalls.map((w) => ({
+        id: w.id,
+        start: { x: w.xStart, y: w.yStart },
+        end: { x: w.xEnd, y: w.yEnd },
+      })),
+      closingWall,
+    ]
+
+    const loops = detectClosedLoops(allWalls)
+
+    // Find a loop that uses the closing wall (its vertices match the wall endpoints).
+    for (const loop of loops) {
+      const hasClosing = loop.vertices.some(
+        (v) =>
+          (Math.abs(v.x - closingWall.start.x) < EPSILON && Math.abs(v.y - closingWall.start.y) < EPSILON) ||
+          (Math.abs(v.x - closingWall.end.x) < EPSILON && Math.abs(v.y - closingWall.end.y) < EPSILON),
+      )
+      if (hasClosing && loop.vertices.length >= 3) {
+        this.closurePolygon = loop.vertices.map((v) => ({ x: v.x, y: v.y }))
+        this.closureTooltip = {
+          text: 'Close room? (Double-click to finish)',
+          x: point.x,
+          y: point.y,
+        }
+        return
+      }
+    }
+
+    this.closurePolygon = null
+    this.closureTooltip = null
   }
 
   getPreview(): PlanPreview {
@@ -349,6 +423,8 @@ export class PlanEngine {
         this._marqueeActive && this.marqueeFrom && this.marqueeTo
           ? { from: this.marqueeFrom, to: this.marqueeTo }
           : null,
+      closurePolygon: this.closurePolygon,
+      closureTooltip: this.closureTooltip,
     }
   }
 
@@ -725,6 +801,8 @@ export class PlanEngine {
   }
 
   private singleClick(point: Point, shift: boolean): void {
+    this.closurePolygon = null
+    this.closureTooltip = null
     if (this._marqueeActive) {
       this._marqueeActive = false
       this.marqueeFrom = null
@@ -841,10 +919,15 @@ export class PlanEngine {
       }
       const loop = this.findEnclosingWallLoop(point)
       if (loop) {
+        const home = this.homeSnapshot()
         this.model.getStore().beginCompoundEdit()
         const room = this.model.addRoom(
           loop.map((p) => [p.x, p.y] as [number, number]),
-          { levelRef: this.activeLevelId ?? undefined },
+          {
+            floorColor: getDefaultFloorColor(home),
+            ceilingVisible: getDefaultCeilingVisibility(home),
+            levelRef: this.activeLevelId ?? undefined,
+          },
         )
         this.model.setSelection([room.id])
         this.model.getStore().endCompoundEdit()
@@ -890,6 +973,8 @@ export class PlanEngine {
     this.chainIds = []
     this.chainStart = null
     this.phase = 'idle'
+    this.closurePolygon = null
+    this.closureTooltip = null
     if (ids.length > 0) this.model.setSelection(ids)
     if (this.sessionOpen) {
       this.model.getStore().endCompoundEdit()
@@ -962,7 +1047,11 @@ export class PlanEngine {
 
       this.model.addRoom(
         vertices.map((v) => [v.x, v.y] as [number, number]),
-        { floorColor: DEFAULT_FLOOR_COLOR, levelRef: this.activeLevelId ?? undefined },
+        {
+          floorColor: getDefaultFloorColor(home),
+          ceilingVisible: getDefaultCeilingVisibility(home),
+          levelRef: this.activeLevelId ?? undefined,
+        },
       )
     }
   }
@@ -1014,8 +1103,13 @@ export class PlanEngine {
     this.phase = 'idle'
     this.chainStart = null
     if (points.length < 3) return
+    const home = this.homeSnapshot()
     this.model.getStore().beginCompoundEdit()
-    const room = this.model.addRoom(points, { levelRef: this.activeLevelId ?? undefined })
+    const room = this.model.addRoom(points, {
+      floorColor: getDefaultFloorColor(home),
+      ceilingVisible: getDefaultCeilingVisibility(home),
+      levelRef: this.activeLevelId ?? undefined,
+    })
     this.model.setSelection([room.id])
     this.model.getStore().endCompoundEdit()
   }
