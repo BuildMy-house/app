@@ -224,8 +224,13 @@ export class PlanEngine {
   /**
    * Open the auto-floor confirmation dialog for a detected wall loop.
    * Instantiates the real AutoFloorDialog UI and wires confirm/cancel callbacks.
+   * Skipped in non-browser environments (tests).
    */
   openAutoFloorDialog(loop: WallLoop): void {
+    // Skip dialog in non-browser environments (unit tests run in Node)
+    if (typeof document === 'undefined') {
+      return
+    }
     const dialog = new AutoFloorDialog(
       loop,
       () => this.createRoomFromLoop(loop),

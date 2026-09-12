@@ -184,7 +184,20 @@ export function detectClosedLoops(walls: Wall[], tolerance = 0.01): WallLoop[] {
 
     // Attempt to walk a cycle from this wall
     const cycle = walkCycle(wall.id, wallMap, atEnd)
-    if (cycle === null) continue
+    if (cycle === null) {
+      globalVisited.add(wall.id)
+      continue
+    }
+
+    // Validate: the cycle must close back to the start wall's start point
+    const lastWall = cycle[cycle.length - 1]!
+    const firstWall = cycle[0]!
+    if (
+      !endpointsMatch(lastWall.end, firstWall.start, toleranceSq)
+    ) {
+      globalVisited.add(wall.id)
+      continue
+    }
 
     // Validate: every wall in the cycle must have exactly 2 neighbors within the cycle
     const cycleIds = new Set(cycle.map((w) => w.id))
@@ -199,7 +212,10 @@ export function detectClosedLoops(walls: Wall[], tolerance = 0.01): WallLoop[] {
         break
       }
     }
-    if (!valid) continue
+    if (!valid) {
+      for (const w of cycle) globalVisited.add(w.id)
+      continue
+    }
 
     // Compute vertices: walk the cycle and collect the endpoint that connects forward
     const vertices: Array<{ x: number; y: number }> = []
@@ -218,7 +234,10 @@ export function detectClosedLoops(walls: Wall[], tolerance = 0.01): WallLoop[] {
     }
 
     const area = Math.abs(shoelaceArea(vertices))
-    if (area < 0.1) continue
+    if (area < 0.1) {
+      for (const w of cycle) globalVisited.add(w.id)
+      continue
+    }
 
     loops.push({ walls: cycle, area, vertices })
 

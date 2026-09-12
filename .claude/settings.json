@@ -4,7 +4,17 @@
       "Bash(gh run *)",
       "Bash(git worktree list)",
       "Bash(git rev-list *)",
-      "ToolSearch"
+      "ToolSearch",
+      "mcp__axiom__queryDataset",
+      "mcp__axiom__listDatasets",
+      "mcp__axiom__getDatasetFields",
+      "mcp__steward__query_memories",
+      "mcp__steward__list_tasks",
+      "mcp__steward__get_locked_files",
+      "mcp__steward__list_error_traces",
+      "mcp__steward__specs_propose",
+      "mcp__steward__lock_file",
+      "mcp__steward__create_work"
     ]
   }
 }
