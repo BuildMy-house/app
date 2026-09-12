@@ -149,6 +149,9 @@ export class PlanEngine {
   private furnitureRotateDrag: { id: string } | null = null
   private wallArcDrag: { id: string } | null = null
   private activeLevelId: string | null = null
+  /** T12: rooms whose boundary loop dissolved (wall deleted/moved apart).
+   *  Stays in the model, flagged for a future cleanup ticket. */
+  private orphanedRoomIds = new Set<string>()
   private referenceOverlayEnabled = true
   private wallHeightCm = DEFAULT_WALL_HEIGHT_CM
   private wallThicknessCm = NEW_WALL_THICKNESS_CM
@@ -815,8 +818,15 @@ export class PlanEngine {
       throw new ModelError(`unsupported key ${JSON.stringify(key)}`)
     }
     if (key === 'delete' || key === 'backspace') {
-      const selection = this.homeSnapshot().selection
-      if (selection.length > 0) this.model.removeItems(selection)
+      const before = this.homeSnapshot()
+      const selection = before.selection
+      if (selection.length === 0) return
+      // T12: deleting a wall can dissolve its room's loop — route the removal
+      // through the same room-update path so orphaned rooms get flagged.
+      const wallIds = new Set(before.walls.map((w) => w.id))
+      const deletedWalls = selection.filter((id) => wallIds.has(id))
+      this.model.removeItems(selection)
+      this.updateRoomsAfterWallMove(before, deletedWalls)
       return
     }
     if (key !== 'escape') return
@@ -1136,14 +1146,26 @@ export class PlanEngine {
     movedWallIds: string[],
   ): void {
     if (movedWallIds.length === 0) return
-    const moved = new Set(movedWallIds)
+    // T12: cross-level isolation — ignore moved walls that don't belong to
+    // the active level so foreign-level selections can't rewrite its rooms.
+    const offLevel = movedWallIds.filter((id) => {
+      const w = before.walls.find((wall) => wall.id === id)
+      return w !== undefined && !this.matchesActiveLevel(w.levelRef)
+    })
+    for (const id of offLevel) {
+      const w = before.walls.find((wall) => wall.id === id)
+      console.warn(`T12: skipping wall ${id} on level ${w?.levelRef ?? '(none)'} — not on active level ${this.activeLevelId ?? '(none)'}`)
+    }
+    const moved = new Set(movedWallIds.filter((id) => !offLevel.includes(id)))
+    if (moved.size === 0) return
     const levelWalls = before.walls.filter((w) => this.matchesActiveLevel(w.levelRef))
     if (levelWalls.length < 3) return
 
-    const toDetector = (w: { id: string; xStart: number; yStart: number; xEnd: number; yEnd: number }) => ({
+    const toDetector = (w: { id: string; xStart: number; yStart: number; yEnd: number; xEnd: number; levelRef?: string | null }) => ({
       id: w.id,
       start: { x: w.xStart, y: w.yStart },
       end: { x: w.xEnd, y: w.yEnd },
+      levelRef: w.levelRef ?? null,
     })
 
     const preLoops = detectClosedLoops(levelWalls.map(toDetector))
@@ -1164,10 +1186,28 @@ export class PlanEngine {
         continue
       }
       const preIds = new Set(preLoop.walls.map((w) => w.id))
+      // T12: multi-level validation — the room must live on the same level as
+      // every wall in its boundary loop before we touch its polygon.
+      const levelMismatch = preLoop.walls.find((w) => {
+        const wall = before.walls.find((bw) => bw.id === w.id)
+        return wall !== undefined && (wall.levelRef ?? null) !== (room.levelRef ?? null)
+      })
+      if (levelMismatch) {
+        const wall = before.walls.find((bw) => bw.id === levelMismatch.id)
+        console.warn(`T12: level mismatch — room ${room.id} (${room.levelRef ?? 'none'}) vs wall ${levelMismatch.id} (${wall?.levelRef ?? 'none'}); skipping room update`)
+        continue
+      }
       const post = postLoops.find(
         (l) => l.walls.length === preIds.size && l.walls.every((w) => preIds.has(w.id)),
       )
-      if (!post) continue // loop dissolved — leave the room as-is
+      if (!post) {
+        // T12: the room's loop dissolved (wall deleted or moved apart). Keep
+        // the room in the model but mark it orphaned — cleanup is a later
+        // ticket; until then it's flagged here and in the undo-able log.
+        console.warn(`T12: room ${room.id} orphaned — its wall loop dissolved (walls: ${preLoop.walls.map((w) => w.id).join(', ')})`)
+        this.orphanedRoomIds.add(room.id)
+        continue
+      }
       const points = post.vertices.map((v) => [v.x, v.y] as [number, number])
       if (
         points.length < 3 ||

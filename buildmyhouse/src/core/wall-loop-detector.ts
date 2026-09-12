@@ -9,6 +9,8 @@ export interface Wall {
   id: string
   start: { x: number; y: number }
   end: { x: number; y: number }
+  /** Owning level id; null/undefined = unassigned. T12: walls only loop within their level. */
+  levelRef?: string | null
 }
 
 export interface WallLoop {
@@ -25,6 +27,24 @@ function dist2(
   const dx = a.x - b.x
   const dy = a.y - b.y
   return dx * dx + dy * dy
+}
+
+/** T12: two walls belong to the same level when their levelRefs match (null == null). */
+function sameLevel(
+  a: { levelRef?: string | null },
+  b: { levelRef?: string | null },
+): boolean {
+  return (a.levelRef ?? null) === (b.levelRef ?? null)
+}
+
+/** T12: true when both endpoint coords are finite — guards NaN/Infinity geometry. */
+function hasFiniteEndpoints(w: Wall): boolean {
+  return (
+    Number.isFinite(w.start.x) &&
+    Number.isFinite(w.start.y) &&
+    Number.isFinite(w.end.x) &&
+    Number.isFinite(w.end.y)
+  )
 }
 
 /** Check if two endpoints are within tolerance (squared comparison to avoid sqrt). */
@@ -76,6 +96,10 @@ function buildGraph(
     for (let j = i + 1; j < walls.length; j++) {
       const a = walls[i]!
       const b = walls[j]!
+
+      // T12: walls on different levels never connect — each level's loops
+      // stay isolated so multi-story rooms can't merge across floors.
+      if (!sameLevel(a, b)) continue
 
       // a.start ↔ b.start
       if (endpointsMatch(a.start, b.start, toleranceSq)) {
@@ -168,18 +192,22 @@ function walkCycle(
 export function detectClosedLoops(walls: Wall[], tolerance = 0.01): WallLoop[] {
   if (walls.length < 3) return []
 
+  // T12: drop walls with non-finite geometry up front — they can't form a
+  // valid vertex and would poison endpoint matching.
+  const sane = walls.filter(hasFiniteEndpoints)
+
   const toleranceSq = tolerance * tolerance
   const wallMap = new Map<string, Wall>()
-  for (const w of walls) {
+  for (const w of sane) {
     wallMap.set(w.id, w)
   }
 
-  const { neighbors, atEnd } = buildGraph(walls, toleranceSq)
+  const { neighbors, atEnd } = buildGraph(sane, toleranceSq)
 
   const globalVisited = new Set<string>()
   const loops: WallLoop[] = []
 
-  for (const wall of walls) {
+  for (const wall of sane) {
     if (globalVisited.has(wall.id)) continue
 
     // Attempt to walk a cycle from this wall
@@ -235,6 +263,13 @@ export function detectClosedLoops(walls: Wall[], tolerance = 0.01): WallLoop[] {
 
     const area = Math.abs(shoelaceArea(vertices))
     if (area < 0.1) {
+      for (const w of cycle) globalVisited.add(w.id)
+      continue
+    }
+
+    // T12: final guard — never return a loop whose vertices aren't finite
+    // (protects downstream polygon writers from NaN geometry).
+    if (vertices.some((v) => !Number.isFinite(v.x) || !Number.isFinite(v.y))) {
       for (const w of cycle) globalVisited.add(w.id)
       continue
     }
