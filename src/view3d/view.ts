@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { HomeModel } from '../core/model'
 import { HomeStore } from '../core/store'
-import { DEFAULT_WALL_HEIGHT_CM } from '../core/home'
+import { DEFAULT_WALL_HEIGHT_CM, type NormalizedHomeState } from '../core/home'
 import { CameraDirector, type CameraPatch, type CameraPresetName } from './cameras'
 import { buildScene, type ModelUrlResolver } from './scene'
 import { observeStore } from './watch'
@@ -14,6 +14,7 @@ import {
   type ViewportQuality,
 } from './viewport-quality'
 import { telemetry } from '../telemetry/logger'
+import { computeSceneUpdates, type SceneUpdate } from './scene-delta'
 
 export interface View3DOptions {
   /** DOM container; when absent the view stays a headless scene graph. */
@@ -69,6 +70,7 @@ export class View3D {
   private readonly pointerDown = { x: 0, y: 0 }
   private readonly isPlacing?: () => boolean
   private readonly onFloorClick?: (point: { x: number; y: number }) => void
+  private _lastHome: NormalizedHomeState | null = null
 
   constructor(
     private readonly store: HomeStore,
@@ -312,7 +314,24 @@ export class View3D {
     const key = [...home.selection].sort().join(',')
     const selectionChanged = key !== this._lastSelectionKey
     this._lastSelectionKey = key
-    this.rebuild()
+
+    // Compute what actually changed since the last render
+    const updates = computeSceneUpdates(this._lastHome, home)
+
+    // For now: if changes are simple (single object update), apply deltas.
+    // Otherwise fall back to full rebuild for safety.
+    const shouldDelta = updates.length === 1 && updates[0]?.type !== 'full-rebuild'
+
+    if (shouldDelta) {
+      // Future: Apply targeted updates here for performance.
+      // For now, still rebuild but we have the framework.
+      this.rebuild()
+    } else {
+      this.rebuild()
+    }
+
+    this._lastHome = { ...home } // Shallow copy for next frame
+
     if (selectionChanged && home.selection.length > 0) this.focusSelection()
   }
 
