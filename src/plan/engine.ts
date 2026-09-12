@@ -243,17 +243,34 @@ export class PlanEngine {
     dialog.open()
   }
 
+  /**
+   * T6: creation-time defaults applied to EVERY new room — all creation
+   * paths (loop dialog, double-click enclosure, wall-completion auto-floor,
+   * manual room tool) route through addRoom with these args, so this is the
+   * single injection point for preference-driven defaults (T5).
+   *
+   * Decision call: the ceiling *color* preference is NOT applied per-room —
+   * the Room model has no ceilingColor field (core/home.ts, core/model.ts and
+   * view3d/scene.ts hard-code DEFAULT_CEILING_COLOR are outside this task's
+   * engine.ts-only scope). The representable ceiling default — visibility —
+   * is applied; wire defaultCeilingColor in here once the model grows a
+   * ceilingColor field.
+   */
+  private roomDefaults(home: NormalizedHomeState) {
+    return {
+      floorColor: getDefaultFloorColor(home),
+      ceilingVisible: getDefaultCeilingVisibility(home),
+      levelRef: this.activeLevelId ?? undefined,
+    }
+  }
+
   /** Create a room from a detected wall loop. */
   createRoomFromLoop(loop: WallLoop): void {
     const home = this.homeSnapshot()
     this.model.getStore().beginCompoundEdit()
     this.model.addRoom(
       loop.vertices.map((p) => [p.x, p.y] as [number, number]),
-      {
-        floorColor: getDefaultFloorColor(home),
-        ceilingVisible: getDefaultCeilingVisibility(home),
-        levelRef: this.activeLevelId ?? undefined,
-      },
+      this.roomDefaults(home),
     )
     this.model.getStore().endCompoundEdit()
   }
@@ -923,11 +940,7 @@ export class PlanEngine {
         this.model.getStore().beginCompoundEdit()
         const room = this.model.addRoom(
           loop.map((p) => [p.x, p.y] as [number, number]),
-          {
-            floorColor: getDefaultFloorColor(home),
-            ceilingVisible: getDefaultCeilingVisibility(home),
-            levelRef: this.activeLevelId ?? undefined,
-          },
+          this.roomDefaults(home),
         )
         this.model.setSelection([room.id])
         this.model.getStore().endCompoundEdit()
@@ -1047,11 +1060,7 @@ export class PlanEngine {
 
       this.model.addRoom(
         vertices.map((v) => [v.x, v.y] as [number, number]),
-        {
-          floorColor: getDefaultFloorColor(home),
-          ceilingVisible: getDefaultCeilingVisibility(home),
-          levelRef: this.activeLevelId ?? undefined,
-        },
+        this.roomDefaults(home),
       )
     }
   }
@@ -1105,11 +1114,7 @@ export class PlanEngine {
     if (points.length < 3) return
     const home = this.homeSnapshot()
     this.model.getStore().beginCompoundEdit()
-    const room = this.model.addRoom(points, {
-      floorColor: getDefaultFloorColor(home),
-      ceilingVisible: getDefaultCeilingVisibility(home),
-      levelRef: this.activeLevelId ?? undefined,
-    })
+    const room = this.model.addRoom(points, this.roomDefaults(home))
     this.model.setSelection([room.id])
     this.model.getStore().endCompoundEdit()
   }
