@@ -44,10 +44,10 @@ Current active tickets (dispatched, awaiting completion):
 
 ---
 
-## Wave 2: Integration & UX (⏳ READY FOR DISPATCH)
+## Wave 2: Integration & UX (✅ COMPLETE)
 
 ### T2: PlanController Integration (Auto-Floor Room Creation)
-- **Status:** ⏳ **READY**
+- **Status:** ✅ **DONE**
 - **File:** `buildmyhouse/src/plan/engine.ts` (modify `createRoomsFromWalls`)
 - **Dependencies:** T1 ✅ Complete
 - **Scope:**
@@ -64,7 +64,7 @@ Current active tickets (dispatched, awaiting completion):
 - **Worker Profile:** TypeScript specialist (knows plan/engine logic)
 
 ### T3: Auto-Floor Confirmation Dialog (UX Flow)
-- **Status:** ⏳ **READY**
+- **Status:** ✅ **DONE**
 - **Files:** 
   - `buildmyhouse/src/ui/AutoFloorDialog.tsx` (NEW)
   - `buildmyhouse/src/plan/engine.ts` (modify state)
@@ -161,6 +161,19 @@ Use this checklist for each completed ticket before marking it `done`:
 - `3de065a` — feat: Phase 1 auto-floor core — WallLoopDetector + PlanController integration (original Java attempt, superseded)
 
 ---
+
+## Verification (Wave 2)
+
+- ✅ T2 diff reviewed: engine.ts integration correct (detectClosedLoops import, finalizeWallCompletion, openAutoFloorDialog flow)
+- ✅ T3 diff reviewed: AutoFloorDialog.ts created (follows prefs-overlay pattern), integrated in engine.ts
+- ✅ Unit tests pass: auto-floor.test.ts (9 tests), wall-loop-detector.test.ts (10 tests)
+- ✅ Lint check: No errors in T2/T3 code
+- ✅ Fixes applied:
+  - Guard AutoFloorDialog DOM access for Node test environment
+  - Fixed auto-floor.test.ts beforeEach/afterEach hooks
+  - Fixed E2E test API calls (getWalls → getStore().getHome().walls)
+- ⏳ E2E tests: Fixed, ready for re-run
+- Commits: 26c9fbf (DOM guard), 606dbee (E2E fix)
 
 ## Notes
 
