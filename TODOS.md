@@ -318,16 +318,33 @@ Support 50-100+ concurrent users on 2GB/2vCPU server. Current bottlenecks preven
   - Client: `TextureAtlas` can pack 20-30 textures into single 2048×2048 (vs individual downloads)
   - Expected: 12MB VRAM → 4-6MB (60% reduction with atlasing + compression)
 
-### P2-3: Hybrid Render Export System (Client + Server)
-- [ ] Add quick preview export (canvas `toBlob()`) to `View3D`
-- [ ] Create `buildmyhouse/src/export/hybrid-renderer.ts` (new file)
-- [ ] Implement export dialog: "Quick Preview" vs "Studio Render"
-- [ ] Backend: Add `/api/render/queue` endpoint for server-side renders
-- [ ] Implement render queue + job status polling
-- [ ] Optional: LuxCoreRender integration (existing in scene-builder.ts)
-- Files: `buildmyhouse/src/ui/`, `buildmyhouse/server/src/`
+### P2-3: Hybrid Render Export System (Client + Server) 🎯 READY
+- [ ] **Quick Preview (Client-Side, Instant)**
+  - [ ] Add `exportAsImage(): Promise<Blob>` to `View3D` (uses `renderer.domElement.toBlob()`)
+  - [ ] Generate PNG/JPG of current viewport instantly
+  - [ ] Cache thumbnails in browser IndexedDB (persist across sessions)
+  - [ ] No server cost, works offline
+
+- [ ] **Studio Render (Server-Side, Premium, Optional)**
+  - [ ] Create `buildmyhouse/src/export/hybrid-renderer.ts` (new file)
+  - [ ] Implement export dialog: "Quick Preview" (free) vs "Studio Render" (premium)
+  - [ ] Backend: Add `/api/render/queue` endpoint for queueing render jobs
+  - [ ] Job status polling: `/api/render/queue/:jobId`
+  - [ ] Optional: LuxCoreRender integration (existing in scene-builder.ts for photorealistic renders)
+  - [ ] Webhook/callback when render completes
+
+- [ ] **UX Integration**
+  - [ ] Add "Export" button to toolbar
+  - [ ] Dialog with two options: "Quick Preview" (progress bar), "Studio Render" (queue status)
+  - [ ] Download button for completed renders
+  - [ ] Show estimated wait time for studio renders
+
+- Files: `buildmyhouse/src/ui/`, `buildmyhouse/src/export/hybrid-renderer.ts` (new), `buildmyhouse/server/src/app.ts`
 - Estimated: 4-5 hours
-- **Current Status:** 🔲 READY (independent)
+- **Current Status:** 🔲 READY (independent, after Phase 2)
+- **User Impact:** 
+  - Free tier: instant PNG previews (zero server cost)
+  - Premium tier: photorealistic renders (optional revenue, server load managed via queue)
 
 ---
 
