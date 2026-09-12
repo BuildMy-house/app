@@ -33,6 +33,7 @@ export interface PlanRenderingContext {
   restore(): void
   globalCompositeOperation: GlobalCompositeOperation
   globalAlpha: number
+  measureText(text: string): { width: number }
   createPattern?(image: unknown, repetition: string): unknown
 }
 
@@ -42,6 +43,8 @@ const ROOM_FILL = 'rgba(170, 200, 235, 0.3)'
 const DIMENSION_COLOR = '#8a6d1a'
 const LABEL_COLOR = '#333333'
 const PREVIEW_COLOR = '#999999'
+const CLOSURE_PREVIEW_FILL = 'rgba(100, 180, 100, 0.18)'
+const CLOSURE_PREVIEW_STROKE = 'rgba(80, 160, 80, 0.7)'
 const FURNITURE_FILL = 'rgba(160, 160, 90, 0.5)'
 const ROTATION_HANDLE_OFFSET = 20
 const ROTATION_HANDLE_RADIUS = 5
@@ -696,6 +699,44 @@ export function drawPlan(
       ctx.stroke()
     }
     ctx.setLineDash([])
+  }
+
+  // Closure preview: semi-transparent room polygon when cursor is near a
+  // loop-closure endpoint during wall drawing.
+  if (preview && preview.closurePolygon && preview.closurePolygon.length >= 3) {
+    ctx.beginPath()
+    preview.closurePolygon.forEach((pt, index) => {
+      if (index === 0) ctx.moveTo(mapper.sx(pt.x), mapper.sy(pt.y))
+      else ctx.lineTo(mapper.sx(pt.x), mapper.sy(pt.y))
+    })
+    ctx.closePath()
+    ctx.fillStyle = CLOSURE_PREVIEW_FILL
+    ctx.fill()
+    ctx.setLineDash([6, 4])
+    ctx.strokeStyle = CLOSURE_PREVIEW_STROKE
+    ctx.lineWidth = 2
+    ctx.stroke()
+    ctx.setLineDash([])
+  }
+
+  // Closure tooltip rendered on canvas near the cursor position.
+  if (preview && preview.closureTooltip) {
+    const { text, x, y } = preview.closureTooltip
+    const px = mapper.sx(x)
+    const py = mapper.sy(y) - 16
+    ctx.font = '12px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'bottom'
+    // Background pill.
+    const metrics = ctx.measureText(text)
+    const tw = metrics.width + 12
+    const th = 20
+    ctx.fillStyle = 'rgba(40, 40, 40, 0.82)'
+    ctx.fillRect(px - tw / 2, py - th, tw, th)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(text, px, py - 4)
+    ctx.textAlign = 'start'
+    ctx.textBaseline = 'alphabetic'
   }
 
   // Room-tool preview: in-progress polygon outline + vertex dots.
