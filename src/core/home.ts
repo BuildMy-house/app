@@ -184,6 +184,13 @@ export interface EnvironmentState {
   groundTextureId?: string | null
 }
 
+export interface HomePreferences {
+  defaultFloorColor: number
+  defaultFloorShininess: number
+  defaultCeilingColor: number
+  defaultCeilingVisibility: boolean
+}
+
 /** Ground textures reuse the same PNG catalog as walls (SH3D parity). */
 export const GROUND_TEXTURES = WALL_TEXTURES
 
@@ -206,6 +213,7 @@ export interface NormalizedHomeState {
   cameras: CamerasState
   compass: CompassState
   environment: EnvironmentState
+  preferences?: HomePreferences
   activeTool: ActiveTool
   capabilities: CapabilitiesState
 }
@@ -272,6 +280,12 @@ export function createEmptyHome(timeZoneId?: string | null): NormalizedHomeState
       lightColor: 0xd0d0d0,
       wallsAlpha: 0,
     },
+    preferences: {
+      defaultFloorColor: 0xf0f0f0,
+      defaultFloorShininess: 0,
+      defaultCeilingColor: 0xffffff,
+      defaultCeilingVisibility: true,
+    },
     activeTool: null,
     capabilities: { canUndo: false, canRedo: false },
   }
@@ -284,4 +298,20 @@ export function createEmptyHome(timeZoneId?: string | null): NormalizedHomeState
 export function nextLevelElevation(levels: ReadonlyArray<Level>): number {
   if (levels.length === 0) return DEFAULT_WALL_HEIGHT_CM
   return Math.max(...levels.map((l) => l.elevation + l.height))
+}
+
+export function getDefaultFloorColor(home: NormalizedHomeState): number {
+  return home.preferences?.defaultFloorColor ?? 0xf0f0f0
+}
+
+export function getDefaultFloorShininess(home: NormalizedHomeState): number {
+  return home.preferences?.defaultFloorShininess ?? 0
+}
+
+export function getDefaultCeilingColor(home: NormalizedHomeState): number {
+  return home.preferences?.defaultCeilingColor ?? 0xffffff
+}
+
+export function getDefaultCeilingVisibility(home: NormalizedHomeState): boolean {
+  return home.preferences?.defaultCeilingVisibility ?? true
 }
