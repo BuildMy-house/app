@@ -4,8 +4,10 @@ import path from 'node:path';
 import { assetsRouter } from './assets.js';
 import { loginHandler, registerHandler, changePasswordHandler, requireAuth } from './auth.js';
 import { homesRouter } from './homes.js';
+import { teamsRouter } from './teams.js';
 import { initDb } from './db.js';
 import { AssetStorage } from './storage.js';
+import { renderQueue } from './render-queue.js';
 
 export function createApp(
   db: Database,
@@ -23,6 +25,67 @@ export function createApp(
   app.put('/api/auth/password', requireAuth, changePasswordHandler(db));
   app.use('/api/assets', assetsRouter(db, new AssetStorage(assetRoot)));
   app.use('/api/homes', homesRouter(db));
+  app.use('/api/teams', teamsRouter(db));
+
+  // Render queue API: enqueue studio/high-quality renders (optional premium feature)
+  app.post('/api/render/queue', requireAuth, (req, res) => {
+    const userId = (req as any).userId!
+    const { homeId, homeName, homeJson, quality } = (req.body ?? {}) as any
+
+    if (!homeId || !homeJson) {
+      res.status(400).json({ error: 'homeId and homeJson required' })
+      return
+    }
+
+    const jobId = renderQueue.enqueue(userId, homeId, homeName ?? 'Untitled', homeJson, quality ?? 'standard')
+    res.status(202).json({ jobId, status: 'queued' })
+  })
+
+  // Get render job status
+  app.get('/api/render/queue/:jobId', requireAuth, (req, res) => {
+    const userId = (req as any).userId!
+    const jobId = (req as any).params?.jobId
+    const job = renderQueue.getJob(jobId, userId)
+
+    if (!job) {
+      res.status(404).json({ error: 'job not found' })
+      return
+    }
+
+    res.json({
+      id: job.id,
+      status: job.status,
+      quality: job.quality,
+      createdAt: job.createdAt,
+      startedAt: job.startedAt,
+      completedAt: job.completedAt,
+      error: job.error,
+      resultPath: job.resultPath,
+    })
+  })
+
+  // List all render jobs for the authenticated user
+  app.get('/api/render/queue', requireAuth, (req, res) => {
+    const userId = (req as any).userId!
+    const jobs = renderQueue.getUserJobs(userId)
+
+    res.json({
+      jobs: jobs.map((j) => ({
+        id: j.id,
+        status: j.status,
+        quality: j.quality,
+        homeName: j.homeName,
+        createdAt: j.createdAt,
+        completedAt: j.completedAt,
+      })),
+    })
+  })
+
+  // Get queue status (estimated wait time, etc.)
+  app.get('/api/render/status', (_req, res) => {
+    const status = renderQueue.getStatus()
+    res.json(status)
+  })
 
   // Content negotiation for textures: serve WebP to modern browsers, PNG fallback.
   // Reduces transfer size by 40-60% without requiring pre-conversion.
