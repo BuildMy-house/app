@@ -3,6 +3,8 @@ import { ModelError, NEW_WALL_PATTERN_ID, NEW_WALL_THICKNESS_CM } from '../core/
 import { DEFAULT_WALL_HEIGHT_CM } from '../core/home'
 import type { NormalizedHomeState } from '../core/home'
 import { normalizeAngle } from '../core/export'
+import type { WallLoop } from '../core/wall-loop-detector'
+import { detectClosedLoops } from '../core/wall-loop-detector'
 import { pointWithAngleMagnetism, wallPointMagnetism } from './magnetism'
 import { snapFurniturePlacement } from './furniture-snap'
 import {
@@ -16,6 +18,7 @@ export const PLAN_SCALE = 1
 export const PIXEL_MARGIN = 4 * PLAN_SCALE
 export const WALL_ENDS_PIXEL_MARGIN = 2 * PLAN_SCALE
 const EPSILON = 1e-6
+const DEFAULT_FLOOR_COLOR = 0xc8c8c8
 const ENDPOINT_HIT_RADIUS = 10
 const CONNECTED_WALL_EPSILON = 0.1
 const ROTATION_HANDLE_OFFSET = 20
@@ -153,6 +156,10 @@ export class PlanEngine {
   private marqueeTo: Point | null = null
   private _marqueeActive = false
 
+  /** Auto-floor dialog state: shown when a closed wall loop is detected. */
+  private dialogOpen = false
+  private detectedLoop: WallLoop | null = null
+
   constructor(model: HomeModel) {
     this.model = model
   }
@@ -214,6 +221,81 @@ export class PlanEngine {
 
   isReferenceOverlayEnabled(): boolean {
     return this.referenceOverlayEnabled
+  }
+
+  /** Open the auto-floor confirmation dialog for a detected wall loop. */
+  openAutoFloorDialog(loop: WallLoop): void {
+    this.dialogOpen = true
+    this.detectedLoop = loop
+  }
+
+  /** Confirm auto-floor: trigger room creation and close the dialog. */
+  confirmAutoFloor(): void {
+    const loop = this.detectedLoop
+    this.dialogOpen = false
+    this.detectedLoop = null
+    // TODO(T2): call room creation logic here once T2 integrates it.
+    // For now the dialog flow is in place; room creation will be wired in T2.
+    if (loop) {
+      this.model.getStore().beginCompoundEdit()
+      this.model.addRoom(
+        loop.vertices.map((p) => [p.x, p.y] as [number, number]),
+        { levelRef: this.activeLevelId ?? undefined },
+      )
+      this.model.getStore().endCompoundEdit()
+    }
+  }
+
+  /** Cancel auto-floor: discard the detected loop and close the dialog. */
+  cancelAutoFloor(): void {
+    this.dialogOpen = false
+    this.detectedLoop = null
+  }
+
+  /** Whether the auto-floor dialog is currently open. */
+  isAutoFloorDialogOpen(): boolean {
+    return this.dialogOpen
+  }
+
+  /** Get the currently detected loop (if any). */
+  getDetectedLoop(): WallLoop | null {
+    return this.detectedLoop
+  }
+
+  /**
+   * Finalize wall completion: detect closed loops in the wall pattern.
+   * Called when wall editing ends. Returns detected loops for room creation (T3).
+   *
+   * @param walls - Walls from the home model (with xStart/yStart/xEnd/yEnd)
+   * @param activeLevelId - Optional level filter (null = all levels)
+   * @returns Array of detected closed loops (empty if none or invalid input)
+   */
+  finalizeWallCompletion(
+    walls: Array<{
+      id: string
+      xStart: number
+      yStart: number
+      xEnd: number
+      yEnd: number
+      levelRef?: string | null
+    }>,
+    activeLevelId?: string | null,
+  ): WallLoop[] {
+    if (!walls || walls.length < 3) return []
+
+    const filtered = activeLevelId != null
+      ? walls.filter((w) => (w.levelRef ?? null) === activeLevelId)
+      : walls
+
+    if (filtered.length < 3) return []
+
+    const detectorWalls = filtered.map((w) => ({
+      id: w.id,
+      start: { x: w.xStart, y: w.yStart },
+      end: { x: w.xEnd, y: w.yEnd },
+    }))
+
+    return detectClosedLoops(detectorWalls)
   }
 
   /** Resolve the overlay toggle from a persisted preference. Missing or
@@ -810,7 +892,11 @@ export class PlanEngine {
 
   /**
    * Seals the drawing session as ONE compound undo edit and selects its walls
-   * (SH3D PlanController.java:10912); rooms come ONLY from the room tool.
+   * (SH3D PlanController.java:10912).
+   *
+   * After finalizing, checks for closed wall loops and opens the auto-floor
+   * confirmation dialog if one is found. Room creation is gated on user
+   * confirmation via confirmAutoFloor().
    */
   private validateDrawnWalls(): void {
     const ids = this.chainIds
@@ -822,6 +908,96 @@ export class PlanEngine {
       this.model.getStore().endCompoundEdit()
       this.sessionOpen = false
     }
+
+    if (ids.length >= 3) {
+      const loop = this.findClosedLoopFromFinalized(ids)
+      if (loop) {
+        this.openAutoFloorDialog(loop)
+      }
+    }
+  }
+
+  /**
+   * After wall finalization, detect closed loops using WallLoopDetector and
+   * return the smallest one that encloses the midpoint of the last wall drawn.
+   * Returns null if no valid loop is found.
+   */
+  private findClosedLoopFromFinalized(wallIds: string[]): WallLoop | null {
+    const home = this.homeSnapshot()
+    const levelWalls = home.walls.filter(
+      (w) => this.matchesActiveLevel(w.levelRef),
+    )
+    if (levelWalls.length < 3) return null
+
+    const detectorWalls = levelWalls.map((w) => ({
+      id: w.id,
+      start: { x: w.xStart, y: w.yStart },
+      end: { x: w.xEnd, y: w.yEnd },
+    }))
+
+    const loops = detectClosedLoops(detectorWalls)
+    if (loops.length === 0) return null
+
+    const lastWallId = wallIds[wallIds.length - 1]
+    const lastWall = home.walls.find((w) => w.id === lastWallId)
+    if (!lastWall) return loops[0] ?? null
+    const testPoint: Point = {
+      x: (lastWall.xStart + lastWall.xEnd) / 2,
+      y: (lastWall.yStart + lastWall.yEnd) / 2,
+    }
+
+    let best: WallLoop | null = null
+    for (const loop of loops) {
+      if (loop.vertices.length < 3) continue
+      if (this.pointInPolygon(testPoint, loop.vertices.map((p) => [p.x, p.y] as [number, number]))) {
+        if (!best || loop.area < best.area) {
+          best = loop
+        }
+      }
+    }
+
+    return best ?? loops.reduce((a, b) => (a.area < b.area ? a : b))
+  }
+
+  /**
+   * Detect closed wall loops and auto-create rooms for each.
+   * Called inside the compound edit session so undo removes auto-created rooms.
+   */
+  private createRoomsFromWalls(): void {
+    const home = this.homeSnapshot()
+    const loops = this.finalizeWallCompletion(home.walls, this.activeLevelId)
+
+    for (const loop of loops) {
+      const vertices = loop.vertices
+      if (!vertices || vertices.length < 3) continue
+
+      if (this.hasDuplicateRoom(vertices, home)) continue
+
+      this.model.addRoom(
+        vertices.map((v) => [v.x, v.y] as [number, number]),
+        { floorColor: DEFAULT_FLOOR_COLOR, levelRef: this.activeLevelId ?? undefined },
+      )
+    }
+  }
+
+  /** Check if a polygon with the given vertices already exists as a room. */
+  private hasDuplicateRoom(
+    vertices: Array<{ x: number; y: number }>,
+    home: NormalizedHomeState,
+  ): boolean {
+    for (const room of home.rooms) {
+      if (!this.matchesActiveLevel(room.levelRef)) continue
+      if (room.points.length !== vertices.length) continue
+      let match = true
+      for (const v of vertices) {
+        const found = room.points.some(
+          (p) => Math.abs(p[0] - v.x) < EPSILON && Math.abs(p[1] - v.y) < EPSILON,
+        )
+        if (!found) { match = false; break }
+      }
+      if (match) return true
+    }
+    return false
   }
 
   // ── Room tool ─────────────────────────────────────────────────────────────
