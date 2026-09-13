@@ -462,6 +462,13 @@ function furnitureMesh(item: Furniture, elevation: number, onReady?: () => void,
     roughness: 0.7,
     metalness: 0.0,
   })
+  if (item.textureId) {
+    const tex = loadWallTexture(item.textureId)
+    if (tex) {
+      material.map = tex
+      material.needsUpdate = true
+    }
+  }
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = `furniture:${item.id}`
   mesh.position.set(item.x, elevation + item.elevation + item.height / 2, item.y)
@@ -506,7 +513,8 @@ function addFurnitureMeshes(
         it.width === first.width &&
         it.height === first.height &&
         it.depth === first.depth &&
-        effectiveColor(it) === effectiveColor(first),
+        effectiveColor(it) === effectiveColor(first) &&
+        (it.textureId ?? null) === (first.textureId ?? null),
     )
     if (!canInstance) continue
     // createInstancedMesh places instance origins at the floor (level +
@@ -519,6 +527,13 @@ function addFurnitureMeshes(
       roughness: 0.7,
       metalness: 0.0,
     })
+    if (first.textureId) {
+      const tex = loadWallTexture(first.textureId)
+      if (tex) {
+        material.map = tex
+        material.needsUpdate = true
+      }
+    }
     const mesh = createInstancedMesh(
       { modelPath: group.modelPath, color: group.color, items: candidates },
       geometry,

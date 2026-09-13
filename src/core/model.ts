@@ -101,6 +101,13 @@ function validatePatch(key: CollectionKey, patch: Record<string, unknown>): void
         assert(Array.isArray(patch.modelRotationDeg), 'modelRotationDeg must be an array')
         for (const entry of patch.modelRotationDeg) requireFinite(entry, 'modelRotationDeg entry')
       }
+      if (patch.textureId !== undefined && patch.textureId !== null) {
+        const validTextureIds = new Set(WALL_TEXTURES.map((t) => t.id))
+        assert(
+          typeof patch.textureId === 'string' && validTextureIds.has(patch.textureId),
+          'textureId must be a known texture id or null',
+        )
+      }
       break
     }
     case 'dimensionLines': {
@@ -352,6 +359,13 @@ export class HomeModel {
     requireMinimum(input.width, 'width', 0.1)
     requireMinimum(input.depth, 'depth', 0.1)
     requireMinimum(input.height, 'height', 0.1)
+    if (input.textureId !== undefined && input.textureId !== null) {
+      const validTextureIds = new Set(WALL_TEXTURES.map((t) => t.id))
+      assert(
+        typeof input.textureId === 'string' && validTextureIds.has(input.textureId),
+        'textureId must be a known texture id or null',
+      )
+    }
     const normalizedInput = { ...input, angleDeg: normalizeAngle(input.angleDeg) }
     let created!: Furniture
     this.store.apply((h) => {
@@ -360,6 +374,7 @@ export class HomeModel {
         pitchDeg: 0,
         rollDeg: 0,
         color: null,
+        textureId: null,
         visible: true,
         movable: true,
         doorOrWindow: false,
