@@ -3,6 +3,22 @@ import { buildRenderableScene } from '../scene-builder'
 import { createEmptyHome } from '../../core/home'
 
 describe('buildRenderableScene', () => {
+  it('exports roof panels as renderable 3D primitives with overhang', () => {
+    const home = createEmptyHome()
+    home.roofs.push({
+      id: 'roof-1', points: [[0, 0], [400, 0], [400, 200], [0, 200]],
+      style: 'gable', pitchDeg: 30, overhangCm: 20,
+    })
+
+    const { scene } = buildRenderableScene(home)
+    const roof = scene.objects.find((object) => object.id === 'roof:roof-1')!
+    expect(roof.primitives).toHaveLength(2)
+    expect(roof.primitives.every((primitive) => primitive.type === 'box')).toBe(true)
+    expect(roof.visible.luxcore).toBe(true)
+    const first = roof.primitives[0]!
+    expect(first.type).toBe('box')
+    if (first.type === 'box') expect(first.size[0]).toBe(440)
+  })
   it('returns valid scene for empty home', () => {
     const home = createEmptyHome()
     const { scene } = buildRenderableScene(home)
