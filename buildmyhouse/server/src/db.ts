@@ -16,6 +16,7 @@ export interface UserRow {
   id: string;
   email: string;
   password_hash: string;
+  name: string | null;
   created_at: string;
 }
 
@@ -177,6 +178,14 @@ export class PgAdapter implements DbAdapter {
     if (rows.length === 0) {
       await this.q('ALTER TABLE homes ADD COLUMN team_id TEXT');
     }
+    // Migration: add name to users if missing
+    const nameCol = await this.q(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'users' AND column_name = 'name'`,
+    );
+    if (nameCol.rows.length === 0) {
+      await this.q('ALTER TABLE users ADD COLUMN name TEXT');
+    }
   }
 
   private async runUpsert(sql: string, params: unknown[]): Promise<RunResult> {
@@ -311,6 +320,11 @@ export function initDb(db: Database.Database): void {
   const cols = db.pragma('table_info(homes)') as { name: string }[];
   if (!cols.some((c) => c.name === 'team_id')) {
     db.exec('ALTER TABLE homes ADD COLUMN team_id TEXT');
+  }
+  // Guarded migration: add name to users if missing (existing rows get NULL).
+  const userCols = db.pragma('table_info(users)') as { name: string }[];
+  if (!userCols.some((c) => c.name === 'name')) {
+    db.exec('ALTER TABLE users ADD COLUMN name TEXT');
   }
 }
 

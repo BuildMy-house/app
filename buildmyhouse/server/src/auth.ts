@@ -6,6 +6,7 @@ import { asyncHandler } from './asyncHandler.js';
 import { getJwtSecret } from './config.js';
 import { sendEmail, getAppBaseUrl } from './email.js';
 import type { DbAdapter, UserRow } from './db.js';
+import type { AssetStorage } from './storage.js';
 
 declare global {
   namespace Express {
@@ -181,6 +182,7 @@ export function registerHandler(db: DbAdapter) {
       id: randomUUID(),
       email: valid.email,
       password_hash: bcrypt.hashSync(valid.password, 10),
+      name: null,
       created_at: new Date().toISOString(),
     };
     try {
@@ -297,7 +299,7 @@ export function meHandler(db: DbAdapter) {
       res.status(404).json({ error: 'user not found' });
       return;
     }
-    res.json({ id: user.id, email: user.email, createdAt: user.created_at });
+    res.json({ id: user.id, email: user.email, name: user.name ?? null, createdAt: user.created_at });
   });
 }
 
@@ -427,5 +429,172 @@ export function magicLinkConsumeHandler(db: DbAdapter) {
       return;
     }
     res.json({ token: signToken(user.id) });
+  });
+}
+
+export function updateNameHandler(db: DbAdapter) {
+  return asyncHandler(async (req: Request, res: Response) => {
+    const raw = req.body?.name;
+    if (raw === undefined) {
+      res.status(400).json({ error: 'name is required (string 1-100 chars, or null/empty to clear)' });
+      return;
+    }
+    if (raw === null || raw === '') {
+      await db.run('UPDATE users SET name = NULL WHERE id = ?', req.userId!);
+      res.json({ ok: true, name: null });
+      return;
+    }
+    if (typeof raw !== 'string') {
+      res.status(400).json({ error: 'name must be a string or null' });
+      return;
+    }
+    const name = raw.trim();
+    if (name.length < 1 || name.length > 100) {
+      res.status(400).json({ error: 'name must be 1-100 characters' });
+      return;
+    }
+    await db.run('UPDATE users SET name = ? WHERE id = ?', name, req.userId!);
+    res.json({ ok: true, name });
+  });
+}
+
+export function changeEmailHandler(db: DbAdapter) {
+  return asyncHandler(async (req: Request, res: Response) => {
+    const { currentPassword, newEmail } = req.body ?? {};
+    if (typeof currentPassword !== 'string' || !currentPassword) {
+      res.status(400).json({ error: 'currentPassword is required' });
+      return;
+    }
+    const email = normalizeEmail(newEmail);
+    if (!EMAIL_RE.test(email)) {
+      res.status(400).json({ error: 'newEmail must be a valid email address' });
+      return;
+    }
+
+    const user = await db.get<UserRow>('SELECT * FROM users WHERE id = ?', req.userId!);
+    if (!user || !bcrypt.compareSync(currentPassword, user.password_hash)) {
+      res.status(401).json({ error: 'current password is incorrect' });
+      return;
+    }
+
+    if (email !== user.email) {
+      const existing = await db.get<{ id: string }>('SELECT id FROM users WHERE email = ?', email);
+      if (existing && existing.id !== user.id) {
+        res.status(409).json({ error: 'email already registered' });
+        return;
+      }
+    }
+
+    // Scope decision: no re-verification of the new address — this system has no
+    // email-verification flow anywhere (registration itself is unverified), so
+    // the change is immediate for consistency. Revisit if verification is added.
+    try {
+      await db.run('UPDATE users SET email = ? WHERE id = ?', email, req.userId!);
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        res.status(409).json({ error: 'email already registered' });
+        return;
+      }
+      throw err;
+    }
+    res.json({ ok: true, email });
+  });
+}
+
+// Thrown inside the deletion transaction to abort with 400 before anything
+// destructive has happened (the transaction rolls back — nothing was deleted).
+class SoleOwnerError extends Error {}
+
+export function deleteAccountHandler(db: DbAdapter, storage: AssetStorage) {
+  return asyncHandler(async (req: Request, res: Response) => {
+    const password = req.body?.password;
+    if (typeof password !== 'string' || !password) {
+      res.status(400).json({ error: 'password is required' });
+      return;
+    }
+    const user = await db.get<UserRow>('SELECT * FROM users WHERE id = ?', req.userId!);
+    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+      res.status(401).json({ error: 'password is incorrect' });
+      return;
+    }
+
+    try {
+      await db.transaction(async (tx) => {
+        const memberships = await tx.all<{ team_id: string; role: string; name: string }>(
+          `SELECT tm.team_id, tm.role, t.name
+           FROM team_members tm JOIN teams t ON t.id = tm.team_id
+           WHERE tm.user_id = ?`,
+          req.userId!,
+        );
+
+        // Pass 1 — check ALL teams before any destructive change: a sole owner
+        // of a team that still has other members cannot leave it behind.
+        for (const m of memberships) {
+          if (m.role !== 'owner') continue;
+          const counts = await tx.get<{ owners: number; total: number }>(
+            `SELECT SUM(CASE WHEN role = 'owner' THEN 1 ELSE 0 END) AS owners, COUNT(*) AS total
+             FROM team_members WHERE team_id = ?`,
+            m.team_id,
+          );
+          if (counts && counts.owners === 1 && counts.total > 1) {
+            throw new SoleOwnerError(
+              `you are the sole owner of team "${m.name}" — transfer ownership or remove its other members before deleting your account`,
+            );
+          }
+        }
+
+        // Pass 2 — team cascade. Sole owner AND sole member: the team dies with
+        // the user (no one could ever access its homes again), so delete it with
+        // its invites and team-owned homes rather than orphaning dangling rows.
+        // Otherwise (co-owner exists, or plain member) just remove membership.
+        for (const m of memberships) {
+          const counts = await tx.get<{ owners: number; total: number }>(
+            `SELECT SUM(CASE WHEN role = 'owner' THEN 1 ELSE 0 END) AS owners, COUNT(*) AS total
+             FROM team_members WHERE team_id = ?`,
+            m.team_id,
+          );
+          if (counts && counts.owners === 1 && counts.total === 1) {
+            await tx.run('DELETE FROM team_members WHERE team_id = ?', m.team_id);
+            await tx.run('DELETE FROM team_invites WHERE team_id = ?', m.team_id);
+            await tx.run('DELETE FROM homes WHERE team_id = ?', m.team_id);
+            await tx.run('DELETE FROM teams WHERE id = ?', m.team_id);
+          } else {
+            await tx.run('DELETE FROM team_members WHERE team_id = ? AND user_id = ?', m.team_id, req.userId!);
+          }
+        }
+
+        // Personal homes.
+        await tx.run('DELETE FROM homes WHERE owner_user_id = ? AND team_id IS NULL', req.userId!);
+
+        // Assets: DB rows + on-disk blobs, mirroring assets.ts's delete handler.
+        const assets = await tx.all<{ id: string; glb_path: string; source_path: string | null }>(
+          'SELECT id, glb_path, source_path FROM assets WHERE user_id = ?',
+          req.userId!,
+        );
+        for (const a of assets) {
+          storage.remove(req.userId!, a.glb_path.split('/').pop() ?? '');
+          if (a.source_path) storage.remove(req.userId!, a.source_path.split('/').pop() ?? '');
+        }
+        await tx.run('DELETE FROM assets WHERE user_id = ?', req.userId!);
+
+        // Hygiene: tokens/invites referencing an id/email about to stop existing.
+        await tx.run('DELETE FROM password_reset_tokens WHERE user_id = ?', req.userId!);
+        await tx.run('DELETE FROM magic_link_tokens WHERE email = ?', user.email);
+        await tx.run('DELETE FROM team_invites WHERE invited_by_user_id = ?', req.userId!);
+
+        // NOTE: JWTs issued before deletion stay cryptographically valid until
+        // their 7-day expiry (inherent to stateless JWTs, not exploitable —
+        // every DB lookup for this user 404s). Accepted limitation, out of scope.
+        await tx.run('DELETE FROM users WHERE id = ?', req.userId!);
+      });
+    } catch (err) {
+      if (err instanceof SoleOwnerError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
+
+    res.json({ ok: true });
   });
 }
