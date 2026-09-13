@@ -32,6 +32,10 @@ export interface CatalogPanelOptions {
   /** Called when the user clicks "Import model…". Implementations open a
    *  file dialog, read a .glb, and refresh the catalog. */
   onImportModel?: () => void
+  /** Maps a catalog item's modelPath to a fetchable URL. Defaults to
+   *  `assets/<path>`; main.ts maps user blob keys to blob URLs so imported
+   *  models get real thumbnails instead of the flat swatch fallback. */
+  modelUrlResolver?: (modelPath: string) => string
 }
 
 const CATEGORY_ORDER = [
@@ -52,6 +56,7 @@ export class CatalogPanel {
   private readonly onPlace: (item: CatalogItem, x: number, y: number, angleDeg: number) => string
   private readonly onPlaceModeChange?: (active: boolean) => void
   private readonly onImportModel?: () => void
+  private readonly modelUrlResolver: (modelPath: string) => string
 
   private root: HTMLDivElement
   private searchInput: HTMLInputElement
@@ -68,6 +73,7 @@ export class CatalogPanel {
     this.onPlace = options.onPlace
     this.onPlaceModeChange = options.onPlaceModeChange
     this.onImportModel = options.onImportModel
+    this.modelUrlResolver = options.modelUrlResolver ?? ((modelPath) => `assets/${modelPath}`)
 
     this.root = document.createElement('div')
     this.root.className = 'catalog-panel'
@@ -255,10 +261,11 @@ export class CatalogPanel {
       swatch.className = 'catalog-swatch'
       swatch.width = 96
       swatch.height = 72
-      swatch.dataset.modelUrl = item.modelPath ? `assets/${item.modelPath}` : ''
       // Kick off the thumbnail render; falls back to a color swatch.
       if (item.modelPath) {
-        renderModelThumbnail(swatch, `assets/${item.modelPath}`, item.color)
+        const url = this.modelUrlResolver(item.modelPath)
+        swatch.dataset.modelUrl = url
+        renderModelThumbnail(swatch, url, item.color)
       } else {
         const ctx2d = swatch.getContext('2d')
         if (ctx2d) {

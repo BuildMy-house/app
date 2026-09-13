@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js'
 import {
   DEFAULT_WALL_HEIGHT_CM,
   WALL_TEXTURES,
@@ -13,6 +14,7 @@ import {
 import { isArcWall, wallOutlinePoints } from '../core/top-camera-follower'
 import { createInstancedMesh, groupFurnitureForInstancing } from './instanced-meshes'
 import { recordModelLoad, recordTextureLoad } from './asset-metrics'
+import { loadViewportQuality } from './viewport-quality'
 
 type Pt = [number, number]
 
@@ -288,11 +290,66 @@ export function ceilingMesh(room: Room, elevation: number, levels: Level[]): THR
   return mesh
 }
 
+// ── GLTF/KTX2 loader wiring (MAT-T3) ────────────────────────────────────────
+//
+// Every GLTFLoader site (scene model loader, catalog thumbnails, import
+// validation) shares one KTX2Loader. Compressed-texture support is a
+// browser/GPU property, so a single detectSupport() pass serves all contexts;
+// when no live renderer is supplied, detection runs against a throwaway
+// offscreen context instead of being skipped (KTX2Loader.parse throws without
+// it, which used to reject valid KTX2 GLBs at import validation).
+
+let ktx2Loader: KTX2Loader | null = null
+let ktx2SupportDetected = false
+
+function ensureKtx2Loader(renderer?: THREE.WebGLRenderer): KTX2Loader {
+  if (!ktx2Loader) {
+    // Served from tracked assets/ → gitignored public/assets/ via
+    // `npm run assets` (same sync convention as textures/models).
+    ktx2Loader = new KTX2Loader().setTranscoderPath('assets/basis/')
+  }
+  if (!ktx2SupportDetected) {
+    try {
+      const target = renderer ?? createOffscreenRenderer()
+      try {
+        ktx2Loader.detectSupport(target)
+      } finally {
+        // Dispose only the throwaway context — never the caller's renderer.
+        if (!renderer) target.dispose()
+      }
+      ktx2SupportDetected = true
+    } catch {
+      // No WebGL (node/jsdom tests): KTX2 content will fail to decode; plain
+      // GLBs keep working.
+    }
+  }
+  return ktx2Loader
+}
+
+function createOffscreenRenderer(): THREE.WebGLRenderer {
+  return new THREE.WebGLRenderer()
+}
+
+/**
+ * Wire a GLTFLoader with the shared KTX2 compressed-texture loader. Pass a
+ * renderer when one is available (thumbnail/view renderer); otherwise
+ * detection falls back to an offscreen context. Idempotent and safe in
+ * non-WebGL environments.
+ */
+export function configureGltfLoader(loader: GLTFLoader, renderer?: THREE.WebGLRenderer): GLTFLoader {
+  try {
+    loader.setKTX2Loader(ensureKtx2Loader(renderer))
+  } catch {
+    // KTX2 unavailable here; uncompressed GLBs still load.
+  }
+  return loader
+}
+
 /** Shared GLTFLoader instance (lazy so the import cost is paid only when used). */
 let sharedModelLoader: GLTFLoader | null = null
 
 function modelLoader(): GLTFLoader {
-  if (!sharedModelLoader) sharedModelLoader = new GLTFLoader()
+  if (!sharedModelLoader) sharedModelLoader = configureGltfLoader(new GLTFLoader())
   return sharedModelLoader
 }
 
@@ -341,6 +398,33 @@ const textureCache = new Map<string, THREE.Texture | null>()
 const textureLoader = new THREE.TextureLoader()
 
 /**
+ * Apply the persisted viewport-quality anisotropy (1–16 per tier) to a
+ * texture. The setting existed in viewport-quality.ts but was never assigned
+ * to any texture object (MAT-T3 gap) — this closes it. Anisotropy changes
+ * require a re-upload, so set needsUpdate only when the value actually
+ * changed. WebGL clamps to the GPU max at upload time.
+ */
+function applyAnisotropy(tex: THREE.Texture): void {
+  try {
+    const max = loadViewportQuality().maxAnisotropy
+    if (tex.anisotropy !== max) {
+      tex.anisotropy = max
+      tex.needsUpdate = true
+    }
+  } catch {
+    // No storage (headless/node tests): leave the default.
+  }
+}
+
+/** Apply the quality anisotropy to every map on a material (model loading). */
+function applyAnisotropyToMaterial(material: THREE.Material): void {
+  const m = material as THREE.MeshStandardMaterial
+  for (const tex of [m.map, m.normalMap, m.roughnessMap, m.metalnessMap, m.aoMap, m.emissiveMap]) {
+    if (tex) applyAnisotropy(tex)
+  }
+}
+
+/**
  * Load one texture file (cached by URL). `colorSpace` must be sRGB for the
  * diffuse/base-color map only — normal/roughness/metalness/AO maps are data
  * and must stay linear (NoColorSpace), a classic PBR correctness detail.
@@ -350,6 +434,9 @@ function loadTextureFile(file: string, colorSpace: THREE.ColorSpace): THREE.Text
   const cached = textureCache.get(url)
   if (cached !== undefined) {
     if (cached) recordTextureLoad(file, cached, 0, true, url)
+    // Quality presets can change between rebuilds; re-check the cached texel
+    // filter instead of caching a stale anisotropy forever.
+    if (cached) applyAnisotropy(cached)
     return cached
   }
   let tex: THREE.Texture | null = null
@@ -362,6 +449,10 @@ function loadTextureFile(file: string, colorSpace: THREE.ColorSpace): THREE.Text
     tex.wrapS = THREE.RepeatWrapping
     tex.wrapT = THREE.RepeatWrapping
     tex.colorSpace = colorSpace
+    // generateMipmaps/minFilter keep three.js defaults (true /
+    // LinearMipmapLinearFilter) — mipmap quality is deliberate, audited in
+    // MAT-T3; do not disable either.
+    applyAnisotropy(tex)
   } catch {
     tex = null
   }
@@ -509,9 +600,13 @@ function swapInModel(mesh: THREE.Mesh, item: Furniture, isSelected: boolean, onR
     model.traverse((o) => {
       const m = o as THREE.Mesh
       if (m.isMesh) {
-        m.material = Array.isArray(m.material)
-          ? m.material.map((mat) => mat.clone())
-          : m.material.clone()
+        if (Array.isArray(m.material)) {
+          m.material.forEach(applyAnisotropyToMaterial)
+          m.material = m.material.map((mat) => mat.clone())
+        } else {
+          applyAnisotropyToMaterial(m.material)
+          m.material = m.material.clone()
+        }
       }
       o.userData.shared = true
     })
