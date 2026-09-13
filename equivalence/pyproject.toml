@@ -12,7 +12,7 @@ dependencies = [
     "jsonschema>=4",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = ["pytest>=8", "ruff>=0.4"]
 
 [project.scripts]

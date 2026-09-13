@@ -267,3 +267,85 @@ describe('AssetStorage defense-in-depth (layer 2, independent of HTTP)', () => {
     expect(walkFiles(assetRoot).sort()).toEqual(['user-1/asset-1.glb', 'user-1/asset-1.source']);
   });
 });
+
+describe('H17 path-traversal regression (POST /api/assets/:userId)', () => {
+  it('rejects a ../ record.id targeting another user\'s asset file, leaving the victim\'s file byte-identical', async () => {
+    const victimToken = await register('victim@example.com');
+    const victimId = jwt.verify(victimToken, getJwtSecret()).sub as string;
+    const attackerToken = await register('attacker@example.com');
+    const attackerId = jwt.verify(attackerToken, getJwtSecret()).sub as string;
+
+    const victimGlb = glbPayload(32);
+    await request(app)
+      .post(`/api/assets/${victimId}`)
+      .set('Authorization', `Bearer ${victimToken}`)
+      .send({ record: record({ id: 'victim-asset' }), glb: b64(victimGlb) });
+
+    const victimFile = join(assetRoot, victimId, 'victim-asset.glb');
+    expect(readFileSync(victimFile)).toEqual(victimGlb);
+
+    // Exact exploit shape: traversal id cancels the attacker's own directory
+    // segment and resolves onto the victim's stored file path.
+    const res = await request(app)
+      .post(`/api/assets/${attackerId}`)
+      .set('Authorization', `Bearer ${attackerToken}`)
+      .send({
+        record: record({ id: `../${victimId}/victim-asset` }),
+        glb: b64(glbPayload(64)),
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('invalid asset id');
+
+    // Filesystem proof: victim's content unchanged, and the rejected upload
+    // created nothing — not even the attacker's own directory.
+    expect(readFileSync(victimFile)).toEqual(victimGlb);
+    expect(readdirSync(assetRoot)).toEqual([victimId]);
+    expect(existsSync(join(assetRoot, attackerId))).toBe(false);
+  });
+
+  it('rejects other traversal/unsafe id shapes with 400', async () => {
+    const token = await register('dora@example.com');
+    const myId = jwt.verify(token, getJwtSecret()).sub as string;
+
+    for (const badId of ['..', 'a/b', 'a\\b', '.', 'id with space', 'id.dot', 'a'.repeat(129), '']) {
+      const res = await request(app)
+        .post(`/api/assets/${myId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ record: record({ id: badId }), glb: b64(glbPayload()) });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('invalid asset id');
+    }
+  });
+});
+
+describe('AssetStorage defense-in-depth (layer 2 works independently)', () => {
+  it('save/read/remove throw on traversal fileName and write nothing', () => {
+    const storage = new AssetStorage(assetRoot);
+    for (const bad of ['../evil.glb', 'a/../b.glb', '/etc/passwd', '.glb', 'x.glb.source', 'x.txt', 'x'.repeat(129) + '.glb']) {
+      expect(() => storage.save('u1', bad, Buffer.from('x')), bad).toThrow();
+      expect(() => storage.read('u1', bad), bad).toThrow();
+      expect(() => storage.remove('u1', bad), bad).toThrow();
+    }
+    expect(existsSync(join(assetRoot, 'u1'))).toBe(false);
+  });
+
+  it('throws on traversal userId', () => {
+    const storage = new AssetStorage(assetRoot);
+    expect(() => storage.save('../victim', 'x.glb', Buffer.from('x'))).toThrow();
+    expect(() => storage.read('../victim', 'x.glb')).toThrow();
+    expect(() => storage.remove('../victim', 'x.glb')).toThrow();
+    expect(existsSync(join(assetRoot, 'victim'))).toBe(false);
+  });
+
+  it('accepts legitimate <id>.glb / <id>.source names (account-deletion path)', () => {
+    const storage = new AssetStorage(assetRoot);
+    const path = storage.save('u-1', 'asset-1.glb', Buffer.from('glbbytes'));
+    expect(path).toBe(join(assetRoot, 'u-1', 'asset-1.glb'));
+    storage.save('u-1', 'asset-1.source', Buffer.from('src'));
+    expect(storage.read('u-1', 'asset-1.glb')).toEqual(Buffer.from('glbbytes'));
+    storage.remove('u-1', 'asset-1.source');
+    expect(existsSync(join(assetRoot, 'u-1', 'asset-1.source'))).toBe(false);
+    expect(storage.read('u-1', 'asset-1.source')).toBeUndefined();
+  });
+});

@@ -5,6 +5,7 @@ import { asyncHandler } from './asyncHandler.js';
 import { requireAuth } from './auth.js';
 import { getAppBaseUrl, sendEmail } from './email.js';
 import type { DbAdapter } from './db.js';
+import { TEAMS_RATE_LIMIT, makeUserRateLimiter } from './rateLimit.js';
 
 interface TeamRow {
   id: string;
@@ -73,6 +74,10 @@ export function teamsRouter(db: DbAdapter): Router {
   );
 
   router.use(requireAuth);
+
+  // Per-user limiter, registered after requireAuth so req.userId is always
+  // set (and so the public invite-preview route above keeps its own budget).
+  router.use(makeUserRateLimiter(TEAMS_RATE_LIMIT));
 
   // POST /api/teams/:id/invites — email-invite someone to the team (owner-only).
   // Works whether or not the invitee has an account yet.

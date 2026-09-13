@@ -1,4 +1,6 @@
 import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
 import path from 'node:path';
 import { assetsRouter } from './assets.js';
 import {
@@ -7,6 +9,9 @@ import {
   changePasswordHandler,
   requireAuth,
   meHandler,
+  updateNameHandler,
+  changeEmailHandler,
+  deleteAccountHandler,
   passwordResetRequestHandler,
   passwordResetConfirmHandler,
   magicLinkRequestHandler,
@@ -17,6 +22,7 @@ import { teamsRouter } from './teams.js';
 import { initDb, type DbAdapter } from './db.js';
 import { AssetStorage } from './storage.js';
 import { renderQueue } from './render-queue.js';
+import { reportError } from './errorReporting.js';
 import Database from 'better-sqlite3';
 
 export async function createApp(
@@ -58,19 +64,57 @@ export async function createApp(
 
   await adapter.initSchema();
   const app = express();
+  // helmet first, before anything else can set/response headers. CSP is off:
+  // this server serves a Vite-built SPA plus WebGL/3D content and textures
+  // (/assets/textures/:name), and helmet's strict default CSP breaks inline
+  // scripts/WASM/canvas content. A properly-tuned CSP is separate, verified-
+  // against-the-real-frontend work — all other helmet defaults stay on.
+  app.use(helmet({ contentSecurityPolicy: false }));
+
+  // CORS: explicit allow-list via CORS_ALLOWED_ORIGINS (comma-separated) wins.
+  // Dev fallback (when unset, NODE_ENV !== production): localhost:5173 (Vite)
+  // and localhost:3000. In production with no env var: no cross-origin at all
+  // (same-origin only — the single-container deployment serves its own frontend).
+  const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const devOrigins = ['http://localhost:5173', 'http://localhost:3000'];
+  app.use(
+    cors({
+      credentials: true,
+      origin(origin, cb) {
+        if (!origin) return cb(null, true); // non-browser / same-origin request
+        const list = allowedOrigins.length > 0 ? allowedOrigins : process.env.NODE_ENV === 'production' ? [] : devOrigins;
+        cb(null, list.includes(origin));
+      },
+    }),
+  );
+
   // Base64 inflates bodies ~4/3 (up to two near-50MB blobs on upload), so the
   // JSON limit must sit well above MAX_IMPORT_BYTES for our own handler check
   // (not body-parser's) to be the one that fires with the intended message.
   app.use(express.json({ limit: '256mb' }));
+
+  // Pure liveness probe: process is up and responding. No DB ping — production
+  // runs Neon, which has its own health monitoring, and a DB check here would
+  // flap on transient Neon-side blips that aren't this process's problem.
+  app.get('/healthz', (_req, res) => {
+    res.status(200).json({ ok: true });
+  });
+  const assetStorage = new AssetStorage(assetRoot);
   app.post('/api/auth/register', registerHandler(adapter));
   app.post('/api/auth/login', loginHandler(adapter));
   app.put('/api/auth/password', requireAuth, changePasswordHandler(adapter));
   app.get('/api/auth/me', requireAuth, meHandler(adapter));
+  app.patch('/api/auth/me', requireAuth, updateNameHandler(adapter));
+  app.put('/api/auth/email', requireAuth, changeEmailHandler(adapter));
+  app.delete('/api/auth/me', requireAuth, deleteAccountHandler(adapter, assetStorage));
   app.post('/api/auth/password-reset/request', passwordResetRequestHandler(adapter));
   app.post('/api/auth/password-reset/confirm', passwordResetConfirmHandler(adapter));
   app.post('/api/auth/magic-link/request', magicLinkRequestHandler(adapter));
   app.post('/api/auth/magic-link/consume', magicLinkConsumeHandler(adapter));
-  app.use('/api/assets', assetsRouter(adapter, new AssetStorage(assetRoot)));
+  app.use('/api/assets', assetsRouter(adapter, assetStorage));
   app.use('/api/homes', homesRouter(adapter));
   app.use('/api/teams', teamsRouter(adapter));
 
@@ -175,5 +219,19 @@ export async function createApp(
     });
   }
 
+  // Centralized error handler — LAST in the stack. Logs full detail server-side,
+  // but never leaks stack/message/internal detail in the response body, in any
+  // environment (same generic response always: simpler and safer than an
+  // env-conditional leak).
+  app.use(errorHandler);
+
   return app;
 }
+
+// Exported so tests can mount it on a probe app with a route that throws.
+export const errorHandler: express.ErrorRequestHandler = (err, req, res, _next) => {
+  console.error('Unhandled error:', err);
+  // Fire-and-forget: must never delay the 500 response below.
+  reportError(err, { path: req.path, method: req.method, userId: (req as any).userId });
+  res.status(500).json({ error: 'internal server error' });
+};

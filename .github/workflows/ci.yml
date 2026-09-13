@@ -43,8 +43,6 @@ jobs:
       - run: uv sync --dev
       - run: uv run pytest -q
 
-<<<<<<< HEAD
-=======
   buildmyhouse:
     name: buildmyhouse server (vitest sqlite + postgres)
     runs-on: ubuntu-latest
@@ -68,7 +66,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: buildmyhouse/server/package-lock.json
       - run: npm ci
@@ -81,7 +79,6 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:localtestpw@localhost:5544/homely_test
 
->>>>>>> feat/b1-1
   company-ops:
     name: company-ops (pytest)
     runs-on: ubuntu-latest

@@ -3,6 +3,21 @@ import { getJwtSecret } from './config.js';
 import { openAdapter } from './db.js';
 import { jobTelemetry } from './jobs/telemetry.js';
 import { renderQueue } from './render-queue.js';
+import { reportError } from './errorReporting.js';
+
+// Process-level safety net for errors outside the request cycle's error
+// handler (e.g. in the debounced save-queue timer).
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason);
+  reportError(reason, { kind: 'unhandledRejection' });
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+  reportError(err, { kind: 'uncaughtException' });
+  // Node's guidance: the process is in an undefined state after an uncaught
+  // exception — do not try to keep running.
+  process.exit(1);
+});
 
 async function main() {
   getJwtSecret(); // fail startup loudly if JWT_SECRET is unset

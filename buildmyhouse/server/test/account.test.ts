@@ -189,9 +189,9 @@ describe('DELETE /api/auth/me', () => {
     const res = await request(app).delete('/api/auth/me').set(auth(token)).send({ password: 'password123' });
     expect(res.status).toBe(200);
 
-    expect(db.prepare('SELECT COUNT(*) AS n FROM users WHERE id = ?').get(userId)!.n).toBe(0);
-    expect(db.prepare('SELECT COUNT(*) AS n FROM homes WHERE owner_user_id = ?').get(userId)!.n).toBe(0);
-    expect(db.prepare('SELECT COUNT(*) AS n FROM assets WHERE user_id = ?').get(userId)!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM users WHERE id = ?').get(userId)!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM homes WHERE owner_user_id = ?').get(userId)!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM assets WHERE user_id = ?').get(userId)!.n).toBe(0);
     expect(existsSync(glbFile)).toBe(false);
 
     // account is really gone: login fails, /me 404s
@@ -208,7 +208,7 @@ describe('DELETE /api/auth/me', () => {
     expect(res.status).toBe(401);
 
     expect(db.prepare('SELECT COUNT(*) AS n FROM users WHERE id = ?').get(userId)).toBeDefined();
-    expect(db.prepare('SELECT COUNT(*) AS n FROM homes WHERE owner_user_id = ?').get(userId)!.n).toBe(1);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM homes WHERE owner_user_id = ?').get(userId)!.n).toBe(1);
   });
 
   it('blocks with 400 when the user is sole owner of a team with other members — nothing deleted', async () => {
@@ -230,8 +230,8 @@ describe('DELETE /api/auth/me', () => {
     // Nothing was deleted: login still works, all rows still present.
     expect((await request(app).post('/api/auth/login').send({ email: 'soleowner@example.com', password: 'password123' })).status).toBe(200);
     expect(db.prepare('SELECT COUNT(*) AS n FROM users WHERE id = ?').get(userId)).toBeDefined();
-    expect(db.prepare('SELECT COUNT(*) AS n FROM team_members WHERE team_id = ?').get('team-1')!.n).toBe(2);
-    expect(db.prepare('SELECT COUNT(*) AS n FROM homes WHERE id IN (?, ?)').get('team-home', 'personal-home')!.n).toBe(2);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM team_members WHERE team_id = ?').get('team-1')!.n).toBe(2);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM homes WHERE id IN (?, ?)').get('team-home', 'personal-home')!.n).toBe(2);
   });
 
   it('sole owner AND sole member: team, its invites, and its team homes are deleted', async () => {
@@ -248,13 +248,13 @@ describe('DELETE /api/auth/me', () => {
     const res = await request(app).delete('/api/auth/me').set(auth(token)).send({ password: 'password123' });
     expect(res.status).toBe(200);
 
-    expect(db.prepare('SELECT COUNT(*) AS n FROM teams WHERE id = ?').get('team-solo')!.n).toBe(0);
-    expect(db.prepare('SELECT COUNT(*) AS n FROM team_members WHERE team_id = ?').get('team-solo')!.n).toBe(0);
-    expect(db.prepare('SELECT COUNT(*) AS n FROM team_invites WHERE team_id = ?').get('team-solo')!.n).toBe(0);
-    expect(db.prepare('SELECT COUNT(*) AS n FROM homes WHERE id = ?').get('team-home')!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM teams WHERE id = ?').get('team-solo')!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM team_members WHERE team_id = ?').get('team-solo')!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM team_invites WHERE team_id = ?').get('team-solo')!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM homes WHERE id = ?').get('team-home')!.n).toBe(0);
     // personal home is gone too, and the user with it
-    expect(db.prepare('SELECT COUNT(*) AS n FROM homes WHERE owner_user_id = ?').get(userId)!.n).toBe(0);
-    expect(db.prepare('SELECT COUNT(*) AS n FROM users WHERE id = ?').get(userId)!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM homes WHERE owner_user_id = ?').get(userId)!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM users WHERE id = ?').get(userId)!.n).toBe(0);
   });
 
   it('co-owner exists: only membership is removed; team and the other owner survive', async () => {
@@ -273,11 +273,11 @@ describe('DELETE /api/auth/me', () => {
     expect(res.status).toBe(200);
 
     expect(db.prepare('SELECT COUNT(*) AS n FROM teams WHERE id = ?').get('team-duo')).toBeDefined();
-    expect(db.prepare('SELECT COUNT(*) AS n FROM team_members WHERE team_id = ? AND user_id = ?').get('team-duo', userId)!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM team_members WHERE team_id = ? AND user_id = ?').get('team-duo', userId)!.n).toBe(0);
     expect(db.prepare('SELECT COUNT(*) AS n FROM team_members WHERE team_id = ? AND user_id = ?').get('team-duo', otherId)).toBeDefined();
     // team-owned home survives (team still exists), personal home is gone
     expect(db.prepare('SELECT COUNT(*) AS n FROM homes WHERE id = ?').get('team-home')).toBeDefined();
-    expect(db.prepare('SELECT COUNT(*) AS n FROM homes WHERE id = ?').get('personal-home')!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM homes WHERE id = ?').get('personal-home')!.n).toBe(0);
   });
 
   it('plain member: only membership is removed; team and owner survive', async () => {
@@ -294,9 +294,9 @@ describe('DELETE /api/auth/me', () => {
     expect(res.status).toBe(200);
 
     expect(db.prepare('SELECT COUNT(*) AS n FROM teams WHERE id = ?').get('team-x')).toBeDefined();
-    expect(db.prepare('SELECT COUNT(*) AS n FROM team_members WHERE team_id = ? AND user_id = ?').get('team-x', userId)!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM team_members WHERE team_id = ? AND user_id = ?').get('team-x', userId)!.n).toBe(0);
     expect(db.prepare('SELECT COUNT(*) AS n FROM team_members WHERE team_id = ? AND user_id = ?').get('team-x', ownerId)).toBeDefined();
-    expect(db.prepare('SELECT COUNT(*) AS n FROM users WHERE id = ?').get(userId)!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM users WHERE id = ?').get(userId)!.n).toBe(0);
   });
 
   it('cleans up password reset tokens, magic link tokens, and invites sent by the user', async () => {
@@ -318,9 +318,9 @@ describe('DELETE /api/auth/me', () => {
     const res = await request(app).delete('/api/auth/me').set(auth(token)).send({ password: 'password123' });
     expect(res.status).toBe(200);
 
-    expect(db.prepare('SELECT COUNT(*) AS n FROM password_reset_tokens WHERE user_id = ?').get(userId)!.n).toBe(0);
-    expect(db.prepare('SELECT COUNT(*) AS n FROM magic_link_tokens WHERE email = ?').get('hygiene@example.com')!.n).toBe(0);
-    expect(db.prepare('SELECT COUNT(*) AS n FROM team_invites WHERE invited_by_user_id = ?').get(userId)!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM password_reset_tokens WHERE user_id = ?').get(userId)!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM magic_link_tokens WHERE email = ?').get('hygiene@example.com')!.n).toBe(0);
+    expect(db.prepare<unknown[], { n: number }>('SELECT COUNT(*) AS n FROM team_invites WHERE invited_by_user_id = ?').get(userId)!.n).toBe(0);
   });
 
   it('rejects an unauthenticated request with 401', async () => {
