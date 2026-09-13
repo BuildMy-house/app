@@ -386,7 +386,8 @@ export function __seedModelCache(url: string, obj: THREE.Object3D): void {
  */
 export type ModelUrlResolver = (modelPath: string) => string
 
-export const defaultModelUrlResolver: ModelUrlResolver = (modelPath) => `assets/${modelPath}`
+export const defaultModelUrlResolver: ModelUrlResolver = (modelPath) =>
+  /^https?:\/\//i.test(modelPath) ? modelPath : `assets/${modelPath}`
 
 /** Scene-level resolver; set once per buildScene call via the options. */
 let activeModelUrlResolver: ModelUrlResolver = defaultModelUrlResolver
