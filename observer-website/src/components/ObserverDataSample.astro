@@ -1,0 +1,44 @@
+---
+export interface Props {
+  title?: string;
+  entries?: number;
+}
+
+const { title = 'Data Snapshot', entries = 0 } = Astro.props;
+---
+
+<section class="sample">
+  <h2>{title}</h2>
+  <p>
+    This is a sample read-only data component. It renders inline and expects to
+    be passed an immutable, append-only slice of observer data.
+  </p>
+  <ul>
+    <li><strong>Entries:</strong> {entries}</li>
+    <li><strong>Mode:</strong> read-only</li>
+    <li><strong>Sourced:</strong> observer PostgreSQL schema</li>
+  </ul>
+</section>
+
+<style>
+  .sample {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    background: #fafafa;
+  }
+
+  .sample h2 {
+    margin: 0 0 0.75rem;
+  }
+
+  .sample ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .sample li {
+    padding: 0.25rem 0;
+  }
+</style>

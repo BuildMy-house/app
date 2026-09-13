@@ -1,0 +1,18 @@
+[
+  {
+    "phase": "steps",
+    "step": 1,
+    "adapter": "homely",
+    "command": "add_door",
+    "error": "unknown wall id: w1",
+    "code": "INVALID_PARAMS"
+  },
+  {
+    "phase": "steps",
+    "step": 2,
+    "adapter": "homely",
+    "command": "add_window",
+    "error": "unknown wall id: w1",
+    "code": "INVALID_PARAMS"
+  }
+]

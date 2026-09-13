@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "name": "Render pipeline house",
+  "levels": [],
+  "walls": [
+    {"id":"north","xStart":0,"yStart":0,"xEnd":600,"yEnd":0,"thickness":15,"height":270},
+    {"id":"east","xStart":600,"yStart":0,"xEnd":600,"yEnd":400,"thickness":15,"height":270},
+    {"id":"south","xStart":600,"yStart":400,"xEnd":0,"yEnd":400,"thickness":15,"height":270},
+    {"id":"west","xStart":0,"yStart":400,"xEnd":0,"yEnd":0,"thickness":15,"height":270},
+    {"id":"partition","xStart":390,"yStart":0,"xEnd":390,"yEnd":400,"thickness":10,"height":270}
+  ],
+  "rooms": [
+    {"id":"living","name":"Living room","points":[[0,0],[390,0],[390,400],[0,400]]},
+    {"id":"kitchen","name":"Kitchen","points":[[390,0],[600,0],[600,400],[390,400]]}
+  ],
+  "furniture": [
+    {"id":"sofa","catalogId":"eTeks#sofa","name":"Sofa","x":170,"y":210,"angleDeg":0,"width":220,"depth":85,"height":85,"elevation":0},
+    {"id":"coffee-table","catalogId":"eTeks#coffeeTable","name":"Coffee table","x":170,"y":115,"angleDeg":0,"width":110,"depth":60,"height":42,"elevation":0},
+    {"id":"dining-table","catalogId":"eTeks#table","name":"Dining table","x":495,"y":180,"angleDeg":0,"width":140,"depth":80,"height":75,"elevation":0},
+    {"id":"counter","catalogId":"eTeks#kitchenCabinet","name":"Kitchen counter","x":500,"y":330,"angleDeg":0,"width":170,"depth":45,"height":90,"elevation":0},
+    {"id":"bed","catalogId":"eTeks#bed140x190","name":"Bed","x":480,"y":80,"angleDeg":0,"width":150,"depth":200,"height":55,"elevation":0}
+  ],
+  "dimensionLines": [],
+  "labels": [],
+  "selection": [],
+  "cameras": {
+    "top":{"x":300,"y":200,"z":900,"yawDeg":0,"pitchDeg":45,"fovDeg":63,"lens":"PINHOLE"},
+    "observer":{"x":300,"y":200,"z":150,"yawDeg":0,"pitchDeg":15,"fovDeg":58,"lens":"PINHOLE","fixedSize":false}
+  },
+  "environment":{"skyColor":13427964,"groundColor":11053224,"lightColor":13684944,"wallsAlpha":0},
+  "renderCamera":{"orig":[2.8,3.6,2.2],"target":[1.7,2.1,0.5],"up":[0,0,1],"fov":58},
+  "capabilities":{"canUndo":false,"canRedo":false}
+}

@@ -1,0 +1,76 @@
+---
+interface Props {
+  title?: string;
+}
+
+const { title = "Observer" } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>{title}</title>
+  <link rel="stylesheet" href="/data.css" />
+</head>
+<body>
+  <header>
+    <nav>
+      <h1><a href="/">Observer</a></h1>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/decisions">Decisions</a></li>
+        <li><a href="/experiments">Experiments</a></li>
+        <li><a href="/failures">Failures & Recovery</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main>
+    <slot />
+  </main>
+  <footer>
+    <p>Read-only data interface. Database entries are append-only.</p>
+    <p>&copy; 2026 Observer. <a href="https://github.com/">GitHub</a></p>
+  </footer>
+</body>
+</html>
+
+<style>
+  header {
+    background: #0a0e27;
+    color: white;
+    padding: 1.5rem;
+  }
+  
+  header h1 { margin: 0; }
+  header h1 a { color: white; text-decoration: none; }
+  
+  header nav ul {
+    list-style: none;
+    margin-top: 1rem;
+    display: flex;
+    gap: 1.5rem;
+  }
+  
+  header a {
+    color: #ccc;
+    text-decoration: none;
+    font-size: 0.95rem;
+  }
+  
+  header a:hover {
+    color: white;
+  }
+  
+  main { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+  
+  footer {
+    background: #f5f5f5;
+    padding: 2rem;
+    text-align: center;
+    margin-top: 3rem;
+    color: #666;
+    font-size: 0.9rem;
+  }
+</style>

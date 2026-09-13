@@ -1,0 +1,74 @@
+[
+  {
+    "phase": "steps",
+    "step": 1,
+    "command": "add_room",
+    "params": {
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          600,
+          0
+        ],
+        [
+          600,
+          400
+        ],
+        [
+          0,
+          400
+        ]
+      ]
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "id": "room-9"
+        }
+      }
+    },
+    "elapsedMs": 12.877
+  },
+  {
+    "phase": "steps",
+    "step": 2,
+    "command": "add_furniture",
+    "params": {
+      "catalogId": "eTeks#sofa2",
+      "x": 300,
+      "y": 200
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "id": "furniture-10"
+        }
+      }
+    },
+    "elapsedMs": 26.57
+  },
+  {
+    "phase": "steps",
+    "step": 3,
+    "command": "add_furniture",
+    "params": {
+      "catalogId": "eTeks#armchair",
+      "x": 120,
+      "y": 120
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "id": "furniture-11"
+        }
+      }
+    },
+    "elapsedMs": 26.157
+  }
+]

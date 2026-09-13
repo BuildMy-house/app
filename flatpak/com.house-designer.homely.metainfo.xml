@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.house-designer.homely</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>CC-BY-NC-4.0</project_license>
+  <name>Homely</name>
+  <summary>Sweet Home 3D-style house designer</summary>
+  <description>
+    <p>Homely lets you draw floor plans, place furniture, and explore your
+    home design in an interactive 3D view. Built with Tauri and Three.js.</p>
+  </description>
+  <launchable type="desktop-id">com.house-designer.homely.desktop</launchable>
+  <url type="homepage">https://github.com/your-org/house_designer</url>
+  <categories>
+    <category>Graphics</category>
+    <category>Building</category>
+  </categories>
+  <releases>
+    <release version="0.1.0" date="2026-08-28"/>
+  </releases>
+</component>

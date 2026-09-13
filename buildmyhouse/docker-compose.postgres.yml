@@ -1,0 +1,29 @@
+# OPTIONAL Postgres for local webserver-mode testing. The default
+# `docker compose up` (docker-compose.yml) remains SQLite-only — see
+# docs/hosting.md. To test the server against Postgres instead:
+#
+#   docker compose -f docker-compose.postgres.yml up -d
+#   JWT_SECRET=dev DATABASE_URL=postgresql://postgres:homely@localhost:5544/homely \
+#     npm run dev   # (from buildmyhouse/server)
+#
+# Port 5544 avoids clashing with any local Postgres on 5432 and matches CI.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: homely-postgres
+    environment:
+      POSTGRES_PASSWORD: homely
+      POSTGRES_DB: homely
+    ports:
+      - "5544:5432"
+    volumes:
+      - homely-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  homely-pgdata:

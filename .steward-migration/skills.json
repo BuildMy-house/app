@@ -1,0 +1,16 @@
+[
+  {
+    "name": "hermes-engineering-setup",
+    "description": "Multi-agent engineering team setup with Steward coordination, file locking, and verification gates for the Homely project",
+    "tags": ["setup", "coordination", "multi-agent", "hermes", "homely"],
+    "when_to_use": "When setting up a new engineering team workspace with Steward integration, file locking, claim boards, and multi-agent coordination",
+    "scope_paths": ["house_designer"]
+  },
+  {
+    "name": "sh3d-driver-run",
+    "description": "Build, launch, smoke-test and stop the Java SH3D automation driver",
+    "tags": ["driver", "track-a", "verification", "smoke"],
+    "when_to_use": "Before/after any driver-java change, or whenever a live SH3D instance is needed for testing",
+    "scope_paths": ["equivalence/driver-java"]
+  }
+]

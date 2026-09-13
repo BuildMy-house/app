@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh run *)",
+      "Bash(git worktree list)",
+      "Bash(git rev-list *)",
+      "ToolSearch",
+      "mcp__axiom__queryDataset",
+      "mcp__axiom__listDatasets",
+      "mcp__axiom__getDatasetFields",
+      "mcp__steward__query_memories",
+      "mcp__steward__list_tasks",
+      "mcp__steward__get_locked_files",
+      "mcp__steward__list_error_traces",
+      "mcp__steward__specs_propose",
+      "mcp__steward__lock_file",
+      "mcp__steward__create_work"
+    ]
+  },
+  "env": {
+    "INFISICAL_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGl0eUlkIjoiYzdjYzUyMzktMzI3Yi00NzQ0LWE3ODUtNzA0MDFiMmQ0MDk4IiwiaWRlbnRpdHlOYW1lIjoiYWRtaW4iLCJhdXRoTWV0aG9kIjoidG9rZW4tYXV0aCIsIm9yZ0lkIjoiZmVkMmRlN2YtMzhiMi00YTk4LWJmOWItZmU0NWNkMTA4YjlkIiwicm9vdE9yZ0lkIjoiZmVkMmRlN2YtMzhiMi00YTk4LWJmOWItZmU0NWNkMTA4YjlkIiwicGFyZW50T3JnSWQiOiJmZWQyZGU3Zi0zOGIyLTRhOTgtYmY5Yi1mZTQ1Y2QxMDhiOWQiLCJjbGllbnRTZWNyZXRJZCI6IiIsImlkZW50aXR5QWNjZXNzVG9rZW5JZCI6IjM0NTVmMDQ4LWQ1MDctNGUzNC1iMWUyLTIyMzE1MmM4YWQ5MSIsImlwUmVzdHJpY3Rpb25FbmFibGVkIjp0cnVlLCJhY2Nlc3NUb2tlblRUTCI6MjU5MjAwMCwiYWNjZXNzVG9rZW5NYXhUVEwiOjI1OTIwMDAsImFjY2Vzc1Rva2VuUGVyaW9kIjowLCJjcmVhdGlvbkVwb2NoIjoxNzg5MjM1NDQwLCJhdXRoVG9rZW5UeXBlIjoiaWRlbnRpdHlBY2Nlc3NUb2tlbiIsImlkZW50aXR5QXV0aCI6e30sImlhdCI6MTc4OTIzNTQ0MCwiZXhwIjoxNzkxODI3NDQwLCJqdGkiOiIzNDU1ZjA0OC1kNTA3LTRlMzQtYjFlMi0yMjMxNTJjOGFkOTEifQ.9RLC-VX5ZxidLjNfT76Mr0ypfQbDLE4-ZvGkXHa1tec",
+    "INFISICAL_API_URL": "https://eu.infisical.com/api/v1"
+  }
+}

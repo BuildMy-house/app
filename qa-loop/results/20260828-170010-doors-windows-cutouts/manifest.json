@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260828-170010-doors-windows-cutouts",
+  "startedAt": "2026-08-28T17:00:10.250036+00:00",
+  "scenarioName": "Doors windows cutouts",
+  "description": "Attempt to add a door/window cutout. These commands are not implemented; expect UNKNOWN_COMMAND -> missing feature ledger entry.",
+  "target": {
+    "os": [
+      "linux"
+    ],
+    "mode": [
+      "web"
+    ]
+  },
+  "adapters": [
+    "homely"
+  ],
+  "stepCount": 2,
+  "checkpoints": [],
+  "assertions": [],
+  "assertionsEvaluatedBy": "eq.comparators (C3/C4)"
+}

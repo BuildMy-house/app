@@ -1,3 +1,9 @@
+## Steward ACS Coordination
+
+Check if `AGENTS_STEWARD.md` exists. If yes, follow the instructions there.
+
+---
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
@@ -74,3 +80,66 @@ step, and exits non-zero if any step fails. Run it before committing — it is
 the automated check that prevents a "done" ticket from shipping with broken
 stubs (the U3 regression that motivated this CI). Once a GitHub remote is
 added, `ci.yml` runs the identical checks automatically on push/PR.
+
+## Model selection — TokenRouter is free, exploit it
+
+`TOKENROUTER_API_KEY` (`https://api.tokenrouter.com/v1`, provider name
+`tokenrouter` in `opencode.json`) is a **free-tier** provider — e.g.
+`tokenrouter/z-ai/glm-5.3-free`. It costs nothing to use. When any agent
+(hermes, engineering-manager, agent-manager, or a dispatched OpenCode
+worker) is choosing a model/worker for a task, default to TokenRouter
+first and use it as heavily as it can plausibly handle — mechanical
+edits, standard features, even most code-review-style tickets — before
+reaching for a paid or quota-limited provider (OpenCode Go, Z.AI Coding
+Plan subscription hours, Anthropic API tokens). Learn its actual rate
+limits and model roster by using it (`opencode models`, or watch for
+throttling in `~/.local/share/opencode/log/opencode.log`) and push
+usage up to whatever ceiling it actually has, rather than assuming a
+conservative cap. Only escalate to a paid/limited provider once
+TokenRouter demonstrably can't handle the ticket (wrong output quality,
+missing model capability, or an actual rate-limit error) — not
+preemptively.
+
+## Delegated manager subagents (agent-manager and similar)
+
+When dispatching a manager-style subagent (e.g. `agent-manager`) for a
+multi-phase, multi-step piece of work — whether for `homely/` or for
+`company-ops/` — **spawn a fresh instance of that subagent at each
+phase/step boundary rather than resuming one instance across the whole
+workstream.** A "step" is a phase or a distinct verification pass (e.g. an
+end-to-end smoke test); individual tickets within one step still share the
+same instance. Lean on the ticket board and any project plan file as the
+durable handoff state — a fresh instance reads those plus a short "what's
+verified vs. still open" briefing and picks up cleanly, without needing
+the prior instance's own accumulated context. See
+`.claude/agents/agent-manager.md`'s "How to use this subagent" section
+for the full rationale. (Renamed from `opencode-manager` 2026-09-07 — the
+subagent dispatches to opencode, Codex, and Antigravity/Gemini workers,
+not just OpenCode, so the old name undersold its actual scope.)
+
+## Multiple concurrent agents work this repo — assume it, don't fight it
+
+**This checkout can have more than one agent session (Claude Code, OpenCode, Codex)
+working in it at the same time**, each possibly running its own sub-dispatches. This
+is normal and expected — not something to "fix" by trying to claim exclusive
+ownership of the tree. Two concrete rules follow:
+
+1. **Never delete, revert, overwrite, or "clean up" a change you did not make, unless
+   you have positively confirmed it's abandoned or superseded.** An unrecognized
+   modification to a file — even one that looks unfinished, wrong, or unrelated to your
+   ticket — is very likely another live session's in-progress or already-verified work,
+   not garbage. Don't `git checkout --`, don't stash-and-drop, don't silently rewrite
+   over it. If it's genuinely in your way, say so and ask, or work around it.
+
+2. **Land your own verified work as a real git commit as soon as it's confirmed
+   correct — don't leave it sitting as an uncommitted diff in the shared working tree.**
+   An uncommitted diff has zero protection: another session's process can overwrite the
+   same file within seconds and there is no git history to recover it (no stash, no
+   reflog, nothing). A commit is the only thing that survives a concurrent write.
+
+**Incident (2026-09-10, GMC/mind_chat project):** with 5+ concurrent Claude Code
+sessions active in one checkout, a verified and test-passing fix was silently destroyed
+— no trace in `git stash list`, `git reflog`, or `git fsck --unreachable` — because it
+was left uncommitted while another session's OpenCode dispatch rewrote the same file
+with unrelated work. Multiple other in-progress features were lost the same way. This
+is a cross-project hazard: commit real work immediately, always.

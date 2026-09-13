@@ -1,0 +1,151 @@
+[
+  {
+    "phase": "setup",
+    "step": 1,
+    "command": "new_home",
+    "params": {},
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 8.123
+  },
+  {
+    "phase": "steps",
+    "step": 1,
+    "command": "set_view",
+    "params": {
+      "view": "plan"
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "view": "plan"
+        }
+      }
+    },
+    "elapsedMs": 0.544
+  },
+  {
+    "phase": "steps",
+    "step": 2,
+    "command": "select_tool",
+    "params": {
+      "tool": "wall"
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "tool": "wall"
+        }
+      }
+    },
+    "elapsedMs": 0.646
+  },
+  {
+    "phase": "steps",
+    "step": 3,
+    "command": "set_magnetism",
+    "params": {
+      "enabled": false
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "magnetismEnabled": false
+        }
+      }
+    },
+    "elapsedMs": 0.528
+  },
+  {
+    "phase": "steps",
+    "step": 4,
+    "command": "click",
+    "params": {
+      "x": 0,
+      "y": 0
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 0.461
+  },
+  {
+    "phase": "steps",
+    "step": 5,
+    "command": "click",
+    "params": {
+      "x": 400,
+      "y": 0
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 33.951
+  },
+  {
+    "phase": "steps",
+    "step": 6,
+    "command": "key",
+    "params": {
+      "key": "escape"
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 38.896
+  },
+  {
+    "phase": "steps",
+    "step": 7,
+    "command": "add_door",
+    "params": {
+      "wallId": "wall-1",
+      "x": 100,
+      "width": 90
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "id": "furniture-2"
+        }
+      }
+    },
+    "elapsedMs": 42.674
+  },
+  {
+    "phase": "steps",
+    "step": 8,
+    "command": "add_window",
+    "params": {
+      "wallId": "wall-1",
+      "x": 300,
+      "width": 120
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "id": "furniture-3"
+        }
+      }
+    },
+    "elapsedMs": 44.954
+  }
+]

@@ -1,84 +1,114 @@
-Repo: house_designer
+# Steward ACS — Agent Instructions
 
-# AGENTS_STEWARD — house_designer workspace
+## ⚠️ First — Find Your Agent ID
 
-Multi-agent workspace rebuilding Sweet Home 3D as "Homely" (Tauri + Three.js)
-with a Python equivalence harness that differentially tests the original
-Java app against the clone.
+Your `agent_id` is your identity across all tool calls. It persists across sessions.
 
-## Layout & ownership (STRICT)
+1. **Register** — `steward_get_present_status(agent_id: "")` → auto-registers and returns your `assigned_agent_id` (e.g. `"Yara"`)
+2. **Use that name everywhere** — substitute your assigned name for `<AGENT>` in all examples below
 
-| Directory | Owner track |
-|---|---|
-| `sweethome3d-7.5-wayland-patch/` | READ-ONLY reference. Never modify or commit changes to it. |
-| `equivalence/driver-java/` | driver-dev |
-| `equivalence/eq/`, `equivalence/scenarios/` | harness-dev |
-| `homely/` | clone-dev |
-| `docs/schema/`, `PLAN.md`, repo root files | integrator (grace) only for edits; all may read |
-| `docs/behaviours/` | append-only, any agent |
+> **Never use the literal string `YourName`.** Your assigned `agent_id` is what `get_present_status(agent_id: "")` returns.
 
-## Coordination protocol
+## 📦 Your Repository
 
-1. `PLAN.md` is the live claim board. Read it first. Claim by editing your row
-   and committing `board: claim <ticket-id>`.
-2. Steward lifecycle per ticket: `claim_work(task_id)` → `lock_file` every file
-   before editing → implement → verify with the ticket's commands →
-   save learnings (`save_memory`/`skill_save`) → unlock → commit →
-   board row → `release_work` → `submit_task_feedback` LAST.
-3. Shared checkout on branch `main`. Tracks own disjoint directories.
-   Never edit outside your owner dirs (except: your PLAN.md row,
-   append-only docs/behaviours/).
-4. Contracts (`docs/schema/home-project.schema.json`,
-   `docs/specs/ws-protocol.md`) are frozen by integrator; change requests go
-   through a `blocked` board note.
+You work in the repo declared on this line — keep it in sync with this file:
 
-## Key facts (from architecture research — do not re-derive)
+`Repo: house_designer`
 
-- SH3D 7.5 source at `sweethome3d-7.5-wayland-patch/`; pre-built jar in
-  `build/SweetHome3D.jar`; GPL v2 — Homely must never import its code.
-- Drive SH3D via controllers in centimeter model coordinates:
-  `PlanController.pressMouse/moveMouse/releaseMouse/setMode(Mode)`.
-- Units everywhere: cm lengths, radians angles internally; normalized state
-  uses cm + degrees.
-- Camera defaults: FOV 63deg, top camera z=1010 pitch 45deg, observer eye 170cm
-  yaw 315deg pitch 11.25deg. Default wall height 250cm.
+If `get_started()` returns no repo (or this line is missing), **ask the human to add `Repo: <name>` here** and restart. Never invent a repo name.
 
-## E2E tests (Playwright) — MANDATORY for UI work
+- **Saves** are tagged `repo: <name>`; retrieval blends your repo first, then org-wide knowledge, then other repos (labeled `repo:`).
+- **Chat** agents are project/domain-scoped; coding agents are repo-scoped.
 
-All agents working on `homely/` UI or 3D viewport MUST run E2E tests before
-committing. Unit tests (`vitest run`) are NOT sufficient for UI changes.
+Before the first file lock, identify the checkout you are actually editing:
+1. Run `git rev-parse --show-toplevel`.
+2. Read `<repo-root>/AGENTS_STEWARD.md` and use its `Repo: <name>` value.
+3. Confirm with the human or coordinating agent that this is the intended repository, then pass that value as `repo` with `repo_confirmed: true` on the first `lock_file` call.
 
-### Required verification
+The first successful lock establishes the task and session repository so ACS knows where the agent is working. Later locks from a different repo fail with `repo_mismatch`. If the declaration is missing, ask the human; never use the Steward server checkout or invent a repository.
 
-| Change area | Run |
-|---|---|
-| `src/main.ts`, `src/ui/`, `src/style.css` | `npm run e2e` |
-| `src/view3d/`, `src/render/` | `npm run e2e` |
-| `src/plan/` | `npm run e2e` |
-| `src/core/` (model changes affecting UI) | `npm run e2e` |
+## ⚠️ Before Work — Always Create a Task
 
-### Quick reference
+Before reading anything else or responding to the user:
 
-```bash
-cd homely
-npm run e2e                    # headless, full suite
-npm run e2e:open               # headed browser, interactive
-npx playwright test --ui       # Playwright test runner UI
-npx playwright show-trace ...  # replay failed trace
-```
+1. **Create a task** — `steward_create_work(agent_id: "<AGENT>", title: "...")` or `steward_claim_work(agent_id: "<AGENT>", task_id: "<id>")`
+2. **Wait for it to complete** before doing any other work
+3. Only then proceed with the user's request
 
-### Adding new E2E tests
+Do not skip this step. Do not assume you can create the task later. Even if the user's request looks like a question, create a task first. The answer to "why didn't you create a task?" is always: you should have, first thing.
 
-1. Create `e2e/<name>.spec.ts`
-2. `beforeEach`: `page.goto('/')` + `page.waitForSelector('#view3d canvas')`
-3. Plan interactions: `page.mouse.click()` on `#plan-canvas` coordinates
-4. Tool/camera: `page.locator('button[data-tool="wall"]').click()`
-5. WebGL checks: `page.evaluate()` to read canvas pixels
-6. Visual regression: `await expect(locator).toHaveScreenshot('name.png')`
+## ⚠️ After Work — Always Complete + Feedback
 
-### Steward notes
+When the work is done:
 
-- E2E tests auto-start the Vite dev server (port 1420) via `webServer` config
-- Screenshots fail on first run (no baseline); use `--update-snapshots` to set
-- Chromium only (WebGL required; no Firefox/Safari)
-- Trace files saved on failure for debugging
+1. **Save information** — pick a primary store if any trigger applies (else skip saving):
+   - **Worked out a plan with the user** (implementation, improvement, migration, remediation) → `specs_propose` a **document** under `documents/plans/<slug>` so the plan persists
+   - **Changed a code module's intent/contract** → `specs_propose` with purpose/invariants/workflows (code module spec). After changing `/lib/` code, run `query_specs(undocumented: true)` and `specs_get` the touched module; propose or update the spec before `release_work`.
+   - **Followed a repeatable how-to** (numbered steps) → `skill_save`
+   - **Produced a long non-code document** → `specs_propose` with `document_type` + `title` + `content`
+   - **Discovered a short eternal truth** → `save_memory`
+   - **Otherwise** → save nothing; do not force a save
+2. **Release the task** — `steward_release_work(task_id: "<id>", agent_id: "<AGENT>")`
+3. **Submit feedback** — `steward_submit_task_feedback(...)` last, to formally close the task
+4. Only then tell the user you're done
+
+Do not skip this. Releasing frees the lock for other agents. Feedback generates memories so the next agent benefits from what you learned.
+
+### Feedback categories
+
+Feedback is a **system review** — not a learning. Use the right fields:
+
+| Field | When to use |
+|-------|-------------|
+| `learned_for_agents` | New findings, workarounds, reusable insights from this task |
+| `had_issues` | Bugs, confusing guidance, broken workflows |
+| `improvements` | Feature requests or suggestions for Steward |
+| `info_needed` | Missing docs, poor search results, hard-to-find info |
+
+### Standalone feedback (no task_id)
+
+Chat agents can submit feedback **without** a task_id for simple Q&A interactions:
+
+`steward_submit_task_feedback(agent_id: "<AGENT>", learned_for_agents: "...", had_issues: "The search didn't find relevant memories")`
+
+## Two Environments
+
+| Server | Key | URL | Use |
+|--------|-----|-----|-----|
+| **Local** | `acs` | `http://localhost:4001/mcp/v1/messages` | Dev — coding, dev memories, daily coordination |
+| **Production** | `acs_prod` | `https://prod.stewardacs.xyz/mcp/v1/messages` | Prod — live instance, production data, remote debugging |
+
+**Note:** Both expose the same tools. To target a specific server, disable the other in `~/.config/opencode/opencode.json`.
+
+## Getting Started (after registering)
+
+1. **Get instructions** — `steward_get_started()` (audience-aware: coding vs chat) or `steward_generate_guidance_packet(scope_path: "...")` for domain guidance
+2. **Or claim a task** — `steward_claim_work(agent_id: "<AGENT>", task_id: "<id>")` returns a guidance packet tailored to your task
+
+## Scopes — org knowledge structure
+
+`scope_path` is a hierarchical label for **business domains or code paths**:
+
+- Business: `acme/sales/pricing`, `acme/support/refunds`, `acme/policy/privacy`
+- Code: `lib/acs/memory`, `agent_coordination_system/tools`
+
+Store: **memories** = short eternal truths · **specs** = code module docs · **documents** = long non-code artifacts via `specs_propose(document_type, title, content)` (including plans worked out with the user, under `documents/plans/<slug>`) · **skills** = step-by-step procedures.
+Always attach a clear `scope_path` when saving so the next agent can retrieve by domain.
+
+## 👤 Human-Readable Task IDs (Slugs)
+
+Tasks get a **slug** (kebab-case from title, e.g. `"fix-login-bug"`) generated automatically. Use slugs everywhere — never UUIDs:
+
+- `steward_claim_work(agent_id: "<AGENT>", task_id: "fix-login-bug")`
+- `steward_release_work(agent_id: "<AGENT>", task_id: "fix-login-bug")`
+- `steward_lock_file(agent_id: "<AGENT>", task_id: "fix-login-bug", file_path: "...")`
+
+All responses return `slug` alongside `task_id`.
+
+## Core Rule
+
+**You create it, you claim it.** Always self-claim tasks unless directed otherwise.
+
+## Tools
+
+Call any tool by its `steward_` name. For a full listing with descriptions: `steward_help()`.
