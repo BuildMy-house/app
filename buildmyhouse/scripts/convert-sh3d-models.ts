@@ -190,7 +190,9 @@ function installNodePolyfills(): void {
     }
 
     dispatchEvent(event: Event): void {
-      this.listeners[event.type]?.forEach((listener) => listener(event))
+      // DOM semantics: event listeners run with `this` set to the event target.
+      // three's ImageLoader relies on this (`onLoad(this)` inside its handler).
+      this.listeners[event.type]?.forEach((listener) => listener.call(this, event))
     }
   }
 

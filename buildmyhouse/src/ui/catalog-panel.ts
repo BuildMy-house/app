@@ -34,6 +34,11 @@ export interface CatalogPanelOptions {
   onImportModel?: () => void
 }
 
+/** Absolute http(s) model paths (e.g. R2-hosted GLBs) pass through unchanged. */
+function resolveModelUrl(modelPath: string): string {
+  return /^https?:\/\//i.test(modelPath) ? modelPath : `assets/${modelPath}`
+}
+
 const CATEGORY_ORDER = [
   'Living',
   'Bedroom',
@@ -255,10 +260,11 @@ export class CatalogPanel {
       swatch.className = 'catalog-swatch'
       swatch.width = 96
       swatch.height = 72
-      swatch.dataset.modelUrl = item.modelPath ? `assets/${item.modelPath}` : ''
+      const modelUrl = item.modelPath ? resolveModelUrl(item.modelPath) : ''
+      swatch.dataset.modelUrl = modelUrl
       // Kick off the thumbnail render; falls back to a color swatch.
       if (item.modelPath) {
-        renderModelThumbnail(swatch, `assets/${item.modelPath}`, item.color)
+        renderModelThumbnail(swatch, modelUrl, item.color)
       } else {
         const ctx2d = swatch.getContext('2d')
         if (ctx2d) {
