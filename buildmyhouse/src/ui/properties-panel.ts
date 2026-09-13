@@ -415,6 +415,25 @@ export class PropertiesPanel {
     colorIn.addEventListener('input', () => commit({ color: parseColor(colorIn.value) }))
     body.appendChild(fieldRow('Color', colorIn))
 
+    // Texture
+    const textureSelect = document.createElement('select')
+    textureSelect.className = 'prop-input'
+    const tNone = document.createElement('option')
+    tNone.value = ''
+    tNone.textContent = '— none —'
+    textureSelect.appendChild(tNone)
+    for (const t of WALL_TEXTURES) {
+      const opt = document.createElement('option')
+      opt.value = t.id
+      opt.textContent = t.label
+      if (f.textureId === t.id) opt.selected = true
+      textureSelect.appendChild(opt)
+    }
+    textureSelect.addEventListener('change', () =>
+      commit({ textureId: textureSelect.value || null }),
+    )
+    body.appendChild(fieldRow('Texture', textureSelect))
+
     // Elevation
     const elevInput = numInput(num(f.elevation), { step: 0.01 })
     elevInput.addEventListener('change', () => {
