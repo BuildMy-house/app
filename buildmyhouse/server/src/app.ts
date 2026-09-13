@@ -1,31 +1,63 @@
 import express from 'express';
-import type { Database } from 'better-sqlite3';
 import path from 'node:path';
 import { assetsRouter } from './assets.js';
 import { loginHandler, registerHandler, changePasswordHandler, requireAuth } from './auth.js';
 import { homesRouter } from './homes.js';
 import { teamsRouter } from './teams.js';
-import { initDb } from './db.js';
+import { initDb, type DbAdapter } from './db.js';
 import { AssetStorage } from './storage.js';
 import { renderQueue } from './render-queue.js';
+import Database from 'better-sqlite3';
 
-export function createApp(
-  db: Database,
+export async function createApp(
+  dbOrAdapter: DbAdapter | Database.Database,
   assetRoot = 'data/assets',
   staticDir?: string,
-): express.Express {
-  initDb(db);
+): Promise<express.Express> {
+  let adapter: DbAdapter;
+
+  // Support both legacy Database and new DbAdapter for backward compat
+  if ('_brand' in dbOrAdapter && (dbOrAdapter as DbAdapter)._brand === 'DbAdapter') {
+    adapter = dbOrAdapter as DbAdapter;
+  } else {
+    const rawDb = dbOrAdapter as Database.Database;
+    // Wrap raw better-sqlite3 in a basic async adapter for backward compat
+    adapter = {
+      _brand: 'DbAdapter' as const,
+      async get(sql, ...params) { return rawDb.prepare(sql).get(...params) as any; },
+      async all(sql, ...params) { return rawDb.prepare(sql).all(...params) as any[]; },
+      async run(sql, ...params) {
+        const info = rawDb.prepare(sql).run(...params);
+        return { changes: info.changes, lastInsertRowid: info.lastInsertRowid };
+      },
+      async exec(sql) { rawDb.exec(sql); },
+      async transaction(fn) {
+        rawDb.exec('BEGIN');
+        try {
+          const result = await fn();
+          rawDb.exec('COMMIT');
+          return result;
+        } catch (err) {
+          rawDb.exec('ROLLBACK');
+          throw err;
+        }
+      },
+      async initSchema() { initDb(rawDb); },
+    };
+  }
+
+  await adapter.initSchema();
   const app = express();
   // Base64 inflates bodies ~4/3 (up to two near-50MB blobs on upload), so the
   // JSON limit must sit well above MAX_IMPORT_BYTES for our own handler check
   // (not body-parser's) to be the one that fires with the intended message.
   app.use(express.json({ limit: '256mb' }));
-  app.post('/api/auth/register', registerHandler(db));
-  app.post('/api/auth/login', loginHandler(db));
-  app.put('/api/auth/password', requireAuth, changePasswordHandler(db));
-  app.use('/api/assets', assetsRouter(db, new AssetStorage(assetRoot)));
-  app.use('/api/homes', homesRouter(db));
-  app.use('/api/teams', teamsRouter(db));
+  app.post('/api/auth/register', registerHandler(adapter));
+  app.post('/api/auth/login', loginHandler(adapter));
+  app.put('/api/auth/password', requireAuth, changePasswordHandler(adapter));
+  app.use('/api/assets', assetsRouter(adapter, new AssetStorage(assetRoot)));
+  app.use('/api/homes', homesRouter(adapter));
+  app.use('/api/teams', teamsRouter(adapter));
 
   // Render queue API: enqueue studio/high-quality renders (optional premium feature)
   app.post('/api/render/queue', requireAuth, (req, res) => {

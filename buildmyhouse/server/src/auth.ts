@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import type { Database } from 'better-sqlite3';
 import type { NextFunction, Request, Response } from 'express';
+import { asyncHandler } from './asyncHandler.js';
 import { getJwtSecret } from './config.js';
-import type { UserRow } from './db.js';
+import type { DbAdapter, UserRow } from './db.js';
 
 declare global {
   namespace Express {
@@ -54,12 +54,13 @@ function isUniqueViolation(err: unknown): boolean {
     err !== null &&
     'code' in err &&
     typeof (err as { code?: unknown }).code === 'string' &&
-    (err as { code: string }).code.startsWith('SQLITE_CONSTRAINT')
+    ((err as { code: string }).code.startsWith('SQLITE_CONSTRAINT') ||
+      (err as { code: string }).code === '23505')
   );
 }
 
-export function registerHandler(db: Database) {
-  return (req: Request, res: Response): void => {
+export function registerHandler(db: DbAdapter) {
+  return asyncHandler(async (req: Request, res: Response) => {
     const ip = req.ip ?? 'unknown';
     const now = Date.now();
     const entry = regAttempts.get(ip);
@@ -84,7 +85,7 @@ export function registerHandler(db: Database) {
       return;
     }
 
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(valid.email);
+    const existing = await db.get<{ id: string }>('SELECT id FROM users WHERE email = ?', valid.email);
     if (existing) {
       res.status(409).json({ error: 'email already registered' });
       return;
@@ -97,10 +98,14 @@ export function registerHandler(db: Database) {
       created_at: new Date().toISOString(),
     };
     try {
-      db.prepare(
+      await db.run(
         `INSERT INTO users (id, email, password_hash, created_at)
-         VALUES (@id, @email, @password_hash, @created_at)`,
-      ).run(user);
+         VALUES (?, ?, ?, ?)`,
+        user.id,
+        user.email,
+        user.password_hash,
+        user.created_at,
+      );
     } catch (err) {
       if (isUniqueViolation(err)) {
         res.status(409).json({ error: 'email already registered' });
@@ -110,7 +115,7 @@ export function registerHandler(db: Database) {
     }
 
     res.status(201).json({ token: signToken(user.id) });
-  };
+  });
 }
 
 function recordFailure(email: string): void {
@@ -133,8 +138,8 @@ function isLockedOut(email: string): boolean {
   return entry !== undefined && Date.now() - entry.windowStart <= LOCKOUT_MS && entry.count >= MAX_FAILED_ATTEMPTS;
 }
 
-export function loginHandler(db: Database) {
-  return (req: Request, res: Response): void => {
+export function loginHandler(db: DbAdapter) {
+  return asyncHandler(async (req: Request, res: Response) => {
     const valid = validateCredentials(req.body?.email, req.body?.password);
     if (typeof valid === 'string') {
       res.status(400).json({ error: valid });
@@ -145,7 +150,7 @@ export function loginHandler(db: Database) {
       return;
     }
 
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(valid.email) as UserRow | undefined;
+    const user = await db.get<UserRow>('SELECT * FROM users WHERE email = ?', valid.email);
     if (!user || !bcrypt.compareSync(valid.password, user.password_hash)) {
       recordFailure(valid.email);
       res.status(401).json({ error: 'invalid email or password' });
@@ -153,11 +158,11 @@ export function loginHandler(db: Database) {
     }
 
     res.json({ token: signToken(user.id) });
-  };
+  });
 }
 
-export function changePasswordHandler(db: Database) {
-  return (req: Request, res: Response): void => {
+export function changePasswordHandler(db: DbAdapter) {
+  return asyncHandler(async (req: Request, res: Response) => {
     const { currentPassword, newPassword } = req.body ?? {};
 
     if (typeof currentPassword !== 'string' || !currentPassword) {
@@ -169,16 +174,16 @@ export function changePasswordHandler(db: Database) {
       return;
     }
 
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId!) as UserRow | undefined;
+    const user = await db.get<UserRow>('SELECT * FROM users WHERE id = ?', req.userId!);
     if (!user || !bcrypt.compareSync(currentPassword, user.password_hash)) {
       res.status(401).json({ error: 'current password is incorrect' });
       return;
     }
 
     const hash = bcrypt.hashSync(newPassword, 10);
-    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.userId!);
+    await db.run('UPDATE users SET password_hash = ? WHERE id = ?', hash, req.userId!);
     res.json({ ok: true });
-  };
+  });
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
