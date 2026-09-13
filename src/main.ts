@@ -26,6 +26,7 @@ import { HomeListDialog } from './ui/home-list-dialog'
 import { ClipboardManager } from './plan/clipboard'
 
 import { View3D, type CameraPresetName } from './view3d'
+import { configureGltfLoader } from './view3d/scene'
 import { HDRI_PRESETS } from './view3d/hdri-environment'
 import { PropertiesPanel } from './ui/properties-panel'
 
@@ -1257,6 +1258,7 @@ const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
 
   catalogPanel = new CatalogPanel({
     catalog: sharedCatalog,
+    modelUrlResolver,
     onPlace: (item, x, y, angleDeg) => {
       model.getStore().beginCompoundEdit()
       const placed = model.addFurniture({
@@ -1331,7 +1333,9 @@ function importModelFile(): void {
           // bytes must parse cleanly before they join the catalog.
           try {
             const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js')
-            await new GLTFLoader().parseAsync(data, '')
+            // KTX2-wired so GLBs using KHR_texture_basisu validate on the
+            // real decode path instead of being falsely rejected.
+            await configureGltfLoader(new GLTFLoader()).parseAsync(data, '')
           } catch {
             throw new Error(
               `${file.name} could not be parsed as a GLB model — the file may be corrupted or truncated`,

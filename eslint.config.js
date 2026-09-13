@@ -3,7 +3,9 @@ import tseslint from 'typescript-eslint'
 import globals from 'globals'
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'src-tauri', 'playwright-report', 'test-results', 'server'] },
+  // 'public' is the gitignored sync target of assets/; vendored third-party
+  // bundles (basis_transcoder) must not be linted.
+  { ignores: ['dist', 'node_modules', 'src-tauri', 'playwright-report', 'test-results', 'server', 'public', 'assets/basis'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
