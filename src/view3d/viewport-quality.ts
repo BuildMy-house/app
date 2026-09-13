@@ -20,7 +20,7 @@ export interface ViewportQuality {
   preset: ViewportQualityPreset
   /** Cap on devicePixelRatio used for the renderer (1 = crisp on 1x, 2 = retina). */
   pixelRatioCap: number
-  /** Shadow map size in texels per axis (power of two). */
+  /** Shadow map size in texels per axis (>= 256). */
   shadowMapSize: number
   antialias: boolean
   /** Distance fog density (0 disables fog). */
@@ -41,7 +41,7 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
   medium: {
     preset: 'medium',
     pixelRatioCap: 1.5,
-    shadowMapSize: 2048,
+    shadowMapSize: 1536,
     antialias: true,
     fogDensity: 0.00005,
     maxAnisotropy: 4,
@@ -49,7 +49,7 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
   high: {
     preset: 'high',
     pixelRatioCap: 2,
-    shadowMapSize: 4096,
+    shadowMapSize: 2048,
     antialias: true,
     fogDensity: 0.00005,
     maxAnisotropy: 8,
