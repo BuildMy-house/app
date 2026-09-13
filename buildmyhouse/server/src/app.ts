@@ -1,7 +1,17 @@
 import express from 'express';
 import path from 'node:path';
 import { assetsRouter } from './assets.js';
-import { loginHandler, registerHandler, changePasswordHandler, requireAuth } from './auth.js';
+import {
+  loginHandler,
+  registerHandler,
+  changePasswordHandler,
+  requireAuth,
+  meHandler,
+  passwordResetRequestHandler,
+  passwordResetConfirmHandler,
+  magicLinkRequestHandler,
+  magicLinkConsumeHandler,
+} from './auth.js';
 import { homesRouter } from './homes.js';
 import { teamsRouter } from './teams.js';
 import { initDb, type DbAdapter } from './db.js';
@@ -55,6 +65,11 @@ export async function createApp(
   app.post('/api/auth/register', registerHandler(adapter));
   app.post('/api/auth/login', loginHandler(adapter));
   app.put('/api/auth/password', requireAuth, changePasswordHandler(adapter));
+  app.get('/api/auth/me', requireAuth, meHandler(adapter));
+  app.post('/api/auth/password-reset/request', passwordResetRequestHandler(adapter));
+  app.post('/api/auth/password-reset/confirm', passwordResetConfirmHandler(adapter));
+  app.post('/api/auth/magic-link/request', magicLinkRequestHandler(adapter));
+  app.post('/api/auth/magic-link/consume', magicLinkConsumeHandler(adapter));
   app.use('/api/assets', assetsRouter(adapter, new AssetStorage(assetRoot)));
   app.use('/api/homes', homesRouter(adapter));
   app.use('/api/teams', teamsRouter(adapter));
