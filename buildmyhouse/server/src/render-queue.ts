@@ -10,6 +10,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
+import { jobTelemetry } from './jobs/telemetry.js'
 
 export interface NormalizedHomeState {
   // Minimal interface for render queue; full type defined in client
@@ -61,6 +62,7 @@ export class RenderQueue {
     }
     this.jobs.set(id, job)
     this.queue.push(id)
+    jobTelemetry.jobQueued('render', this.queue.length)
     this.processQueue() // Start processing if idle
     return id
   }
@@ -98,6 +100,7 @@ export class RenderQueue {
 
       job.status = 'processing'
       job.startedAt = Date.now()
+      jobTelemetry.jobStarted('render', jobId, job.startedAt - job.createdAt)
 
       try {
         // TODO: Integrate actual render engine here (LuxCoreRender, Cycles, etc.)
@@ -105,11 +108,13 @@ export class RenderQueue {
         await this.renderPlaceholder(job)
         job.status = 'complete'
         job.completedAt = Date.now()
+        jobTelemetry.jobCompleted('render', jobId, job.completedAt - job.startedAt!, true)
         console.log(`[render-queue] job ${jobId} complete`)
       } catch (error) {
         job.status = 'failed'
         job.error = String(error)
         job.completedAt = Date.now()
+        jobTelemetry.jobCompleted('render', jobId, job.completedAt - job.startedAt!, false, job.error)
         console.error(`[render-queue] job ${jobId} failed: ${job.error}`)
       }
     }
