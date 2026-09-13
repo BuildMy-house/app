@@ -11,9 +11,9 @@ import type { UserRow } from '../src/db.js';
 process.env.JWT_SECRET = 'test-secret';
 
 // Fresh in-memory DB per test; add /api/protected to exercise the auth middleware.
-function makeApp(): { db: Database.Database; app: Express } {
+async function makeApp(): Promise<{ db: Database.Database; app: Express }> {
   const db = new Database(':memory:');
-  const app = createApp(db);
+  const app = await createApp(db);
   app.get('/api/protected', requireAuth, (req: Request, res: Response) => {
     res.json({ userId: req.userId });
   });
@@ -35,7 +35,7 @@ async function login(app: Express, email: string, password: string) {
 
 describe('POST /api/auth/register', () => {
   it('returns 201 with a valid JWT and stores a hashed password', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const res = await register(app, 'Alice@Example.com ', 'password123');
@@ -56,7 +56,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('rejects a duplicate email with a clear 409', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const first = await register(app, 'dup@example.com', 'password123');
@@ -72,7 +72,7 @@ describe('POST /api/auth/register', () => {
     ['me@example.com', 'short', `password must be at least 8 characters`],
     ['me@example.com', '', 'password must be at least 8 characters'],
   ])('rejects invalid input (%s / %p) with a 400', async (email, password, message) => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const res = await register(app, email, password);
@@ -81,7 +81,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('rejects a missing body with a 400', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const res = await request(app).post('/api/auth/register').send({});
@@ -89,7 +89,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('rate-limits registrations per IP: 6th from same IP gets 429', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     app.set('trust proxy', true);
     openDbs.push(db);
 
@@ -110,7 +110,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('rate-limit is independent per IP', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     app.set('trust proxy', true);
     openDbs.push(db);
 
@@ -132,7 +132,7 @@ describe('POST /api/auth/register', () => {
 
 describe('POST /api/auth/login', () => {
   it('returns a valid JWT for correct credentials', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const reg = await register(app, 'login@example.com', 'password123');
@@ -145,7 +145,7 @@ describe('POST /api/auth/login', () => {
   });
 
   it('rejects a wrong password with 401', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     await register(app, 'fail@example.com', 'password123');
@@ -156,7 +156,7 @@ describe('POST /api/auth/login', () => {
   });
 
   it('rejects an unknown email with 401 (same message as wrong password)', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const res = await login(app, 'nobody@example.com', 'password123');
@@ -165,7 +165,7 @@ describe('POST /api/auth/login', () => {
   });
 
   it('rejects a short password input with 400 (validation, not credentials)', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const res = await login(app, 'me@example.com', 'short');
@@ -173,7 +173,7 @@ describe('POST /api/auth/login', () => {
   });
 
   it('locks out after repeated failed attempts (429), then the lockout clears', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     await register(app, 'locked@example.com', 'password123');
@@ -189,7 +189,7 @@ describe('POST /api/auth/login', () => {
 
 describe('requireAuth middleware', () => {
   it('rejects a request with no Authorization header', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const res = await request(app).get('/api/protected');
@@ -198,7 +198,7 @@ describe('requireAuth middleware', () => {
   });
 
   it('rejects a garbage token', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const res = await request(app).get('/api/protected').set('Authorization', 'Bearer not.a.token');
@@ -206,7 +206,7 @@ describe('requireAuth middleware', () => {
   });
 
   it('rejects a token signed with a different secret', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const forged = jwt.sign({}, 'wrong-secret', { subject: 'someone-else' });
@@ -215,7 +215,7 @@ describe('requireAuth middleware', () => {
   });
 
   it('rejects an expired token', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const expired = jwt.sign({}, getJwtSecret(), { subject: 'user-1', expiresIn: -1 });
@@ -224,7 +224,7 @@ describe('requireAuth middleware', () => {
   });
 
   it('accepts a valid token and exposes the authenticated user id', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const token = signToken('user-42');
@@ -236,7 +236,7 @@ describe('requireAuth middleware', () => {
 
 describe('PUT /api/auth/password', () => {
   it('updates the password hash and allows login with the new password', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const reg = await register(app, 'pw@example.com', 'password123');
@@ -260,7 +260,7 @@ describe('PUT /api/auth/password', () => {
   });
 
   it('rejects wrong current password with 401', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const reg = await register(app, 'wrong@example.com', 'password123');
@@ -273,7 +273,7 @@ describe('PUT /api/auth/password', () => {
   });
 
   it('rejects weak new password with 400', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const reg = await register(app, 'weak@example.com', 'password123');
@@ -286,7 +286,7 @@ describe('PUT /api/auth/password', () => {
   });
 
   it('rejects missing currentPassword with 400', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const reg = await register(app, 'missing@example.com', 'password123');
@@ -299,7 +299,7 @@ describe('PUT /api/auth/password', () => {
   });
 
   it('rejects unauthenticated requests with 401', async () => {
-    const { app, db } = makeApp();
+    const { app, db } = await makeApp();
     openDbs.push(db);
 
     const res = await request(app)
