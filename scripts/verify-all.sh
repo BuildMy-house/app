@@ -33,8 +33,8 @@ run_step() {
   fi
 }
 
-echo "=== homely ==="
-cd "$REPO/homely"
+echo "=== buildmyhouse ==="
+cd "$REPO/buildmyhouse"
 run_step "lint      (eslint)"      npm run lint
 run_step "typecheck (tsc)"        npx tsc --noEmit
 run_step "unit      (vitest)"     npm test

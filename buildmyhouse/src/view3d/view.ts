@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { HomeModel } from '../core/model'
 import { HomeStore } from '../core/store'
-import { DEFAULT_WALL_HEIGHT_CM } from '../core/home'
+import { DEFAULT_WALL_HEIGHT_CM, type NormalizedHomeState } from '../core/home'
 import { CameraDirector, type CameraPatch, type CameraPresetName } from './cameras'
 import { buildScene, type ModelUrlResolver } from './scene'
 import { observeStore } from './watch'
@@ -14,6 +14,18 @@ import {
   type ViewportQuality,
 } from './viewport-quality'
 import { telemetry } from '../telemetry/logger'
+import type { RenderingMetrics } from '../telemetry/events'
+import {
+  applySceneUpdate,
+  computeSceneUpdates,
+  recordFullRebuild,
+  recordSceneDelta,
+  snapshotDeltaMetrics,
+} from './scene-delta'
+import { exportViewportAsImage } from '../export/quick-preview'
+
+// Per-texture memory estimate for the telemetry textureMemoryMB figure (1024×1024 RGBA).
+const ESTIMATED_TEXTURE_MB = 1
 
 export interface View3DOptions {
   /** DOM container; when absent the view stays a headless scene graph. */
@@ -58,6 +70,11 @@ export class View3D {
   private _frameSamples: number[] = []
   private _frameLastTime = 0
   private _frameReportTimer: ReturnType<typeof setTimeout> | undefined
+  // Rendering metrics: sampled every 30 frames, latest snapshot reported with the 30s frame-time report.
+  private _metricsFrameCount = 0
+  private _lastMetrics: RenderingMetrics | undefined
+  // Delta metrics: 60s aggregation window, reported via telemetry.sceneDeltaMetrics.
+  private _deltaReportTimer: ReturnType<typeof setTimeout> | undefined
   private readonly handleResize = (): void => {
     const container = this.domElement?.parentElement
     if (!container) return
@@ -69,6 +86,8 @@ export class View3D {
   private readonly pointerDown = { x: 0, y: 0 }
   private readonly isPlacing?: () => boolean
   private readonly onFloorClick?: (point: { x: number; y: number }) => void
+  private _lastHome: NormalizedHomeState | null = null
+  private _lastDeltaMs = 0
 
   constructor(
     private readonly store: HomeStore,
@@ -108,7 +127,9 @@ export class View3D {
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this._quality.pixelRatioCap))
       renderer.setSize(width, height)
       renderer.shadowMap.enabled = true
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap
+      // PCFSoftShadowMap is deprecated in r185+; PCFShadowMap now uses Vogel
+      // disk sampling with IGN noise, giving the same soft-shadow quality.
+      renderer.shadowMap.type = THREE.PCFShadowMap
       container.appendChild(renderer.domElement)
       this.renderer = renderer
       this.applyQualityToScene()
@@ -167,6 +188,11 @@ export class View3D {
     return this.perspectiveCamera
   }
 
+  /** Wall-clock ms of the last delta-applied store change (0 after a rebuild). */
+  get lastDeltaMs(): number {
+    return this._lastDeltaMs
+  }
+
   /** Switch which preset the viewport shows ("top" | "observer"). */
   setActivePreset(name: CameraPresetName): void {
     const cam = this.director.usePreset(name)
@@ -220,6 +246,27 @@ export class View3D {
   setCamera(patch: CameraPatch): void {
     this.director.setCamera(patch)
     this.syncCamera()
+    this.render()
+  }
+
+  /**
+   * Reframe the view onto the home's bounds (Fit button / first-geometry
+   * autofit). The camera state change goes through CameraDirector.fitToContent
+   * (model path, so undo/validation stay consistent); the viewport then
+   * mirrors the stored state and points the orbit target at the same center.
+   */
+  fitToContent(): void {
+    const { state, center } = this.director.fitToContent(this.store.getHome())
+    if (this.controls) {
+      this.cancelAnimation()
+      this.controls.enableDamping = false
+      this.applyCameraState(state)
+      this.controls.target.set(center.x, center.y, center.z)
+      this.controls.update()
+      this.controls.enableDamping = true
+    } else {
+      this.applyCameraState(state)
+    }
     this.render()
   }
 
@@ -277,6 +324,7 @@ export class View3D {
 
   /** Rebuild the whole scene graph from current store state. */
   rebuild(): void {
+    const t0 = performance.now()
     let savedTarget: THREE.Vector3 | undefined
     let savedPosition: THREE.Vector3 | undefined
 
@@ -300,6 +348,7 @@ export class View3D {
 
     this._isFirstBuild = false
     this.render()
+    recordFullRebuild(performance.now() - t0)
   }
 
   /**
@@ -312,7 +361,27 @@ export class View3D {
     const key = [...home.selection].sort().join(',')
     const selectionChanged = key !== this._lastSelectionKey
     this._lastSelectionKey = key
-    this.rebuild()
+
+    // Compute what actually changed since the last render
+    const updates = computeSceneUpdates(this._lastHome, home)
+
+    // Delta path: exactly one clear-scope update (single furniture move,
+    // single wall edit, or single room edit) → apply in place, skipping the
+    // full scene rebuild. Anything ambiguous or complex falls back to
+    // rebuild() for safety.
+    let applied = false
+    const single = updates.length === 1 ? updates[0] : undefined
+    if (single && single.type !== 'full-rebuild' && this._lastHome) {
+      const t0 = performance.now()
+      applied = applySceneUpdate(this._scene, single, home, this._lastHome)
+      const deltaMs = performance.now() - t0
+      this._lastDeltaMs = applied ? deltaMs : 0
+      if (applied) recordSceneDelta(single.type, deltaMs)
+    }
+    if (!applied) this.rebuild()
+
+    this._lastHome = { ...home } // Shallow copy for next frame
+
     if (selectionChanged && home.selection.length > 0) this.focusSelection()
   }
 
@@ -380,6 +449,16 @@ export class View3D {
     raycaster.setFromCamera(ndc, this.perspectiveCamera)
     const hits = raycaster.intersectObjects(this._scene.children, true)
     for (const hit of hits) {
+      // Instanced furniture: resolve the clicked instance to its furniture id
+      // (scene.ts stores the per-instance id list in userData).
+      if (hit.object instanceof THREE.InstancedMesh && hit.instanceId != null) {
+        const ids = hit.object.userData.instanceFurnitureIds as string[] | undefined
+        const id = ids?.[hit.instanceId]
+        if (id) {
+          this.model.setSelection([id])
+          return
+        }
+      }
       let o: THREE.Object3D | null = hit.object
       while (o) {
         const id = /^furniture:(.+)$/.exec(o.name)?.[1] ?? /^wall:(.+)$/.exec(o.name)?.[1]
@@ -432,12 +511,28 @@ export class View3D {
         const dt = now - this._frameLastTime
         this._frameSamples.push(dt)
         if (this._frameSamples.length > 100) this._frameSamples.shift()
+        this._metricsFrameCount++
+        if (this._metricsFrameCount >= 30) {
+          this._metricsFrameCount = 0
+          this._lastMetrics = this.collectRenderingMetrics()
+        }
         if (!this._frameReportTimer) {
           this._frameReportTimer = setTimeout(() => {
             telemetry.frameTime(this._frameSamples)
+            if (this._lastMetrics) telemetry.renderingMetrics(this._lastMetrics)
             this._frameSamples = []
+            this._lastMetrics = undefined
             this._frameReportTimer = undefined
           }, 30_000)
+        }
+        if (!this._deltaReportTimer) {
+          this._deltaReportTimer = setTimeout(() => {
+            const metrics = snapshotDeltaMetrics()
+            if (metrics.deltaUpdatesCount + metrics.fullRebuildsCount > 0) {
+              telemetry.sceneDeltaMetrics(metrics)
+            }
+            this._deltaReportTimer = undefined
+          }, 60_000)
         }
       }
       this._frameLastTime = now
@@ -451,6 +546,7 @@ export class View3D {
   dispose(): void {
     this.cancelAnimation()
     if (this._frameReportTimer) clearTimeout(this._frameReportTimer)
+    if (this._deltaReportTimer) clearTimeout(this._deltaReportTimer)
     this.unobserve()
     this.controls?.dispose()
     this.resizeObserver?.disconnect()
@@ -463,6 +559,29 @@ export class View3D {
     if (this._animationFrame !== undefined) {
       cancelAnimationFrame(this._animationFrame)
       this._animationFrame = undefined
+    }
+  }
+
+  /**
+   * Snapshot renderer stats from renderer.info (already tracked per frame by
+   * Three.js — no extra render work). Called every 30 frames.
+   */
+  private collectRenderingMetrics(): RenderingMetrics | undefined {
+    const renderer = this.renderer
+    if (!renderer) return undefined
+    let instancedMeshCount = 0
+    this._scene.traverse((object) => {
+      if (object instanceof THREE.InstancedMesh) instancedMeshCount++
+    })
+    const samples = this._frameSamples
+    const avgDt = samples.length > 0 ? samples.reduce((a, b) => a + b, 0) / samples.length : 0
+    return {
+      drawCalls: renderer.info.render.calls,
+      instancedMeshCount,
+      triangleCount: renderer.info.render.triangles,
+      // ponytail: renderer.info doesn't expose per-texture bytes; 1MB avg per texture (1024×1024 RGBA), refine only if texture memory ever matters
+      textureMemoryMB: renderer.info.memory.textures * ESTIMATED_TEXTURE_MB,
+      fps: avgDt > 0 ? Math.round((1000 / avgDt) * 100) / 100 : 0,
     }
   }
 
@@ -499,5 +618,16 @@ export class View3D {
         material.dispose()
       }
     })
+  }
+
+  /**
+   * Export the current viewport as an image.
+   * Instant client-side operation: no server needed.
+   */
+  exportAsImage(format: 'png' | 'jpeg' = 'png', quality = 0.95): Promise<Blob> {
+    if (!this.domElement) {
+      return Promise.reject(new Error('View3D: no canvas available for export'))
+    }
+    return exportViewportAsImage(this.domElement, format, quality)
   }
 }

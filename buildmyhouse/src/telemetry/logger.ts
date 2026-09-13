@@ -8,7 +8,7 @@
  *   telemetry.frameTime([16, 18, 22, 45, 120])
  */
 
-import type { TelemetryEvent, TelemetryTier } from './events'
+import type { RenderingMetrics, TelemetryEvent, TelemetryTier } from './events'
 import { getTelemetryConfig, initTelemetryConfig, setTelemetryTier2 } from './config'
 import { getSessionId, getVersion, initContext } from './context'
 import { enqueue, flush, registerUnload } from './transport'
@@ -26,6 +26,12 @@ function makeEvent(event: string, tier: TelemetryTier, extra?: Record<string, un
 }
 
 function emit(event: string, tier: TelemetryTier, extra?: Record<string, unknown>): void {
+  // ponytail: e2e/test observability hook — only exists when a test injects the
+  // array (page.addInitScript); capped so long app sessions can't grow it.
+  const hook = (globalThis as { __telemetryEvents?: TelemetryEvent[] }).__telemetryEvents
+  hook?.push(makeEvent(event, tier, extra))
+  if (hook && hook.length > 500) hook.splice(0, hook.length - 500)
+
   if (!getTelemetryConfig().enabled) return
   enqueue(makeEvent(event, tier, extra))
 }
@@ -115,6 +121,23 @@ export const telemetry = {
     emit('automation.command', 1, { command, durationMs })
   },
 
+  /** Report renderer stats snapshot (draw calls, instancing, triangles, fps). */
+  renderingMetrics(metrics: RenderingMetrics): void {
+    emit('perf.rendering_metrics', 1, { ...metrics })
+  },
+
+  /** Report scene delta-vs-rebuild ratio for the last 60s window. */
+  sceneDeltaMetrics(metrics: {
+    deltaUpdatesCount: number
+    fullRebuildsCount: number
+    avgDeltaDurationMs: number
+    avgRebuildDurationMs: number
+    deltaRatio: number
+    windowDurationMs: number
+  }): void {
+    emit('perf.scene_delta_metrics', 1, { ...metrics })
+  },
+
   // ── Tier 2: User Interaction ─────────────────────────────────────────────
 
   toolSwitch(tool: string): void {
@@ -137,6 +160,19 @@ export const telemetry = {
   featureSave(): void { emit('feature.save', 2) },
   featureOpen(): void { emit('feature.open', 2) },
   featureExport(): void { emit('feature.export', 2) },
+
+  /** Trace a user action with timing and scene complexity (ticket A4). */
+  userActionMetrics(metrics: {
+    actionName: string
+    durationMs: number
+    sceneComplexityBefore: number
+    sceneComplexityAfter: number
+    frameTimeDeltaMs: number
+    success: boolean
+    errorMessage?: string
+  }): void {
+    emit('user.action_trace', 2, { ...metrics })
+  },
 
   // ── Preferences ──────────────────────────────────────────────────────────
 

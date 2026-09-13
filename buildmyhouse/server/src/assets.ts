@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
-import type { Database } from 'better-sqlite3';
 import type { Request, Response } from 'express';
+import { asyncHandler } from './asyncHandler.js';
 import { requireAuth } from './auth.js';
+import type { DbAdapter } from './db.js';
 import { AssetStorage } from './storage.js';
 
 // GlTF binary magic number: ASCII "glTF", little-endian (glTF 2.0 spec).
@@ -96,133 +97,161 @@ function tenantGuard(req: Request, res: Response, next: () => void): void {
   next();
 }
 
-export function assetsRouter(db: Database, storage: AssetStorage): Router {
+export function assetsRouter(db: DbAdapter, storage: AssetStorage): Router {
   const router = Router();
   router.use('/:userId', requireAuth, tenantGuard);
 
-  router.get('/:userId', (req: Request, res: Response) => {
-    const rows = db
-      .prepare('SELECT * FROM assets WHERE user_id = ? ORDER BY created_at DESC')
-      .all(req.params.userId) as unknown as AssetRow[];
-    res.json({ items: rows.map(toRecord) });
-  });
+  router.get(
+    '/:userId',
+    asyncHandler(async (req: Request, res: Response) => {
+      const rows = await db.all<AssetRow>(
+        'SELECT * FROM assets WHERE user_id = ? ORDER BY created_at DESC',
+        req.params.userId,
+      );
+      res.json({ items: rows.map(toRecord) });
+    }),
+  );
 
-  router.post('/:userId', (req: Request, res: Response) => {
-    const { record, glb, source } = (req.body ?? {}) as {
-      record?: Partial<UserModelRecord>;
-      glb?: unknown;
-      source?: unknown;
-    };
+  router.post(
+    '/:userId',
+    asyncHandler(async (req: Request, res: Response) => {
+      const { record, glb, source } = (req.body ?? {}) as {
+        record?: Partial<UserModelRecord>;
+        glb?: unknown;
+        source?: unknown;
+      };
 
-    if (typeof glb !== 'string') {
-      res.status(400).json({ error: 'glb (base64) is required' });
-      return;
-    }
-    const glbBytes = decodeBase64(glb);
-    if (!glbBytes) {
-      res.status(400).json({ error: 'glb is not valid base64' });
-      return;
-    }
+      if (typeof glb !== 'string') {
+        res.status(400).json({ error: 'glb (base64) is required' });
+        return;
+      }
+      const glbBytes = decodeBase64(glb);
+      if (!glbBytes) {
+        res.status(400).json({ error: 'glb is not valid base64' });
+        return;
+      }
 
-    const validationError = validateGlb(glbBytes);
-    if (validationError) {
-      res.status(400).json({ error: validationError });
-      return;
-    }
+      const validationError = validateGlb(glbBytes);
+      if (validationError) {
+        res.status(400).json({ error: validationError });
+        return;
+      }
 
-    const sourceBytes = source == null ? null : typeof source === 'string' ? decodeBase64(source) : null;
-    if (source != null && !sourceBytes) {
-      res.status(400).json({ error: 'source is not valid base64' });
-      return;
-    }
+      const sourceBytes = source == null ? null : typeof source === 'string' ? decodeBase64(source) : null;
+      if (source != null && !sourceBytes) {
+        res.status(400).json({ error: 'source is not valid base64' });
+        return;
+      }
 
-    const id = typeof record?.id === 'string' ? record.id : randomUUID();
-    const userId = req.params.userId!;
-    const name = typeof record?.name === 'string' ? record.name : 'Untitled model';
-    const category = typeof record?.category === 'string' ? record.category : '';
-    const width = typeof record?.width === 'number' ? record.width : 0;
-    const depth = typeof record?.depth === 'number' ? record.depth : 0;
-    const height = typeof record?.height === 'number' ? record.height : 0;
-    const color = typeof record?.color === 'number' ? record.color : null;
-    const blobKey = `blob:${id}`;
-    const createdAt = typeof record?.createdAt === 'number' ? record.createdAt : Date.now();
+      const id = typeof record?.id === 'string' ? record.id : randomUUID();
+      const userId = req.params.userId!;
+      const name = typeof record?.name === 'string' ? record.name : 'Untitled model';
+      const category = typeof record?.category === 'string' ? record.category : '';
+      const width = typeof record?.width === 'number' ? record.width : 0;
+      const depth = typeof record?.depth === 'number' ? record.depth : 0;
+      const height = typeof record?.height === 'number' ? record.height : 0;
+      const color = typeof record?.color === 'number' ? record.color : null;
+      const blobKey = `blob:${id}`;
+      const createdAt = typeof record?.createdAt === 'number' ? record.createdAt : Date.now();
 
-    // An upload replaces any existing asset with the same id for this user.
-    const existing = db.prepare('SELECT * FROM assets WHERE user_id = ? AND id = ?').get(userId, id) as
-      | AssetRow
-      | undefined;
-    if (existing) {
-      storage.remove(userId, existing.glb_path.split('/').pop() ?? '');
-      if (existing.source_path) storage.remove(userId, existing.source_path.split('/').pop() ?? '');
-    }
+      // An upload replaces any existing asset with the same id for this user.
+      const existing = await db.get<AssetRow>(
+        'SELECT * FROM assets WHERE user_id = ? AND id = ?',
+        userId,
+        id,
+      );
+      if (existing) {
+        storage.remove(userId, existing.glb_path.split('/').pop() ?? '');
+        if (existing.source_path) storage.remove(userId, existing.source_path.split('/').pop() ?? '');
+      }
 
-    const glbFileName = `${id}.glb`;
-    const glbPath = storage.save(userId, glbFileName, glbBytes);
-    let sourcePath: string | null = null;
-    if (sourceBytes) {
-      sourcePath = storage.save(userId, `${id}.source`, sourceBytes);
-    }
+      const glbFileName = `${id}.glb`;
+      const glbPath = storage.save(userId, glbFileName, glbBytes);
+      let sourcePath: string | null = null;
+      if (sourceBytes) {
+        sourcePath = storage.save(userId, `${id}.source`, sourceBytes);
+      }
 
-    db.prepare(
-      `INSERT OR REPLACE INTO assets
-         (id, user_id, catalog_id, name, category, width, depth, height, color, blob_key, glb_path, source_path, created_at)
-       VALUES
-         (@id, @user_id, @catalog_id, @name, @category, @width, @depth, @height, @color, @blob_key, @glb_path, @source_path, @created_at)`,
-    ).run({
-      id,
-      user_id: userId,
-      catalog_id: typeof record?.catalogId === 'string' ? record.catalogId : id,
-      name,
-      category,
-      width,
-      depth,
-      height,
-      color,
-      blob_key: blobKey,
-      glb_path: glbPath,
-      source_path: sourcePath,
-      created_at: createdAt,
-    });
+      const catalogId = typeof record?.catalogId === 'string' ? record.catalogId : id;
 
-    res.status(201).json(toRecord(
-      db.prepare('SELECT * FROM assets WHERE user_id = ? AND id = ?').get(userId, id) as AssetRow,
-    ));
-  });
+      // Use INSERT ... ON CONFLICT for cross-db upsert
+      await db.run(
+        `INSERT INTO assets
+           (id, user_id, catalog_id, name, category, width, depth, height, color, blob_key, glb_path, source_path, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (id) DO UPDATE SET
+           user_id=excluded.user_id, catalog_id=excluded.catalog_id, name=excluded.name,
+           category=excluded.category, width=excluded.width, depth=excluded.depth,
+           height=excluded.height, color=excluded.color, blob_key=excluded.blob_key,
+           glb_path=excluded.glb_path, source_path=excluded.source_path, created_at=excluded.created_at`,
+        id,
+        userId,
+        catalogId,
+        name,
+        category,
+        width,
+        depth,
+        height,
+        color,
+        blobKey,
+        glbPath,
+        sourcePath,
+        createdAt,
+      );
 
-  router.delete('/:userId/:id', (req: Request, res: Response) => {
-    const userId = req.params.userId!;
-    const id = req.params.id!;
-    const row = db.prepare('SELECT * FROM assets WHERE user_id = ? AND id = ?').get(userId, id) as
-      | AssetRow
-      | undefined;
-    if (!row) {
-      res.status(404).json({ error: 'not found' });
-      return;
-    }
-    storage.remove(userId, row.glb_path.split('/').pop() ?? '');
-    if (row.source_path) storage.remove(userId, row.source_path.split('/').pop() ?? '');
-    db.prepare('DELETE FROM assets WHERE user_id = ? AND id = ?').run(userId, id);
-    res.status(204).end();
-  });
+      const saved = await db.get<AssetRow>(
+        'SELECT * FROM assets WHERE user_id = ? AND id = ?',
+        userId,
+        id,
+      );
+      res.status(201).json(toRecord(saved!));
+    }),
+  );
 
-  router.get('/:userId/:id/model', (req: Request, res: Response) => {
-    const userId = req.params.userId!;
-    const id = req.params.id!;
-    const row = db.prepare('SELECT * FROM assets WHERE user_id = ? AND id = ?').get(userId, id) as
-      | AssetRow
-      | undefined;
-    if (!row) {
-      res.status(404).end();
-      return;
-    }
-    const glb = storage.read(userId, row.glb_path.split('/').pop() ?? '');
-    if (!glb) {
-      res.status(404).end();
-      return;
-    }
-    res.set('Content-Type', 'model/gltf-binary');
-    res.send(glb);
-  });
+  router.delete(
+    '/:userId/:id',
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = req.params.userId!;
+      const id = req.params.id!;
+      const row = await db.get<AssetRow>(
+        'SELECT * FROM assets WHERE user_id = ? AND id = ?',
+        userId,
+        id,
+      );
+      if (!row) {
+        res.status(404).json({ error: 'not found' });
+        return;
+      }
+      storage.remove(userId, row.glb_path.split('/').pop() ?? '');
+      if (row.source_path) storage.remove(userId, row.source_path.split('/').pop() ?? '');
+      await db.run('DELETE FROM assets WHERE user_id = ? AND id = ?', userId, id);
+      res.status(204).end();
+    }),
+  );
+
+  router.get(
+    '/:userId/:id/model',
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = req.params.userId!;
+      const id = req.params.id!;
+      const row = await db.get<AssetRow>(
+        'SELECT * FROM assets WHERE user_id = ? AND id = ?',
+        userId,
+        id,
+      );
+      if (!row) {
+        res.status(404).end();
+        return;
+      }
+      const glb = storage.read(userId, row.glb_path.split('/').pop() ?? '');
+      if (!glb) {
+        res.status(404).end();
+        return;
+      }
+      res.set('Content-Type', 'model/gltf-binary');
+      res.send(glb);
+    }),
+  );
 
   return router;
 }

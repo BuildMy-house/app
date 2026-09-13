@@ -39,6 +39,10 @@ class MockContext implements PlanRenderingContext {
     this.ops.push({ type: 'createPattern', args: [image, repetition] })
     return this.patternResult
   }
+  measureText(text: string): { width: number } {
+    this.ops.push({ type: 'measureText', args: [text] })
+    return { width: text.length * 6 }
+  }
 }
 
 const IDENTITY_VIEW: ViewTransform = { scale: 1, offsetX: 0, offsetY: 0 }

@@ -55,6 +55,9 @@ class RecordingPlanContext implements PlanRenderingContext {
   fillText(text: string, x: number, y: number): void {
     this.ops.push(['fillText', text, x, y])
   }
+  measureText(_text: string): { width: number } {
+    return { width: 0 }
+  }
   strokeRect(x: number, y: number, w: number, h: number): void {
     this.ops.push(['strokeRect', x, y, w, h])
   }

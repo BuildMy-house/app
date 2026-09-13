@@ -93,6 +93,7 @@ export interface Furniture {
   pitchDeg?: number
   rollDeg?: number
   color?: number | null
+  textureId?: string | null
   visible?: boolean
   movable?: boolean
   doorOrWindow?: boolean

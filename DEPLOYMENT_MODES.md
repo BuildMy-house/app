@@ -2,32 +2,25 @@
 
 ## Overview
 
-Buildmyhouse (the `buildmyhouse/` product + its server backend) supports two deployment modes:
+Buildmyhouse (the `buildmyhouse/` product + its server backend) currently supports **one working deployment mode**:
 
-1. **Local Development Mode**: SQLite database, optional telemetry (opt-in), runs entirely on a developer's machine or a single server
-2. **Webserver Mode**: Neon PostgreSQL (managed Postgres), all telemetry enabled, designed for hosted deployments on Vercel/Cloudflare
+1. **Local Development Mode** (SQLite, `better-sqlite3`): the only functional backend today
 
-The app detects which mode to use at startup based on environment variables and adapts:
-- Database: SQLite (`buildmyhouse/server/data.db` or `:memory:`) in local mode, Neon PostgreSQL in webserver mode
-- Telemetry: Completely optional (no-op by default) in local mode, always-on in webserver mode
-- Signing/auth: Local mode uses unsigned tokens (dev-only), webserver mode uses real JWT signing
+A second mode (Postgres) is sketched but **not implemented** — see [Postgres support](#postgres-support-not-yet-implemented) below.
 
-## Configuration
+For Docker-based self-hosting, see `buildmyhouse/docs/hosting.md` (the source of truth for deployment instructions).
 
-### Local Mode (Development)
+## Local Development Mode (SQLite)
 
-**Trigger:** Any of the following:
-- `DATABASE_URL` is unset or empty
-- `NODE_ENV !== "production"`
-- `TELEMETRY_OPT_IN` is explicitly unset or `false`
+**Trigger:** `DATABASE_URL` is unset or empty (the default).
 
 **Environment Variables:**
 ```bash
 NODE_ENV=development
-# DATABASE_URL unset or empty — triggers SQLite at ./data.db
+# DATABASE_URL unset — triggers SQLite at ./data.db
 
-# Telemetry (optional)
-VITE_AXIOM_TOKEN=       # Leave empty to disable telemetry
+# Telemetry (optional, opt-in)
+VITE_AXIOM_TOKEN=       # Leave empty to disable
 VITE_AXIOM_DATASET=
 VITE_AXIOM_ENDPOINT=
 
@@ -36,93 +29,50 @@ PORT=5173
 ```
 
 **Behavior:**
-- Tauri app (`buildmyhouse/src-tauri/`) can run standalone with SQLite embedded
-- Web app (`buildmyhouse/server/`) starts on localhost:5173 with in-memory or file-based SQLite
+- Tauri app (`buildmyhouse/src-tauri/`) runs standalone with SQLite embedded
+- Web app (`buildmyhouse/server/`) starts on localhost:5173 with file-based SQLite
 - Home projects saved to `data.db` locally (no cloud sync)
-- Telemetry events silently dropped (or logged to console if enabled, but not sent)
-- No authentication required
+- Auth uses unsigned tokens (dev-only)
+- Telemetry events silently dropped unless opted in (see [Telemetry](#telemetry))
 
-### Webserver Mode (Production/Hosting)
+**Database file:** `buildmyhouse/server/data.db` (or `:memory:` in tests)
 
-**Trigger:** Both of these:
-- `DATABASE_URL` is set and points to a Neon PostgreSQL instance
-- `NODE_ENV === "production"` (typical for Vercel/Cloudflare)
+### Schema
 
-**Environment Variables:**
-```bash
-NODE_ENV=production
-DATABASE_URL=postgresql://user:password@ep-*.neon.tech/dbname
+Tables (defined in `buildmyhouse/server/src/db.ts`):
 
-# Telemetry (required in production)
-VITE_AXIOM_TOKEN=<write-scoped token>
-VITE_AXIOM_DATASET=buildmyhouse-telemetry
-VITE_AXIOM_ENDPOINT=https://api.axiom.co
+- **`users`** — `id TEXT PK, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, created_at TEXT NOT NULL`
+- **`assets`** — `id TEXT PK, user_id TEXT NOT NULL, catalog_id TEXT NOT NULL, name TEXT NOT NULL, category TEXT NOT NULL, width REAL NOT NULL, depth REAL NOT NULL, height REAL NOT NULL, color INTEGER, blob_key TEXT NOT NULL, glb_path TEXT NOT NULL, source_path TEXT, created_at INTEGER NOT NULL`
+- **`homes`** — `id TEXT PK, owner_user_id TEXT NOT NULL, name TEXT NOT NULL, json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL`
 
-# Server runs on PORT (default 3000 or 8080 depending on platform)
-PORT=3000
-```
+Once the H7 ticket (server-teams-multi-tenant) lands, the schema also includes `teams` and `team_members` tables, and `homes` gets a nullable `team_id` column.
 
-**Behavior:**
-- Web app only (Tauri desktop app cannot use Neon; Tauri remains local)
-- PostgreSQL stores all project data (multi-user capable, cloud sync ready)
-- All telemetry events sent to Axiom (no opt-out in production mode)
-- JWT signing required; secrets must be provisioned via Neon API or environment
-- Suitable for Vercel, Cloudflare Workers, or any Node.js hosting
+Migrations are idempotent init-on-boot (`CREATE TABLE IF NOT EXISTS`) — no migration framework.
 
-## Database Schema
+## Telemetry
 
-### Local Mode (SQLite)
+Telemetry is **frontend-only** and **opt-in**. There is no server-side telemetry code.
 
-Database file: `buildmyhouse/server/data.db` (or `:memory:` in tests)
+- **Transport:** `buildmyhouse/src/telemetry/transport.ts` batches events and POSTs directly from the browser to Axiom's ingest endpoint via `fetch`
+- **Gating:** disabled by default; enabled only when both `VITE_AXIOM_TOKEN` and `VITE_AXIOM_DATASET` are set (checked in `buildmyhouse/src/telemetry/config.ts`)
+- **Privacy:** user data never leaves the machine unless the developer explicitly sets Axiom credentials
+- **Scope:** non-identifying telemetry only (feature usage, performance, errors) — no passwords, home design content, or PII
 
-Tables:
-- `home_projects` — home design files + metadata
-- `user_sessions` — optional multi-user state (dev-only, not required)
-- Migrations run automatically on app startup via `drizzle`
+There is no "always-on in production" behavior. Telemetry is entirely a development/observability opt-in.
 
-### Webserver Mode (Neon PostgreSQL)
+## Postgres support (not yet implemented)
 
-Connection: `DATABASE_URL` (Neon connection string)
+The codebase has a `DATABASE_URL` check in `buildmyhouse/server/src/db.ts` (`getDeploymentMode()`) and a stub `openPostgres()` function, but **Postgres mode does not work**. The stub returns an object exposing only `.exec()`, while every route handler calls the synchronous `better-sqlite3` API (`.prepare().get()`/`.run()`/`.all()`). Setting `DATABASE_URL` to a real Postgres connection string crashes on the first query.
 
-Same schema, but:
-- Multi-user capable out of the box
-- Supports concurrent reads/writes
-- Cloud backups and point-in-time recovery (Neon feature)
-- Telemetry correlation via `session_id` / `user_id` fields
+**Do not set `DATABASE_URL` in production.** This will be implemented in ticket H8 (server-postgres-dual-mode-adapter).
 
-## Telemetry Detail
+For now, all deployments use SQLite. See `buildmyhouse/docs/hosting.md` for Docker-based self-hosting with SQLite.
 
-### Local Mode
+## Why SQLite locally?
 
-- **Default:** Telemetry completely disabled (no-op ingestion)
-- **Opt-in:** Set `VITE_AXIOM_TOKEN` + `VITE_AXIOM_DATASET` to enable
-- **Privacy:** User data never leaves the machine unless explicitly enabled
+- Fast iteration, no external dependencies
+- Offline-capable
+- Single self-hosted instance (family, small team) — thousands of homes and hundreds of concurrent readers are comfortable
+- Not built for concurrent writers across multiple replicas (do not run multiple app replicas against one SQLite file)
 
-### Webserver Mode
-
-- **Always on:** All telemetry events sent to Axiom
-- **Scope:** Non-identifying telemetry only (feature usage, performance, errors)
-- **What's included:** Button clicks, form submissions, API latencies, error messages (no passwords, home design content, PII)
-- **Schema:** See `buildmyhouse/src/telemetry/events.ts` for the exact event types
-
-## Migration Path
-
-To move from Local → Webserver:
-
-1. **Create a Neon account** and a new PostgreSQL database
-2. **Export local data** from SQLite (if needed):
-   ```bash
-   sqlite3 data.db .dump > export.sql
-   # Review/migrate the SQL to Neon schema as needed
-   psql -h ep-*.neon.tech -U ... -d dbname < export.sql
-   ```
-3. **Set environment variables** for webserver mode
-4. **Deploy** to Vercel/Cloudflare with the new `DATABASE_URL`
-5. **Enable telemetry** (set Axiom credentials)
-
-## Architecture Decisions
-
-- **Why SQLite locally?** Fast iteration, no external dependencies, offline-capable
-- **Why Neon in production?** Managed scaling, automatic backups, built-in monitoring, multi-user ready
-- **Why optional telemetry in local mode?** Developers may not want to send usage data to third parties while developing; privacy-first by default
-- **Why always-on in webserver mode?** Production deployments need observability; telemetry is scoped to non-identifying data only
+For horizontal scale-out, the model layer (`homes`, `users`, `assets` metadata) is small and well-bounded — the swap to Postgres will be a storage-engine change, not a schema redesign. When you hit the SQLite ceiling, see the "Postgres, later" section in `buildmyhouse/docs/hosting.md`.

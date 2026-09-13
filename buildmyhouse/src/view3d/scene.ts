@@ -10,6 +10,7 @@ import {
   type Wall,
 } from '../core/home'
 import { isArcWall, wallOutlinePoints } from '../core/top-camera-follower'
+import { createInstancedMesh, groupFurnitureForInstancing } from './instanced-meshes'
 
 type Pt = [number, number]
 
@@ -93,7 +94,7 @@ function computeWallOpenings(
   return openings
 }
 
-function wallMesh(
+export function wallMesh(
   wall: Wall,
   elevation: number,
   wallsTransparency: number,
@@ -214,7 +215,7 @@ function wallMesh(
   return group
 }
 
-function wallEdges(wall: Wall, elevation: number, allWalls: Wall[]): THREE.LineSegments {
+export function wallEdges(wall: Wall, elevation: number, allWalls: Wall[]): THREE.LineSegments {
   const height = wall.height ?? DEFAULT_WALL_HEIGHT_CM
   const midX = (wall.xStart + wall.xEnd) / 2
   const midY = (wall.yStart + wall.yEnd) / 2
@@ -228,10 +229,12 @@ function wallEdges(wall: Wall, elevation: number, allWalls: Wall[]): THREE.LineS
     new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.3 }),
   )
   line.position.set(midX, elevation, midY)
+  // Named so scene-delta.ts can find and replace an edited wall's edges.
+  line.name = `wall-edge:${wall.id}`
   return line
 }
 
-function roomMesh(room: Room, elevation: number): THREE.Mesh {
+export function roomMesh(room: Room, elevation: number): THREE.Mesh {
   const shape = new THREE.Shape()
   room.points.forEach(([x, y], index) => {
     if (index === 0) shape.moveTo(x, -y)
@@ -252,7 +255,7 @@ function roomMesh(room: Room, elevation: number): THREE.Mesh {
   return mesh
 }
 
-function ceilingMesh(room: Room, elevation: number, levels: Level[]): THREE.Mesh | null {
+export function ceilingMesh(room: Room, elevation: number, levels: Level[]): THREE.Mesh | null {
   if (room.ceilingVisible === false) return null
   const level = levels.find(l => l.id === room.levelRef)
   const levelHeight = level ? level.height : DEFAULT_WALL_HEIGHT_CM
@@ -459,6 +462,13 @@ function furnitureMesh(item: Furniture, elevation: number, onReady?: () => void,
     roughness: 0.7,
     metalness: 0.0,
   })
+  if (item.textureId) {
+    const tex = loadWallTexture(item.textureId)
+    if (tex) {
+      material.map = tex
+      material.needsUpdate = true
+    }
+  }
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = `furniture:${item.id}`
   mesh.position.set(item.x, elevation + item.elevation + item.height / 2, item.y)
@@ -472,6 +482,76 @@ function furnitureMesh(item: Furniture, elevation: number, onReady?: () => void,
   mesh.receiveShadow = true
   swapInModel(mesh, item, isSelected, onReady)
   return mesh
+}
+
+/**
+ * Add furniture meshes to the scene root, using instanced rendering where it
+ * is visually identical: pieces grouped by groupFurnitureForInstancing render
+ * as ONE InstancedMesh only when every member shares the same dimensions and
+ * effective color, has no GLB model (models swap in as per-mesh children),
+ * and is not selected (highlight tint is per-material, so a selected piece
+ * must stay an individual mesh).
+ */
+function addFurnitureMeshes(
+  root: THREE.Group,
+  furniture: readonly Furniture[],
+  elevations: Map<string, number>,
+  onModelReady: (() => void) | undefined,
+  selectionSet: Set<string>,
+): void {
+  const effectiveColor = (it: Furniture): number => it.color ?? DEFAULT_FURNITURE_COLOR
+  const instancedIds = new Set<string>()
+  for (const group of groupFurnitureForInstancing(furniture)) {
+    // Selected pieces render individually so the highlight tint stays
+    // per-material; the rest of the group still instances.
+    const candidates = group.items.filter((it) => !selectionSet.has(it.id))
+    if (candidates.length < 2) continue
+    const first = candidates[0]!
+    const canInstance = candidates.every(
+      (it) =>
+        !it.modelPath &&
+        it.width === first.width &&
+        it.height === first.height &&
+        it.depth === first.depth &&
+        effectiveColor(it) === effectiveColor(first) &&
+        (it.textureId ?? null) === (first.textureId ?? null),
+    )
+    if (!canInstance) continue
+    // createInstancedMesh places instance origins at the floor (level +
+    // item elevation); bake the centered box's half-height lift into the
+    // geometry so instances occupy the same volume as furnitureMesh boxes.
+    const geometry = new THREE.BoxGeometry(first.width, first.height, first.depth)
+    geometry.translate(0, first.height / 2, 0)
+    const material = new THREE.MeshStandardMaterial({
+      color: effectiveColor(first),
+      roughness: 0.7,
+      metalness: 0.0,
+    })
+    if (first.textureId) {
+      const tex = loadWallTexture(first.textureId)
+      if (tex) {
+        material.map = tex
+        material.needsUpdate = true
+      }
+    }
+    const mesh = createInstancedMesh(
+      { modelPath: group.modelPath, color: group.color, items: candidates },
+      geometry,
+      material,
+      elevations,
+    )
+    // No ':' in the name — pick() and applySelectionHighlight parse
+    // `furniture:<id>` / `wall:<id>` names and must not match this mesh.
+    mesh.name = `furniture-instanced-${group.modelPath}`
+    mesh.userData.instanceFurnitureIds = candidates.map((it) => it.id)
+    for (const it of candidates) instancedIds.add(it.id)
+    root.add(mesh)
+  }
+  for (const item of furniture) {
+    if (item.visible === false) continue
+    if (instancedIds.has(item.id)) continue
+    root.add(furnitureMesh(item, elevationFor(item.levelRef, elevations), onModelReady, selectionSet.has(item.id)))
+  }
 }
 
 export const SELECTION_EMISSIVE_COLOR = 0x1a66d6
@@ -559,6 +639,10 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
   directional.shadow.camera.right = 5000
   directional.shadow.camera.top = 5000
   directional.shadow.camera.bottom = -5000
+  // Bias prevents shadow acne (self-shadowing) at cm-scale geometry.
+  // normalBias offsets sampling along surface normals for clean floor/wall shadows.
+  directional.shadow.bias = -0.001
+  directional.shadow.normalBias = 2
   scene.add(directional)
 
   // Soft fill light from roughly opposite direction — lifts shadowed faces
@@ -608,10 +692,7 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
     if (ceiling) root.add(ceiling)
   }
   const selectionSet = new Set(home.selection)
-  for (const item of home.furniture) {
-    if (item.visible === false) continue
-    root.add(furnitureMesh(item, elevationFor(item.levelRef, elevations), onModelReady, selectionSet.has(item.id)))
-  }
+  addFurnitureMeshes(root, home.furniture, elevations, onModelReady, selectionSet)
   scene.add(root)
 
   // Selection highlight (walls, rooms — furniture handled at creation time)

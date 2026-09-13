@@ -33,7 +33,10 @@ export interface PlanRenderingContext {
   restore(): void
   globalCompositeOperation: GlobalCompositeOperation
   globalAlpha: number
+  measureText(text: string): { width: number }
   createPattern?(image: unknown, repetition: string): unknown
+  /** Real canvases carry the element; mocks may omit it. */
+  readonly canvas?: HTMLCanvasElement
 }
 
 const WALL_COLOR = '#5a5a5a'
@@ -42,12 +45,23 @@ const ROOM_FILL = 'rgba(170, 200, 235, 0.3)'
 const DIMENSION_COLOR = '#8a6d1a'
 const LABEL_COLOR = '#333333'
 const PREVIEW_COLOR = '#999999'
+const CLOSURE_PREVIEW_FILL = 'rgba(100, 180, 100, 0.18)'
+const CLOSURE_PREVIEW_STROKE = 'rgba(80, 160, 80, 0.7)'
 const FURNITURE_FILL = 'rgba(160, 160, 90, 0.5)'
 const ROTATION_HANDLE_OFFSET = 20
 const ROTATION_HANDLE_RADIUS = 5
 
-const MINOR_GRID_COLOR = '#e8e8e8'
-const MAJOR_GRID_COLOR = '#d0d0d0'
+// Grid colors per theme — minor lines must stay low-contrast vs canvas bg
+// (transparent; body uses --bg), major lines moderately stronger.
+const MINOR_GRID_COLOR_LIGHT = '#e8e8e8'
+const MAJOR_GRID_COLOR_LIGHT = '#d0d0d0'
+const MINOR_GRID_COLOR_DARK = '#262626'
+const MAJOR_GRID_COLOR_DARK = '#3a3a3a'
+
+// Same dark-mode signal as main.ts applyDarkMode/toggleDarkMode (body.dark class).
+function isDarkMode(): boolean {
+  return typeof document !== 'undefined' && document.body.classList.contains('dark')
+}
 
 /** Schema colors are 0xRRGGBB ints; CSS wants strings. */
 function cssColor(color: number | null | undefined, fallback: string): string {
@@ -61,6 +75,39 @@ function formatLength(cm: number): string {
 }
 
 const imageCache = new Map<string, HTMLImageElement>()
+
+// Finding A.2: the engine needs the live screen cursor + view scale (for the
+// zoom-aware snap margin and the closure preview), but main.ts's pointermove
+// never calls the engine — only the automation runner does (move_mouse). The
+// renderer draws every frame with the canvas + view in hand, so it tracks the
+// cursor here (canvas pixel coords) and exposes accessors for the engine.
+let lastCursorPx: { x: number; y: number } | null = null
+let lastDrawnView: ViewTransform | null = null
+let cursorTrackedCanvas: HTMLCanvasElement | null = null
+
+export function getLastCursorPx(): { x: number; y: number } | null {
+  return lastCursorPx
+}
+
+export function getLastDrawnView(): ViewTransform | null {
+  return lastDrawnView
+}
+
+/** One-time pointermove/pointerleave hookup per canvas. */
+function installCursorTracking(canvas: HTMLCanvasElement): void {
+  if (cursorTrackedCanvas === canvas) return
+  cursorTrackedCanvas = canvas
+  canvas.addEventListener('pointermove', (e) => {
+    const rect = canvas.getBoundingClientRect()
+    lastCursorPx = {
+      x: ((e.clientX - rect.left) * canvas.width) / rect.width,
+      y: ((e.clientY - rect.top) * canvas.height) / rect.height,
+    }
+  })
+  canvas.addEventListener('pointerleave', () => {
+    lastCursorPx = null
+  })
+}
 
 /** Test-only: inject a pre-loaded image into the texture cache. */
 export function setTestImageCache(entries: Map<string, HTMLImageElement>): void {
@@ -203,6 +250,9 @@ export class ViewMapper {
 }
 
 function drawGrid(ctx: PlanRenderingContext, view: ViewTransform, width: number, height: number): void {
+  const dark = isDarkMode()
+  const minorColor = dark ? MINOR_GRID_COLOR_DARK : MINOR_GRID_COLOR_LIGHT
+  const majorColor = dark ? MAJOR_GRID_COLOR_DARK : MAJOR_GRID_COLOR_LIGHT
   const mapper = new ViewMapper(view)
   const topLeft = mapper.toModel(0, 0)
   const bottomRight = mapper.toModel(width, height)
@@ -230,7 +280,7 @@ function drawGrid(ctx: PlanRenderingContext, view: ViewTransform, width: number,
     ctx.moveTo(0, py)
     ctx.lineTo(width, py)
   }
-  ctx.strokeStyle = MINOR_GRID_COLOR
+  ctx.strokeStyle = minorColor
   ctx.lineWidth = 0.5
   ctx.stroke()
 
@@ -248,7 +298,7 @@ function drawGrid(ctx: PlanRenderingContext, view: ViewTransform, width: number,
     ctx.moveTo(0, py)
     ctx.lineTo(width, py)
   }
-  ctx.strokeStyle = MAJOR_GRID_COLOR
+  ctx.strokeStyle = majorColor
   ctx.lineWidth = 1
   ctx.stroke()
 }
@@ -296,6 +346,8 @@ export function drawPlan(
   activeLevelId: string | null = null,
   overlayEnabled?: boolean,
 ): void {
+  lastDrawnView = view
+  if (ctx.canvas) installCursorTracking(ctx.canvas)
   const mapper = new ViewMapper(view)
   const selected = new Set(home.selection)
 
@@ -696,6 +748,59 @@ export function drawPlan(
       ctx.stroke()
     }
     ctx.setLineDash([])
+    // Snap-lock indicator: filled dot + ring on the endpoint the cursor is
+    // locked onto — the click will join there (closure or chain continue).
+    if (preview.snapLock) {
+      const lx = mapper.sx(preview.snapLock.x)
+      const ly = mapper.sy(preview.snapLock.y)
+      ctx.beginPath()
+      ctx.arc(lx, ly, 4, 0, Math.PI * 2)
+      ctx.fillStyle = CLOSURE_PREVIEW_STROKE
+      ctx.fill()
+      ctx.beginPath()
+      ctx.arc(lx, ly, 9, 0, Math.PI * 2)
+      ctx.strokeStyle = CLOSURE_PREVIEW_STROKE
+      ctx.lineWidth = 2
+      ctx.stroke()
+    }
+  }
+
+  // Closure preview: semi-transparent room polygon when cursor is near a
+  // loop-closure endpoint during wall drawing.
+  if (preview && preview.closurePolygon && preview.closurePolygon.length >= 3) {
+    ctx.beginPath()
+    preview.closurePolygon.forEach((pt, index) => {
+      if (index === 0) ctx.moveTo(mapper.sx(pt.x), mapper.sy(pt.y))
+      else ctx.lineTo(mapper.sx(pt.x), mapper.sy(pt.y))
+    })
+    ctx.closePath()
+    ctx.fillStyle = CLOSURE_PREVIEW_FILL
+    ctx.fill()
+    ctx.setLineDash([6, 4])
+    ctx.strokeStyle = CLOSURE_PREVIEW_STROKE
+    ctx.lineWidth = 2
+    ctx.stroke()
+    ctx.setLineDash([])
+  }
+
+  // Closure tooltip rendered on canvas near the cursor position.
+  if (preview && preview.closureTooltip) {
+    const { text, x, y } = preview.closureTooltip
+    const px = mapper.sx(x)
+    const py = mapper.sy(y) - 16
+    ctx.font = '12px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'bottom'
+    // Background pill.
+    const metrics = ctx.measureText(text)
+    const tw = metrics.width + 12
+    const th = 20
+    ctx.fillStyle = 'rgba(40, 40, 40, 0.82)'
+    ctx.fillRect(px - tw / 2, py - th, tw, th)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(text, px, py - 4)
+    ctx.textAlign = 'start'
+    ctx.textBaseline = 'alphabetic'
   }
 
   // Room-tool preview: in-progress polygon outline + vertex dots.

@@ -2,6 +2,7 @@ import { DEFAULT_WALL_HEIGHT_CM, GROUND_TEXTURES } from '../core/home'
 import { NEW_WALL_THICKNESS_CM } from '../core/model'
 import type { HomeStore } from '../core/store'
 import { telemetry } from '../telemetry/logger'
+import { MaterialsPreferencesPanel } from './MaterialsPreferencesPanel'
 
 export const PREFS_KEY = 'homely-preferences'
 
@@ -51,6 +52,7 @@ export class PreferencesDialog {
   private overlay: HTMLDivElement
   private onClose: PrefsChangeHandler
   private store: HomeStore
+  private materialsPanel: MaterialsPreferencesPanel | null = null
 
   constructor(store: HomeStore, onClose: PrefsChangeHandler) {
     this.store = store
@@ -61,6 +63,7 @@ export class PreferencesDialog {
 
   open(): void {
     const prefs = loadPreferences()
+    this.materialsPanel = new MaterialsPreferencesPanel(this.store)
     this.overlay.innerHTML = `
       <div class="prefs-dialog">
         <h3>Preferences</h3>
@@ -101,6 +104,7 @@ export class PreferencesDialog {
           <label for="prefs-telemetry-tier2">Usage analytics (Tier 2)</label>
           <input id="prefs-telemetry-tier2" type="checkbox" ${telemetry.tier2Enabled ? 'checked' : ''} />
         </div>
+        <div id="materials-panel-container"></div>
         <div class="prefs-actions">
           <button class="prefs-btn prefs-cancel">Cancel</button>
           <button class="prefs-btn prefs-ok">OK</button>
@@ -108,6 +112,9 @@ export class PreferencesDialog {
       </div>
     `
     document.body.appendChild(this.overlay)
+
+    const matContainer = this.overlay.querySelector<HTMLElement>('#materials-panel-container')!
+    this.materialsPanel.render(matContainer)
 
     this.overlay.querySelector('.prefs-cancel')!.addEventListener('click', () => this.close())
     this.overlay.addEventListener('click', (e) => {
@@ -155,6 +162,7 @@ export class PreferencesDialog {
 
     const prefs: Preferences = { unit, wallHeightCm, wallThicknessCm, groundColor, groundTextureId }
     savePreferences(prefs)
+    this.materialsPanel?.apply()
     telemetry.setTier2(tier2)
     this.close()
     this.onClose(prefs)

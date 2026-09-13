@@ -56,7 +56,7 @@ describe('telemetry deployment modes', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1)
     const call = fetchSpy.mock.calls?.[0]
     expect(call).toBeDefined()
-    const [url, opts] = call as any[]
+    const [url, opts] = call as [string, { headers: Record<string, string> }]
     expect(url).toContain('/ingest')
     expect(opts.headers['Authorization']).toBe('Bearer test-token-123')
   })

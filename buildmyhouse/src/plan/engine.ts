@@ -1,6 +1,6 @@
 import type { HomeModel } from '../core/model'
 import { ModelError, NEW_WALL_PATTERN_ID, NEW_WALL_THICKNESS_CM } from '../core/model'
-import { DEFAULT_WALL_HEIGHT_CM } from '../core/home'
+import { DEFAULT_WALL_HEIGHT_CM, getDefaultFloorColor, getDefaultCeilingVisibility } from '../core/home'
 import type { NormalizedHomeState } from '../core/home'
 import { normalizeAngle } from '../core/export'
 import type { WallLoop } from '../core/wall-loop-detector'
@@ -14,12 +14,32 @@ import {
   signedArea,
   type Point,
 } from './geometry'
+import { ViewMapper, getLastCursorPx, getLastDrawnView } from './renderer'
 
 export const PLAN_SCALE = 1
 export const PIXEL_MARGIN = 4 * PLAN_SCALE
 export const WALL_ENDS_PIXEL_MARGIN = 2 * PLAN_SCALE
+/**
+ * Finding A.1: the "pixel" margins above are actually WORLD units (cm) — the
+ * engine is world-space only and never sees the view transform, so the real
+ * on-screen snap radius is margin × view.scale. Zoomed out (scale < 1) the
+ * 4-unit PIXEL_MARGIN shrinks below 4 screen px and clicking near a wall end
+ * (to start, continue, or close a chain) misses it. endpointSnapMargin()
+ * compensates by converting a constant screen-space radius (~10 px, a
+ * comfortable click target) into world units at the live view scale, clamped
+ * so it stays usable when zoomed far out (min) and not absurdly grabby when
+ * zoomed far in (max).
+ */
+export const ENDPOINT_SNAP_RADIUS_PX = 10
+const ENDPOINT_SNAP_MIN_WORLD = 4
+const ENDPOINT_SNAP_MAX_WORLD = 40
+
+/** Screen-space endpoint snap radius converted to world units at the current view scale. */
+function endpointSnapMargin(): number {
+  const scale = getLastDrawnView()?.scale ?? 1
+  return Math.min(ENDPOINT_SNAP_MAX_WORLD, Math.max(ENDPOINT_SNAP_MIN_WORLD, ENDPOINT_SNAP_RADIUS_PX / scale))
+}
 const EPSILON = 1e-6
-const DEFAULT_FLOOR_COLOR = 0xc8c8c8
 const ENDPOINT_HIT_RADIUS = 10
 const CONNECTED_WALL_EPSILON = 0.1
 const ROTATION_HANDLE_OFFSET = 20
@@ -122,6 +142,10 @@ export interface PlanPreview {
   roomPoints: Array<[number, number]>
   dimensionLine: { start: Point; end: Point; length: number } | null
   marquee: { from: Point; to: Point } | null
+  closurePolygon: Array<Point> | null
+  closureTooltip: { text: string; x: number; y: number } | null
+  /** Endpoint the cursor is currently locked onto (zoom-aware snap), for the visual indicator. */
+  snapLock: Point | null
 }
 
 function samePoint(a: Point, b: Point): boolean {
@@ -148,6 +172,9 @@ export class PlanEngine {
   private furnitureRotateDrag: { id: string } | null = null
   private wallArcDrag: { id: string } | null = null
   private activeLevelId: string | null = null
+  /** T12: rooms whose boundary loop dissolved (wall deleted/moved apart).
+   *  Stays in the model, flagged for a future cleanup ticket. */
+  private orphanedRoomIds = new Set<string>()
   private referenceOverlayEnabled = true
   private wallHeightCm = DEFAULT_WALL_HEIGHT_CM
   private wallThicknessCm = NEW_WALL_THICKNESS_CM
@@ -156,7 +183,9 @@ export class PlanEngine {
   private marqueeFrom: Point | null = null
   private marqueeTo: Point | null = null
   private _marqueeActive = false
-
+  private closurePolygon: Array<Point> | null = null
+  private closureTooltip: { text: string; x: number; y: number } | null = null
+  private snapLock: Point | null = null
 
   constructor(model: HomeModel) {
     this.model = model
@@ -198,6 +227,8 @@ export class PlanEngine {
       else this.validateDrawnWalls()
     }
     this.tool = tool
+    this.closurePolygon = null
+    this.closureTooltip = null
     if (tool !== 'wall' && tool !== 'room' && tool !== 'dimensionLine' && tool !== 'label') this.phase = 'idle'
     // Mirror the tool into home state without polluting undo history.
     this.model.getStore().patchNonUndoable((h) => {
@@ -239,12 +270,34 @@ export class PlanEngine {
     dialog.open()
   }
 
+  /**
+   * T6: creation-time defaults applied to EVERY new room — all creation
+   * paths (loop dialog, double-click enclosure, wall-completion auto-floor,
+   * manual room tool) route through addRoom with these args, so this is the
+   * single injection point for preference-driven defaults (T5).
+   *
+   * Decision call: the ceiling *color* preference is NOT applied per-room —
+   * the Room model has no ceilingColor field (core/home.ts, core/model.ts and
+   * view3d/scene.ts hard-code DEFAULT_CEILING_COLOR are outside this task's
+   * engine.ts-only scope). The representable ceiling default — visibility —
+   * is applied; wire defaultCeilingColor in here once the model grows a
+   * ceilingColor field.
+   */
+  private roomDefaults(home: NormalizedHomeState) {
+    return {
+      floorColor: getDefaultFloorColor(home),
+      ceilingVisible: getDefaultCeilingVisibility(home),
+      levelRef: this.activeLevelId ?? undefined,
+    }
+  }
+
   /** Create a room from a detected wall loop. */
   createRoomFromLoop(loop: WallLoop): void {
+    const home = this.homeSnapshot()
     this.model.getStore().beginCompoundEdit()
     this.model.addRoom(
       loop.vertices.map((p) => [p.x, p.y] as [number, number]),
-      { floorColor: DEFAULT_FLOOR_COLOR, levelRef: this.activeLevelId ?? undefined },
+      this.roomDefaults(home),
     )
     this.model.getStore().endCompoundEdit()
   }
@@ -321,13 +374,107 @@ export class PlanEngine {
       throw new ModelError('move_mouse params x,y must be finite numbers')
     }
     this.lastMove = { x, y }
+    if (this.tool === 'wall' && this.phase === 'drawing') {
+      this.detectClosurePreview({ x, y })
+    }
   }
 
   getLastMove(): Point | null {
     return this.lastMove
   }
 
+  /**
+   * During wall drawing, check if releasing the next wall endpoint at `point`
+   * (connected back to `chainStart`) would close a loop. If so, set the
+   * closure preview polygon and tooltip for live feedback.
+   */
+  private detectClosurePreview(point: Point): void {
+    if (this.tool !== 'wall' || this.phase !== 'drawing' || !this.chainStart) {
+      this.closurePolygon = null
+      this.closureTooltip = null
+      return
+    }
+
+    // Don't show preview if cursor is at the chain start (zero-length wall).
+    if (distance(this.chainStart, point) <= ENDPOINT_HIT_RADIUS) {
+      this.closurePolygon = null
+      this.closureTooltip = null
+      return
+    }
+
+    const home = this.homeSnapshot()
+    const levelWalls = home.walls.filter((w) => this.matchesActiveLevel(w.levelRef))
+
+    // Finding A.2: the raw cursor is up to the whole snap margin away from the
+    // vertex the click will actually land on, so simulating the closing wall
+    // with the raw point misses the chain origin and no loop is ever found
+    // with a real mouse. Resolve through the same pipeline the click uses.
+    const resolved = this.resolveSegmentEnd(this.chainStart, point)
+    this.snapLock = this.freeEndpointAt(home, point, endpointSnapMargin())
+
+    // Simulate adding a closing wall from chainStart to the resolved cursor.
+    const closingWall = {
+      id: '__closure_preview__',
+      start: { x: this.chainStart.x, y: this.chainStart.y },
+      end: { x: resolved.x, y: resolved.y },
+    }
+
+    const allWalls = [
+      ...levelWalls.map((w) => ({
+        id: w.id,
+        start: { x: w.xStart, y: w.yStart },
+        end: { x: w.xEnd, y: w.yEnd },
+      })),
+      closingWall,
+    ]
+
+    const loops = detectClosedLoops(allWalls)
+
+    // Find a loop that uses the closing wall (its vertices match the wall endpoints).
+    for (const loop of loops) {
+      const hasClosing = loop.vertices.some(
+        (v) =>
+          (Math.abs(v.x - closingWall.start.x) < EPSILON && Math.abs(v.y - closingWall.start.y) < EPSILON) ||
+          (Math.abs(v.x - closingWall.end.x) < EPSILON && Math.abs(v.y - closingWall.end.y) < EPSILON),
+      )
+      if (hasClosing && loop.vertices.length >= 3) {
+        this.closurePolygon = loop.vertices.map((v) => ({ x: v.x, y: v.y }))
+        this.closureTooltip = {
+          text: 'Close room? (Double-click to finish)',
+          x: point.x,
+          y: point.y,
+        }
+        return
+      }
+    }
+
+    this.closurePolygon = null
+    this.closureTooltip = null
+  }
+
+  /**
+   * Finding A.2: the real canvas pointermove handler (main.ts) never calls the
+   * engine — move_mouse only arrives from the automation runner — so the
+   * closure preview never updated during interactive drawing. Bridge it here:
+   * each frame the renderer-tracked cursor/view feed the same closure
+   * detection move_mouse would. No-ops in tests/automation where nothing is
+   * tracked.
+   */
+  private syncInteractiveCursor(): void {
+    this.snapLock = null
+    if (this.tool !== 'wall' || this.phase !== 'drawing' || !this.chainStart) {
+      this.closurePolygon = null
+      this.closureTooltip = null
+      return
+    }
+    const px = getLastCursorPx()
+    const view = getLastDrawnView()
+    if (!px || !view) return
+    this.detectClosurePreview(new ViewMapper(view).toModel(px.x, px.y))
+  }
+
   getPreview(): PlanPreview {
+    this.syncInteractiveCursor()
     const dim =
       this.tool === 'dimensionLine' && this.phase === 'drawing' && this.dimensionStart && this.lastMove
         ? {
@@ -349,6 +496,9 @@ export class PlanEngine {
         this._marqueeActive && this.marqueeFrom && this.marqueeTo
           ? { from: this.marqueeFrom, to: this.marqueeTo }
           : null,
+      closurePolygon: this.closurePolygon,
+      closureTooltip: this.closureTooltip,
+      snapLock: this.snapLock,
     }
   }
 
@@ -464,6 +614,12 @@ export class PlanEngine {
         for (const cw of vd.connectedWalls) {
           this.model.setWallEndpoint(cw.wallId, cw.endpoint, snapped.x, snapped.y)
         }
+        // T11: rooms whose boundary loop contains a moved wall follow the new
+        // geometry. Inside the same compound edit so one undo reverts both.
+        this.updateRoomsAfterWallMove(
+          home,
+          [vd.wallId, ...vd.connectedWalls.map((cw) => cw.wallId)],
+        )
         this.model.getStore().endCompoundEdit()
         this.vertexDrag = null
         return
@@ -605,6 +761,21 @@ export class PlanEngine {
         this.model.moveSelection(to.x - from.x, to.y - from.y)
         return
       }
+      // T11: whole-wall body drag moves walls via moveSelection — rooms on
+      // those walls must follow (same release-time update as endpoint drags).
+      if (hit.kind === 'wall-body') {
+        if (!home.selection.includes(hit.id)) {
+          this.model.setSelection([hit.id])
+        }
+        const moved = new Set<string>(home.selection)
+        moved.add(hit.id)
+        this.model.moveSelection(to.x - from.x, to.y - from.y)
+        this.updateRoomsAfterWallMove(
+          home,
+          [...moved].filter((id) => home.walls.some((w) => w.id === id)),
+        )
+        return
+      }
       if (!home.selection.includes(hit.id)) {
         this.model.setSelection([hit.id])
       }
@@ -701,8 +872,23 @@ export class PlanEngine {
       throw new ModelError(`unsupported key ${JSON.stringify(key)}`)
     }
     if (key === 'delete' || key === 'backspace') {
-      const selection = this.homeSnapshot().selection
-      if (selection.length > 0) this.model.removeItems(selection)
+      // Backspace mid-chain walks the wall chain back one step (see
+      // removeLastChainPoint) — additive to the compound-undo design below,
+      // never touching the real undo stack. Mirrors the Escape mid-chain
+      // interception: only while the wall tool is actively drawing.
+      if (key === 'backspace' && this.tool === 'wall' && this.phase === 'drawing') {
+        this.removeLastChainPoint()
+        return
+      }
+      const before = this.homeSnapshot()
+      const selection = before.selection
+      if (selection.length === 0) return
+      // T12: deleting a wall can dissolve its room's loop — route the removal
+      // through the same room-update path so orphaned rooms get flagged.
+      const wallIds = new Set(before.walls.map((w) => w.id))
+      const deletedWalls = selection.filter((id) => wallIds.has(id))
+      this.model.removeItems(selection)
+      this.updateRoomsAfterWallMove(before, deletedWalls)
       return
     }
     if (key !== 'escape') return
@@ -725,6 +911,8 @@ export class PlanEngine {
   }
 
   private singleClick(point: Point, shift: boolean): void {
+    this.closurePolygon = null
+    this.closureTooltip = null
     if (this._marqueeActive) {
       this._marqueeActive = false
       this.marqueeFrom = null
@@ -841,10 +1029,11 @@ export class PlanEngine {
       }
       const loop = this.findEnclosingWallLoop(point)
       if (loop) {
+        const home = this.homeSnapshot()
         this.model.getStore().beginCompoundEdit()
         const room = this.model.addRoom(
           loop.map((p) => [p.x, p.y] as [number, number]),
-          { levelRef: this.activeLevelId ?? undefined },
+          this.roomDefaults(home),
         )
         this.model.setSelection([room.id])
         this.model.getStore().endCompoundEdit()
@@ -878,6 +1067,54 @@ export class PlanEngine {
   }
 
   /**
+   * Backspace during an active wall chain (phase === 'drawing'): remove the
+   * LAST committed wall and continue the chain from its start point.
+   *
+   * Deliberately additive to the compound-undo design (validateDrawnWalls /
+   * SH3D PlanController.java:10912): the whole session stays ONE undo step,
+   * so this mutates the model directly INSIDE the still-open compound edit —
+   * no begin/endCompoundEdit, no store.undo()/redo(). After the session is
+   * finalized, one Ctrl+Z still reverts everything (removals included)
+   * because endCompoundEdit pushes the session's base state in one step.
+   *
+   * Empty chain (only the first click happened, nothing committed): Backspace
+   * means "take back that first click" — cancel the empty session back to
+   * idle, staying on the wall tool (mirrors Escape's empty-chain behavior).
+   * endCompoundEdit() records no history entry when nothing was ever applied
+   * (the store compares compoundBase by reference). Note: a session that
+   * had walls committed and then fully rolled back still leaves ONE benign
+   * phantom no-op undo entry (apply changed the home reference; content is
+   * identical) — content-comparing endCompoundEdit would fix it, not worth
+   * the store surgery here.
+   *
+   * When the pop empties chainIds, chainStart becomes the removed wall's
+   * start — which IS the original first-click point — so a separate
+   * reset-to-original-start case is unnecessary. Returns true if the chain
+   * state changed, false when there was nothing to do (not drawing).
+   */
+  removeLastChainPoint(): boolean {
+    if (this.tool !== 'wall' || this.phase !== 'drawing') return false
+    if (this.chainIds.length === 0) {
+      this.chainStart = null
+      this.phase = 'idle'
+      this.closurePolygon = null
+      this.closureTooltip = null
+      if (this.sessionOpen) {
+        this.model.getStore().endCompoundEdit()
+        this.sessionOpen = false
+      }
+      return true
+    }
+    const wallId = this.chainIds.pop()!
+    const wall = this.homeSnapshot().walls.find((w) => w.id === wallId)
+    if (wall) this.chainStart = { x: wall.xStart, y: wall.yStart }
+    this.closurePolygon = null
+    this.closureTooltip = null
+    this.model.removeWall(wallId)
+    return true
+  }
+
+  /**
    * Seals the drawing session as ONE compound undo edit and selects its walls
    * (SH3D PlanController.java:10912).
    *
@@ -890,6 +1127,8 @@ export class PlanEngine {
     this.chainIds = []
     this.chainStart = null
     this.phase = 'idle'
+    this.closurePolygon = null
+    this.closureTooltip = null
     if (ids.length > 0) this.model.setSelection(ids)
     if (this.sessionOpen) {
       this.model.getStore().endCompoundEdit()
@@ -962,7 +1201,7 @@ export class PlanEngine {
 
       this.model.addRoom(
         vertices.map((v) => [v.x, v.y] as [number, number]),
-        { floorColor: DEFAULT_FLOOR_COLOR, levelRef: this.activeLevelId ?? undefined },
+        this.roomDefaults(home),
       )
     }
   }
@@ -972,6 +1211,16 @@ export class PlanEngine {
     vertices: Array<{ x: number; y: number }>,
     home: NormalizedHomeState,
   ): boolean {
+    return this.findRoomByVertices(vertices, home) !== null
+  }
+
+  /** Find the room (active level) whose points exactly match `vertices`
+   *  (same count, all points within EPSILON) — the same matching used to
+   *  de-duplicate auto-created rooms. */
+  private findRoomByVertices(
+    vertices: Array<{ x: number; y: number }>,
+    home: NormalizedHomeState,
+  ): NormalizedHomeState['rooms'][number] | null {
     for (const room of home.rooms) {
       if (!this.matchesActiveLevel(room.levelRef)) continue
       if (room.points.length !== vertices.length) continue
@@ -982,9 +1231,103 @@ export class PlanEngine {
         )
         if (!found) { match = false; break }
       }
-      if (match) return true
+      if (match) return room
     }
-    return false
+    return null
+  }
+
+  /**
+   * T11: recompute the polygon of rooms whose boundary loop contains a
+   * moved wall (replaces PlanController.wallChangeListener from the SH3D
+   * reference — in this clone wall moves commit through drag(), which fires
+   * once per pointer gesture on mouse release, so updates are inherently
+   * debounced to release time; no timer is needed).
+   *
+   * checkIfWallIsInLoop equivalent: detectClosedLoops + wall membership.
+   *
+   * Room identification: match against the PRE-move loop by exact vertices
+   * (the room's stale polygon is the old loop), then re-point it to the
+   * POST-move loop with the same wall-id set. If the loop dissolved (walls
+   * no longer close), the room keeps its last polygon — no update needed
+   * per ticket. Never writes a degenerate polygon.
+   */
+  private updateRoomsAfterWallMove(
+    before: NormalizedHomeState,
+    movedWallIds: string[],
+  ): void {
+    if (movedWallIds.length === 0) return
+    // T12: cross-level isolation — ignore moved walls that don't belong to
+    // the active level so foreign-level selections can't rewrite its rooms.
+    const offLevel = movedWallIds.filter((id) => {
+      const w = before.walls.find((wall) => wall.id === id)
+      return w !== undefined && !this.matchesActiveLevel(w.levelRef)
+    })
+    for (const id of offLevel) {
+      const w = before.walls.find((wall) => wall.id === id)
+      console.warn(`T12: skipping wall ${id} on level ${w?.levelRef ?? '(none)'} — not on active level ${this.activeLevelId ?? '(none)'}`)
+    }
+    const moved = new Set(movedWallIds.filter((id) => !offLevel.includes(id)))
+    if (moved.size === 0) return
+    const levelWalls = before.walls.filter((w) => this.matchesActiveLevel(w.levelRef))
+    if (levelWalls.length < 3) return
+
+    const toDetector = (w: { id: string; xStart: number; yStart: number; yEnd: number; xEnd: number; levelRef?: string | null }) => ({
+      id: w.id,
+      start: { x: w.xStart, y: w.yStart },
+      end: { x: w.xEnd, y: w.yEnd },
+      levelRef: w.levelRef ?? null,
+    })
+
+    const preLoops = detectClosedLoops(levelWalls.map(toDetector))
+    const affected = preLoops.filter((loop) => loop.walls.some((w) => moved.has(w.id)))
+    if (affected.length === 0) return
+
+    const after = this.homeSnapshot()
+    const postLoops = detectClosedLoops(
+      after.walls.filter((w) => this.matchesActiveLevel(w.levelRef)).map(toDetector),
+    )
+
+    for (const preLoop of affected) {
+      const room = this.findRoomByVertices(preLoop.vertices, before)
+      if (!room) {
+        // Loop exists but no room was ever created for it (or it was edited
+        // manually) — warn, don't crash, don't invent an update target.
+        console.warn(`T11: wall loop moved but no matching room found (walls: ${preLoop.walls.map((w) => w.id).join(', ')})`)
+        continue
+      }
+      const preIds = new Set(preLoop.walls.map((w) => w.id))
+      // T12: multi-level validation — the room must live on the same level as
+      // every wall in its boundary loop before we touch its polygon.
+      const levelMismatch = preLoop.walls.find((w) => {
+        const wall = before.walls.find((bw) => bw.id === w.id)
+        return wall !== undefined && (wall.levelRef ?? null) !== (room.levelRef ?? null)
+      })
+      if (levelMismatch) {
+        const wall = before.walls.find((bw) => bw.id === levelMismatch.id)
+        console.warn(`T12: level mismatch — room ${room.id} (${room.levelRef ?? 'none'}) vs wall ${levelMismatch.id} (${wall?.levelRef ?? 'none'}); skipping room update`)
+        continue
+      }
+      const post = postLoops.find(
+        (l) => l.walls.length === preIds.size && l.walls.every((w) => preIds.has(w.id)),
+      )
+      if (!post) {
+        // T12: the room's loop dissolved (wall deleted or moved apart). Keep
+        // the room in the model but mark it orphaned — cleanup is a later
+        // ticket; until then it's flagged here and in the undo-able log.
+        console.warn(`T12: room ${room.id} orphaned — its wall loop dissolved (walls: ${preLoop.walls.map((w) => w.id).join(', ')})`)
+        this.orphanedRoomIds.add(room.id)
+        continue
+      }
+      const points = post.vertices.map((v) => [v.x, v.y] as [number, number])
+      if (
+        points.length < 3 ||
+        points.some(([x, y]) => !Number.isFinite(x) || !Number.isFinite(y))
+      ) {
+        console.warn(`T11: skipped degenerate polygon for room ${room.id}`)
+        continue
+      }
+      this.model.updateRoom(room.id, { points })
+    }
   }
 
   // ── Room tool ─────────────────────────────────────────────────────────────
@@ -1014,8 +1357,9 @@ export class PlanEngine {
     this.phase = 'idle'
     this.chainStart = null
     if (points.length < 3) return
+    const home = this.homeSnapshot()
     this.model.getStore().beginCompoundEdit()
-    const room = this.model.addRoom(points, { levelRef: this.activeLevelId ?? undefined })
+    const room = this.model.addRoom(points, this.roomDefaults(home))
     this.model.setSelection([room.id])
     this.model.getStore().endCompoundEdit()
   }
@@ -1288,7 +1632,7 @@ export class PlanEngine {
    */
   private resolveChainStart(point: Point): Point {
     const home = this.homeSnapshot()
-    const free = this.freeEndpointAt(home, point, PIXEL_MARGIN)
+    const free = this.freeEndpointAt(home, point, endpointSnapMargin())
     if (free) return free
     if (this.gridSnapEnabled) return this.snapToGrid(point.x, point.y)
     return point
@@ -1296,18 +1640,19 @@ export class PlanEngine {
 
   /**
    * Segment end resolution order (SH3D WallDrawingState.moveMouse):
-   * 1. exact join onto a FREE endpoint within PIXEL_MARGIN
+   * 1. exact join onto a FREE endpoint within endpointSnapMargin()
    * 2. angle+length magnetization plus per-axis wall-endpoint snapping
    */
   private resolveSegmentEnd(start: Point, point: Point): Point {
     const home = this.homeSnapshot()
-    const free = this.freeEndpointAt(home, point, PIXEL_MARGIN)
+    const margin = endpointSnapMargin()
+    const free = this.freeEndpointAt(home, point, margin)
     if (free) return free
     const base = this.gridSnapEnabled ? this.snapToGrid(point.x, point.y) : point
     const sameResult = wallPointMagnetism(start, base, home.walls, {
       enabled: this.magnetismEnabled,
       maxDelta: PLAN_SCALE,
-      endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+      endpointMargin: margin,
     })
     // Cross-level: if same-level magnetism didn't move the point, try with reference walls.
     if (
@@ -1319,7 +1664,7 @@ export class PlanEngine {
         const refResult = wallPointMagnetism(start, base, refWalls, {
           enabled: true,
           maxDelta: PLAN_SCALE,
-          endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+          endpointMargin: margin,
         })
         return refResult
       }

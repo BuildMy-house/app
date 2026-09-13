@@ -12,8 +12,8 @@
     "semantic_hash": ""
   },
   "docs/schema/home-project.schema.json": {
-    "mtime": 1788802329.0123224,
-    "seen": 1788805154.484621,
+    "mtime": 1789232115.5804315,
+    "seen": 1789235105.7789447,
     "ast_hash": "deca411d7a90f912869b7697fa19d786",
     "semantic_hash": ""
   },
@@ -162,21 +162,21 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1788803093.9449668,
-    "seen": 1788805154.4856215,
-    "ast_hash": "1eeeb3f99b22eb176f356b297eb8cc3d",
+    "mtime": 1789204893.647026,
+    "seen": 1789235105.7977726,
+    "ast_hash": "50f4c8672e7d035d978d8b3e989edfa9",
     "semantic_hash": ""
   },
   "AGENTS_STEWARD.md": {
-    "mtime": 1788072267.6354117,
-    "seen": 1788805154.485622,
-    "ast_hash": "dea870970d20e8ca4dcd45bc88e120a5",
+    "mtime": 1788937241.2329857,
+    "seen": 1789235105.797774,
+    "ast_hash": "32b4152758dd95ca0d0670f3e791e60c",
     "semantic_hash": ""
   },
   "PLAN.md": {
-    "mtime": 1788805290.1528046,
-    "seen": 1788865044.6340964,
-    "ast_hash": "14e39919f5e46d7ac5bedcf7a204bdbf",
+    "mtime": 1789232115.5804315,
+    "seen": 1789235105.7979045,
+    "ast_hash": "318256e666f2bae1bd5d610451987fc4",
     "semantic_hash": ""
   },
   "docs/architecture-map.md": {
@@ -450,9 +450,9 @@
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
-    "mtime": 1788864938.7818098,
-    "seen": 1788865044.6116347,
-    "ast_hash": "9395507a3b394f8051c0e5d1b65eaed9",
+    "mtime": 1789235050.6428175,
+    "seen": 1789235105.7704499,
+    "ast_hash": "b175d7c480ebfee96609d3406af99b1e",
     "semantic_hash": ""
   },
   ".claude/skills/impeccable/scripts/command-metadata.json": {
@@ -708,9 +708,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/e2e/layout.spec.ts": {
-    "mtime": 1788803094.0095181,
-    "seen": 1788805154.4845474,
-    "ast_hash": "549a74446b95d09889b0eb5299aad6d5",
+    "mtime": 1789232731.1725435,
+    "seen": 1789235105.772344,
+    "ast_hash": "76faa8b97d5e0066b0527058a8ec0785",
     "semantic_hash": ""
   },
   "buildmyhouse/e2e/level-deletion.spec.ts": {
@@ -726,9 +726,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/e2e/plan-3d-sync.spec.ts": {
-    "mtime": 1788803094.0095181,
-    "seen": 1788805154.4845483,
-    "ast_hash": "502b1def0d1f773aca72b63e8ad56b21",
+    "mtime": 1789204357.5186055,
+    "seen": 1789235105.7724273,
+    "ast_hash": "d8894fbf5b809c89c150a375fc86d626",
     "semantic_hash": ""
   },
   "buildmyhouse/e2e/plan-viewport.spec.ts": {
@@ -744,9 +744,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/e2e/room-autodetect.spec.ts": {
-    "mtime": 1788803094.0095181,
-    "seen": 1788805154.4845495,
-    "ast_hash": "e7ef497c6788cebae21c941273f874b4",
+    "mtime": 1789204650.651122,
+    "seen": 1789235105.7725036,
+    "ast_hash": "62deb7d779aa0fdf375e227d248c00b9",
     "semantic_hash": ""
   },
   "buildmyhouse/e2e/viewport3d-interactions.spec.ts": {
@@ -768,8 +768,8 @@
     "semantic_hash": ""
   },
   "buildmyhouse/package.json": {
-    "mtime": 1788803094.0096247,
-    "seen": 1788805154.4845512,
+    "mtime": 1789232115.5804315,
+    "seen": 1789235105.7726169,
     "ast_hash": "4412da86db4d8d7e9834f5eb4ffc7a75",
     "semantic_hash": ""
   },
@@ -990,9 +990,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/src/core/home.ts": {
-    "mtime": 1788803094.0121047,
-    "seen": 1788805154.4845655,
-    "ast_hash": "a72895c55ddc7ab149557e7b862b8f03",
+    "mtime": 1789206003.314491,
+    "seen": 1789235105.7740166,
+    "ast_hash": "89ef4770e46368be03c0084182538fd8",
     "semantic_hash": ""
   },
   "buildmyhouse/src/core/model-conversion.ts": {
@@ -1074,9 +1074,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/src/plan/engine.ts": {
-    "mtime": 1788803094.0128028,
-    "seen": 1788805154.484572,
-    "ast_hash": "8f34bbb49e8e3d45c9cdf28d4e5811fa",
+    "mtime": 1789235004.3711421,
+    "seen": 1789235105.7745252,
+    "ast_hash": "c6732fe8a8f498bf1f71e0f383770b06",
     "semantic_hash": ""
   },
   "buildmyhouse/src/plan/furniture-snap.test.ts": {
@@ -1104,15 +1104,15 @@
     "semantic_hash": ""
   },
   "buildmyhouse/src/plan/renderer.test.ts": {
-    "mtime": 1788803094.0128028,
-    "seen": 1788805154.4845738,
-    "ast_hash": "bd020df5643d12030e0307d948863f5e",
+    "mtime": 1789220998.4562209,
+    "seen": 1789235105.7746813,
+    "ast_hash": "e72224009a186dc389821f2fbd8c1c6f",
     "semantic_hash": ""
   },
   "buildmyhouse/src/plan/renderer.ts": {
-    "mtime": 1788803094.0128028,
-    "seen": 1788805154.4845743,
-    "ast_hash": "d36a4a7e959fcd1826d50c44c104a9ab",
+    "mtime": 1789220958.5487108,
+    "seen": 1789235105.7746825,
+    "ast_hash": "a807054a8ee4c7e4201ba0eeb8b01877",
     "semantic_hash": ""
   },
   "buildmyhouse/src/render/__tests__/scene-builder.test.ts": {
@@ -1278,9 +1278,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/src/ui/preferences.ts": {
-    "mtime": 1788803094.0137794,
-    "seen": 1788805154.4845848,
-    "ast_hash": "5665c7e811a2b6921b67e49a69861e30",
+    "mtime": 1789206471.8089736,
+    "seen": 1789235105.7757678,
+    "ast_hash": "2c5d2216f547814ff6192ad578beff2a",
     "semantic_hash": ""
   },
   "buildmyhouse/src/ui/properties-panel.ts": {
@@ -1338,9 +1338,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/tests/capture.test.ts": {
-    "mtime": 1788803094.0140417,
-    "seen": 1788805154.4845884,
-    "ast_hash": "4e6fc7a13b502da1cb4360218ff81fd8",
+    "mtime": 1789232890.4509013,
+    "seen": 1789235105.7761223,
+    "ast_hash": "d917377a80591973f7b7ad920669d876",
     "semantic_hash": ""
   },
   "buildmyhouse/tests/catalog-load-failure.test.ts": {
@@ -1392,9 +1392,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/tests/home-persistence-tauri.test.ts": {
-    "mtime": 1788803094.0140417,
-    "seen": 1788805154.4845917,
-    "ast_hash": "890194e11dc5e0bd4d7251e63d6914e5",
+    "mtime": 1789233032.3460166,
+    "seen": 1789235105.7764168,
+    "ast_hash": "aae2e5bdd746ceac953f8db2d3598008",
     "semantic_hash": ""
   },
   "buildmyhouse/tests/m6-level-scoping.test.ts": {
@@ -1404,9 +1404,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/tests/m75-reference-overlay.test.ts": {
-    "mtime": 1788803094.0140417,
-    "seen": 1788805154.4845927,
-    "ast_hash": "8805e729101b671be03761001a5a7ce1",
+    "mtime": 1789232890.4509013,
+    "seen": 1789235105.776454,
+    "ast_hash": "700e9e4d94b20ea8ba87e1bc747a062d",
     "semantic_hash": ""
   },
   "buildmyhouse/tests/menu-save-open-errors.test.ts": {
@@ -1458,9 +1458,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/tests/roundtrip.test.ts": {
-    "mtime": 1788803094.0140417,
-    "seen": 1788805154.4845958,
-    "ast_hash": "32a5fe26b38fd1ba567d82653f12d713",
+    "mtime": 1789233042.9374824,
+    "seen": 1789235105.7767422,
+    "ast_hash": "1aa25018d3a4b107a7a0ae55306fc244",
     "semantic_hash": ""
   },
   "buildmyhouse/tests/selection-highlight.test.ts": {
@@ -1476,9 +1476,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/tests/telemetry-mode.test.ts": {
-    "mtime": 1788800370.406956,
-    "seen": 1788805154.484597,
-    "ast_hash": "0bd5af97c41b8ac0fb3820c97adfed18",
+    "mtime": 1789232838.7157383,
+    "seen": 1789235105.7768154,
+    "ast_hash": "5427f0cdb1cf9deeba717d7f75873cd9",
     "semantic_hash": ""
   },
   "buildmyhouse/tests/top-camera-follower.test.ts": {
@@ -1512,8 +1512,8 @@
     "semantic_hash": ""
   },
   "buildmyhouse/vite.config.ts": {
-    "mtime": 1788803094.0146248,
-    "seen": 1788805154.484599,
+    "mtime": 1789205429.3464146,
+    "seen": 1789235105.7769923,
     "ast_hash": "2abace90a4e691f72b29f602918c46bd",
     "semantic_hash": ""
   },
@@ -1722,9 +1722,9 @@
     "semantic_hash": ""
   },
   "company-ops/scripts/engineering-entrypoint.sh": {
-    "mtime": 1788803535.1573095,
-    "seen": 1788805154.484613,
-    "ast_hash": "cfcab6932c02ea78284e39967533ac96",
+    "mtime": 1788874461.6793525,
+    "seen": 1789235105.778296,
+    "ast_hash": "eac27db33834cc14823702af89f9a392",
     "semantic_hash": ""
   },
   "company-ops/scripts/entrypoint.sh": {
@@ -1776,9 +1776,9 @@
     "semantic_hash": ""
   },
   "company-ops/scripts/test-engineering-container.sh": {
-    "mtime": 1788803638.0861025,
-    "seen": 1788805154.4846163,
-    "ast_hash": "61106053c940bb2ee993e6f74de295a4",
+    "mtime": 1788898843.1760876,
+    "seen": 1789235105.7785945,
+    "ast_hash": "1f53126ca5be18cbd1766fd07b3509f0",
     "semantic_hash": ""
   },
   "company-ops/tests/test_backup.py": {
@@ -1836,8 +1836,8 @@
     "semantic_hash": ""
   },
   "equivalence/eq/adapters/luxcore.py": {
-    "mtime": 1788801734.6589615,
-    "seen": 1788805154.4848738,
+    "mtime": 1789232115.5814314,
+    "seen": 1789235105.7796,
     "ast_hash": "44938def26ecd7bc2d7b34b6968f7151",
     "semantic_hash": ""
   },
@@ -3108,9 +3108,9 @@
     "semantic_hash": ""
   },
   "scripts/verify-all.sh": {
-    "mtime": 1788802329.0701897,
-    "seen": 1788805154.4853494,
-    "ast_hash": "2b1fb97ccfc771d22de13a0712a1dbe7",
+    "mtime": 1789233174.3761413,
+    "seen": 1789235105.7892892,
+    "ast_hash": "c01430c0b79c85fbd8561478927fb356",
     "semantic_hash": ""
   },
   "site-homely/.wrangler/deploy/config.json": {
@@ -3162,9 +3162,9 @@
     "semantic_hash": ""
   },
   "website/package.json": {
-    "mtime": 1788864679.182151,
-    "seen": 1788865044.627402,
-    "ast_hash": "f34ef4be80c11e0cbcac7a9404596891",
+    "mtime": 1788865618.7564452,
+    "seen": 1789235105.7896562,
+    "ast_hash": "0b62d4d0fc15c8735ddcf90abe5597fe",
     "semantic_hash": ""
   },
   "website/src/layouts/Layout.astro": {
@@ -3462,9 +3462,9 @@
     "semantic_hash": ""
   },
   ".claude/agents/agent-manager.md": {
-    "mtime": 1788803093.9449668,
-    "seen": 1788805154.4853876,
-    "ast_hash": "207775c77a1b1d5186befdc1d63a51b7",
+    "mtime": 1788928123.8920028,
+    "seen": 1789235105.791758,
+    "ast_hash": "0a2a7c0054564c621f90f1ac83e45ab6",
     "semantic_hash": ""
   },
   ".claude/agents/impeccable-asset-producer.md": {
@@ -4392,9 +4392,9 @@
     "semantic_hash": ""
   },
   "company-ops/docker-compose.yml": {
-    "mtime": 1788803094.015625,
-    "seen": 1788805154.4856298,
-    "ast_hash": "9617e7f0eddf2dfda151c06a116cc318",
+    "mtime": 1789232115.5804315,
+    "seen": 1789235105.7985253,
+    "ast_hash": "2ccc9d667bffc2267eafae107f6719b8",
     "semantic_hash": ""
   },
   "company-ops/docs/BACKUP.md": {
@@ -4656,9 +4656,9 @@
     "semantic_hash": ""
   },
   "company-ops/hermes/config.yaml": {
-    "mtime": 1788803094.0170348,
-    "seen": 1788805154.4856448,
-    "ast_hash": "f6637b010761bd016ac3a0d2d6244e49",
+    "mtime": 1789232115.5804315,
+    "seen": 1789235105.800474,
+    "ast_hash": "746da6b33de7d35f0fd28478bb51e804",
     "semantic_hash": ""
   },
   "company-ops/memory/decisions/README.md": {
@@ -5832,38 +5832,38 @@
     "semantic_hash": ""
   },
   "buildmyhouse/assets/textures/carpet.png": {
-    "mtime": 1788803094.0076249,
-    "seen": 1788805154.4858465,
+    "mtime": 1789235051.8808355,
+    "seen": 1789235105.8089054,
     "ast_hash": "182cff84b3e6e567a48569fc05147bfc",
     "semantic_hash": ""
   },
   "buildmyhouse/assets/textures/concrete.png": {
-    "mtime": 1788803094.0091205,
-    "seen": 1788805154.4858468,
+    "mtime": 1789235050.9868224,
+    "seen": 1789235105.8089068,
     "ast_hash": "5fb9b231aa5143ec3effc32e51fc9cb2",
     "semantic_hash": ""
   },
   "buildmyhouse/assets/textures/plaster-white.png": {
-    "mtime": 1788803094.0091205,
-    "seen": 1788805154.4858472,
+    "mtime": 1789235051.9438365,
+    "seen": 1789235105.8089077,
     "ast_hash": "a8acc401e90ae6c50a03cad62e0944bc",
     "semantic_hash": ""
   },
   "buildmyhouse/assets/textures/tile-floor.png": {
-    "mtime": 1788803094.0091205,
-    "seen": 1788805154.4858475,
+    "mtime": 1789235051.49483,
+    "seen": 1789235105.808909,
     "ast_hash": "ac977051c1e8f22af9b22c1c7e03e040",
     "semantic_hash": ""
   },
   "buildmyhouse/assets/textures/wood-oak.png": {
-    "mtime": 1788803094.0091205,
-    "seen": 1788805154.4858477,
+    "mtime": 1789235050.8438203,
+    "seen": 1789235105.80891,
     "ast_hash": "f83137327c813d3a31c3ea6b366c0f8d",
     "semantic_hash": ""
   },
   "buildmyhouse/assets/textures/wood-pine.png": {
-    "mtime": 1788803094.0091205,
-    "seen": 1788805154.4858484,
+    "mtime": 1789235050.8628206,
+    "seen": 1789235105.8089116,
     "ast_hash": "71e19a115696f08fff44d01827a41fa8",
     "semantic_hash": ""
   },
@@ -6432,9 +6432,9 @@
     "semantic_hash": ""
   },
   "observer-website/eslint.config.js": {
-    "mtime": 1788864995.5236094,
-    "seen": 1788865044.621551,
-    "ast_hash": "2183e87c75cd9ef7291d990936ed794f",
+    "mtime": 1788865075.3467343,
+    "seen": 1789235105.7821949,
+    "ast_hash": "4d971d56c6474a37aa2ff12f1cc7b961",
     "semantic_hash": ""
   },
   "observer-website/tsconfig.json": {
@@ -6456,21 +6456,21 @@
     "semantic_hash": ""
   },
   ".github/workflows/deploy-hermees.yml": {
-    "mtime": 1788805262.1240556,
-    "seen": 1788865044.6320908,
-    "ast_hash": "ddc02ad154d8fa84e65841f11853a25d",
+    "mtime": 1788865494.4856508,
+    "seen": 1789235105.7954843,
+    "ast_hash": "71db1414495121d4301e842661a94198",
     "semantic_hash": ""
   },
   ".github/workflows/deploy-observer-website.yml": {
-    "mtime": 1788805262.124826,
-    "seen": 1788865044.6320925,
-    "ast_hash": "f689dc3a0cdb7ae162932f0790893a7b",
+    "mtime": 1788865499.2797198,
+    "seen": 1789235105.7954862,
+    "ast_hash": "b1800d8271f524f8b2f216f10b41124c",
     "semantic_hash": ""
   },
   ".github/workflows/deploy-website.yml": {
-    "mtime": 1788805262.1223223,
-    "seen": 1788865044.6320934,
-    "ast_hash": "375ab48185f74bc62fb6cc6dc6725f2b",
+    "mtime": 1788865492.7166252,
+    "seen": 1789235105.7954872,
+    "ast_hash": "6d7a47ed7d50217bb2dfed1099d10c5b",
     "semantic_hash": ""
   },
   "CLOUDFLARE_SETUP.md": {
@@ -6507,6 +6507,282 @@
     "mtime": 1788864652.071769,
     "seen": 1788865044.6378257,
     "ast_hash": "a095c1b2e26a1f71133ac3b0400372c7",
+    "semantic_hash": ""
+  },
+  ".claude/settings.json": {
+    "mtime": 1789205483.6762743,
+    "seen": 1789235105.770446,
+    "ast_hash": "7e40b30731c334999d17071db3aeda04",
+    "semantic_hash": ""
+  },
+  ".codex/config.json": {
+    "mtime": 1788931794.9620936,
+    "seen": 1789235105.7708077,
+    "ast_hash": "53e7812205aaf9f5a7fee2486396ac62",
+    "semantic_hash": ""
+  },
+  "buildmyhouse/e2e/auto-floor.spec.ts": {
+    "mtime": 1789205902.631602,
+    "seen": 1789235105.7721362,
+    "ast_hash": "87d13b1771564943f60c1f9148b2ac29",
+    "semantic_hash": ""
+  },
+  "buildmyhouse/src/core/wall-loop-detector.ts": {
+    "mtime": 1789205474.0231216,
+    "seen": 1789235105.7742846,
+    "ast_hash": "2e27426e887fb80f327f108e6afa0758",
+    "semantic_hash": ""
+  },
+  "buildmyhouse/src/ui/AutoFloorDialog.ts": {
+    "mtime": 1789203165.2426162,
+    "seen": 1789235105.7755659,
+    "ast_hash": "ff0deff23e897d81823c922626688045",
+    "semantic_hash": ""
+  },
+  "buildmyhouse/src/ui/MaterialsPreferencesPanel.ts": {
+    "mtime": 1789206434.6903868,
+    "seen": 1789235105.7755673,
+    "ast_hash": "585af2850fee23a2fd8b3433b404225e",
+    "semantic_hash": ""
+  },
+  "buildmyhouse/tests/auto-floor.test.ts": {
+    "mtime": 1789232838.7141554,
+    "seen": 1789235105.7761207,
+    "ast_hash": "6abee08c926398b864282a7e38350696",
+    "semantic_hash": ""
+  },
+  "buildmyhouse/tests/materials-preferences-panel.test.ts": {
+    "mtime": 1789232521.0764337,
+    "seen": 1789235105.7764552,
+    "ast_hash": "f70213cf174b6ac394ecb2e1ee004fde",
+    "semantic_hash": ""
+  },
+  "buildmyhouse/tests/wall-loop-detector.test.ts": {
+    "mtime": 1789232782.5844839,
+    "seen": 1789235105.7769578,
+    "ast_hash": "a388aa7d45cbd46a36da61f32cf1a465",
+    "semantic_hash": ""
+  },
+  "company-ops/company_ops/companyd_cli.py": {
+    "mtime": 1788927290.5057883,
+    "seen": 1789235105.7771766,
+    "ast_hash": "72b773f031e1eed39ea7911e621adb21",
+    "semantic_hash": ""
+  },
+  "company-ops/companyd-cli.py": {
+    "mtime": 1788927088.5530386,
+    "seen": 1789235105.7775722,
+    "ast_hash": "7257d224648bc430be1b5ccd087c9edb",
+    "semantic_hash": ""
+  },
+  "company-ops/companyd.py": {
+    "mtime": 1788927836.89945,
+    "seen": 1789235105.7775733,
+    "ast_hash": "d36a736f5b9b6a0de61f18078020f086",
+    "semantic_hash": ""
+  },
+  "company-ops/companyd/__init__.py": {
+    "mtime": 1789222370.1794713,
+    "seen": 1789235105.777575,
+    "ast_hash": "318d1797263ca195e5671e3c45a2b58b",
+    "semantic_hash": ""
+  },
+  "company-ops/companyd/companyd.py": {
+    "mtime": 1789226969.8803573,
+    "seen": 1789235105.7775762,
+    "ast_hash": "31d17e188e3214446ce8de1103694de2",
+    "semantic_hash": ""
+  },
+  "company-ops/companyd_mcp_server.py": {
+    "mtime": 1789224066.5292618,
+    "seen": 1789235105.7775784,
+    "ast_hash": "35495b3688fe757ce26e10c98eef71ce",
+    "semantic_hash": ""
+  },
+  "company-ops/hermes-engineering/.codex/config.json": {
+    "mtime": 1788932002.534818,
+    "seen": 1789235105.7776155,
+    "ast_hash": "c561c572380bcae55e59ad1d42fe2ad3",
+    "semantic_hash": ""
+  },
+  "company-ops/tests/companyd/conftest.py": {
+    "mtime": 1789222463.612788,
+    "seen": 1789235105.7785966,
+    "ast_hash": "1059f1fd0f4591a2d4951da005e07cd0",
+    "semantic_hash": ""
+  },
+  "company-ops/tests/companyd/test_deployment.py": {
+    "mtime": 1788927771.1131394,
+    "seen": 1789235105.7785983,
+    "ast_hash": "20adef71feb1c6d923c5a1311f1ba92c",
+    "semantic_hash": ""
+  },
+  "company-ops/tests/companyd/test_docker_lifecycle.py": {
+    "mtime": 1788927780.5052729,
+    "seen": 1789235105.7785995,
+    "ast_hash": "314fec0c9a6ab4bd5e7031d2f2f4c29a",
+    "semantic_hash": ""
+  },
+  "company-ops/tests/companyd/test_generation.py": {
+    "mtime": 1788927769.9401226,
+    "seen": 1789235105.7786007,
+    "ast_hash": "782c7208c78cf2cf3cc0c16d2c8f9951",
+    "semantic_hash": ""
+  },
+  "company-ops/tests/companyd/test_health_check.py": {
+    "mtime": 1788927781.078281,
+    "seen": 1789235105.778602,
+    "ast_hash": "63c3f95a7b29e5611ae77f98ee86f9f9",
+    "semantic_hash": ""
+  },
+  "company-ops/tests/companyd/test_mcp_server.py": {
+    "mtime": 1789224168.5221364,
+    "seen": 1789235105.7786036,
+    "ast_hash": "c23ed2720031d74e6bd74411f0f2df0a",
+    "semantic_hash": ""
+  },
+  "company-ops/tests/companyd/test_phase2.py": {
+    "mtime": 1789227173.2860177,
+    "seen": 1789235105.7786047,
+    "ast_hash": "18f3615239c41c30ff8cf657840156a8",
+    "semantic_hash": ""
+  },
+  "company-ops/tests/companyd/test_runtime_control.py": {
+    "mtime": 1788927770.4671302,
+    "seen": 1789235105.7786055,
+    "ast_hash": "d9d9bc37535580b9d9d4f5b91a41e07e",
+    "semantic_hash": ""
+  },
+  "company-ops/tests/companyd/test_synthetic_tests.py": {
+    "mtime": 1788927782.2703006,
+    "seen": 1789235105.7786071,
+    "ast_hash": "d85f493e6e0acf75ab71f8cc8bb19e2b",
+    "semantic_hash": ""
+  },
+  "observer-website/src/components/ObserverDataSample.astro": {
+    "mtime": 1788865020.3789597,
+    "seen": 1789235105.7822323,
+    "ast_hash": "2830520a03d14493272451f8a0dba5d0",
+    "semantic_hash": ""
+  },
+  "observer-website/src/env.d.ts": {
+    "mtime": 1788865056.807473,
+    "seen": 1789235105.7822344,
+    "ast_hash": "a34c63603f2fc704c29af63d4a960109",
+    "semantic_hash": ""
+  },
+  ".claude/PHASE1_TASKS.md": {
+    "mtime": 1789206065.1404822,
+    "seen": 1789235105.7917547,
+    "ast_hash": "c29e2b9b396eb0a90c5a098e45c36ecb",
+    "semantic_hash": ""
+  },
+  ".claude/VERIFICATION-ai-cli-mcp-2026-09-08.md": {
+    "mtime": 1788866537.4226928,
+    "seen": 1789235105.7917566,
+    "ast_hash": "9d013d408cc59726bf74ff5b6bcd9687",
+    "semantic_hash": ""
+  },
+  ".claude/agents/ai-cli-mcp-GUIDE.md": {
+    "mtime": 1788866409.2008593,
+    "seen": 1789235105.7917588,
+    "ast_hash": "ee117cf123a220e055ad09ded091cce4",
+    "semantic_hash": ""
+  },
+  ".claude/agents/ai-cli-mcp-ROUTING.md": {
+    "mtime": 1788866470.8278425,
+    "seen": 1789235105.7917604,
+    "ast_hash": "954f104fa5ae414450400cc640f52d69",
+    "semantic_hash": ""
+  },
+  ".claude/agents/homely-ui-builder.md": {
+    "mtime": 1789204610.7704794,
+    "seen": 1789235105.7917616,
+    "ast_hash": "5bfd174d56695ffb291a16362c6def33",
+    "semantic_hash": ""
+  },
+  ".claude/agents/plan-engine-specialist.md": {
+    "mtime": 1789204625.7337205,
+    "seen": 1789235105.7919118,
+    "ast_hash": "78ddb8a1f9875a6470deaf708c470738",
+    "semantic_hash": ""
+  },
+  ".claude/agents/steward.md": {
+    "mtime": 1788930983.4305005,
+    "seen": 1789235105.7919142,
+    "ast_hash": "7d9d790427b97d03bb800aa4735d3e54",
+    "semantic_hash": ""
+  },
+  ".claude/agents/test-specialist.md": {
+    "mtime": 1789204638.7929308,
+    "seen": 1789235105.7919161,
+    "ast_hash": "bae0746e0b8fe101ba1ab9802e78268b",
+    "semantic_hash": ""
+  },
+  ".claude/opencode-costs.md": {
+    "mtime": 1789204581.7660193,
+    "seen": 1789235105.791917,
+    "ast_hash": "c13699129dfdf00366b415b5d9291394",
+    "semantic_hash": ""
+  },
+  "CODEX_STEWARD_SETUP.md": {
+    "mtime": 1788931685.915665,
+    "seen": 1789235105.7978394,
+    "ast_hash": "7987dba399eaa47dbdc1aa3774d4fd46",
+    "semantic_hash": ""
+  },
+  "DEPLOYMENT-PLAN.md": {
+    "mtime": 1788927792.2474396,
+    "seen": 1789235105.7978408,
+    "ast_hash": "90e1a67bea86ccdb64bfb96fa82fb335",
+    "semantic_hash": ""
+  },
+  "STATUS-PLAN.md": {
+    "mtime": 1788897964.20386,
+    "seen": 1789235105.7979057,
+    "ast_hash": "cf3a12d2fbf6af6b6097b7bf751f569d",
+    "semantic_hash": ""
+  },
+  "STEWARD_AGENT_SETUP.md": {
+    "mtime": 1788931831.782576,
+    "seen": 1789235105.7979069,
+    "ast_hash": "8934c183ce6831f1b19a183f4c9ba063",
+    "semantic_hash": ""
+  },
+  "TODOS.md": {
+    "mtime": 1789199925.0018494,
+    "seen": 1789235105.7979414,
+    "ast_hash": "1e56d8ae6ba059373df6905fedec3d37",
+    "semantic_hash": ""
+  },
+  "company-ops/hermes-engineering/CLAUDE.md": {
+    "mtime": 1789235049.1837962,
+    "seen": 1789235105.7992454,
+    "ast_hash": "5a1986252f9933d662576e41d52332aa",
+    "semantic_hash": ""
+  },
+  "docs/COMPANYD.md": {
+    "mtime": 1788927269.1340034,
+    "seen": 1789235105.8008385,
+    "ast_hash": "0d93fb7925eb53a6a6c0f41afd121066",
+    "semantic_hash": ""
+  },
+  "docs/DEPLOYMENT_CI_CD.md": {
+    "mtime": 1788931984.5985813,
+    "seen": 1789235105.8008401,
+    "ast_hash": "961868427c74f7406fbffc366090f119",
+    "semantic_hash": ""
+  },
+  "docs/HERMEES_LOCAL_SETUP.md": {
+    "mtime": 1788932019.0430357,
+    "seen": 1789235105.8008416,
+    "ast_hash": "cef4a064b8676c47b4906066af6eedd7",
+    "semantic_hash": ""
+  },
+  "observer-website/DEVELOPMENT.md": {
+    "mtime": 1788865028.8830795,
+    "seen": 1789235105.80193,
+    "ast_hash": "388b53f8ac350416aba31295b583890a",
     "semantic_hash": ""
   }
 }

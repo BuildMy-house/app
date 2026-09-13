@@ -79,6 +79,8 @@ suffixed otherwise. All commands are idempotent unless noted.
 | `add_furniture` | `{catalogId,x,y,angleDeg?}` | `{objectId}` | catalogId from catalogue manifest; driver resolves via SH3D catalog, homely via its own manifest |
 | `list_catalog` | — | `{items:[{catalogId,name,width,depth,height,doorOrWindow}]}` |
 
+Furniture items may carry an optional `textureId` field (string or null) referencing a material texture from the shared texture catalog (same ids as wall textures). When present, the 3D renderer applies the referenced texture as the piece's surface material instead of its flat `color`.
+
 ### View / camera
 | type | params | data |
 |---|---|---|
