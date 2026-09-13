@@ -74,6 +74,11 @@ function fail(message: string): never {
   process.exit(1)
 }
 
+/** Externally-hosted model (e.g. Cloudflare R2): no local file to check/copy. */
+function isExternalModel(modelPath: string): boolean {
+  return /^https?:\/\//.test(modelPath)
+}
+
 function run(cmd: string, args: string[]): void {
   execFileSync(cmd, args, { stdio: 'inherit', cwd: ROOT })
 }
@@ -123,6 +128,7 @@ function validateCatalog(): void {
       if (typeof item.modelPath !== 'string' || item.modelPath.length === 0) {
         fail(`item ${item.catalogId} has an empty modelPath`)
       }
+      if (isExternalModel(item.modelPath)) continue
       // modelPath is relative to public/assets/; source lives under assets/.
       const modelFile = join(ASSETS, item.modelPath)
       if (!existsSync(modelFile)) {
@@ -163,10 +169,11 @@ function main(): void {
     for (const name of EXPECTED_TEXTURES) {
       if (!existsSync(join(TEXTURES, name))) fail(`texture missing: ${name} (run npm run assets)`)
     }
-    // Model files must exist for every catalog item that declares a modelPath.
+    // Model files must exist for every catalog item that declares a local
+    // modelPath; externally-hosted (http/https) items need no local file.
     const manifest = JSON.parse(readFileSync(CATALOG_SRC, 'utf8')) as CatalogManifest
     for (const item of manifest.items) {
-      if (item.modelPath && !existsSync(join(ASSETS, item.modelPath))) {
+      if (item.modelPath && !isExternalModel(item.modelPath) && !existsSync(join(ASSETS, item.modelPath))) {
         fail(`model missing for ${item.catalogId}: ${item.modelPath} (run npm run models)`)
       }
     }
