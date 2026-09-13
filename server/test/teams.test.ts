@@ -310,6 +310,48 @@ describe('team-based home access', () => {
     expect(bobUpdate.body.name).toBe('Updated by Bob');
   });
 
+  it('team member edit persists after debounce flush', async () => {
+    const tokenA = await register('alice@example.com');
+    const tokenB = await register('bob@example.com');
+
+    const team = await request(app)
+      .post('/api/teams')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ name: 'Edit Team' });
+
+    await request(app)
+      .post(`/api/teams/${team.body.id}/members`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ email: 'bob@example.com' });
+
+    // Alice creates a team home
+    const home = await request(app)
+      .post('/api/homes')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ name: 'Original Name', json: HOME_JSON, teamId: team.body.id });
+    expect(home.status).toBe(201);
+
+    // Bob (non-owner team member) updates the home
+    const updatedJson = JSON.stringify({ schemaVersion: 1, walls: [{ id: 'w1' }] });
+    const bobUpdate = await request(app)
+      .put(`/api/homes/${home.body.id}`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ name: 'Updated by Bob', json: updatedJson });
+    expect(bobUpdate.status).toBe(200);
+    expect(bobUpdate.body.name).toBe('Updated by Bob');
+
+    // Wait for the save queue to flush (SAVE_FLUSH_MS = 500)
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    // Fresh GET as Alice (owner) confirms persistence
+    const freshGet = await request(app)
+      .get(`/api/homes/${home.body.id}`)
+      .set('Authorization', `Bearer ${tokenA}`);
+    expect(freshGet.status).toBe(200);
+    expect(freshGet.body.name).toBe('Updated by Bob');
+    expect(freshGet.body.json).toBe(updatedJson);
+  });
+
   it('non-member cannot access team-owned home', async () => {
     const tokenA = await register('alice@example.com');
     const tokenB = await register('bob@example.com');
