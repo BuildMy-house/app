@@ -22,6 +22,7 @@ import { teamsRouter } from './teams.js';
 import { initDb, type DbAdapter } from './db.js';
 import { AssetStorage } from './storage.js';
 import { renderQueue } from './render-queue.js';
+import { reportError } from './errorReporting.js';
 import Database from 'better-sqlite3';
 
 export async function createApp(
@@ -228,7 +229,9 @@ export async function createApp(
 }
 
 // Exported so tests can mount it on a probe app with a route that throws.
-export const errorHandler: express.ErrorRequestHandler = (err, _req, res, _next) => {
+export const errorHandler: express.ErrorRequestHandler = (err, req, res, _next) => {
   console.error('Unhandled error:', err);
+  // Fire-and-forget: must never delay the 500 response below.
+  reportError(err, { path: req.path, method: req.method, userId: (req as any).userId });
   res.status(500).json({ error: 'internal server error' });
 };
