@@ -43,6 +43,24 @@ function resolveModelUrl(modelPath: string): string {
   return /^https?:\/\//i.test(modelPath) ? modelPath : `assets/${modelPath}`
 }
 
+/**
+ * Prebaked thumbnail URL for a resolved model URL (MAT-T9): the build-time
+ * render-thumbnails script saves `thumbs/<modelPath>.webp` next to every
+ * bundled GLB, so only bundled `assets/` models get one. User-imported models
+ * (blob:/http(s) URLs) have no prebaked image — they use the live WebGL
+ * fallback render.
+ */
+function thumbUrlFor(modelUrl: string, modelPath: string): string | null {
+  if (!modelUrl.startsWith('assets/')) return null
+  return `assets/thumbs/${modelPath.replace(/\.[^.]+$/, '')}.webp`
+}
+
+/** Virtualization constants — single-column grid, uniform card stride. */
+const GRID_PADDING = 8 // .catalog-grid padding (style.css)
+const CARD_GAP = 8 // .catalog-grid gap (style.css)
+const WINDOW_BUFFER_ROWS = 3
+const DEFAULT_ROW_STRIDE = 132 // ≈ padding + 56px swatch + 2-line name + dims; re-measured at runtime
+
 const CATEGORY_ORDER = [
   'Living',
   'Bedroom',
@@ -72,6 +90,19 @@ export class CatalogPanel {
   private activeCategory: string | null = null
   private query = ''
   private armed: CatalogItem | null = null
+
+  // ── Grid virtualization state (MAT-T9) ─────────────────────────────────────
+  /** Full filtered item list — search/category always run against ALL items. */
+  private filteredItems: CatalogItem[] = []
+  /** Mounted card elements by catalogId (catalogIds are unique in a catalog). */
+  private cardEls = new Map<string, HTMLButtonElement>()
+  private spacerTop: HTMLDivElement | null = null
+  private spacerBottom: HTMLDivElement | null = null
+  private mountedStart = -1
+  private mountedEnd = -1
+  private rowStride = DEFAULT_ROW_STRIDE
+  private lastFilterKey: string | null = null
+  private scrollRaf = 0
 
   constructor(options: CatalogPanelOptions) {
     this.catalog = options.catalog
@@ -114,6 +145,20 @@ export class CatalogPanel {
       this.query = this.searchInput.value
       this.renderGrid()
     })
+    // Windowing: recompute the mounted range on scroll (rAF-throttled) and
+    // when the scrollable area resizes (panel drag, window resize, attach).
+    this.grid.addEventListener(
+      'scroll',
+      () => {
+        if (this.scrollRaf) return
+        this.scrollRaf = requestAnimationFrame(() => {
+          this.scrollRaf = 0
+          this.updateWindow()
+        })
+      },
+      { passive: true },
+    )
+    new ResizeObserver(() => this.updateWindow()).observe(this.grid)
     this.root.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') this.disarm()
     })
@@ -239,13 +284,27 @@ export class CatalogPanel {
     }
   }
 
+  /**
+   * Recompute the filtered item list and rebuild the scroll scaffolding.
+   * Search/category run against the FULL item list; only the scrolled-into-
+   * view window (+ buffer) is mounted as DOM (MAT-T9 virtualization).
+   */
   private renderGrid(): void {
-    this.grid.innerHTML = ''
     const items = this.query.length > 0
       ? this.catalog.search(this.query)
       : this.activeCategory === null
         ? this.catalog.list()
         : this.catalog.itemsIn(this.activeCategory)
+
+    const filterKey = `${this.activeCategory ?? ''}|${this.query}`
+    const filterChanged = filterKey !== this.lastFilterKey
+    this.lastFilterKey = filterKey
+
+    this.filteredItems = items
+    this.cardEls.clear()
+    this.mountedStart = -1
+    this.mountedEnd = -1
+    this.grid.innerHTML = ''
 
     if (items.length === 0) {
       const empty = document.createElement('div')
@@ -256,46 +315,133 @@ export class CatalogPanel {
       return
     }
 
-    for (const item of items) {
-      const card = document.createElement('button')
-      card.className = 'catalog-card'
-      card.dataset.catalogId = item.catalogId
-      card.classList.toggle('armed', this.armed?.catalogId === item.catalogId)
+    this.spacerTop = document.createElement('div')
+    this.spacerBottom = document.createElement('div')
+    this.spacerTop.className = 'catalog-spacer'
+    this.spacerBottom.className = 'catalog-spacer'
+    this.grid.append(this.spacerTop, this.spacerBottom)
 
-      const swatch = document.createElement('canvas')
-      swatch.className = 'catalog-swatch'
-      swatch.width = 96
-      swatch.height = 72
-      // Kick off the thumbnail render; falls back to a color swatch.
-      if (item.modelPath) {
-        const url = this.modelUrlResolver(item.modelPath)
-        swatch.dataset.modelUrl = url
-        renderModelThumbnail(swatch, url, item.color)
-      } else {
-        const ctx2d = swatch.getContext('2d')
-        if (ctx2d) {
-          ctx2d.fillStyle = colorCss(item.color)
-          ctx2d.fillRect(0, 0, swatch.width, swatch.height)
-        }
-      }
-
-      const name = document.createElement('div')
-      name.className = 'catalog-name'
-      name.textContent = item.name
-      name.title = `${item.name} — ${item.width}×${item.depth}×${item.height} cm`
-
-      const dims = document.createElement('div')
-      dims.className = 'catalog-dims'
-      dims.textContent = `${item.width}×${item.depth}×${item.height}`
-
-      card.append(swatch, name, dims)
-      card.addEventListener('click', () => {
-        if (this.armed?.catalogId === item.catalogId) this.disarm()
-        else this.arm(item)
-      })
-      this.grid.appendChild(card)
-    }
+    // New search/category: jump back to the top (arm/disarm re-renders keep
+    // the scroll position so the armed card stays where the user left it).
+    if (filterChanged) this.grid.scrollTop = 0
+    this.updateWindow(true)
     this.renderStatus()
+  }
+
+  /** Mount/unmount the card window matching the current scroll position. */
+  private updateWindow(force = false): void {
+    const n = this.filteredItems.length
+    if (n === 0 || !this.spacerTop || !this.spacerBottom) return
+
+    const stride = this.rowStride
+    const firstVisible = Math.floor(Math.max(0, this.grid.scrollTop - GRID_PADDING) / stride)
+    const viewportRows = Math.ceil(this.grid.clientHeight / stride) + 1
+    const start = Math.max(0, firstVisible - WINDOW_BUFFER_ROWS)
+    const end = Math.min(n, firstVisible + viewportRows + WINDOW_BUFFER_ROWS)
+
+    if (!force && start === this.mountedStart && end === this.mountedEnd) return
+    this.mountedStart = start
+    this.mountedEnd = end
+
+    this.spacerTop.style.height = `${start * stride}px`
+    this.spacerBottom.style.height = `${Math.max(0, n - end) * stride}px`
+
+    for (const [id, card] of this.cardEls) {
+      const index = Number(card.dataset.index)
+      if (index < start || index >= end) {
+        card.remove()
+        this.cardEls.delete(id)
+      }
+    }
+    for (let i = start; i < end; i++) {
+      const item = this.filteredItems[i]!
+      if (this.cardEls.has(item.catalogId)) continue
+      const card = this.createCard(item, i)
+      this.grid.insertBefore(card, this.spacerBottom)
+      this.cardEls.set(item.catalogId, card)
+    }
+
+    // Cards are uniform-height (2-line clamped names); measure the real
+    // stride once laid out and re-window if the estimate was off.
+    const first = this.grid.querySelector<HTMLButtonElement>('.catalog-card')
+    if (first && this.grid.clientHeight > 0) {
+      const measured = first.offsetHeight + CARD_GAP
+      if (measured > 0 && Math.abs(measured - stride) > 1) {
+        this.rowStride = measured
+        this.updateWindow()
+      }
+    }
+  }
+
+  /** Build one catalog card (thumbnail + name + dims). */
+  private createCard(item: CatalogItem, index: number): HTMLButtonElement {
+    const card = document.createElement('button')
+    card.className = 'catalog-card'
+    card.dataset.catalogId = item.catalogId
+    card.dataset.index = String(index)
+    card.classList.toggle('armed', this.armed?.catalogId === item.catalogId)
+
+    let swatch: HTMLElement
+    if (item.modelPath) {
+      const modelUrl = this.modelUrlResolver(item.modelPath)
+      const thumbUrl = thumbUrlFor(modelUrl, item.modelPath)
+      if (thumbUrl) {
+        // Prebaked WebP from the build pipeline (MAT-T9). Virtualization
+        // already limits mounted cards; loading="lazy" additionally defers
+        // network/decode for offscreen cards in tall windows.
+        const img = document.createElement('img')
+        img.className = 'catalog-swatch'
+        img.loading = 'lazy'
+        img.decoding = 'async'
+        img.alt = ''
+        img.src = thumbUrl
+        img.addEventListener('error', () => {
+          // Missing/unrenderable thumb: fall back to the live WebGL render.
+          const canvas = liveRenderSwatch(modelUrl, item.color)
+          img.replaceWith(canvas)
+        })
+        swatch = img
+      } else {
+        // User-imported / remote model: live WebGL render with swatch fallback.
+        swatch = liveRenderSwatch(modelUrl, item.color)
+      }
+    } else {
+      // No model at all: flat color swatch (existing behavior).
+      const canvas = document.createElement('canvas')
+      canvas.className = 'catalog-swatch'
+      canvas.width = 96
+      canvas.height = 72
+      const ctx2d = canvas.getContext('2d')
+      if (ctx2d) {
+        ctx2d.fillStyle = colorCss(item.color)
+        ctx2d.fillRect(0, 0, canvas.width, canvas.height)
+      }
+      swatch = canvas
+    }
+
+    const name = document.createElement('div')
+    name.className = 'catalog-name'
+    name.textContent = item.name
+    name.title = `${item.name} — ${item.width}×${item.depth}×${item.height} cm`
+    // Cap names at 2 lines so every card has the same height — the
+    // virtualization stride math depends on uniform rows. Vertical clamp
+    // only; horizontal overflow is forbidden by the label-clipping e2e.
+    name.style.display = '-webkit-box'
+    name.style.webkitLineClamp = '2'
+    name.style.webkitBoxOrient = 'vertical'
+    name.style.overflow = 'hidden'
+    name.style.height = '2.7em' // 2 × line-height (1.35)
+
+    const dims = document.createElement('div')
+    dims.className = 'catalog-dims'
+    dims.textContent = `${item.width}×${item.depth}×${item.height}`
+
+    card.append(swatch, name, dims)
+    card.addEventListener('click', () => {
+      if (this.armed?.catalogId === item.catalogId) this.disarm()
+      else this.arm(item)
+    })
+    return card
   }
 
   private renderStatus(): void {
@@ -325,4 +471,19 @@ export class CatalogPanel {
 function colorCss(color: number | null | undefined): string {
   if (color === null || color === undefined) return '#9e9e9e'
   return `#${(color >>> 0).toString(16).padStart(6, '0')}`
+}
+
+/**
+ * Live WebGL thumbnail fallback (MAT-T9): used for user-imported models and
+ * any bundled item whose prebaked WebP is missing. Draws the color swatch
+ * immediately, then renders the GLB over it via the shared renderer.
+ */
+function liveRenderSwatch(modelUrl: string, color: number | null | undefined): HTMLCanvasElement {
+  const canvas = document.createElement('canvas')
+  canvas.className = 'catalog-swatch'
+  canvas.width = 96
+  canvas.height = 72
+  canvas.dataset.modelUrl = modelUrl
+  renderModelThumbnail(canvas, modelUrl, color)
+  return canvas
 }
