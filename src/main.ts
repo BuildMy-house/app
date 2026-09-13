@@ -1,5 +1,6 @@
 import './style.css'
 import { telemetry } from './telemetry/logger'
+import { traceAction, initActionTrace } from './telemetry/trace'
 import { AutomationClient, automationPortFromSearch } from './automation/client'
 import type { ClientStatus } from './automation/client'
 import { HomeStore } from './core/store'
@@ -212,6 +213,9 @@ document.addEventListener('click', closeAllMenus)
 const hasUndo = () => store.canUndo()
 const hasRedo = () => store.canRedo()
 
+const doUndo = (): void => { telemetry.featureUndo(); void traceAction('undo', () => { store.undo(); refreshAll() }) }
+const doRedo = (): void => { telemetry.featureRedo(); void traceAction('redo', () => { store.redo(); refreshAll() }) }
+
 function refreshMenus(): void {
   buildMenu([
     {
@@ -230,20 +234,16 @@ function refreshMenus(): void {
         { label: '---' },
         {
           label: 'Save',
-          action: async () => {
-            try {
-              await saveHomeFile(store.getHome())
-              store.markClean()
-            } catch (err) {
-              alert(err instanceof Error ? err.message : `Failed to save home file: ${String(err)}`)
-            }
+          action: () => {
+            void traceAction('save', () => saveHomeFile(store.getHome()).then(() => store.markClean()))
+              .catch((err: unknown) => alert(err instanceof Error ? err.message : `Failed to save home file: ${String(err)}`))
           },
         },
         {
           label: 'Open',
-          action: async () => {
-            if (store.isDirty() && !(await confirmDialog('Unsaved changes will be lost. Continue?'))) return
-            try {
+          action: () => {
+            void traceAction('open', async () => {
+              if (store.isDirty() && !(await confirmDialog('Unsaved changes will be lost. Continue?'))) return
               const home = await loadHomeFile()
               if (home) {
                 store.loadHome(home)
@@ -251,9 +251,7 @@ function refreshMenus(): void {
                 doFit()
                 refreshAll()
               }
-            } catch (err) {
-              alert(err instanceof Error ? err.message : `Failed to load home file: ${String(err)}`)
-            }
+            }).catch((err: unknown) => alert(err instanceof Error ? err.message : `Failed to load home file: ${String(err)}`))
           },
         },
         { label: '---' },
@@ -267,17 +265,17 @@ function refreshMenus(): void {
             ]
           : [{ label: 'Log In / Register…', action: () => promptLogin() }]),
         { label: '---' },
-        { label: 'Export Plan as PNG…', action: () => { exportPlanPng(store.getHome()) } },
-        { label: 'Export 3D View as PNG…', action: () => { if (view3d) export3dPng(view3d.scene, view3d.camera) } },
-        { label: 'Export Scene for LuxCore Render…', action: () => exportSceneJson() },
+        { label: 'Export Plan as PNG…', action: () => { void traceAction('export.plan', () => { exportPlanPng(store.getHome()) }) } },
+        { label: 'Export 3D View as PNG…', action: () => { void traceAction('export.3d', () => { if (view3d) export3dPng(view3d.scene, view3d.camera) }) } },
+        { label: 'Export Scene for LuxCore Render…', action: () => { void traceAction('export.scene', () => exportSceneJson()) } },
         { label: 'Print Plan…', action: () => printPlan() },
       ],
     },
     {
       label: 'Edit',
       items: [
-        { label: 'Undo', shortcut: 'Ctrl+Z', action: () => { store.undo(); refreshAll() }, disabled: !hasUndo() },
-        { label: 'Redo', shortcut: 'Ctrl+Y', action: () => { store.redo(); refreshAll() }, disabled: !hasRedo() },
+        { label: 'Undo', shortcut: 'Ctrl+Z', action: doUndo, disabled: !hasUndo() },
+        { label: 'Redo', shortcut: 'Ctrl+Y', action: doRedo, disabled: !hasRedo() },
         { label: '---' },
         { label: 'Delete', action: () => { engine.key('delete'); refreshAll() } },
         { label: 'Select All', action: () => selectAll() },
@@ -463,8 +461,8 @@ function buildToolbar(): void {
     })
   }
 
-  toolbar.querySelector('#btn-undo')!.addEventListener('click', () => { store.undo(); telemetry.featureUndo(); refreshAll() })
-  toolbar.querySelector('#btn-redo')!.addEventListener('click', () => { store.redo(); telemetry.featureRedo(); refreshAll() })
+  toolbar.querySelector('#btn-undo')!.addEventListener('click', doUndo)
+  toolbar.querySelector('#btn-redo')!.addEventListener('click', doRedo)
 
   toolbar.querySelector('#magnetism')!.addEventListener('change', (e) => {
     engine.setMagnetism((e.target as HTMLInputElement).checked)
@@ -587,18 +585,20 @@ function refreshLevelButtons(): void {
   group.querySelector('#btn-add-level')!.addEventListener('click', async () => {
     const name = await promptDialog('Level name:', `Level ${home.levels.length + 1}`)
     if (!name || !name.trim()) return
-    const elevation = nextLevelElevation(home.levels)
-    const created = model.addLevel({
-      name: name.trim(),
-      elevation,
-      floorThickness: 20,
-      height: 250,
-      visible: true,
-      viewable: true,
+    await traceAction('level.add', () => {
+      const elevation = nextLevelElevation(home.levels)
+      const created = model.addLevel({
+        name: name.trim(),
+        elevation,
+        floorThickness: 20,
+        height: 250,
+        visible: true,
+        viewable: true,
+      })
+      activeLevelId = created.id
+      engine.setActiveLevel(created.id)
+      refreshAll()
     })
-    activeLevelId = created.id
-    engine.setActiveLevel(created.id)
-    refreshAll()
   })
 }
 
@@ -837,7 +837,10 @@ canvas.addEventListener('pointerup', (event) => {
       : { x: raw.x, y: raw.y, angleDeg: 0, wallRef: null, wallOffset: null }
     pendingSnapWallRef = snap.wallRef
     pendingSnapWallOffset = snap.wallOffset
-    catalogPanel.place(snap.x, snap.y, snap.angleDeg)
+    const panel = catalogPanel
+    void traceAction(item?.doorOrWindow ? 'doorwindow.add' : 'furniture.place', () => {
+      panel.place(snap.x, snap.y, snap.angleDeg)
+    })
     refreshToolbar()
     refreshStatus()
     return
@@ -853,13 +856,19 @@ canvas.addEventListener('pointerup', (event) => {
       altOrMeta: event.altKey || event.metaKey,
     })
   } else {
-    engine.click({
-      x: point.x,
-      y: point.y,
-      dbl: false,
-      shift: event.shiftKey,
-      altOrMeta: event.altKey || event.metaKey,
-    })
+    const tool = engine.getTool()
+    const actionName = tool === 'wall' ? 'wall.click' : tool === 'room' ? 'room.add' : null
+    const doClick = (): void => {
+      engine.click({
+        x: point.x,
+        y: point.y,
+        dbl: false,
+        shift: event.shiftKey,
+        altOrMeta: event.altKey || event.metaKey,
+      })
+    }
+    if (actionName) void traceAction(actionName, doClick)
+    else doClick()
   }
   refreshToolbar()
   refreshStatus()
@@ -977,14 +986,12 @@ canvas.addEventListener('wheel', (event) => {
 window.addEventListener('keydown', (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
     event.preventDefault()
-    store.undo()
-    refreshAll()
+    doUndo()
     return
   }
   if ((event.ctrlKey || event.metaKey) && (event.key === 'y' || (event.shiftKey && event.key === 'z'))) {
     event.preventDefault()
-    store.redo()
-    refreshAll()
+    doRedo()
     return
   }
 
@@ -1092,9 +1099,26 @@ function render(): void {
 let userHasZoomed = false
 let firstGeometryFitted = false
 
-function frame(): void {
+// Last frame duration (ms) from the plan render loop — the baseline signal for
+// action-trace frame-time deltas.
+let lastFrameMs = 0
+let prevFrameTs = 0
+
+function frame(ts: number): void {
+  if (prevFrameTs > 0) lastFrameMs = ts - prevFrameTs
+  prevFrameTs = ts
   render()
   requestAnimationFrame(frame)
+}
+
+function getLastFrameTime(): number {
+  return lastFrameMs
+}
+
+/** Scene complexity = wall + furniture + room + level counts (ticket A4). */
+function getSceneComplexity(): number {
+  const home = store.getHome()
+  return home.walls.length + home.furniture.length + home.rooms.length + home.levels.length
 }
 
 function doFit(): void {
@@ -1147,6 +1171,7 @@ function refreshAll(): void {
 // ── Boot ────────────────────────────────────────────────────────────────────
 
 telemetry.appStart()
+initActionTrace({ getSceneComplexity, getLastFrameTime })
 refreshMenus()
 buildToolbar()
 resizeCanvas()
@@ -1173,6 +1198,7 @@ view3d = new View3D(store, {
   onFloorClick: (p) => {
     if (!catalogPanel?.isArmed()) return
     const item = catalogPanel.armedItem!
+    const panel = catalogPanel
     const raw = engine.isGridSnapEnabled() ? engine.snapToGrid(p.x, p.y) : p
     const snap = snapFurniturePlacement({
       walls: store.getHome().walls,
@@ -1182,7 +1208,9 @@ view3d = new View3D(store, {
     })
     pendingSnapWallRef = snap.wallRef
     pendingSnapWallOffset = snap.wallOffset
-    catalogPanel.place(snap.x, snap.y, snap.angleDeg)
+    void traceAction(item.doorOrWindow ? 'doorwindow.add' : 'furniture.place', () => {
+      panel.place(snap.x, snap.y, snap.angleDeg)
+    })
     refreshToolbar()
     refreshStatus()
   },
