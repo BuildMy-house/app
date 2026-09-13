@@ -70,6 +70,21 @@ export interface FileIoEvent extends BaseEvent {
   error?: string
 }
 
+export interface AssetMetricsEvent extends BaseEvent {
+  event: 'perf.asset_metrics'
+  tier: 1
+  textureLoadDurationMs: number
+  textureMemoryMB: number
+  textureCount: number
+  modelLoadCount: number
+  avgModelLoadDurationMs: number
+  totalAssetBundleSizeMB: number
+  /** 0-1, how many texture loads were cache reuses vs newly loaded. */
+  cacheHitRate: number
+  /** Texture ids seen this reporting window (for cache tracking). */
+  loadedTextureIds: string[]
+}
+
 export interface AppLifecycleEvent extends BaseEvent {
   event: 'app.start' | 'app.exit' | 'app.focus' | 'app.blur'
   tier: 1
@@ -143,6 +158,7 @@ export type TelemetryEvent =
   | FrameTimeEvent
   | PlanRenderEvent
   | CatalogLoadEvent
+  | AssetMetricsEvent
   | FileIoEvent
   | AppLifecycleEvent
   | AutomationEvent
