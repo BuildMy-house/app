@@ -86,6 +86,7 @@
           "depth": { "$ref": "#/$defs/lengthPositive" },
           "height": { "$ref": "#/$defs/lengthPositive" },
           "color": { "$ref": "#/$defs/colorNullable" },
+          "textureId": { "type": ["string", "null"] },
           "visible": { "type": "boolean", "default": true },
           "movable": { "type": "boolean", "default": true },
           "doorOrWindow": { "type": "boolean", "default": false },
