@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { timed } from './telemetry.js';
 
 /**
  * Per-user asset file storage. Each user's GLB/source bytes live under
@@ -18,23 +19,29 @@ export class AssetStorage {
   }
 
   save(userId: string, fileName: string, data: Buffer): string {
-    const dir = this.userDir(userId);
-    mkdirSync(dir, { recursive: true });
-    const filePath = this.path(userId, fileName);
-    writeFileSync(filePath, data);
-    return filePath;
+    return timed('save', () => {
+      const dir = this.userDir(userId);
+      mkdirSync(dir, { recursive: true });
+      const filePath = this.path(userId, fileName);
+      writeFileSync(filePath, data);
+      return filePath;
+    }, { fileSizeKB: data.byteLength / 1024, format: fileName.split('.').pop() });
   }
 
   read(userId: string, fileName: string): Buffer | undefined {
-    const filePath = this.path(userId, fileName);
-    try {
-      return readFileSync(filePath);
-    } catch {
-      return undefined;
-    }
+    return timed('read', () => {
+      const filePath = this.path(userId, fileName);
+      try {
+        return readFileSync(filePath);
+      } catch {
+        return undefined;
+      }
+    }, { format: fileName.split('.').pop() });
   }
 
   remove(userId: string, fileName: string): void {
-    rmSync(this.path(userId, fileName), { force: true });
+    timed('remove', () => {
+      rmSync(this.path(userId, fileName), { force: true });
+    }, { format: fileName.split('.').pop() });
   }
 }
