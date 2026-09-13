@@ -116,6 +116,25 @@ undo/redo buttons.
   compound-edit-on-finish behavior itself (which existing tests likely depend
   on and which matches the reference implementation intentionally).
 
+- [ ] **[found during QA2 fix verification] `e2e/auto-floor.spec.ts` has a
+  pre-existing failure, unrelated to any QA2 fix.** 5 of its 7 tests fail
+  (`draw 4 walls, dialog appears, confirm creates room`, `undo reverts room
+  creation`, `redo restores room creation`, `dialog cancel does not create
+  room`, `ESC key dismisses dialog without creating room`) — in each case
+  `.auto-floor-dialog` never appears after `drawSquareWalls()` draws a closed
+  rectangle via 5 plain single clicks (no double-click/Escape to finalize the
+  chain). Only the 2 tests that explicitly finalize via double-click pass.
+  Confirmed this is NOT a regression from the QA2-T3 wall-loop-snap fix: ran
+  the identical spec against commit `8027e66` (the base branch HEAD right
+  after QA2-T1 + QA2-T5 landed, before QA2-T3's engine.ts/renderer.ts changes
+  were merged) and got the same 2 passed / 5 failed split. Root cause not yet
+  investigated — worth checking whether `drawSquareWalls()`'s test helper
+  itself is stale (assumes some auto-finalize-on-loop-closure behavior that
+  `PlanEngine.singleClick()` doesn't actually implement — finalization only
+  happens via `doubleClick()`/`validateDrawnWalls()`), or whether the app is
+  genuinely missing an auto-finalize-when-the-chain-closes-itself affordance.
+  Not dispatched as a fix yet — flagging for triage/priority decision.
+
 - [ ] **General visual/UX polish backlog** (lower priority, no code pointers dug
   up yet — needs its own pass): no onboarding/empty-state guidance at all on
   first load (blank white grid + a flat gray "3D view" panel that reads as
