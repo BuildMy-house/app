@@ -26,6 +26,7 @@ import { HomeListDialog } from './ui/home-list-dialog'
 import { ClipboardManager } from './plan/clipboard'
 
 import { View3D, type CameraPresetName } from './view3d'
+import { HDRI_PRESETS } from './view3d/hdri-environment'
 import { PropertiesPanel } from './ui/properties-panel'
 
 // ── Telemetry ────────────────────────────────────────────────────────────────
@@ -293,6 +294,14 @@ function refreshMenus(): void {
         { label: 'Plan View', action: () => setCameraPreset('plan') },
         { label: '3D View', action: () => setCameraPreset('3d') },
         { label: 'Split View', action: () => setCameraPreset('split') },
+        { label: '---' },
+        ...Object.values(HDRI_PRESETS).map((preset) => ({
+          label: `${view3d?.getEnvironmentPreset() === preset.id ? '✓' : '  '} Environment: ${preset.label}`,
+          action: () => {
+            view3d?.setEnvironmentPreset(preset.id)
+            refreshMenus()
+          },
+        })),
       ],
     },
     {

@@ -13,6 +13,13 @@ import {
   saveViewportQuality,
   type ViewportQuality,
 } from './viewport-quality'
+import {
+  HDRI_PRESETS,
+  HdriEnvironment,
+  loadHdriPresetId,
+  saveHdriPresetId,
+  type HdriPresetId,
+} from './hdri-environment'
 import { telemetry } from '../telemetry/logger'
 import type { RenderingMetrics } from '../telemetry/events'
 import {
@@ -81,6 +88,8 @@ export class View3D {
     this.resizeTo(container.clientWidth || 800, container.clientHeight || 600)
   }
   private _quality: ViewportQuality
+  private _envPreset: HdriPresetId
+  private environment: HdriEnvironment | undefined
   private readonly modelUrlResolver: ModelUrlResolver
   private readonly model: HomeModel
   private readonly pointerDown = { x: 0, y: 0 }
@@ -115,6 +124,7 @@ export class View3D {
       stored = undefined
     }
     this._quality = options.quality ?? stored ?? { ...DEFAULT_VIEWPORT_QUALITY }
+    this._envPreset = loadHdriPresetId()
 
     const container = options.container
     if (container) {
@@ -133,6 +143,7 @@ export class View3D {
       container.appendChild(renderer.domElement)
       this.renderer = renderer
       this.applyQualityToScene()
+      this.applyEnvironment()
 
       renderer.domElement.addEventListener('webglcontextlost', () => telemetry.webglContextLost())
 
@@ -322,6 +333,39 @@ export class View3D {
       : null
   }
 
+  /** Current HDRI environment preset id (a viewport pref, not home state). */
+  getEnvironmentPreset(): HdriPresetId {
+    return this._envPreset
+  }
+
+  /** Switch HDRI environment; persists the choice and re-renders. */
+  setEnvironmentPreset(id: HdriPresetId): void {
+    if (!(id in HDRI_PRESETS) || id === this._envPreset) return
+    this._envPreset = id
+    saveHdriPresetId(id)
+    this.environment?.resetFailure(id)
+    this.applyEnvironment()
+    this.render()
+  }
+
+  /**
+   * Apply the current HDRI preset to the live scene. Cached presets apply
+   * synchronously (no flash between rebuild and env); first load is async and
+   * falls back to the flat sky color until the .hdr arrives.
+   */
+  private applyEnvironment(): void {
+    const renderer = this.renderer
+    if (!renderer) return // headless: flat scene stays as buildScene made it
+    if (!this.environment) this.environment = new HdriEnvironment(renderer)
+    const id = this._envPreset
+    this.environment.applyTo(this._scene, id).catch(() => {
+      // Load failure (offline, missing asset): scene.ts's flat sky color and
+      // analytic lights remain — the pre-HDRI look. Reset so switching back
+      // to this preset can retry.
+      this.environment?.resetFailure(id)
+    })
+  }
+
   /** Rebuild the whole scene graph from current store state. */
   rebuild(): void {
     const t0 = performance.now()
@@ -339,6 +383,7 @@ export class View3D {
       onModelReady: () => this.startAnimationLoop(),
     })
     this.applyQualityToScene()
+    this.applyEnvironment()
 
     if (this.controls && savedTarget && savedPosition) {
       this.perspectiveCamera.position.copy(savedPosition)
@@ -551,6 +596,8 @@ export class View3D {
     this.controls?.dispose()
     this.resizeObserver?.disconnect()
     if (this.renderer) window.removeEventListener('resize', this.handleResize)
+    this.environment?.dispose()
+    this.environment = undefined
     this.disposeSceneObjects(this._scene)
     this.renderer?.dispose()
   }
