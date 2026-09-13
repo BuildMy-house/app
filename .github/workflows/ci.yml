@@ -8,19 +8,19 @@ permissions:
   contents: read
 
 jobs:
-  homely:
-    name: homely (lint + tsc + vitest + e2e)
+  buildmyhouse-client:
+    name: buildmyhouse client (lint + tsc + vitest + e2e)
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: homely
+        working-directory: buildmyhouse
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
-          cache-dependency-path: homely/package-lock.json
+          cache-dependency-path: buildmyhouse/package-lock.json
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
