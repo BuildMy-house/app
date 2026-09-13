@@ -358,7 +358,9 @@ export class View3D {
     if (!renderer) return // headless: flat scene stays as buildScene made it
     if (!this.environment) this.environment = new HdriEnvironment(renderer)
     const id = this._envPreset
-    this.environment.applyTo(this._scene, id).catch(() => {
+    this.environment.applyTo(this._scene, id).then(() => {
+      this.startAnimationLoop()
+    }).catch(() => {
       // Load failure (offline, missing asset): scene.ts's flat sky color and
       // analytic lights remain — the pre-HDRI look. Reset so switching back
       // to this preset can retry.
