@@ -15,6 +15,7 @@ import {
 } from './viewport-quality'
 import { telemetry } from '../telemetry/logger'
 import { computeSceneUpdates, type SceneUpdate } from './scene-delta'
+import { exportViewportAsImage } from '../export/quick-preview'
 
 export interface View3DOptions {
   /** DOM container; when absent the view stays a headless scene graph. */
@@ -518,5 +519,16 @@ export class View3D {
         material.dispose()
       }
     })
+  }
+
+  /**
+   * Export the current viewport as an image.
+   * Instant client-side operation: no server needed.
+   */
+  exportAsImage(format: 'png' | 'jpeg' = 'png', quality = 0.95): Promise<Blob> {
+    if (!this.domElement) {
+      return Promise.reject(new Error('View3D: no canvas available for export'))
+    }
+    return exportViewportAsImage(this.domElement, format, quality)
   }
 }
