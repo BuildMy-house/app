@@ -35,6 +35,8 @@ export interface PlanRenderingContext {
   globalAlpha: number
   measureText(text: string): { width: number }
   createPattern?(image: unknown, repetition: string): unknown
+  /** Real canvases carry the element; mocks may omit it. */
+  readonly canvas?: HTMLCanvasElement
 }
 
 const WALL_COLOR = '#5a5a5a'
@@ -64,6 +66,39 @@ function formatLength(cm: number): string {
 }
 
 const imageCache = new Map<string, HTMLImageElement>()
+
+// Finding A.2: the engine needs the live screen cursor + view scale (for the
+// zoom-aware snap margin and the closure preview), but main.ts's pointermove
+// never calls the engine — only the automation runner does (move_mouse). The
+// renderer draws every frame with the canvas + view in hand, so it tracks the
+// cursor here (canvas pixel coords) and exposes accessors for the engine.
+let lastCursorPx: { x: number; y: number } | null = null
+let lastDrawnView: ViewTransform | null = null
+let cursorTrackedCanvas: HTMLCanvasElement | null = null
+
+export function getLastCursorPx(): { x: number; y: number } | null {
+  return lastCursorPx
+}
+
+export function getLastDrawnView(): ViewTransform | null {
+  return lastDrawnView
+}
+
+/** One-time pointermove/pointerleave hookup per canvas. */
+function installCursorTracking(canvas: HTMLCanvasElement): void {
+  if (cursorTrackedCanvas === canvas) return
+  cursorTrackedCanvas = canvas
+  canvas.addEventListener('pointermove', (e) => {
+    const rect = canvas.getBoundingClientRect()
+    lastCursorPx = {
+      x: ((e.clientX - rect.left) * canvas.width) / rect.width,
+      y: ((e.clientY - rect.top) * canvas.height) / rect.height,
+    }
+  })
+  canvas.addEventListener('pointerleave', () => {
+    lastCursorPx = null
+  })
+}
 
 /** Test-only: inject a pre-loaded image into the texture cache. */
 export function setTestImageCache(entries: Map<string, HTMLImageElement>): void {
@@ -299,6 +334,8 @@ export function drawPlan(
   activeLevelId: string | null = null,
   overlayEnabled?: boolean,
 ): void {
+  lastDrawnView = view
+  if (ctx.canvas) installCursorTracking(ctx.canvas)
   const mapper = new ViewMapper(view)
   const selected = new Set(home.selection)
 
@@ -699,6 +736,21 @@ export function drawPlan(
       ctx.stroke()
     }
     ctx.setLineDash([])
+    // Snap-lock indicator: filled dot + ring on the endpoint the cursor is
+    // locked onto — the click will join there (closure or chain continue).
+    if (preview.snapLock) {
+      const lx = mapper.sx(preview.snapLock.x)
+      const ly = mapper.sy(preview.snapLock.y)
+      ctx.beginPath()
+      ctx.arc(lx, ly, 4, 0, Math.PI * 2)
+      ctx.fillStyle = CLOSURE_PREVIEW_STROKE
+      ctx.fill()
+      ctx.beginPath()
+      ctx.arc(lx, ly, 9, 0, Math.PI * 2)
+      ctx.strokeStyle = CLOSURE_PREVIEW_STROKE
+      ctx.lineWidth = 2
+      ctx.stroke()
+    }
   }
 
   // Closure preview: semi-transparent room polygon when cursor is near a
