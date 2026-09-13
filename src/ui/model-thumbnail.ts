@@ -9,6 +9,7 @@
 
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { configureGltfLoader } from '../view3d/scene'
 
 let sharedRenderer: THREE.WebGLRenderer | null = null
 let sharedScene: THREE.Scene | null = null
@@ -32,7 +33,7 @@ function ensureShared(): boolean {
     sharedRenderer = renderer
     sharedScene = scene
     sharedCamera = camera
-    sharedLoader = new GLTFLoader()
+    sharedLoader = configureGltfLoader(new GLTFLoader(), renderer)
     return true
   } catch {
     return false
