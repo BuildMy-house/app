@@ -6,36 +6,56 @@ not API keys) for the engineering container. Last updated 2026-09-13.
 
 This supersedes the earlier `company-ops/INFISICAL_SETUP.md` draft, which proposed **two**
 separate Infisical projects (`buildmy-house-ops` / `buildmy-house-infra`). What actually got
-built is simpler and equivalent: **one** project with three folders, each folder to be scoped to
-its own machine identity (or, for `/app`, deployed directly into the buildmyhouse server's own
-environment — it has no company-ops/engineering container involvement at all). Don't recreate
-the two-project layout — this file is the current source of truth.
+built is a hybrid: **one** project (`Build My house`) with two folders for company-ops/engineering
+tooling access control, plus a **second, fully separate** project (`buildmyhouse-app`, added
+2026-09-13) for the deployed product's own runtime secrets — deliberately not a third folder in
+the first project, since `/hermes`/`/infra` exist to scope *container* access and the deployed
+app server is not a company-ops/engineering container at all. Don't recreate the two-project
+layout from the old draft — this file is the current source of truth.
 
-## Infisical project
+## Infisical projects
 
-- Project: **Build My house** (`build-my-house-yn1q`, id `8806c2b0-73d2-4bea-8537-5b874c5ff592`)
-- Environments: `dev` (Development), `staging` (Staging), `prod` (Production)
+- **Build My house** (`build-my-house-yn1q`, id `8806c2b0-73d2-4bea-8537-5b874c5ff592`) —
+  company-ops + engineering container tooling secrets. Environments: `dev`, `staging`, `prod`.
+- **buildmyhouse-app** (`buildmyhouse-app`, id `58b43b81-effb-4392-a937-46f2448efb78`) — the
+  buildmyhouse/Homely **product's own runtime secrets**, read directly by the deployed server
+  process (`buildmyhouse/server/`). Fully independent access control from the project above —
+  the engineering container's machine identity has no reason to ever read production app
+  secrets, and vice versa. Environments: `dev`, `staging`, `prod` (all auto-created, only `dev`
+  and `prod` have real secrets in them so far — see below).
 - Instance: EU (`INFISICAL_API_URL` in `.env.local` / `company-ops/.env.local`)
 
-## Three-tier folder structure
+## Two-tier folder structure (Build My house project only)
 
-`company-ops/.env.example` documents the `/hermes` + `/infra` split; Infisical mirrors it as
-folders inside each environment. `/app` (added 2026-09-13) is a third, unrelated tier: it holds
-the buildmyhouse/Homely **product's own runtime secrets** — read directly by the deployed
-server process (`buildmyhouse/server/`), not by the company-ops/engineering containers at all.
+`company-ops/.env.example` documents this split; Infisical mirrors it as folders inside each
+environment of the **Build My house** project:
 
 | Folder | Tier | Readable by | Contents |
 |---|---|---|---|
 | `/hermes` | Tier 1 | CEO / hermes-gateway container (`company-ops` service) | Discord bot config, Postgres app-role passwords, NOUS key |
 | `/infra` | Tier 2 | Engineering/app container (`engineering` service) only, **not** hermes | GitHub App creds, R2, Claude/Codex/OpenCode/Z.AI auth, Axiom tokens |
-| `/app` | Product | The deployed buildmyhouse/Homely server itself (not a container-identity concept — just where its own `.env`/deployment secrets are tracked) | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (email sending, H10/H11 — see `buildmyhouse/.env.example`) |
 
-**`/app` (dev, created 2026-09-13):** `RESEND_API_KEY` and `RESEND_FROM_EMAIL` exist as blank
-placeholders — Nahar is filling in real values directly via the Infisical dashboard, not through
-this MCP tooling. Without them the server falls back to logging email content to its own console
-(`[email:dev-fallback]` — see `buildmyhouse/server/src/email.ts`), so nothing is broken by these
-being blank, but no real email goes out until they're set. `staging`/`prod` `/app` secrets don't
-exist yet — only `dev` has been touched.
+An empty `/app` folder briefly existed under `dev` here (created, then abandoned same day in
+favor of the separate `buildmyhouse-app` project below) — it's harmless but unused; delete it via
+the dashboard next time someone's in there (no MCP tool here can delete a folder).
+
+## buildmyhouse-app project (product runtime secrets)
+
+No folder structure — secrets live flat at `/` in each environment, since there's no
+container-access-tiering concern here (it's one deployed server process reading its own env).
+
+**`dev` and `prod` (created 2026-09-13):** `RESEND_API_KEY` and `RESEND_FROM_EMAIL` exist as
+blank placeholders in both — Nahar is filling in real values directly via the Infisical
+dashboard, not through this MCP tooling. Without them the server falls back to logging email
+content to its own console (`[email:dev-fallback]` — see `buildmyhouse/server/src/email.ts`), so
+nothing is broken by these being blank, but no real email goes out until they're set. `staging`
+has no secrets yet.
+
+**Not yet migrated here, still plain docker-compose/`.env` values today:** `JWT_SECRET`,
+`DATABASE_URL`, `APP_BASE_URL`. Worth moving into this project too at some point for the same
+reason Resend's keys are here (single source of truth, no secret sitting in a shell history or
+a `.env` file on a deploy box) — not done yet, nobody's asked for it, flagging it as a natural
+next step rather than doing it unprompted.
 
 `entrypoint.sh` and `engineering-entrypoint.sh` both already call `infisical export --token
 "$INFISICAL_TOKEN"` — the tier separation is enforced by scoping each container's
