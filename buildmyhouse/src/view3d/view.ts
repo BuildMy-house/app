@@ -226,6 +226,27 @@ export class View3D {
     this.render()
   }
 
+  /**
+   * Reframe the view onto the home's bounds (Fit button / first-geometry
+   * autofit). The camera state change goes through CameraDirector.fitToContent
+   * (model path, so undo/validation stay consistent); the viewport then
+   * mirrors the stored state and points the orbit target at the same center.
+   */
+  fitToContent(): void {
+    const { state, center } = this.director.fitToContent(this.store.getHome())
+    if (this.controls) {
+      this.cancelAnimation()
+      this.controls.enableDamping = false
+      this.applyCameraState(state)
+      this.controls.target.set(center.x, center.y, center.z)
+      this.controls.update()
+      this.controls.enableDamping = true
+    } else {
+      this.applyCameraState(state)
+    }
+    this.render()
+  }
+
   resizeTo(width: number, height: number): void {
     if (!this.renderer) return
     this.renderer.setSize(width, height)
