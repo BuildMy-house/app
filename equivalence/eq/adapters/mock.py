@@ -66,6 +66,7 @@ def _empty_state() -> dict[str, Any]:
         "walls": [],
         "rooms": [],
         "furniture": [],
+        "roofs": [],
         "dimensionLines": [],
         "labels": [],
         "compass": None,
