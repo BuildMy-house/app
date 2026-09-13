@@ -31,6 +31,19 @@ interface TeamInviteRow {
   accepted_at: string | null;
 }
 
+// Mirrors auth.ts's isUniqueViolation (not exported there): SQLITE_CONSTRAINT
+// for better-sqlite3, 23505 for Postgres.
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    typeof (err as { code?: unknown }).code === 'string' &&
+    ((err as { code: string }).code.startsWith('SQLITE_CONSTRAINT') ||
+      (err as { code: string }).code === '23505')
+  );
+}
+
 export function teamsRouter(db: DbAdapter): Router {
   const router = Router();
 
@@ -180,22 +193,39 @@ export function teamsRouter(db: DbAdapter): Router {
         res.status(409).json({ error: 'user is already a member' });
         return;
       }
-      if (invite.accepted_at !== null) {
+
+      // Atomically claim the invite (mirrors auth.ts's claimToken pattern): the
+      // same UPDATE that flips accepted_at also checks non-reuse and expiry, so
+      // of two concurrent accepts only one ever reaches the insert below.
+      const now = new Date().toISOString();
+      const claim = await db.run(
+        'UPDATE team_invites SET accepted_at = ? WHERE id = ? AND accepted_at IS NULL AND expires_at > ?',
+        now,
+        invite.id,
+        now,
+      );
+      if (claim.changes === 0) {
         res.status(410).json({ error: 'invite has already been accepted' });
         return;
       }
 
-      const now = new Date().toISOString();
-      await db.transaction(async (tx) => {
-        await tx.run(
-          'INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)',
-          invite.team_id,
-          userId,
-          invite.role,
-          now,
-        );
-        await tx.run('UPDATE team_invites SET accepted_at = ? WHERE id = ?', now, invite.id);
-      });
+      try {
+        await db.transaction(async (tx) => {
+          await tx.run(
+            'INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)',
+            invite.team_id,
+            userId,
+            invite.role,
+            now,
+          );
+        });
+      } catch (err) {
+        if (isUniqueViolation(err)) {
+          res.status(409).json({ error: 'user is already a member' });
+          return;
+        }
+        throw err;
+      }
       res
         .status(200)
         .json({ ok: true, teamId: invite.team_id, teamName: invite.team_name, role: invite.role });

@@ -681,6 +681,31 @@ describe('POST /api/teams/invites/:token/accept', () => {
     expect(second.status).toBe(409);
   });
 
+  it('concurrent accepts of the same invite: exactly one 200, the other 409/410 (never 500)', async () => {
+    const { token, teamId } = await createTeamWithOwner('Race Team', 'alice@example.com');
+    await request(app)
+      .post(`/api/teams/${teamId}/invites`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'carol@example.com' });
+
+    const tokenC = await register('carol@example.com');
+    const url = `/api/teams/invites/${inviteToken('carol@example.com')}/accept`;
+    const [a, b] = await Promise.all([
+      request(app).post(url).set('Authorization', `Bearer ${tokenC}`),
+      request(app).post(url).set('Authorization', `Bearer ${tokenC}`),
+    ]);
+
+    const statuses = [a.status, b.status].sort((x, y) => x - y);
+    expect(statuses[0]).toBe(200);
+    expect([409, 410]).toContain(statuses[1]);
+
+    // No duplicate membership slipped through either
+    const members = db
+      .prepare('SELECT COUNT(*) AS cnt FROM team_members WHERE team_id = ?')
+      .get(teamId) as { cnt: number };
+    expect(members.cnt).toBe(2);
+  });
+
   it('returns 410 for an expired invite', async () => {
     const { token, teamId } = await createTeamWithOwner('Stale Team', 'alice@example.com');
     await request(app)
