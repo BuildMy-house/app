@@ -7,6 +7,7 @@ import {
   type Level,
   type NormalizedHomeState,
   type Room,
+  type Roof,
   type Wall,
 } from '../core/home'
 import { isArcWall, wallOutlinePoints } from '../core/top-camera-follower'
@@ -275,6 +276,63 @@ export function ceilingMesh(room: Room, elevation: number, levels: Level[]): THR
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = `ceiling:${room.id}`
   mesh.position.y = elevation + levelHeight
+  mesh.receiveShadow = true
+  return mesh
+}
+
+function roofMesh(roof: Roof, elevation: number, levelHeight: number): THREE.Mesh | null {
+  if (roof.points.length < 3) return null
+  const overhang = Math.max(0, roof.overhangCm)
+  const xs = roof.points.map(([x]) => x)
+  const zs = roof.points.map(([, z]) => z)
+  const minX = Math.min(...xs) - overhang
+  const maxX = Math.max(...xs) + overhang
+  const minZ = Math.min(...zs) - overhang
+  const maxZ = Math.max(...zs) + overhang
+  const centerX = (minX + maxX) / 2
+  const centerZ = (minZ + maxZ) / 2
+  const halfX = Math.max(1, (maxX - minX) / 2)
+  const halfZ = Math.max(1, (maxZ - minZ) / 2)
+  const pitch = Math.tan(THREE.MathUtils.degToRad(Math.max(0, roof.pitchDeg)))
+  const eaveY = elevation + levelHeight
+  const ridgeY = eaveY + Math.min(halfX, halfZ) * pitch
+  const vertices: number[] = []
+  const triangle = (a: [number, number, number], b: [number, number, number], c: [number, number, number]): void => {
+    vertices.push(...a, ...b, ...c)
+  }
+  if (roof.style === 'hip') {
+    const apex: [number, number, number] = [centerX, ridgeY, centerZ]
+    triangle([minX, eaveY, minZ], [maxX, eaveY, minZ], apex)
+    triangle([maxX, eaveY, minZ], [maxX, eaveY, maxZ], apex)
+    triangle([maxX, eaveY, maxZ], [minX, eaveY, maxZ], apex)
+    triangle([minX, eaveY, maxZ], [minX, eaveY, minZ], apex)
+  } else if (halfX >= halfZ) {
+    const leftRidge: [number, number, number] = [minX, ridgeY, centerZ]
+    const rightRidge: [number, number, number] = [maxX, ridgeY, centerZ]
+    triangle([minX, eaveY, minZ], [maxX, eaveY, minZ], rightRidge)
+    triangle([minX, eaveY, minZ], rightRidge, leftRidge)
+    triangle([maxX, eaveY, maxZ], [minX, eaveY, maxZ], leftRidge)
+    triangle([maxX, eaveY, maxZ], leftRidge, rightRidge)
+  } else {
+    const nearRidge: [number, number, number] = [centerX, ridgeY, minZ]
+    const farRidge: [number, number, number] = [centerX, ridgeY, maxZ]
+    triangle([minX, eaveY, minZ], [minX, eaveY, maxZ], farRidge)
+    triangle([minX, eaveY, minZ], farRidge, nearRidge)
+    triangle([maxX, eaveY, maxZ], [maxX, eaveY, minZ], nearRidge)
+    triangle([maxX, eaveY, maxZ], nearRidge, farRidge)
+  }
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
+  geometry.computeVertexNormals()
+  const material = new THREE.MeshStandardMaterial({
+    color: roof.color ?? 0x8b5a3c,
+    roughness: 0.8,
+    metalness: 0,
+    side: THREE.DoubleSide,
+  })
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.name = `roof:${roof.id}`
+  mesh.castShadow = true
   mesh.receiveShadow = true
   return mesh
 }
@@ -690,6 +748,11 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
     if (room.floorVisible !== false) root.add(roomMesh(room, elev))
     const ceiling = ceilingMesh(room, elev, home.levels)
     if (ceiling) root.add(ceiling)
+  }
+  for (const roof of home.roofs) {
+    const level = home.levels.find((item) => item.id === roof.levelRef)
+    const mesh = roofMesh(roof, elevationFor(roof.levelRef, elevations), level?.height ?? DEFAULT_WALL_HEIGHT_CM)
+    if (mesh) root.add(mesh)
   }
   const selectionSet = new Set(home.selection)
   addFurnitureMeshes(root, home.furniture, elevations, onModelReady, selectionSet)

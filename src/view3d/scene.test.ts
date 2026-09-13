@@ -53,6 +53,39 @@ function ceilingMeshes(scene: THREE.Scene): THREE.Mesh[] {
   return meshes
 }
 
+function roofMeshes(scene: THREE.Scene): THREE.Mesh[] {
+  const meshes: THREE.Mesh[] = []
+  scene.traverse((obj) => {
+    if (obj instanceof THREE.Mesh && obj.name.startsWith('roof:')) meshes.push(obj)
+  })
+  return meshes
+}
+
+describe('roof 3D extrusion (X3)', () => {
+  it('builds a sloped roof mesh with overhang at the level height', () => {
+    const home = createEmptyHome()
+    home.levels.push({
+      id: 'level-1', name: 'Ground', elevation: 10, floorThickness: 5,
+      height: 250, visible: true, viewable: true,
+    })
+    home.roofs.push({
+      id: 'roof-1', points: [[0, 0], [400, 0], [400, 200], [0, 200]],
+      levelRef: 'level-1', style: 'gable', pitchDeg: 30, overhangCm: 20,
+    })
+
+    const mesh = roofMeshes(buildScene(home))[0]!
+    const positions = mesh.geometry.getAttribute('position')
+    const ys = Array.from({ length: positions.count }, (_, i) => positions.getY(i))
+
+    expect(Math.min(...ys)).toBe(260)
+    expect(Math.max(...ys)).toBeGreaterThan(260)
+    expect(mesh.geometry.boundingBox).toBeNull()
+    mesh.geometry.computeBoundingBox()
+    expect(mesh.geometry.boundingBox!.min.x).toBe(-20)
+    expect(mesh.geometry.boundingBox!.max.x).toBe(420)
+  })
+})
+
 // ── M53b: arc walls extrude as a curved 3D shape ────────────────────────────
 
 describe('arc wall 3D extrusion (M53b)', () => {
