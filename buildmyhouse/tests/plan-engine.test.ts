@@ -1290,3 +1290,92 @@ describe('grid snap', () => {
 function engine_setTool(s: ReturnType<typeof setup>, tool: 'selection' | 'wall' | 'room' | 'dimensionLine' | 'label' | 'panning'): void {
   s.engine.setTool(tool)
 }
+
+describe('wall chain backspace (removeLastChainPoint)', () => {
+  it('removes the last committed wall, keeps drawing, and leaves the undo stack untouched until finalize', () => {
+    const { engine, click, store } = setup()
+    engine.setTool('wall')
+    engine.setMagnetism(false)
+    click(0, 0)
+    click(100, 0)
+    click(100, 80)
+    click(40, 120)
+    expect(store.getHome().walls).toHaveLength(3)
+    expect(engine.getPreview().phase).toBe('drawing')
+
+    expect(engine.removeLastChainPoint()).toBe(true)
+    // (a) exactly one fewer wall exists
+    expect(store.getHome().walls).toHaveLength(2)
+    // (b) chain is still drawing, NOT finalized
+    expect(engine.getPreview().phase).toBe('drawing')
+    expect(engine.getPreview().chainStart).toEqual({ x: 100, y: 80 })
+
+    // (c) clicking again continues the chain from the rolled-back point
+    click(0, 200)
+    const walls = store.getHome().walls
+    expect(walls).toHaveLength(3)
+    const last = walls[2]!
+    expect([last.xStart, last.yStart]).toEqual([100, 80])
+    expect([last.xEnd, last.yEnd]).toEqual([0, 200])
+
+    // (d) real undo stack unaffected by the Backspace: finalizing still
+    // produces exactly ONE compound undo step for the whole session.
+    engine.key('escape')
+    expect(engine.getPreview().phase).toBe('idle')
+    expect(store.getHome().walls).toHaveLength(3)
+    expect(store.undo()).toBe(true)
+    expect(store.getHome().walls).toHaveLength(0)
+    expect(store.canUndo()).toBe(false)
+    // Redo restores the whole session as one step too.
+    expect(store.redo()).toBe(true)
+    expect(store.getHome().walls).toHaveLength(3)
+  })
+
+  it('backspacing through every wall then once more cancels the empty chain with no history entry', () => {
+    const { engine, click, store } = setup()
+    engine.setTool('wall')
+    engine.setMagnetism(false)
+    click(0, 0)
+    click(100, 0)
+    click(100, 80)
+
+    // Roll back to the ORIGINAL first-click point once chainIds empties.
+    expect(engine.removeLastChainPoint()).toBe(true)
+    expect(engine.removeLastChainPoint()).toBe(true)
+    expect(store.getHome().walls).toHaveLength(0)
+    expect(engine.getPreview().phase).toBe('drawing')
+    expect(engine.getPreview().chainStart).toEqual({ x: 0, y: 0 })
+
+    // One more Backspace with an empty chain: cancel the session (stays on
+    // the wall tool). Nothing was committed, so undo is a benign no-op: the
+    // single entry for this net-zero session pops to identical content and
+    // never eats a PREVIOUS session's undo (see engine.ts phantom note).
+    expect(engine.removeLastChainPoint()).toBe(true)
+    expect(engine.getPreview()).toMatchObject({ phase: 'idle', chainStart: null })
+    expect(engine.getTool()).toBe('wall')
+    expect(store.undo()).toBe(true)
+    expect(store.getHome().walls).toHaveLength(0)
+    expect(store.canUndo()).toBe(false)
+    // The tool is usable again immediately: a fresh session works normally.
+    click(0, 0)
+    click(50, 50)
+    expect(store.getHome().walls).toHaveLength(1)
+  })
+
+  it('is a no-op outside an active wall chain', () => {
+    const { engine, click, store } = setup()
+    engine.setTool('wall')
+    expect(engine.removeLastChainPoint()).toBe(false)
+
+    engine.setMagnetism(false)
+    click(0, 0)
+    click(100, 0)
+    engine.key('escape') // finalize
+    expect(engine.removeLastChainPoint()).toBe(false)
+    expect(store.getHome().walls).toHaveLength(1)
+
+    engine.setTool('selection')
+    expect(engine.removeLastChainPoint()).toBe(false)
+    expect(store.getHome().walls).toHaveLength(1)
+  })
+})
