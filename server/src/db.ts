@@ -2,7 +2,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 
 export type DeploymentMode = 'sqlite' | 'postgres';
 
@@ -30,7 +30,7 @@ export interface DbAdapter {
   all<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T[]>;
   run(sql: string, ...params: unknown[]): Promise<RunResult>;
   exec(sql: string): Promise<void>;
-  transaction<T>(fn: () => T | Promise<T>): Promise<T>;
+  transaction<T>(fn: (tx: DbAdapter) => T | Promise<T>): Promise<T>;
   initSchema(): Promise<void>;
 }
 
@@ -59,12 +59,13 @@ class SqliteAdapter implements DbAdapter {
     this.db.exec(sql);
   }
 
-  async transaction<T>(fn: () => T | Promise<T>): Promise<T> {
+  async transaction<T>(fn: (tx: DbAdapter) => T | Promise<T>): Promise<T> {
     // better-sqlite3 transactions are synchronous, but the caller's fn may be async.
     // Use manual BEGIN/COMMIT/ROLLBACK so the entire async body runs inside one transaction.
+    // Single shared connection: pass `this` so statements inside fn() run on it.
     this.db.exec('BEGIN');
     try {
-      const result = await fn();
+      const result = await fn(this);
       this.db.exec('COMMIT');
       return result;
     } catch (err) {
@@ -100,19 +101,29 @@ function convertNamedParams(sql: string, params: unknown[]): { text: string; val
   return { text, values: params };
 }
 
-class PgAdapter implements DbAdapter {
+export class PgAdapter implements DbAdapter {
   readonly _brand = 'DbAdapter' as const;
-  constructor(private pool: Pool) {}
+  constructor(
+    private pool: Pool,
+    private client?: PoolClient,
+  ) {}
+
+  // All statements must go through the transaction's own checked-out client
+  // when inside a transaction — pooled queries would run outside the tx and
+  // auto-commit individually.
+  private q(text: string, values?: unknown[]) {
+    return this.client ? this.client.query(text, values) : this.pool.query(text, values);
+  }
 
   async get<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T | undefined> {
     const { text, values } = convertNamedParams(sql, params);
-    const { rows } = await this.pool.query(text, values);
+    const { rows } = await this.q(text, values);
     return (rows[0] as T) ?? undefined;
   }
 
   async all<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T[]> {
     const { text, values } = convertNamedParams(sql, params);
-    const { rows } = await this.pool.query(text, values);
+    const { rows } = await this.q(text, values);
     return rows as T[];
   }
 
@@ -122,7 +133,7 @@ class PgAdapter implements DbAdapter {
       return this.runUpsert(sql, params);
     }
     const { text, values } = convertNamedParams(sql, params);
-    const { rowCount } = await this.pool.query(text, values);
+    const { rowCount } = await this.q(text, values);
     return { changes: rowCount ?? 0, lastInsertRowid: '' };
   }
 
@@ -130,15 +141,18 @@ class PgAdapter implements DbAdapter {
     // Split on semicolons, filter empty, execute each statement
     const stmts = sql.split(';').map((s) => s.trim()).filter(Boolean);
     for (const stmt of stmts) {
-      await this.pool.query(stmt);
+      await this.q(stmt);
     }
   }
 
-  async transaction<T>(fn: () => T | Promise<T>): Promise<T> {
+  async transaction<T>(fn: (tx: DbAdapter) => T | Promise<T>): Promise<T> {
     const client = await this.pool.connect();
+    // tx-scoped adapter: every get/all/run inside fn() executes on this same
+    // client, so the BEGIN/COMMIT/ROLLBACK below actually wraps them.
+    const tx = new PgAdapter(this.pool, client);
     try {
       await client.query('BEGIN');
-      const result = await fn();
+      const result = await fn(tx);
       await client.query('COMMIT');
       return result;
     } catch (err) {
@@ -153,15 +167,15 @@ class PgAdapter implements DbAdapter {
     // Run the same SQL schema as SQLite — PostgreSQL supports IF NOT EXISTS
     const stmts = SCHEMA.split(';').map((s) => s.trim()).filter(Boolean);
     for (const stmt of stmts) {
-      await this.pool.query(stmt);
+      await this.q(stmt);
     }
     // Migration: add team_id to homes if missing
-    const { rows } = await this.pool.query(
+    const { rows } = await this.q(
       `SELECT column_name FROM information_schema.columns
        WHERE table_name = 'homes' AND column_name = 'team_id'`,
     );
     if (rows.length === 0) {
-      await this.pool.query('ALTER TABLE homes ADD COLUMN team_id TEXT');
+      await this.q('ALTER TABLE homes ADD COLUMN team_id TEXT');
     }
   }
 
@@ -183,7 +197,7 @@ class PgAdapter implements DbAdapter {
       `INSERT INTO ${table} (${colsRaw}) VALUES (${valsRaw}) ON CONFLICT (${pk}) DO UPDATE SET ${setClauses}`,
       params,
     );
-    const { rowCount } = await this.pool.query(insertText, values);
+    const { rowCount } = await this.q(insertText, values);
     return { changes: rowCount ?? 0, lastInsertRowid: '' };
   }
 }

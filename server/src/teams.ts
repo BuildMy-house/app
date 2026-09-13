@@ -35,9 +35,9 @@ export function teamsRouter(db: DbAdapter): Router {
       }
       const teamId = randomUUID();
       const now = new Date().toISOString();
-      await db.transaction(async () => {
-        await db.run('INSERT INTO teams (id, name, created_at) VALUES (?, ?, ?)', teamId, teamName, now);
-        await db.run(
+      await db.transaction(async (tx) => {
+        await tx.run('INSERT INTO teams (id, name, created_at) VALUES (?, ?, ?)', teamId, teamName, now);
+        await tx.run(
           'INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)',
           teamId,
           userId,

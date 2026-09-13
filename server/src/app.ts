@@ -34,7 +34,7 @@ export async function createApp(
       async transaction(fn) {
         rawDb.exec('BEGIN');
         try {
-          const result = await fn();
+          const result = await fn(this as DbAdapter);
           rawDb.exec('COMMIT');
           return result;
         } catch (err) {
