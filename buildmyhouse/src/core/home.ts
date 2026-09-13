@@ -38,13 +38,51 @@ export interface Level {
   viewable: boolean
 }
 
-export const WALL_TEXTURES: { id: string; label: string; file: string }[] = [
-  { id: 'carpet', label: 'Carpet', file: 'carpet.png' },
-  { id: 'concrete', label: 'Concrete', file: 'concrete.png' },
-  { id: 'plaster-white', label: 'Plaster White', file: 'plaster-white.png' },
-  { id: 'tile-floor', label: 'Tile Floor', file: 'tile-floor.png' },
-  { id: 'wood-oak', label: 'Wood Oak', file: 'wood-oak.png' },
-  { id: 'wood-pine', label: 'Wood Pine', file: 'wood-pine.png' },
+/**
+ * One entry of the shared wall/ground/furniture texture catalog.
+ * Base fields are the original catalog shape; the PBR fields (MAT-T2) are
+ * optional additions so existing consumers keep working unchanged.
+ */
+export interface WallTextureEntry {
+  id: string
+  label: string
+  /** Diffuse/base-color map file, relative to `assets/textures/` (sRGB). */
+  file: string
+  /** Linear-space PBR maps (NOT sRGB), relative to `assets/textures/`. */
+  normalFile?: string
+  roughnessFile?: string
+  metalnessFile?: string
+  aoFile?: string
+  /** Scalar PBR defaults applied wherever this texture is used. */
+  roughness?: number
+  metalness?: number
+}
+
+/**
+ * Scalar choices (MAT-T2, all dielectrics → metalness 0):
+ * - carpet 0.95 — fibrous pile, fully matte
+ * - concrete 0.90 — raw cement, near-matte
+ * - plaster-white 0.90 — matte painted wall
+ * - tile-floor 0.35 — glazed ceramic, semi-gloss
+ * - wood-oak 0.65 — varnished hardwood (normal/roughness/AO maps ship too)
+ * - wood-pine 0.70 — raw-ish softwood, slightly duller than oak
+ */
+export const WALL_TEXTURES: WallTextureEntry[] = [
+  { id: 'carpet', label: 'Carpet', file: 'carpet.png', roughness: 0.95, metalness: 0 },
+  { id: 'concrete', label: 'Concrete', file: 'concrete.png', roughness: 0.9, metalness: 0 },
+  { id: 'plaster-white', label: 'Plaster White', file: 'plaster-white.png', roughness: 0.9, metalness: 0 },
+  { id: 'tile-floor', label: 'Tile Floor', file: 'tile-floor.png', roughness: 0.35, metalness: 0 },
+  {
+    id: 'wood-oak',
+    label: 'Wood Oak',
+    file: 'wood-oak.png',
+    normalFile: 'wood-oak_normal.png',
+    roughnessFile: 'wood-oak_roughness.png',
+    aoFile: 'wood-oak_ao.png',
+    roughness: 0.65,
+    metalness: 0,
+  },
+  { id: 'wood-pine', label: 'Wood Pine', file: 'wood-pine.png', roughness: 0.7, metalness: 0 },
 ]
 
 export type WallTextureId = (typeof WALL_TEXTURES)[number]['id']
