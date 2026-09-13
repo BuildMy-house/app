@@ -49,8 +49,17 @@ const FURNITURE_FILL = 'rgba(160, 160, 90, 0.5)'
 const ROTATION_HANDLE_OFFSET = 20
 const ROTATION_HANDLE_RADIUS = 5
 
-const MINOR_GRID_COLOR = '#e8e8e8'
-const MAJOR_GRID_COLOR = '#d0d0d0'
+// Grid colors per theme — minor lines must stay low-contrast vs canvas bg
+// (transparent; body uses --bg), major lines moderately stronger.
+const MINOR_GRID_COLOR_LIGHT = '#e8e8e8'
+const MAJOR_GRID_COLOR_LIGHT = '#d0d0d0'
+const MINOR_GRID_COLOR_DARK = '#262626'
+const MAJOR_GRID_COLOR_DARK = '#3a3a3a'
+
+// Same dark-mode signal as main.ts applyDarkMode/toggleDarkMode (body.dark class).
+function isDarkMode(): boolean {
+  return typeof document !== 'undefined' && document.body.classList.contains('dark')
+}
 
 /** Schema colors are 0xRRGGBB ints; CSS wants strings. */
 function cssColor(color: number | null | undefined, fallback: string): string {
@@ -206,6 +215,9 @@ export class ViewMapper {
 }
 
 function drawGrid(ctx: PlanRenderingContext, view: ViewTransform, width: number, height: number): void {
+  const dark = isDarkMode()
+  const minorColor = dark ? MINOR_GRID_COLOR_DARK : MINOR_GRID_COLOR_LIGHT
+  const majorColor = dark ? MAJOR_GRID_COLOR_DARK : MAJOR_GRID_COLOR_LIGHT
   const mapper = new ViewMapper(view)
   const topLeft = mapper.toModel(0, 0)
   const bottomRight = mapper.toModel(width, height)
@@ -233,7 +245,7 @@ function drawGrid(ctx: PlanRenderingContext, view: ViewTransform, width: number,
     ctx.moveTo(0, py)
     ctx.lineTo(width, py)
   }
-  ctx.strokeStyle = MINOR_GRID_COLOR
+  ctx.strokeStyle = minorColor
   ctx.lineWidth = 0.5
   ctx.stroke()
 
@@ -251,7 +263,7 @@ function drawGrid(ctx: PlanRenderingContext, view: ViewTransform, width: number,
     ctx.moveTo(0, py)
     ctx.lineTo(width, py)
   }
-  ctx.strokeStyle = MAJOR_GRID_COLOR
+  ctx.strokeStyle = majorColor
   ctx.lineWidth = 1
   ctx.stroke()
 }
