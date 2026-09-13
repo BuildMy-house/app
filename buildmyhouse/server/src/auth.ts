@@ -6,6 +6,7 @@ import { asyncHandler } from './asyncHandler.js';
 import { getJwtSecret } from './config.js';
 import { sendEmail, getAppBaseUrl } from './email.js';
 import type { DbAdapter, UserRow } from './db.js';
+import { recordLoginAttempt, recordAuthVerify } from './auth/telemetry.js';
 
 declare global {
   namespace Express {
@@ -232,6 +233,7 @@ export function loginHandler(db: DbAdapter) {
       return;
     }
     if (isLockedOut(valid.email)) {
+      recordLoginAttempt(false, valid.email, req.ip, 'locked_out');
       res.status(429).json({ error: 'too many failed login attempts, try again later' });
       return;
     }
@@ -239,10 +241,12 @@ export function loginHandler(db: DbAdapter) {
     const user = await db.get<UserRow>('SELECT * FROM users WHERE email = ?', valid.email);
     if (!user || !bcrypt.compareSync(valid.password, user.password_hash)) {
       recordFailure(valid.email);
+      recordLoginAttempt(false, valid.email, req.ip, 'invalid_credentials');
       res.status(401).json({ error: 'invalid email or password' });
       return;
     }
 
+    recordLoginAttempt(true, valid.email, req.ip);
     res.json({ token: signToken(user.id) });
   });
 }
@@ -284,8 +288,10 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
       throw new Error('unrecognized token payload');
     }
     req.userId = payload.sub;
+    recordAuthVerify(true, req.ip);
     next();
   } catch {
+    recordAuthVerify(false, req.ip, 'invalid_token');
     res.status(401).json({ error: 'invalid or expired token' });
   }
 }
@@ -418,14 +424,17 @@ export function magicLinkConsumeHandler(db: DbAdapter) {
     }
     const row = await claimToken(db, 'magic_link_tokens', token);
     if (!row || !row.email) {
+      recordLoginAttempt(false, undefined, req.ip, 'invalid_magic_token');
       res.status(400).json({ error: 'invalid, expired, or already used token' });
       return;
     }
     const user = await db.get<UserRow>('SELECT * FROM users WHERE email = ?', row.email);
     if (!user) {
+      recordLoginAttempt(false, row.email, req.ip, 'magic_link_user_missing');
       res.status(400).json({ error: 'invalid, expired, or already used token' });
       return;
     }
+    recordLoginAttempt(true, row.email, req.ip, 'magic_link');
     res.json({ token: signToken(user.id) });
   });
 }
