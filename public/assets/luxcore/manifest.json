@@ -1,0 +1,353 @@
+{
+  "schemaVersion": 1,
+  "entries": {
+    "eTeks#bed140x190": {
+      "obj": "models/eteks-bed140x190.obj",
+      "texture": "models/eteks-bed140x190.png"
+    },
+    "eTeks#chest": {
+      "obj": "models/eteks-chest.obj",
+      "texture": "models/eteks-chest.png"
+    },
+    "eTeks#bedsideTable": {
+      "obj": "models/eteks-bedsidetable.obj",
+      "texture": "models/eteks-bedsidetable.png"
+    },
+    "eTeks#bookcase": {
+      "obj": "models/eteks-bookcase.obj",
+      "texture": "models/eteks-bookcase.png"
+    },
+    "eTeks#chair": {
+      "obj": "models/eteks-chair.obj",
+      "texture": "models/eteks-chair.png"
+    },
+    "eTeks#roundTable": {
+      "obj": "models/eteks-roundtable.obj",
+      "texture": "models/eteks-roundtable.png"
+    },
+    "eTeks#toiletUnit": {
+      "obj": "models/eteks-toiletunit.obj",
+      "texture": "models/eteks-toiletunit.png"
+    },
+    "eTeks#washbasin": {
+      "obj": "models/eteks-washbasin.obj",
+      "texture": "models/eteks-washbasin.png"
+    },
+    "eTeks#bath": {
+      "obj": "models/eteks-bath.obj",
+      "texture": "models/eteks-bath.png"
+    },
+    "eTeks#bed90x190": {
+      "obj": "models/eteks-bed90x190.obj",
+      "texture": "models/eteks-bed90x190.png"
+    },
+    "eTeks#plant": {
+      "obj": "models/eteks-plant.obj",
+      "texture": "models/eteks-plant.png"
+    },
+    "eTeks#window85x123": {
+      "obj": "models/eteks-window85x123.obj",
+      "texture": "models/eteks-window85x123.png"
+    },
+    "eTeks#window85x163": {
+      "obj": "models/eteks-window85x163.obj",
+      "texture": "models/eteks-window85x163.png"
+    },
+    "eTeks#frenchWindow85x200": {
+      "obj": "models/eteks-frenchwindow85x200.obj",
+      "texture": "models/eteks-frenchwindow85x200.png"
+    },
+    "eTeks#doubleWindow126x123": {
+      "obj": "models/eteks-doublewindow126x123.obj",
+      "texture": "models/eteks-doublewindow126x123.png"
+    },
+    "eTeks#doubleWindow126x163": {
+      "obj": "models/eteks-doublewindow126x163.obj",
+      "texture": "models/eteks-doublewindow126x163.png"
+    },
+    "eTeks#doubleFrenchWindow126x200": {
+      "obj": "models/eteks-doublefrenchwindow126x200.obj",
+      "texture": "models/eteks-doublefrenchwindow126x200.png"
+    },
+    "eTeks#doubleHungWindow80x122": {
+      "obj": "models/eteks-doublehungwindow80x122.obj",
+      "texture": "models/eteks-doublehungwindow80x122.png"
+    },
+    "eTeks#door": {
+      "obj": "models/eteks-door.obj",
+      "texture": "models/eteks-door.png"
+    },
+    "eTeks#openDoor": {
+      "obj": "models/eteks-opendoor.obj",
+      "texture": "models/eteks-opendoor.png"
+    },
+    "eTeks#armchair": {
+      "obj": "models/eteks-armchair.obj",
+      "texture": "models/eteks-armchair.png"
+    },
+    "eTeks#bunkBed90x190": {
+      "obj": "models/eteks-bunkbed90x190.obj",
+      "texture": "models/eteks-bunkbed90x190.png"
+    },
+    "eTeks#clothesWasher": {
+      "obj": "models/eteks-clotheswasher.obj",
+      "texture": "models/eteks-clotheswasher.png"
+    },
+    "eTeks#cooker": {
+      "obj": "models/eteks-cooker.obj",
+      "texture": "models/eteks-cooker.png"
+    },
+    "eTeks#cornerBunkBed90x190": {
+      "obj": "models/eteks-cornerbunkbed90x190.obj",
+      "texture": "models/eteks-cornerbunkbed90x190.png"
+    },
+    "eTeks#cornerSofa": {
+      "obj": "models/eteks-cornersofa.obj",
+      "texture": "models/eteks-cornersofa.png"
+    },
+    "eTeks#curveStaircase": {
+      "obj": "models/eteks-curvestaircase.obj",
+      "texture": "models/eteks-curvestaircase.png"
+    },
+    "eTeks#dishwasher": {
+      "obj": "models/eteks-dishwasher.obj",
+      "texture": "models/eteks-dishwasher.png"
+    },
+    "eTeks#fridge": {
+      "obj": "models/eteks-fridge.obj",
+      "texture": "models/eteks-fridge.png"
+    },
+    "eTeks#fridgeFreezer": {
+      "obj": "models/eteks-fridgefreezer.obj",
+      "texture": "models/eteks-fridgefreezer.png"
+    },
+    "eTeks#kitchenCabinet": {
+      "obj": "models/eteks-kitchencabinet.obj",
+      "texture": "models/eteks-kitchencabinet.png"
+    },
+    "eTeks#loftBed140x190": {
+      "obj": "models/eteks-loftbed140x190.obj",
+      "texture": "models/eteks-loftbed140x190.png"
+    },
+    "eTeks#piano": {
+      "obj": "models/eteks-piano.obj",
+      "texture": "models/eteks-piano.png"
+    },
+    "eTeks#sink": {
+      "obj": "models/eteks-sink.obj",
+      "texture": "models/eteks-sink.png"
+    },
+    "eTeks#sofa": {
+      "obj": "models/eteks-sofa.obj",
+      "texture": "models/eteks-sofa.png"
+    },
+    "eTeks#squareTable": {
+      "obj": "models/eteks-squaretable.obj",
+      "texture": "models/eteks-squaretable.png"
+    },
+    "eTeks#staircase": {
+      "obj": "models/eteks-staircase.obj",
+      "texture": "models/eteks-staircase.png"
+    },
+    "eTeks#stool": {
+      "obj": "models/eteks-stool.obj",
+      "texture": "models/eteks-stool.png"
+    },
+    "eTeks#tvUnit": {
+      "obj": "models/eteks-tvunit.obj",
+      "texture": "models/eteks-tvunit.png"
+    },
+    "eTeks#wardrobe": {
+      "obj": "models/eteks-wardrobe.obj",
+      "texture": "models/eteks-wardrobe.png"
+    },
+    "eTeks#doorFrame": {
+      "obj": "models/eteks-doorframe.obj",
+      "texture": "models/eteks-doorframe.png"
+    },
+    "eTeks#sliderWindow126x200": {
+      "obj": "models/eteks-sliderwindow126x200.obj",
+      "texture": "models/eteks-sliderwindow126x200.png"
+    },
+    "eTeks#fittedBath": {
+      "obj": "models/eteks-fittedbath.obj",
+      "texture": "models/eteks-fittedbath.png"
+    },
+    "eTeks#washbasinWithCabinet": {
+      "obj": "models/eteks-washbasinwithcabinet.obj",
+      "texture": "models/eteks-washbasinwithcabinet.png"
+    },
+    "eTeks#slidingDoors": {
+      "obj": "models/eteks-slidingdoors.obj",
+      "texture": "models/eteks-slidingdoors.png"
+    },
+    "eTeks#shower": {
+      "obj": "models/eteks-shower.obj",
+      "texture": "models/eteks-shower.png"
+    },
+    "eTeks#electricRadiator": {
+      "obj": "models/eteks-electricradiator.obj",
+      "texture": "models/eteks-electricradiator.png"
+    },
+    "eTeks#hotWaterRadiator": {
+      "obj": "models/eteks-hotwaterradiator.obj",
+      "texture": "models/eteks-hotwaterradiator.png"
+    },
+    "eTeks#serviceHatch": {
+      "obj": "models/eteks-servicehatch.obj",
+      "texture": "models/eteks-servicehatch.png"
+    },
+    "eTeks#fixedWindow85x123": {
+      "obj": "models/eteks-fixedwindow85x123.obj",
+      "texture": "models/eteks-fixedwindow85x123.png"
+    },
+    "eTeks#lightSource": {
+      "obj": "models/eteks-lightsource.obj",
+      "texture": "models/eteks-lightsource.png"
+    },
+    "eTeks#floorUplight": {
+      "obj": "models/eteks-flooruplight.obj",
+      "texture": "models/eteks-flooruplight.png"
+    },
+    "eTeks#spotlight": {
+      "obj": "models/eteks-spotlight.obj",
+      "texture": "models/eteks-spotlight.png"
+    },
+    "eTeks#pendantLamp": {
+      "obj": "models/eteks-pendantlamp.obj",
+      "texture": "models/eteks-pendantlamp.png"
+    },
+    "eTeks#workLamp": {
+      "obj": "models/eteks-worklamp.obj",
+      "texture": "models/eteks-worklamp.png"
+    },
+    "eTeks#wallUplight": {
+      "obj": "models/eteks-walluplight.obj",
+      "texture": "models/eteks-walluplight.png"
+    },
+    "eTeks#roundDoorFrame": {
+      "obj": "models/eteks-rounddoorframe.obj",
+      "texture": "models/eteks-rounddoorframe.png"
+    },
+    "eTeks#fixedTriangleWindow85x85": {
+      "obj": "models/eteks-fixedtrianglewindow85x85.obj",
+      "texture": "models/eteks-fixedtrianglewindow85x85.png"
+    },
+    "eTeks#halfRoundWindow": {
+      "obj": "models/eteks-halfroundwindow.obj",
+      "texture": "models/eteks-halfroundwindow.png"
+    },
+    "eTeks#roundWindow": {
+      "obj": "models/eteks-roundwindow.obj",
+      "texture": "models/eteks-roundwindow.png"
+    },
+    "eTeks#roundedDoor": {
+      "obj": "models/eteks-roundeddoor.obj",
+      "texture": "models/eteks-roundeddoor.png"
+    },
+    "eTeks#bed": {
+      "obj": "models/eteks-bed.obj",
+      "texture": "models/eteks-bed.png"
+    },
+    "eTeks#flatTV": {
+      "obj": "models/eteks-flattv.obj",
+      "texture": "models/eteks-flattv.png"
+    },
+    "eTeks#flowers": {
+      "obj": "models/eteks-flowers.obj",
+      "texture": "models/eteks-flowers.png"
+    },
+    "eTeks#frontDoor": {
+      "obj": "models/eteks-frontdoor.obj",
+      "texture": "models/eteks-frontdoor.png"
+    },
+    "eTeks#kitchenUpperCabinet": {
+      "obj": "models/eteks-kitchenuppercabinet.obj",
+      "texture": "models/eteks-kitchenuppercabinet.png"
+    },
+    "eTeks#spiralStaircase": {
+      "obj": "models/eteks-spiralstaircase.obj",
+      "texture": "models/eteks-spiralstaircase.png"
+    },
+    "eTeks#laptop": {
+      "obj": "models/eteks-laptop.obj",
+      "texture": "models/eteks-laptop.png"
+    },
+    "eTeks#crib": {
+      "obj": "models/eteks-crib.obj",
+      "texture": "models/eteks-crib.png"
+    },
+    "eTeks#fireplace": {
+      "obj": "models/eteks-fireplace.obj",
+      "texture": "models/eteks-fireplace.png"
+    },
+    "eTeks#glassDoorCabinet": {
+      "obj": "models/eteks-glassdoorcabinet.obj",
+      "texture": "models/eteks-glassdoorcabinet.png"
+    },
+    "eTeks#garageDoor": {
+      "obj": "models/eteks-garagedoor.obj",
+      "texture": "models/eteks-garagedoor.png"
+    },
+    "eTeks#armchair2": {
+      "obj": "models/eteks-armchair2.obj",
+      "texture": "models/eteks-armchair2.png"
+    },
+    "eTeks#sofa2": {
+      "obj": "models/eteks-sofa2.obj",
+      "texture": "models/eteks-sofa2.png"
+    },
+    "eTeks#desk": {
+      "obj": "models/eteks-desk.obj",
+      "texture": "models/eteks-desk.png"
+    },
+    "eTeks#lamp": {
+      "obj": "models/eteks-lamp.obj",
+      "texture": "models/eteks-lamp.png"
+    },
+    "eTeks#dresser": {
+      "obj": "models/eteks-dresser.obj",
+      "texture": "models/eteks-dresser.png"
+    },
+    "eTeks#filledBookcase": {
+      "obj": "models/eteks-filledbookcase.obj",
+      "texture": "models/eteks-filledbookcase.png"
+    },
+    "eTeks#aquarium": {
+      "obj": "models/eteks-aquarium.obj",
+      "texture": "models/eteks-aquarium.png"
+    },
+    "eTeks#doubleOutwardOpeningWindow": {
+      "obj": "models/eteks-doubleoutwardopeningwindow.obj",
+      "texture": "models/eteks-doubleoutwardopeningwindow.png"
+    },
+    "eTeks#railing": {
+      "obj": "models/eteks-railing.obj",
+      "texture": "models/eteks-railing.png"
+    },
+    "eTeks#hood": {
+      "obj": "models/eteks-hood.obj",
+      "texture": "models/eteks-hood.png"
+    },
+    "eTeks#coffeeTable": {
+      "obj": "models/eteks-coffeetable.obj",
+      "texture": "models/eteks-coffeetable.png"
+    },
+    "eTeks#table": {
+      "obj": "models/eteks-table.obj",
+      "texture": "models/eteks-table.png"
+    },
+    "eTeks#chair2": {
+      "obj": "models/eteks-chair2.obj",
+      "texture": "models/eteks-chair2.png"
+    },
+    "eTeks#blind": {
+      "obj": "models/eteks-blind.obj",
+      "texture": "models/eteks-blind.png"
+    },
+    "eTeks#oven": {
+      "obj": "models/eteks-oven.obj",
+      "texture": "models/eteks-oven.png"
+    }
+  }
+}
