@@ -872,6 +872,14 @@ export class PlanEngine {
       throw new ModelError(`unsupported key ${JSON.stringify(key)}`)
     }
     if (key === 'delete' || key === 'backspace') {
+      // Backspace mid-chain walks the wall chain back one step (see
+      // removeLastChainPoint) — additive to the compound-undo design below,
+      // never touching the real undo stack. Mirrors the Escape mid-chain
+      // interception: only while the wall tool is actively drawing.
+      if (key === 'backspace' && this.tool === 'wall' && this.phase === 'drawing') {
+        this.removeLastChainPoint()
+        return
+      }
       const before = this.homeSnapshot()
       const selection = before.selection
       if (selection.length === 0) return
@@ -1056,6 +1064,54 @@ export class PlanEngine {
       levelRef: this.activeLevelId ?? undefined,
     })
     this.chainIds.push(wall.id)
+  }
+
+  /**
+   * Backspace during an active wall chain (phase === 'drawing'): remove the
+   * LAST committed wall and continue the chain from its start point.
+   *
+   * Deliberately additive to the compound-undo design (validateDrawnWalls /
+   * SH3D PlanController.java:10912): the whole session stays ONE undo step,
+   * so this mutates the model directly INSIDE the still-open compound edit —
+   * no begin/endCompoundEdit, no store.undo()/redo(). After the session is
+   * finalized, one Ctrl+Z still reverts everything (removals included)
+   * because endCompoundEdit pushes the session's base state in one step.
+   *
+   * Empty chain (only the first click happened, nothing committed): Backspace
+   * means "take back that first click" — cancel the empty session back to
+   * idle, staying on the wall tool (mirrors Escape's empty-chain behavior).
+   * endCompoundEdit() records no history entry when nothing was ever applied
+   * (the store compares compoundBase by reference). Note: a session that
+   * had walls committed and then fully rolled back still leaves ONE benign
+   * phantom no-op undo entry (apply changed the home reference; content is
+   * identical) — content-comparing endCompoundEdit would fix it, not worth
+   * the store surgery here.
+   *
+   * When the pop empties chainIds, chainStart becomes the removed wall's
+   * start — which IS the original first-click point — so a separate
+   * reset-to-original-start case is unnecessary. Returns true if the chain
+   * state changed, false when there was nothing to do (not drawing).
+   */
+  removeLastChainPoint(): boolean {
+    if (this.tool !== 'wall' || this.phase !== 'drawing') return false
+    if (this.chainIds.length === 0) {
+      this.chainStart = null
+      this.phase = 'idle'
+      this.closurePolygon = null
+      this.closureTooltip = null
+      if (this.sessionOpen) {
+        this.model.getStore().endCompoundEdit()
+        this.sessionOpen = false
+      }
+      return true
+    }
+    const wallId = this.chainIds.pop()!
+    const wall = this.homeSnapshot().walls.find((w) => w.id === wallId)
+    if (wall) this.chainStart = { x: wall.xStart, y: wall.yStart }
+    this.closurePolygon = null
+    this.closureTooltip = null
+    this.model.removeWall(wallId)
+    return true
   }
 
   /**
