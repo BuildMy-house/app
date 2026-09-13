@@ -18,6 +18,7 @@ import type {
 import {
   DEFAULT_WALL_HEIGHT_CM,
   type NormalizedHomeState,
+  type Roof,
   type Wall,
   type Furniture,
 } from '../core/home'
@@ -98,6 +99,48 @@ function computeWallOpenings(
     })
   }
   return openings
+}
+
+function buildRoofPrimitives(
+  roof: Roof,
+  elevation: number,
+  levelHeight: number,
+  materialId: string,
+): BoxPrimitive[] {
+  const overhang = Math.max(0, roof.overhangCm)
+  const xs = roof.points.map(([x]) => x)
+  const zs = roof.points.map(([, z]) => z)
+  const minX = Math.min(...xs) - overhang
+  const maxX = Math.max(...xs) + overhang
+  const minZ = Math.min(...zs) - overhang
+  const maxZ = Math.max(...zs) + overhang
+  const width = maxX - minX
+  const depth = maxZ - minZ
+  const longX = width >= depth
+  const run = (longX ? depth : width) / 2
+  const rise = Math.tan(degToRad(Math.max(0, roof.pitchDeg))) * Math.min(width, depth) / 2
+  const slope = Math.hypot(run, rise)
+  const angle = Math.atan2(rise, run)
+  const baseY = elevation + levelHeight
+  const position = [
+    (minX + maxX) / 2,
+    baseY + rise / 2,
+    (minZ + maxZ) / 2,
+  ] as [number, number, number]
+  const panels: BoxPrimitive[] = []
+  for (const side of [-1, 1]) {
+    const panel = {
+      type: 'box' as const,
+      position: [...position] as [number, number, number],
+      size: longX ? [width, 5, slope] as [number, number, number] : [slope, 5, depth] as [number, number, number],
+      rotation: longX ? [side * angle, 0, 0] as [number, number, number] : [0, 0, -side * angle] as [number, number, number],
+      materialId,
+    }
+    if (longX) panel.position[2] += side * depth / 4
+    else panel.position[0] += side * width / 4
+    panels.push(panel)
+  }
+  return panels
 }
 
 function buildWallPrimitives(
@@ -308,6 +351,21 @@ export function buildRenderableScene(
       }
       objects.push(ceilingObj)
     }
+  }
+
+  // ── Roofs ───────────────────────────────────────────────────
+
+  for (const roof of home.roofs) {
+    if (roof.points.length < 3) continue
+    const level = home.levels.find((item) => item.id === roof.levelRef)
+    const mat = makeColorMaterial(roof.color ?? 0x8b5a3c)
+    materials.push(mat)
+    objects.push({
+      id: `roof:${roof.id}`,
+      name: roof.name || `Roof ${roof.id}`,
+      primitives: buildRoofPrimitives(roof, elevationFor(roof.levelRef, elevations), level?.height ?? DEFAULT_WALL_HEIGHT_CM, mat.id),
+      visible: { plan: false, threeD: true, luxcore: true },
+    })
   }
 
   // ── Furniture ───────────────────────────────────────────────
