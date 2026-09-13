@@ -94,7 +94,7 @@ function computeWallOpenings(
   return openings
 }
 
-function wallMesh(
+export function wallMesh(
   wall: Wall,
   elevation: number,
   wallsTransparency: number,
@@ -215,7 +215,7 @@ function wallMesh(
   return group
 }
 
-function wallEdges(wall: Wall, elevation: number, allWalls: Wall[]): THREE.LineSegments {
+export function wallEdges(wall: Wall, elevation: number, allWalls: Wall[]): THREE.LineSegments {
   const height = wall.height ?? DEFAULT_WALL_HEIGHT_CM
   const midX = (wall.xStart + wall.xEnd) / 2
   const midY = (wall.yStart + wall.yEnd) / 2
@@ -229,10 +229,12 @@ function wallEdges(wall: Wall, elevation: number, allWalls: Wall[]): THREE.LineS
     new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.3 }),
   )
   line.position.set(midX, elevation, midY)
+  // Named so scene-delta.ts can find and replace an edited wall's edges.
+  line.name = `wall-edge:${wall.id}`
   return line
 }
 
-function roomMesh(room: Room, elevation: number): THREE.Mesh {
+export function roomMesh(room: Room, elevation: number): THREE.Mesh {
   const shape = new THREE.Shape()
   room.points.forEach(([x, y], index) => {
     if (index === 0) shape.moveTo(x, -y)
@@ -253,7 +255,7 @@ function roomMesh(room: Room, elevation: number): THREE.Mesh {
   return mesh
 }
 
-function ceilingMesh(room: Room, elevation: number, levels: Level[]): THREE.Mesh | null {
+export function ceilingMesh(room: Room, elevation: number, levels: Level[]): THREE.Mesh | null {
   if (room.ceilingVisible === false) return null
   const level = levels.find(l => l.id === room.levelRef)
   const levelHeight = level ? level.height : DEFAULT_WALL_HEIGHT_CM

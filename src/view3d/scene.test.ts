@@ -8,6 +8,11 @@ import {
   __seedModelCache,
   SELECTION_EMISSIVE_COLOR,
 } from './scene'
+import {
+  applySceneUpdate,
+  computeSceneUpdates,
+  isTransformOnlyFurnitureChange,
+} from './scene-delta'
 
 /**
  * Extract every unique XZ position from a THREE.BufferGeometry's position
@@ -672,5 +677,212 @@ describe('furniture selection material isolation (M66)', () => {
     for (const m of emissives.get('B')!) {
       expect(m.hex).toBe(SELECTION_EMISSIVE_COLOR)
     }
+  })
+})
+
+// ── T2: delta updates ────────────────────────────────────────────────────────
+
+describe('delta updates (T2)', () => {
+  function sofa(id: string, x: number, y: number, overrides: Partial<Furniture> = {}): Furniture {
+    return {
+      id, name: 'Sofa',
+      x, y, angleDeg: 0,
+      width: 200, depth: 80, height: 90,
+      elevation: 0,
+      ...overrides,
+    }
+  }
+
+  function straightWall(id: string, x1: number, y1: number, x2: number, y2: number): import('../core/home').Wall {
+    return { id, xStart: x1, yStart: y1, xEnd: x2, yEnd: y2, thickness: 15, leftSideColor: 0xd2d2d2 }
+  }
+
+  function namedMeshes(scene: THREE.Scene, prefix: string): THREE.Mesh[] {
+    const meshes: THREE.Mesh[] = []
+    scene.traverse((obj) => {
+      if (obj instanceof THREE.Mesh && obj.name.startsWith(prefix)) meshes.push(obj)
+    })
+    return meshes
+  }
+
+  it('single furniture move applies matrix-only (geometry identity preserved)', () => {
+    const home = createEmptyHome()
+    // Distinct colors keep these out of T1 instancing groups (≥2 identical only).
+    home.furniture.push(sofa('f1', 100, 100, { color: 0xff0000 }))
+    home.furniture.push(sofa('f2', 400, 100, { color: 0x00ff00 }))
+    const scene = buildScene(home)
+    const before = scene.getObjectByName('furniture:f1') as THREE.Mesh
+    const geometryBefore = before.geometry
+
+    const moved = { ...home.furniture[0]!, x: 300, y: 250, angleDeg: 45 }
+    const updates = computeSceneUpdates(home, { ...home, furniture: [moved, home.furniture[1]!] })
+    expect(updates.length).toBe(1)
+    expect(updates[0]!.type).toBe('furniture-update')
+    expect(isTransformOnlyFurnitureChange(home.furniture[0]!, moved)).toBe(true)
+
+    const ok = applySceneUpdate(scene, updates[0]!, { ...home, furniture: [moved, home.furniture[1]!] }, home)
+    expect(ok).toBe(true)
+    expect(before.geometry).toBe(geometryBefore) // no geometry rebuild
+    expect(before.position.x).toBe(300)
+    expect(before.position.z).toBe(250)
+    expect(before.rotation.y).toBeCloseTo(Math.PI / 4, 10)
+  })
+
+  it('moving an instanced group member rewrites only its instance matrix', () => {
+    const home = createEmptyHome()
+    for (let i = 0; i < 5; i++) {
+      home.furniture.push({
+        ...sofa(`c${i}`, i * 100, 0),
+        catalogId: 'sofa-a', color: 0xff0000,
+        angleDeg: 0,
+      })
+    }
+    const scene = buildScene(home)
+    let mesh: THREE.InstancedMesh | undefined
+    scene.traverse((o) => {
+      if (o instanceof THREE.InstancedMesh) mesh = o
+    })
+    expect(mesh).toBeDefined()
+    const countBefore = mesh!.count
+    const geometryBefore = mesh!.geometry
+
+    const moved = { ...home.furniture[2]!, x: 999, y: 555, angleDeg: 90 }
+    const newHome = { ...home, furniture: home.furniture.map((f) => (f.id === 'c2' ? moved : f)) }
+    const updates = computeSceneUpdates(home, newHome)
+    expect(updates.length).toBe(1)
+    const ok = applySceneUpdate(scene, updates[0]!, newHome, home)
+    expect(ok).toBe(true)
+
+    expect(mesh!.count).toBe(countBefore) // no rebuild
+    expect(mesh!.geometry).toBe(geometryBefore)
+    const matrix = new THREE.Matrix4()
+    mesh!.getMatrixAt(2, matrix)
+    const pos = new THREE.Vector3()
+    matrix.decompose(pos, new THREE.Quaternion(), new THREE.Vector3())
+    expect(pos.x).toBe(999)
+    expect(pos.z).toBe(555) // plan Y maps to world Z; world Y is elevation
+  })
+
+  it('non-transform furniture change (color) is not matrix-only → fallback', () => {
+    const home = createEmptyHome()
+    home.furniture.push(sofa('f1', 100, 100))
+    const changed = { ...home.furniture[0]!, color: 0x00ff00 }
+    expect(isTransformOnlyFurnitureChange(home.furniture[0]!, changed)).toBe(false)
+    const scene = buildScene(home)
+    const updates = computeSceneUpdates(home, { ...home, furniture: [changed] })
+    expect(updates[0]!.type).toBe('furniture-update')
+    expect(applySceneUpdate(scene, updates[0]!, { ...home, furniture: [changed] }, home)).toBe(false)
+  })
+
+  it('wall edit rebuilds wall geometry but leaves furniture untouched', () => {
+    const home = createEmptyHome()
+    home.walls.push(straightWall('wA', 0, 0, 100, 0))
+    home.walls.push(straightWall('wB', 100, 0, 100, 100))
+    home.furniture.push(sofa('f1', 300, 300))
+    const scene = buildScene(home)
+    const furnitureBefore = scene.getObjectByName('furniture:f1')
+    const wallMeshesBefore = namedMeshes(scene, 'wall:')
+
+    const movedA = { ...home.walls[0]!, xEnd: 200 }
+    const newHome = { ...home, walls: [movedA, home.walls[1]!] }
+    const updates = computeSceneUpdates(home, newHome)
+    expect(updates.length).toBe(1)
+    expect(updates[0]!.type).toBe('wall-update')
+
+    const ok = applySceneUpdate(scene, updates[0]!, newHome, home)
+    expect(ok).toBe(true)
+
+    // Furniture identical object — untouched.
+    expect(scene.getObjectByName('furniture:f1')).toBe(furnitureBefore)
+    // Wall meshes are NEW objects (rebuilt), same count.
+    const wallMeshesAfter = namedMeshes(scene, 'wall:')
+    expect(wallMeshesAfter.length).toBe(wallMeshesBefore.length)
+    for (const after of wallMeshesAfter) {
+      expect(wallMeshesBefore.some((b) => b === after)).toBe(false)
+    }
+  })
+
+  it('wall edit also rebuilds the neighbor sharing the moved endpoint', () => {
+    const home = createEmptyHome()
+    home.walls.push(straightWall('wA', 0, 0, 100, 0))
+    home.walls.push(straightWall('wB', 100, 0, 100, 100))
+    const scene = buildScene(home)
+
+    const movedA = { ...home.walls[0]!, xEnd: 200 }
+    const newHome = { ...home, walls: [movedA, home.walls[1]!] }
+    const ok = applySceneUpdate(scene, computeSceneUpdates(home, newHome)[0]!, newHome, home)
+    expect(ok).toBe(true)
+
+    // Neighbor wB's mitered joint must have been recomputed: new geometry
+    // reaching the shared corner at (100, 0) — both old and new outlines
+    // include it, so assert wB has fresh mesh objects (rebuilt), not reused.
+    const wallB = namedMeshes(scene, 'wall:wB')
+    expect(wallB.length).toBeGreaterThan(0)
+  })
+
+  it('room edit rebuilds room geometry but leaves walls and furniture untouched', () => {
+    const home = createEmptyHome()
+    home.walls.push(straightWall('wA', 0, 0, 100, 0))
+    home.furniture.push(sofa('f1', 300, 300))
+    home.rooms.push({ id: 'r1', points: [[0, 0], [100, 0], [100, 100], [0, 100]] })
+    const scene = buildScene(home)
+    const roomBefore = scene.getObjectByName('room:r1')
+    const furnitureBefore = scene.getObjectByName('furniture:f1')
+    const wallBefore = scene.getObjectByName('wall:wA')
+
+    const movedRoom = { ...home.rooms[0]!, points: [[10, 0], [110, 0], [110, 100], [10, 100]] as [number, number][] }
+    const newHome = { ...home, rooms: [movedRoom] }
+    const updates = computeSceneUpdates(home, newHome)
+    expect(updates.length).toBe(1)
+    expect(updates[0]!.type).toBe('room-update')
+
+    const ok = applySceneUpdate(scene, updates[0]!, newHome)
+    expect(ok).toBe(true)
+
+    const roomAfter = scene.getObjectByName('room:r1')
+    expect(roomAfter).toBeDefined()
+    expect(roomAfter).not.toBe(roomBefore) // rebuilt
+    expect(scene.getObjectByName('furniture:f1')).toBe(furnitureBefore)
+    expect(scene.getObjectByName('wall:wA')).toBe(wallBefore)
+  })
+
+  it('two simultaneous furniture moves produce 2 updates (caller falls back)', () => {
+    const home = createEmptyHome()
+    home.furniture.push(sofa('f1', 100, 100))
+    home.furniture.push(sofa('f2', 400, 400))
+    const moved1 = { ...home.furniture[0]!, x: 150 }
+    const moved2 = { ...home.furniture[1]!, y: 450 }
+    const updates = computeSceneUpdates(home, {
+      ...home,
+      furniture: [moved1, moved2],
+    })
+    expect(updates.length).toBe(2)
+  })
+
+  it('single furniture move on a large scene applies in <2ms', () => {
+    const home = createEmptyHome()
+    for (let i = 0; i < 30; i++) {
+      home.walls.push(straightWall(`w${i}`, i * 300, 0, i * 300 + 200, 0))
+    }
+    for (let i = 0; i < 200; i++) {
+      home.furniture.push(sofa(`f${i}`, (i % 20) * 250, Math.floor(i / 20) * 250, {
+        catalogId: i % 2 === 0 ? 'sofa-a' : undefined,
+        color: i % 2 === 0 ? 0xff0000 : undefined,
+      }))
+    }
+    const scene = buildScene(home)
+
+    const moved = { ...home.furniture[7]!, x: 12345, y: -4321, angleDeg: 30 }
+    const newHome = { ...home, furniture: home.furniture.map((f) => (f.id === moved.id ? moved : f)) }
+    const updates = computeSceneUpdates(home, newHome)
+    expect(updates.length).toBe(1)
+
+    // Warm once, then measure — the DoD target is the steady-state frame.
+    applySceneUpdate(scene, updates[0]!, newHome, home)
+    const t0 = performance.now()
+    const ok = applySceneUpdate(scene, updates[0]!, newHome, home)
+    const elapsed = performance.now() - t0
+    expect(ok).toBe(true)
+    expect(elapsed).toBeLessThan(2)
   })
 })

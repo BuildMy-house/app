@@ -14,7 +14,7 @@ import {
   type ViewportQuality,
 } from './viewport-quality'
 import { telemetry } from '../telemetry/logger'
-import { computeSceneUpdates } from './scene-delta'
+import { applySceneUpdate, computeSceneUpdates } from './scene-delta'
 import { exportViewportAsImage } from '../export/quick-preview'
 
 export interface View3DOptions {
@@ -72,6 +72,7 @@ export class View3D {
   private readonly isPlacing?: () => boolean
   private readonly onFloorClick?: (point: { x: number; y: number }) => void
   private _lastHome: NormalizedHomeState | null = null
+  private _lastDeltaMs = 0
 
   constructor(
     private readonly store: HomeStore,
@@ -168,6 +169,11 @@ export class View3D {
 
   get camera(): THREE.PerspectiveCamera {
     return this.perspectiveCamera
+  }
+
+  /** Wall-clock ms of the last delta-applied store change (0 after a rebuild). */
+  get lastDeltaMs(): number {
+    return this._lastDeltaMs
   }
 
   /** Switch which preset the viewport shows ("top" | "observer"). */
@@ -340,17 +346,18 @@ export class View3D {
     // Compute what actually changed since the last render
     const updates = computeSceneUpdates(this._lastHome, home)
 
-    // For now: if changes are simple (single object update), apply deltas.
-    // Otherwise fall back to full rebuild for safety.
-    const shouldDelta = updates.length === 1 && updates[0]?.type !== 'full-rebuild'
-
-    if (shouldDelta) {
-      // Future: Apply targeted updates here for performance.
-      // For now, still rebuild but we have the framework.
-      this.rebuild()
-    } else {
-      this.rebuild()
+    // Delta path: exactly one clear-scope update (single furniture move,
+    // single wall edit, or single room edit) → apply in place, skipping the
+    // full scene rebuild. Anything ambiguous or complex falls back to
+    // rebuild() for safety.
+    let applied = false
+    const single = updates.length === 1 ? updates[0] : undefined
+    if (single && single.type !== 'full-rebuild' && this._lastHome) {
+      const t0 = performance.now()
+      applied = applySceneUpdate(this._scene, single, home, this._lastHome)
+      this._lastDeltaMs = applied ? performance.now() - t0 : 0
     }
+    if (!applied) this.rebuild()
 
     this._lastHome = { ...home } // Shallow copy for next frame
 
