@@ -1,0 +1,279 @@
+{
+  "schemaVersion": 1,
+  "levels": [
+    {
+      "name": "Upper",
+      "elevation": 300,
+      "floorThickness": 30,
+      "height": 250,
+      "visible": true,
+      "viewable": true,
+      "id": "level-12"
+    }
+  ],
+  "walls": [
+    {
+      "xStart": 0,
+      "yStart": 0,
+      "xEnd": 600,
+      "yEnd": 0,
+      "thickness": 7,
+      "height": 250,
+      "patternId": "hatchUp",
+      "id": "wall-1"
+    },
+    {
+      "xStart": 600,
+      "yStart": 0,
+      "xEnd": 600,
+      "yEnd": 400,
+      "thickness": 7,
+      "height": 250,
+      "patternId": "hatchUp",
+      "id": "wall-2"
+    },
+    {
+      "xStart": 600,
+      "yStart": 400,
+      "xEnd": 0,
+      "yEnd": 400,
+      "thickness": 7,
+      "height": 250,
+      "patternId": "hatchUp",
+      "id": "wall-3"
+    },
+    {
+      "xStart": 0,
+      "yStart": 400,
+      "xEnd": 0,
+      "yEnd": 0,
+      "thickness": 7,
+      "height": 250,
+      "patternId": "hatchUp",
+      "id": "wall-4"
+    },
+    {
+      "xStart": 0,
+      "yStart": 0,
+      "xEnd": 400,
+      "yEnd": 0,
+      "thickness": 7,
+      "height": 250,
+      "patternId": "hatchUp",
+      "id": "wall-6"
+    }
+  ],
+  "rooms": [
+    {
+      "id": "room-5",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          600,
+          0
+        ],
+        [
+          600,
+          400
+        ],
+        [
+          0,
+          400
+        ]
+      ],
+      "name": null,
+      "areaVisible": true,
+      "floorVisible": true,
+      "floorColor": null,
+      "ceilingVisible": false,
+      "levelRef": null
+    },
+    {
+      "id": "room-9",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          600,
+          0
+        ],
+        [
+          600,
+          400
+        ],
+        [
+          0,
+          400
+        ]
+      ],
+      "name": null,
+      "areaVisible": true,
+      "floorVisible": true,
+      "floorColor": null,
+      "ceilingVisible": false,
+      "levelRef": null
+    }
+  ],
+  "furniture": [
+    {
+      "catalogId": "eTeks#door",
+      "pitchDeg": 0,
+      "rollDeg": 0,
+      "color": 11184810,
+      "visible": true,
+      "movable": true,
+      "doorOrWindow": true,
+      "modelRotationDeg": [],
+      "levelRef": null,
+      "name": "Door",
+      "x": 100,
+      "y": 3.5,
+      "angleDeg": 0,
+      "width": 91.5,
+      "depth": 14.5,
+      "height": 208.5,
+      "elevation": -1,
+      "modelPath": "models/eteks-door.glb",
+      "wallRef": "wall-1",
+      "wallOffset": 100,
+      "id": "furniture-7"
+    },
+    {
+      "catalogId": "eTeks#doubleOutwardOpeningWindow",
+      "pitchDeg": 0,
+      "rollDeg": 0,
+      "color": 11184810,
+      "visible": true,
+      "movable": true,
+      "doorOrWindow": true,
+      "modelRotationDeg": [],
+      "levelRef": null,
+      "name": "Outward opening window",
+      "x": 300,
+      "y": 3.5,
+      "angleDeg": 0,
+      "width": 115.2,
+      "depth": 26,
+      "height": 134,
+      "elevation": 0,
+      "modelPath": "models/eteks-doubleoutwardopeningwindow.glb",
+      "wallRef": "wall-1",
+      "wallOffset": 300,
+      "id": "furniture-8"
+    },
+    {
+      "catalogId": "eTeks#sofa2",
+      "pitchDeg": 0,
+      "rollDeg": 0,
+      "color": 12632256,
+      "visible": true,
+      "movable": true,
+      "doorOrWindow": false,
+      "modelRotationDeg": [],
+      "levelRef": null,
+      "name": "Sofa",
+      "x": 300,
+      "y": 200,
+      "angleDeg": 0,
+      "width": 200,
+      "depth": 86.5,
+      "height": 88,
+      "elevation": 45,
+      "modelPath": "models/eteks-sofa2.glb",
+      "id": "furniture-10"
+    },
+    {
+      "catalogId": "eTeks#armchair",
+      "pitchDeg": 0,
+      "rollDeg": 0,
+      "color": 12632256,
+      "visible": true,
+      "movable": true,
+      "doorOrWindow": false,
+      "modelRotationDeg": [],
+      "levelRef": null,
+      "name": "Armchair",
+      "x": 120,
+      "y": 120,
+      "angleDeg": 0,
+      "width": 87,
+      "depth": 92,
+      "height": 87,
+      "elevation": 32.5,
+      "modelPath": "models/eteks-armchair.glb",
+      "id": "furniture-11"
+    }
+  ],
+  "dimensionLines": [
+    {
+      "levelRef": null,
+      "xStart": 0,
+      "yStart": 0,
+      "xEnd": 600,
+      "yEnd": 0,
+      "offset": 0,
+      "id": "dimension-13"
+    }
+  ],
+  "labels": [
+    {
+      "color": null,
+      "levelRef": null,
+      "text": "Kitchen",
+      "x": 300,
+      "y": 200,
+      "id": "label-14"
+    }
+  ],
+  "selection": [
+    "wall-6"
+  ],
+  "cameras": {
+    "top": {
+      "id": "camera-top-1",
+      "x": 300,
+      "y": 1197,
+      "z": 1125,
+      "yawDeg": -180,
+      "pitchDeg": 45,
+      "fovDeg": 63,
+      "lens": "PINHOLE"
+    },
+    "observer": {
+      "id": "camera-observer-1",
+      "x": 50,
+      "y": 50,
+      "z": 170,
+      "yawDeg": -45,
+      "pitchDeg": 11.25,
+      "fovDeg": 63,
+      "lens": "PINHOLE",
+      "fixedSize": false
+    }
+  },
+  "compass": {
+    "x": -100,
+    "y": 50,
+    "diameter": 100,
+    "northDirectionDeg": 0,
+    "latitudeRad": 0.48,
+    "longitudeRad": 1.564,
+    "visible": true
+  },
+  "environment": {
+    "skyColor": 13427964,
+    "groundColor": 11053224,
+    "lightColor": 13684944,
+    "wallsAlpha": 0
+  },
+  "activeTool": "wall",
+  "capabilities": {
+    "canUndo": true,
+    "canRedo": false
+  }
+}

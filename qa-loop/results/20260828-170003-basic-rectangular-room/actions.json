@@ -1,0 +1,168 @@
+[
+  {
+    "phase": "steps",
+    "step": 1,
+    "command": "set_view",
+    "params": {
+      "view": "plan"
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "view": "plan"
+        }
+      }
+    },
+    "elapsedMs": 3841.178
+  },
+  {
+    "phase": "steps",
+    "step": 2,
+    "command": "select_tool",
+    "params": {
+      "tool": "wall"
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "tool": "wall"
+        }
+      }
+    },
+    "elapsedMs": 1031.652
+  },
+  {
+    "phase": "steps",
+    "step": 3,
+    "command": "set_magnetism",
+    "params": {
+      "enabled": false
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "magnetismEnabled": false
+        }
+      }
+    },
+    "elapsedMs": 788.533
+  },
+  {
+    "phase": "steps",
+    "step": 4,
+    "command": "click",
+    "params": {
+      "x": 0,
+      "y": 0
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 1.785
+  },
+  {
+    "phase": "steps",
+    "step": 5,
+    "command": "click",
+    "params": {
+      "x": 600,
+      "y": 0
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 74.234
+  },
+  {
+    "phase": "steps",
+    "step": 6,
+    "command": "click",
+    "params": {
+      "x": 600,
+      "y": 400
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 20.473
+  },
+  {
+    "phase": "steps",
+    "step": 7,
+    "command": "click",
+    "params": {
+      "x": 0,
+      "y": 400
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 27.788
+  },
+  {
+    "phase": "steps",
+    "step": 8,
+    "command": "click",
+    "params": {
+      "x": 0,
+      "y": 0,
+      "dbl": true
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 56.711
+  },
+  {
+    "phase": "steps",
+    "step": 9,
+    "command": "add_room",
+    "params": {
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          600,
+          0
+        ],
+        [
+          600,
+          400
+        ],
+        [
+          0,
+          400
+        ]
+      ]
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "id": "room-5"
+        }
+      }
+    },
+    "elapsedMs": 65.76
+  }
+]

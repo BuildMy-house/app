@@ -1,0 +1,113 @@
+[
+  {
+    "phase": "setup",
+    "step": 1,
+    "command": "new_home",
+    "params": {},
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 2.472
+  },
+  {
+    "phase": "steps",
+    "step": 1,
+    "command": "select_tool",
+    "params": {
+      "tool": "room"
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {
+          "tool": "room"
+        }
+      }
+    },
+    "elapsedMs": 0.885
+  },
+  {
+    "phase": "steps",
+    "step": 2,
+    "command": "click",
+    "params": {
+      "x": 0,
+      "y": 0
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 0.813
+  },
+  {
+    "phase": "steps",
+    "step": 3,
+    "command": "click",
+    "params": {
+      "x": 600,
+      "y": 0
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 0.58
+  },
+  {
+    "phase": "steps",
+    "step": 4,
+    "command": "click",
+    "params": {
+      "x": 600,
+      "y": 400
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 0.51
+  },
+  {
+    "phase": "steps",
+    "step": 5,
+    "command": "click",
+    "params": {
+      "x": 0,
+      "y": 400
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 0.54
+  },
+  {
+    "phase": "steps",
+    "step": 6,
+    "command": "click",
+    "params": {
+      "x": 0,
+      "y": 0,
+      "dbl": true
+    },
+    "responses": {
+      "homely": {
+        "ok": true,
+        "data": {}
+      }
+    },
+    "elapsedMs": 47.115
+  }
+]

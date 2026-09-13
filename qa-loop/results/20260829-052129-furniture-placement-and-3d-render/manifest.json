@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260829-052129-furniture-placement-and-3d-render",
+  "startedAt": "2026-08-29T05:21:29.835955+00:00",
+  "scenarioName": "Furniture placement and 3D render",
+  "description": "Place two catalog furniture items (GLB models) via add_furniture with catalogId; assert both land in state and render in 3D.",
+  "target": {
+    "os": [
+      "linux"
+    ],
+    "mode": [
+      "web"
+    ]
+  },
+  "adapters": [
+    "homely"
+  ],
+  "stepCount": 3,
+  "checkpoints": [
+    {
+      "afterStep": 3,
+      "capture": [
+        "state",
+        "plan",
+        "3d"
+      ]
+    }
+  ],
+  "assertions": [
+    {
+      "at": 3,
+      "artifact": "state",
+      "kind": "count",
+      "path": "furniture",
+      "value": 2,
+      "tolerance": 0.01
+    }
+  ],
+  "assertionsEvaluatedBy": "eq.comparators (C3/C4)"
+}
