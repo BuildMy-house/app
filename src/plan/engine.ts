@@ -14,10 +14,31 @@ import {
   signedArea,
   type Point,
 } from './geometry'
+import { ViewMapper, getLastCursorPx, getLastDrawnView } from './renderer'
 
 export const PLAN_SCALE = 1
 export const PIXEL_MARGIN = 4 * PLAN_SCALE
 export const WALL_ENDS_PIXEL_MARGIN = 2 * PLAN_SCALE
+/**
+ * Finding A.1: the "pixel" margins above are actually WORLD units (cm) — the
+ * engine is world-space only and never sees the view transform, so the real
+ * on-screen snap radius is margin × view.scale. Zoomed out (scale < 1) the
+ * 4-unit PIXEL_MARGIN shrinks below 4 screen px and clicking near a wall end
+ * (to start, continue, or close a chain) misses it. endpointSnapMargin()
+ * compensates by converting a constant screen-space radius (~10 px, a
+ * comfortable click target) into world units at the live view scale, clamped
+ * so it stays usable when zoomed far out (min) and not absurdly grabby when
+ * zoomed far in (max).
+ */
+export const ENDPOINT_SNAP_RADIUS_PX = 10
+const ENDPOINT_SNAP_MIN_WORLD = 4
+const ENDPOINT_SNAP_MAX_WORLD = 40
+
+/** Screen-space endpoint snap radius converted to world units at the current view scale. */
+function endpointSnapMargin(): number {
+  const scale = getLastDrawnView()?.scale ?? 1
+  return Math.min(ENDPOINT_SNAP_MAX_WORLD, Math.max(ENDPOINT_SNAP_MIN_WORLD, ENDPOINT_SNAP_RADIUS_PX / scale))
+}
 const EPSILON = 1e-6
 const ENDPOINT_HIT_RADIUS = 10
 const CONNECTED_WALL_EPSILON = 0.1
@@ -123,6 +144,8 @@ export interface PlanPreview {
   marquee: { from: Point; to: Point } | null
   closurePolygon: Array<Point> | null
   closureTooltip: { text: string; x: number; y: number } | null
+  /** Endpoint the cursor is currently locked onto (zoom-aware snap), for the visual indicator. */
+  snapLock: Point | null
 }
 
 function samePoint(a: Point, b: Point): boolean {
@@ -162,6 +185,7 @@ export class PlanEngine {
   private _marqueeActive = false
   private closurePolygon: Array<Point> | null = null
   private closureTooltip: { text: string; x: number; y: number } | null = null
+  private snapLock: Point | null = null
 
   constructor(model: HomeModel) {
     this.model = model
@@ -381,11 +405,18 @@ export class PlanEngine {
     const home = this.homeSnapshot()
     const levelWalls = home.walls.filter((w) => this.matchesActiveLevel(w.levelRef))
 
-    // Simulate adding a closing wall from chainStart to the cursor.
+    // Finding A.2: the raw cursor is up to the whole snap margin away from the
+    // vertex the click will actually land on, so simulating the closing wall
+    // with the raw point misses the chain origin and no loop is ever found
+    // with a real mouse. Resolve through the same pipeline the click uses.
+    const resolved = this.resolveSegmentEnd(this.chainStart, point)
+    this.snapLock = this.freeEndpointAt(home, point, endpointSnapMargin())
+
+    // Simulate adding a closing wall from chainStart to the resolved cursor.
     const closingWall = {
       id: '__closure_preview__',
       start: { x: this.chainStart.x, y: this.chainStart.y },
-      end: { x: point.x, y: point.y },
+      end: { x: resolved.x, y: resolved.y },
     }
 
     const allWalls = [
@@ -421,7 +452,29 @@ export class PlanEngine {
     this.closureTooltip = null
   }
 
+  /**
+   * Finding A.2: the real canvas pointermove handler (main.ts) never calls the
+   * engine — move_mouse only arrives from the automation runner — so the
+   * closure preview never updated during interactive drawing. Bridge it here:
+   * each frame the renderer-tracked cursor/view feed the same closure
+   * detection move_mouse would. No-ops in tests/automation where nothing is
+   * tracked.
+   */
+  private syncInteractiveCursor(): void {
+    this.snapLock = null
+    if (this.tool !== 'wall' || this.phase !== 'drawing' || !this.chainStart) {
+      this.closurePolygon = null
+      this.closureTooltip = null
+      return
+    }
+    const px = getLastCursorPx()
+    const view = getLastDrawnView()
+    if (!px || !view) return
+    this.detectClosurePreview(new ViewMapper(view).toModel(px.x, px.y))
+  }
+
   getPreview(): PlanPreview {
+    this.syncInteractiveCursor()
     const dim =
       this.tool === 'dimensionLine' && this.phase === 'drawing' && this.dimensionStart && this.lastMove
         ? {
@@ -445,6 +498,7 @@ export class PlanEngine {
           : null,
       closurePolygon: this.closurePolygon,
       closureTooltip: this.closureTooltip,
+      snapLock: this.snapLock,
     }
   }
 
@@ -1522,7 +1576,7 @@ export class PlanEngine {
    */
   private resolveChainStart(point: Point): Point {
     const home = this.homeSnapshot()
-    const free = this.freeEndpointAt(home, point, PIXEL_MARGIN)
+    const free = this.freeEndpointAt(home, point, endpointSnapMargin())
     if (free) return free
     if (this.gridSnapEnabled) return this.snapToGrid(point.x, point.y)
     return point
@@ -1530,18 +1584,19 @@ export class PlanEngine {
 
   /**
    * Segment end resolution order (SH3D WallDrawingState.moveMouse):
-   * 1. exact join onto a FREE endpoint within PIXEL_MARGIN
+   * 1. exact join onto a FREE endpoint within endpointSnapMargin()
    * 2. angle+length magnetization plus per-axis wall-endpoint snapping
    */
   private resolveSegmentEnd(start: Point, point: Point): Point {
     const home = this.homeSnapshot()
-    const free = this.freeEndpointAt(home, point, PIXEL_MARGIN)
+    const margin = endpointSnapMargin()
+    const free = this.freeEndpointAt(home, point, margin)
     if (free) return free
     const base = this.gridSnapEnabled ? this.snapToGrid(point.x, point.y) : point
     const sameResult = wallPointMagnetism(start, base, home.walls, {
       enabled: this.magnetismEnabled,
       maxDelta: PLAN_SCALE,
-      endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+      endpointMargin: margin,
     })
     // Cross-level: if same-level magnetism didn't move the point, try with reference walls.
     if (
@@ -1553,7 +1608,7 @@ export class PlanEngine {
         const refResult = wallPointMagnetism(start, base, refWalls, {
           enabled: true,
           maxDelta: PLAN_SCALE,
-          endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+          endpointMargin: margin,
         })
         return refResult
       }
