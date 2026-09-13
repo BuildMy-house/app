@@ -1,6 +1,8 @@
 import { createApp } from './app.js';
 import { getJwtSecret } from './config.js';
 import { openAdapter } from './db.js';
+import { jobTelemetry } from './jobs/telemetry.js';
+import { renderQueue } from './render-queue.js';
 
 getJwtSecret(); // fail startup loudly if JWT_SECRET is unset
 
@@ -10,6 +12,9 @@ const staticDir = process.env.STATIC_DIR;
 
 const adapter = openAdapter();
 const app = await createApp(adapter, assetRoot, staticDir);
+
+// Start job queue depth monitoring (checks every 60s, alerts if >100)
+jobTelemetry.startMonitoring(() => renderQueue.getStatus().pending);
 
 app.listen(port, () => {
   console.log(`Homely server listening on http://localhost:${port}`);
