@@ -14,8 +14,12 @@ import {
   type ViewportQuality,
 } from './viewport-quality'
 import { telemetry } from '../telemetry/logger'
+import type { RenderingMetrics } from '../telemetry/events'
 import { applySceneUpdate, computeSceneUpdates } from './scene-delta'
 import { exportViewportAsImage } from '../export/quick-preview'
+
+// Per-texture memory estimate for the telemetry textureMemoryMB figure (1024×1024 RGBA).
+const ESTIMATED_TEXTURE_MB = 1
 
 export interface View3DOptions {
   /** DOM container; when absent the view stays a headless scene graph. */
@@ -60,6 +64,9 @@ export class View3D {
   private _frameSamples: number[] = []
   private _frameLastTime = 0
   private _frameReportTimer: ReturnType<typeof setTimeout> | undefined
+  // Rendering metrics: sampled every 30 frames, latest snapshot reported with the 30s frame-time report.
+  private _metricsFrameCount = 0
+  private _lastMetrics: RenderingMetrics | undefined
   private readonly handleResize = (): void => {
     const container = this.domElement?.parentElement
     if (!container) return
@@ -490,10 +497,17 @@ export class View3D {
         const dt = now - this._frameLastTime
         this._frameSamples.push(dt)
         if (this._frameSamples.length > 100) this._frameSamples.shift()
+        this._metricsFrameCount++
+        if (this._metricsFrameCount >= 30) {
+          this._metricsFrameCount = 0
+          this._lastMetrics = this.collectRenderingMetrics()
+        }
         if (!this._frameReportTimer) {
           this._frameReportTimer = setTimeout(() => {
             telemetry.frameTime(this._frameSamples)
+            if (this._lastMetrics) telemetry.renderingMetrics(this._lastMetrics)
             this._frameSamples = []
+            this._lastMetrics = undefined
             this._frameReportTimer = undefined
           }, 30_000)
         }
@@ -521,6 +535,29 @@ export class View3D {
     if (this._animationFrame !== undefined) {
       cancelAnimationFrame(this._animationFrame)
       this._animationFrame = undefined
+    }
+  }
+
+  /**
+   * Snapshot renderer stats from renderer.info (already tracked per frame by
+   * Three.js — no extra render work). Called every 30 frames.
+   */
+  private collectRenderingMetrics(): RenderingMetrics | undefined {
+    const renderer = this.renderer
+    if (!renderer) return undefined
+    let instancedMeshCount = 0
+    this._scene.traverse((object) => {
+      if (object instanceof THREE.InstancedMesh) instancedMeshCount++
+    })
+    const samples = this._frameSamples
+    const avgDt = samples.length > 0 ? samples.reduce((a, b) => a + b, 0) / samples.length : 0
+    return {
+      drawCalls: renderer.info.render.calls,
+      instancedMeshCount,
+      triangleCount: renderer.info.render.triangles,
+      // ponytail: renderer.info doesn't expose per-texture bytes; 1MB avg per texture (1024×1024 RGBA), refine only if texture memory ever matters
+      textureMemoryMB: renderer.info.memory.textures * ESTIMATED_TEXTURE_MB,
+      fps: avgDt > 0 ? Math.round((1000 / avgDt) * 100) / 100 : 0,
     }
   }
 
