@@ -6,9 +6,10 @@ not API keys) for the engineering container. Last updated 2026-09-13.
 
 This supersedes the earlier `company-ops/INFISICAL_SETUP.md` draft, which proposed **two**
 separate Infisical projects (`buildmy-house-ops` / `buildmy-house-infra`). What actually got
-built is simpler and equivalent: **one** project with two folders, each folder to be scoped to
-its own machine identity. Don't recreate the two-project layout — this file is the current
-source of truth.
+built is simpler and equivalent: **one** project with three folders, each folder to be scoped to
+its own machine identity (or, for `/app`, deployed directly into the buildmyhouse server's own
+environment — it has no company-ops/engineering container involvement at all). Don't recreate
+the two-project layout — this file is the current source of truth.
 
 ## Infisical project
 
@@ -16,15 +17,25 @@ source of truth.
 - Environments: `dev` (Development), `staging` (Staging), `prod` (Production)
 - Instance: EU (`INFISICAL_API_URL` in `.env.local` / `company-ops/.env.local`)
 
-## Two-tier folder structure
+## Three-tier folder structure
 
-`company-ops/.env.example` documents this split; Infisical mirrors it as folders inside each
-environment:
+`company-ops/.env.example` documents the `/hermes` + `/infra` split; Infisical mirrors it as
+folders inside each environment. `/app` (added 2026-09-13) is a third, unrelated tier: it holds
+the buildmyhouse/Homely **product's own runtime secrets** — read directly by the deployed
+server process (`buildmyhouse/server/`), not by the company-ops/engineering containers at all.
 
 | Folder | Tier | Readable by | Contents |
 |---|---|---|---|
 | `/hermes` | Tier 1 | CEO / hermes-gateway container (`company-ops` service) | Discord bot config, Postgres app-role passwords, NOUS key |
 | `/infra` | Tier 2 | Engineering/app container (`engineering` service) only, **not** hermes | GitHub App creds, R2, Claude/Codex/OpenCode/Z.AI auth, Axiom tokens |
+| `/app` | Product | The deployed buildmyhouse/Homely server itself (not a container-identity concept — just where its own `.env`/deployment secrets are tracked) | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (email sending, H10/H11 — see `buildmyhouse/.env.example`) |
+
+**`/app` (dev, created 2026-09-13):** `RESEND_API_KEY` and `RESEND_FROM_EMAIL` exist as blank
+placeholders — Nahar is filling in real values directly via the Infisical dashboard, not through
+this MCP tooling. Without them the server falls back to logging email content to its own console
+(`[email:dev-fallback]` — see `buildmyhouse/server/src/email.ts`), so nothing is broken by these
+being blank, but no real email goes out until they're set. `staging`/`prod` `/app` secrets don't
+exist yet — only `dev` has been touched.
 
 `entrypoint.sh` and `engineering-entrypoint.sh` both already call `infisical export --token
 "$INFISICAL_TOKEN"` — the tier separation is enforced by scoping each container's
