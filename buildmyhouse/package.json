@@ -20,7 +20,8 @@
     "export:scene": "tsx scripts/export-scene.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "thumbnails": "tsx scripts/render-thumbnails.ts"
   },
   "dependencies": {
     "@types/three": "^0.185.4",
