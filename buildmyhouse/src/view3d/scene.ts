@@ -349,7 +349,7 @@ function loadTextureFile(file: string, colorSpace: THREE.ColorSpace): THREE.Text
   const url = `assets/textures/${file}`
   const cached = textureCache.get(url)
   if (cached !== undefined) {
-    if (cached) recordTextureLoad(textureId, cached, 0, true, url)
+    if (cached) recordTextureLoad(file, cached, 0, true, url)
     return cached
   }
   let tex: THREE.Texture | null = null
@@ -357,7 +357,7 @@ function loadTextureFile(file: string, colorSpace: THREE.ColorSpace): THREE.Text
     const start = performance.now()
     tex = textureLoader.load(url, () => {
       // onLoad fires after network + decode — the real load duration.
-      recordTextureLoad(textureId, tex, performance.now() - start, false, url)
+      recordTextureLoad(file, tex, performance.now() - start, false, url)
     })
     tex.wrapS = THREE.RepeatWrapping
     tex.wrapT = THREE.RepeatWrapping
