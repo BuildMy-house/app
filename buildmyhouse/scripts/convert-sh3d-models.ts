@@ -26,16 +26,29 @@ interface CatalogItem {
   color?: number | null
 }
 
-/** True when the SH3D resources contain an OBJ matching this catalogId (eTeks#name -> name.obj). */
+/** Resolve the OBJ path for a catalog name — flat (name.obj) first, then nested (name/name.obj). */
+function resolveObjPath(name: string): string | null {
+  const flat = join(SH3D_RESOURCES, `${name}.obj`)
+  try {
+    accessSync(flat)
+    return flat
+  } catch {
+    // fall through
+  }
+  const nested = join(SH3D_RESOURCES, name, `${name}.obj`)
+  try {
+    accessSync(nested)
+    return nested
+  } catch {
+    return null
+  }
+}
+
+/** True when the SH3D resources contain an OBJ matching this catalogId (eTeks#name -> name.obj or name/name.obj). */
 export function hasSh3dModel(catalogId: string): boolean {
   const name = catalogId.split('#')[1]
   if (!name) return false
-  try {
-    accessSync(join(SH3D_RESOURCES, `${name}.obj`))
-    return true
-  } catch {
-    return false
-  }
+  return resolveObjPath(name) !== null
 }
 
 /**
@@ -49,7 +62,9 @@ export function convertSh3dModel(item: CatalogItem): THREE.Group | null {
   const name = item.catalogId.split('#')[1]
   if (!name) return null
 
-  const objPath = join(SH3D_RESOURCES, `${name}.obj`)
+  const objPath = resolveObjPath(name)
+  if (!objPath) return null
+
   let objText: string
   try {
     objText = readFileSync(objPath, 'utf8')
@@ -57,35 +72,43 @@ export function convertSh3dModel(item: CatalogItem): THREE.Group | null {
     return null
   }
 
+  // Derive the SH3D resource directory from the OBJ path so nested layouts
+  // (e.g. sh3d/frame/frame.obj) resolve sibling textures/MTLs correctly.
+  const objDir = dirname(objPath)
+
   const objLoader = new OBJLoader()
   let group: THREE.Group
 
-  const mtlPath = join(SH3D_RESOURCES, `${name}.mtl`)
+  const mtlPath = join(objDir, `${name}.mtl`)
   try {
     accessSync(mtlPath)
     const mtlText = readFileSync(mtlPath, 'utf8')
-    const materialCreator = new MTLLoader().parse(mtlText, SH3D_RESOURCES + '/')
+    const materialCreator = new MTLLoader().parse(mtlText, objDir + '/')
     materialCreator.preload()
     group = objLoader.setMaterials(materialCreator).parse(objText)
   } catch {
     group = objLoader.parse(objText)
-    const fallbackMaterial = new THREE.MeshStandardMaterial({
+    const flatMaterial = new THREE.MeshStandardMaterial({
       color: item.color ?? 0x9e9e9e,
       roughness: 0.8,
       metalness: 0.05,
     })
 
-    const faceCount = (objText.match(/^f\s/gm) ?? []).length
+    let texturedMaterial: THREE.MeshStandardMaterial | null = null
     const facesWithUv = (objText.match(/^f\s.*\d+\/\d+/gm) ?? []).length
-    if (faceCount > 0 && facesWithUv / faceCount > 0.5) {
-      const pngPath = join(SH3D_RESOURCES, `${name}.png`)
+    // SH3D models often have UVs on only 1 decal face (e.g. a TV screen)
+    // while the rest of the mesh is intentionally flat-colored. Any UV-bearing
+    // face means a texture image exists and should be applied.
+    if (facesWithUv > 0) {
+      const pngPath = join(objDir, `${name}.png`)
       try {
         accessSync(pngPath)
         const img = document.createElement('img') as HTMLImageElement
         img.src = `file://${pngPath}`
         if (img.complete) {
-          fallbackMaterial.map = new THREE.Texture(img)
-          fallbackMaterial.map.needsUpdate = true
+          texturedMaterial = flatMaterial.clone()
+          texturedMaterial.map = new THREE.Texture(img)
+          texturedMaterial.map.needsUpdate = true
         }
       } catch {
         // No matching PNG — keep flat color
@@ -94,7 +117,12 @@ export function convertSh3dModel(item: CatalogItem): THREE.Group | null {
 
     group.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        child.material = fallbackMaterial
+        // Only apply the texture to meshes that actually have UV data.
+        // Meshes without UVs get the flat-color material to stay clean and
+        // satisfy the TEXCOORD_0 invariant enforced by glb-uv-integrity.
+        child.material = (texturedMaterial && child.geometry.attributes.uv)
+          ? texturedMaterial
+          : flatMaterial
       }
     })
   }
