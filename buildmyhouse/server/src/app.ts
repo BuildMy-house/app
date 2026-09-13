@@ -7,9 +7,6 @@ import {
   changePasswordHandler,
   requireAuth,
   meHandler,
-  updateNameHandler,
-  changeEmailHandler,
-  deleteAccountHandler,
   passwordResetRequestHandler,
   passwordResetConfirmHandler,
   magicLinkRequestHandler,
@@ -65,19 +62,15 @@ export async function createApp(
   // JSON limit must sit well above MAX_IMPORT_BYTES for our own handler check
   // (not body-parser's) to be the one that fires with the intended message.
   app.use(express.json({ limit: '256mb' }));
-  const assetStorage = new AssetStorage(assetRoot);
   app.post('/api/auth/register', registerHandler(adapter));
   app.post('/api/auth/login', loginHandler(adapter));
   app.put('/api/auth/password', requireAuth, changePasswordHandler(adapter));
   app.get('/api/auth/me', requireAuth, meHandler(adapter));
-  app.patch('/api/auth/me', requireAuth, updateNameHandler(adapter));
-  app.put('/api/auth/email', requireAuth, changeEmailHandler(adapter));
-  app.delete('/api/auth/me', requireAuth, deleteAccountHandler(adapter, assetStorage));
   app.post('/api/auth/password-reset/request', passwordResetRequestHandler(adapter));
   app.post('/api/auth/password-reset/confirm', passwordResetConfirmHandler(adapter));
   app.post('/api/auth/magic-link/request', magicLinkRequestHandler(adapter));
   app.post('/api/auth/magic-link/consume', magicLinkConsumeHandler(adapter));
-  app.use('/api/assets', assetsRouter(adapter, assetStorage));
+  app.use('/api/assets', assetsRouter(adapter, new AssetStorage(assetRoot)));
   app.use('/api/homes', homesRouter(adapter));
   app.use('/api/teams', teamsRouter(adapter));
 
