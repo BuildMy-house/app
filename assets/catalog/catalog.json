@@ -1,0 +1,1505 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "catalogId": "eTeks#bed140x190",
+      "name": "Bed 140x190",
+      "category": "Bedroom",
+      "width": 158,
+      "depth": 208,
+      "height": 70,
+      "elevation": 48,
+      "color": 13882323,
+      "doorOrWindow": false,
+      "tags": [
+        "bedroom"
+      ],
+      "modelPath": "models/eteks-bed140x190.glb"
+    },
+    {
+      "catalogId": "eTeks#chest",
+      "name": "Chest",
+      "category": "Bedroom",
+      "width": 100,
+      "depth": 55,
+      "height": 80,
+      "elevation": 0,
+      "color": 13882323,
+      "doorOrWindow": false,
+      "tags": [
+        "bedroom"
+      ],
+      "modelPath": "models/eteks-chest.glb"
+    },
+    {
+      "catalogId": "eTeks#bedsideTable",
+      "name": "Bedside table",
+      "category": "Bedroom",
+      "width": 38,
+      "depth": 38,
+      "height": 50,
+      "elevation": 0,
+      "color": 13882323,
+      "doorOrWindow": false,
+      "tags": [
+        "bedroom"
+      ],
+      "modelPath": "models/eteks-bedsidetable.glb"
+    },
+    {
+      "catalogId": "eTeks#bookcase",
+      "name": "Bookcase",
+      "category": "Living",
+      "width": 100,
+      "depth": 40,
+      "height": 211,
+      "elevation": 97.2,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-bookcase.glb"
+    },
+    {
+      "catalogId": "eTeks#chair",
+      "name": "Chair",
+      "category": "Living",
+      "width": 40,
+      "depth": 42,
+      "height": 90,
+      "elevation": 46.2,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-chair.glb"
+    },
+    {
+      "catalogId": "eTeks#roundTable",
+      "name": "Round table",
+      "category": "Living",
+      "width": 126,
+      "depth": 126,
+      "height": 74,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-roundtable.glb"
+    },
+    {
+      "catalogId": "eTeks#toiletUnit",
+      "name": "Toilet unit",
+      "category": "Bathroom",
+      "width": 40,
+      "depth": 80,
+      "height": 62,
+      "elevation": 61,
+      "color": 13487565,
+      "doorOrWindow": false,
+      "tags": [
+        "bathroom"
+      ],
+      "modelPath": "models/eteks-toiletunit.glb"
+    },
+    {
+      "catalogId": "eTeks#washbasin",
+      "name": "Washbasin",
+      "category": "Bathroom",
+      "width": 56,
+      "depth": 47,
+      "height": 97,
+      "elevation": 77.6,
+      "color": 13487565,
+      "doorOrWindow": false,
+      "tags": [
+        "bathroom"
+      ],
+      "modelPath": "models/eteks-washbasin.glb"
+    },
+    {
+      "catalogId": "eTeks#bath",
+      "name": "Bath",
+      "category": "Bathroom",
+      "width": 163,
+      "depth": 73,
+      "height": 57,
+      "elevation": 0,
+      "color": 13487565,
+      "doorOrWindow": false,
+      "tags": [
+        "bathroom"
+      ],
+      "modelPath": "models/eteks-bath.glb"
+    },
+    {
+      "catalogId": "eTeks#bed90x190",
+      "name": "Bed 90x190",
+      "category": "Bedroom",
+      "width": 108,
+      "depth": 208,
+      "height": 70,
+      "elevation": 48,
+      "color": 13882323,
+      "doorOrWindow": false,
+      "tags": [
+        "bedroom"
+      ],
+      "modelPath": "models/eteks-bed90x190.glb"
+    },
+    {
+      "catalogId": "eTeks#plant",
+      "name": "Plant",
+      "category": "Living",
+      "width": 58,
+      "depth": 50,
+      "height": 82,
+      "elevation": -1,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-plant.glb"
+    },
+    {
+      "catalogId": "eTeks#window85x123",
+      "name": "Small window",
+      "category": "Doors",
+      "width": 91,
+      "depth": 34,
+      "height": 134,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-window85x123.glb"
+    },
+    {
+      "catalogId": "eTeks#window85x163",
+      "name": "Window",
+      "category": "Doors",
+      "width": 91,
+      "depth": 34,
+      "height": 174,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-window85x163.glb"
+    },
+    {
+      "catalogId": "eTeks#frenchWindow85x200",
+      "name": "French window",
+      "category": "Doors",
+      "width": 91,
+      "depth": 34,
+      "height": 210,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-frenchwindow85x200.glb"
+    },
+    {
+      "catalogId": "eTeks#doubleWindow126x123",
+      "name": "Double small window",
+      "category": "Doors",
+      "width": 132,
+      "depth": 34,
+      "height": 134,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-doublewindow126x123.glb"
+    },
+    {
+      "catalogId": "eTeks#doubleWindow126x163",
+      "name": "Double window",
+      "category": "Doors",
+      "width": 132,
+      "depth": 34,
+      "height": 174,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-doublewindow126x163.glb"
+    },
+    {
+      "catalogId": "eTeks#doubleFrenchWindow126x200",
+      "name": "Double French window",
+      "category": "Doors",
+      "width": 132,
+      "depth": 34,
+      "height": 210,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-doublefrenchwindow126x200.glb"
+    },
+    {
+      "catalogId": "eTeks#doubleHungWindow80x122",
+      "name": "Double-hung window",
+      "category": "Doors",
+      "width": 81,
+      "depth": 27,
+      "height": 128,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-doublehungwindow80x122.glb"
+    },
+    {
+      "catalogId": "eTeks#door",
+      "name": "Door",
+      "category": "Doors",
+      "width": 91.5,
+      "depth": 14.5,
+      "height": 208.5,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-door.glb"
+    },
+    {
+      "catalogId": "eTeks#openDoor",
+      "name": "Open door",
+      "category": "Doors",
+      "width": 91.5,
+      "depth": 68,
+      "height": 208.5,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-opendoor.glb"
+    },
+    {
+      "catalogId": "eTeks#armchair",
+      "name": "Armchair",
+      "category": "Living",
+      "width": 87,
+      "depth": 92,
+      "height": 87,
+      "elevation": 32.5,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-armchair.glb"
+    },
+    {
+      "catalogId": "eTeks#bunkBed90x190",
+      "name": "Bunk bed",
+      "category": "Bedroom",
+      "width": 115,
+      "depth": 208,
+      "height": 180,
+      "elevation": 154,
+      "color": 13882323,
+      "doorOrWindow": false,
+      "tags": [
+        "bedroom"
+      ],
+      "modelPath": "models/eteks-bunkbed90x190.glb"
+    },
+    {
+      "catalogId": "eTeks#clothesWasher",
+      "name": "Clothes washer",
+      "category": "Kitchen",
+      "width": 60,
+      "depth": 63,
+      "height": 85,
+      "elevation": 0,
+      "color": 13092431,
+      "doorOrWindow": false,
+      "tags": [
+        "kitchen"
+      ],
+      "modelPath": "models/eteks-clotheswasher.glb"
+    },
+    {
+      "catalogId": "eTeks#cooker",
+      "name": "Cooker",
+      "category": "Kitchen",
+      "width": 60,
+      "depth": 62,
+      "height": 85,
+      "elevation": 0,
+      "color": 13092431,
+      "doorOrWindow": false,
+      "tags": [
+        "kitchen"
+      ],
+      "modelPath": "models/eteks-cooker.glb"
+    },
+    {
+      "catalogId": "eTeks#cornerBunkBed90x190",
+      "name": "Corner bunk bed",
+      "category": "Bedroom",
+      "width": 208,
+      "depth": 208,
+      "height": 155,
+      "elevation": 128.1,
+      "color": 13882323,
+      "doorOrWindow": false,
+      "tags": [
+        "bedroom"
+      ],
+      "modelPath": "models/eteks-cornerbunkbed90x190.glb"
+    },
+    {
+      "catalogId": "eTeks#cornerSofa",
+      "name": "Corner sofa",
+      "category": "Living",
+      "width": 233,
+      "depth": 168,
+      "height": 87,
+      "elevation": 32.6,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-cornersofa.glb"
+    },
+    {
+      "catalogId": "eTeks#curveStaircase",
+      "name": "Curve staircase",
+      "category": "Other",
+      "width": 72,
+      "depth": 238,
+      "height": 362.4,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-curvestaircase.glb"
+    },
+    {
+      "catalogId": "eTeks#dishwasher",
+      "name": "Dishwasher",
+      "category": "Kitchen",
+      "width": 60,
+      "depth": 65,
+      "height": 85,
+      "elevation": 0,
+      "color": 13092431,
+      "doorOrWindow": false,
+      "tags": [
+        "kitchen"
+      ],
+      "modelPath": "models/eteks-dishwasher.glb"
+    },
+    {
+      "catalogId": "eTeks#fridge",
+      "name": "Fridge",
+      "category": "Kitchen",
+      "width": 60,
+      "depth": 66,
+      "height": 85,
+      "elevation": 0,
+      "color": 13092431,
+      "doorOrWindow": false,
+      "tags": [
+        "kitchen"
+      ],
+      "modelPath": "models/eteks-fridge.glb"
+    },
+    {
+      "catalogId": "eTeks#fridgeFreezer",
+      "name": "Fridge & Freezer",
+      "category": "Kitchen",
+      "width": 60,
+      "depth": 66,
+      "height": 185,
+      "elevation": 0,
+      "color": 13092431,
+      "doorOrWindow": false,
+      "tags": [
+        "kitchen"
+      ],
+      "modelPath": "models/eteks-fridgefreezer.glb"
+    },
+    {
+      "catalogId": "eTeks#kitchenCabinet",
+      "name": "Kitchen cabinet",
+      "category": "Kitchen",
+      "width": 60,
+      "depth": 64,
+      "height": 85,
+      "elevation": 0,
+      "color": 13092431,
+      "doorOrWindow": false,
+      "tags": [
+        "kitchen"
+      ],
+      "modelPath": "models/eteks-kitchencabinet.glb"
+    },
+    {
+      "catalogId": "eTeks#loftBed140x190",
+      "name": "Loft bed 140x190",
+      "category": "Bedroom",
+      "width": 165,
+      "depth": 208,
+      "height": 180,
+      "elevation": 161,
+      "color": 13882323,
+      "doorOrWindow": false,
+      "tags": [
+        "bedroom"
+      ],
+      "modelPath": "models/eteks-loftbed140x190.glb"
+    },
+    {
+      "catalogId": "eTeks#piano",
+      "name": "Piano",
+      "category": "Living",
+      "width": 140,
+      "depth": 43,
+      "height": 82,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-piano.glb"
+    },
+    {
+      "catalogId": "eTeks#sink",
+      "name": "Sink",
+      "category": "Kitchen",
+      "width": 120,
+      "depth": 64,
+      "height": 105.7,
+      "elevation": 87.8,
+      "color": 13092431,
+      "doorOrWindow": false,
+      "tags": [
+        "kitchen"
+      ],
+      "modelPath": "models/eteks-sink.glb"
+    },
+    {
+      "catalogId": "eTeks#sofa",
+      "name": "Sofa",
+      "category": "Living",
+      "width": 147,
+      "depth": 87,
+      "height": 87,
+      "elevation": 32.4,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-sofa.glb"
+    },
+    {
+      "catalogId": "eTeks#squareTable",
+      "name": "Square table",
+      "category": "Living",
+      "width": 115,
+      "depth": 115,
+      "height": 74,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-squaretable.glb"
+    },
+    {
+      "catalogId": "eTeks#staircase",
+      "name": "Staircase",
+      "category": "Other",
+      "width": 72,
+      "depth": 222,
+      "height": 362.4,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-staircase.glb"
+    },
+    {
+      "catalogId": "eTeks#stool",
+      "name": "Stool",
+      "category": "Living",
+      "width": 40,
+      "depth": 40,
+      "height": 46,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-stool.glb"
+    },
+    {
+      "catalogId": "eTeks#tvUnit",
+      "name": "TV unit",
+      "category": "Living",
+      "width": 100,
+      "depth": 52,
+      "height": 93,
+      "elevation": 41.6,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-tvunit.glb"
+    },
+    {
+      "catalogId": "eTeks#wardrobe",
+      "name": "Wardrobe",
+      "category": "Bedroom",
+      "width": 100,
+      "depth": 54,
+      "height": 165,
+      "elevation": 0,
+      "color": 13882323,
+      "doorOrWindow": false,
+      "tags": [
+        "bedroom"
+      ],
+      "modelPath": "models/eteks-wardrobe.glb"
+    },
+    {
+      "catalogId": "eTeks#texturableBox",
+      "name": "Box",
+      "category": "Other",
+      "width": 100,
+      "depth": 100,
+      "height": 100,
+      "elevation": 0,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-texturablebox.glb"
+    },
+    {
+      "catalogId": "eTeks#doorFrame",
+      "name": "Door frame",
+      "category": "Doors",
+      "width": 91.5,
+      "depth": 9.5,
+      "height": 208.5,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-doorframe.glb"
+    },
+    {
+      "catalogId": "eTeks#sliderWindow126x200",
+      "name": "Slider window",
+      "category": "Doors",
+      "width": 132,
+      "depth": 31.5,
+      "height": 210,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-sliderwindow126x200.glb"
+    },
+    {
+      "catalogId": "eTeks#texturableCylinder0",
+      "name": "Cylinder",
+      "category": "Other",
+      "width": 100,
+      "depth": 100,
+      "height": 100,
+      "elevation": 0,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-texturablecylinder0.glb"
+    },
+    {
+      "catalogId": "eTeks#fittedBath",
+      "name": "Fitted bath",
+      "category": "Bathroom",
+      "width": 178,
+      "depth": 77,
+      "height": 72,
+      "elevation": 62.5,
+      "color": 13487565,
+      "doorOrWindow": false,
+      "tags": [
+        "bathroom"
+      ],
+      "modelPath": "models/eteks-fittedbath.glb"
+    },
+    {
+      "catalogId": "eTeks#washbasinWithCabinet",
+      "name": "Washbasin with cabinet",
+      "category": "Bathroom",
+      "width": 62,
+      "depth": 57,
+      "height": 97,
+      "elevation": 75.3,
+      "color": 13487565,
+      "doorOrWindow": false,
+      "tags": [
+        "bathroom"
+      ],
+      "modelPath": "models/eteks-washbasinwithcabinet.glb"
+    },
+    {
+      "catalogId": "eTeks#slidingDoors",
+      "name": "Sliding doors",
+      "category": "Bedroom",
+      "width": 154,
+      "depth": 8,
+      "height": 250,
+      "elevation": 0,
+      "color": 13882323,
+      "doorOrWindow": false,
+      "tags": [
+        "bedroom"
+      ],
+      "modelPath": "models/eteks-slidingdoors.glb"
+    },
+    {
+      "catalogId": "eTeks#shower",
+      "name": "Shower",
+      "category": "Bathroom",
+      "width": 79,
+      "depth": 79,
+      "height": 211,
+      "elevation": 25,
+      "color": 13487565,
+      "doorOrWindow": false,
+      "tags": [
+        "bathroom"
+      ],
+      "modelPath": "models/eteks-shower.glb"
+    },
+    {
+      "catalogId": "eTeks#electricRadiator",
+      "name": "Electric radiator",
+      "category": "Other",
+      "width": 37,
+      "depth": 10,
+      "height": 45,
+      "elevation": 0,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-electricradiator.glb"
+    },
+    {
+      "catalogId": "eTeks#hotWaterRadiator",
+      "name": "Hot water radiator",
+      "category": "Other",
+      "width": 65,
+      "depth": 25,
+      "height": 61,
+      "elevation": 0,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-hotwaterradiator.glb"
+    },
+    {
+      "catalogId": "eTeks#serviceHatch",
+      "name": "Service hatch",
+      "category": "Doors",
+      "width": 50,
+      "depth": 8.3,
+      "height": 50,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-servicehatch.glb"
+    },
+    {
+      "catalogId": "eTeks#fixedWindow85x123",
+      "name": "Fixed window",
+      "category": "Doors",
+      "width": 91,
+      "depth": 27,
+      "height": 134,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-fixedwindow85x123.glb"
+    },
+    {
+      "catalogId": "eTeks#lightSource",
+      "name": "White light source",
+      "category": "Other",
+      "width": 10,
+      "depth": 10,
+      "height": 10,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-lightsource.glb"
+    },
+    {
+      "catalogId": "eTeks#halogenLightSource",
+      "name": "Halogen light source",
+      "category": "Other",
+      "width": 10,
+      "depth": 10,
+      "height": 10,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-halogenlightsource.glb"
+    },
+    {
+      "catalogId": "eTeks#incandescentLightSource",
+      "name": "Incandescent light source",
+      "category": "Other",
+      "width": 10,
+      "depth": 10,
+      "height": 10,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-incandescentlightsource.glb"
+    },
+    {
+      "catalogId": "eTeks#fireglowLightSource",
+      "name": "Fireglow light source",
+      "category": "Other",
+      "width": 10,
+      "depth": 10,
+      "height": 10,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-fireglowlightsource.glb"
+    },
+    {
+      "catalogId": "eTeks#redLightSource",
+      "name": "Red light source",
+      "category": "Other",
+      "width": 10,
+      "depth": 10,
+      "height": 10,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-redlightsource.glb"
+    },
+    {
+      "catalogId": "eTeks#greenLightSource",
+      "name": "Green light source",
+      "category": "Other",
+      "width": 10,
+      "depth": 10,
+      "height": 10,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-greenlightsource.glb"
+    },
+    {
+      "catalogId": "eTeks#blueLightSource",
+      "name": "Blue light source",
+      "category": "Other",
+      "width": 10,
+      "depth": 10,
+      "height": 10,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-bluelightsource.glb"
+    },
+    {
+      "catalogId": "eTeks#magentaLightSource",
+      "name": "Magenta light source",
+      "category": "Other",
+      "width": 10,
+      "depth": 10,
+      "height": 10,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-magentalightsource.glb"
+    },
+    {
+      "catalogId": "eTeks#floorUplight",
+      "name": "Floor uplight",
+      "category": "Other",
+      "width": 33,
+      "depth": 33,
+      "height": 181,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-flooruplight.glb"
+    },
+    {
+      "catalogId": "eTeks#spotlight",
+      "name": "Spotlight",
+      "category": "Other",
+      "width": 6.8,
+      "depth": 9.9,
+      "height": 13.1,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-spotlight.glb"
+    },
+    {
+      "catalogId": "eTeks#pendantLamp",
+      "name": "Pendant lamp",
+      "category": "Other",
+      "width": 60,
+      "depth": 60,
+      "height": 80,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-pendantlamp.glb"
+    },
+    {
+      "catalogId": "eTeks#workLamp",
+      "name": "Work lamp",
+      "category": "Other",
+      "width": 12,
+      "depth": 29.5,
+      "height": 49.3,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-worklamp.glb"
+    },
+    {
+      "catalogId": "eTeks#wallUplight",
+      "name": "Wall uplight",
+      "category": "Other",
+      "width": 24,
+      "depth": 12,
+      "height": 26,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-walluplight.glb"
+    },
+    {
+      "catalogId": "eTeks#roundDoorFrame",
+      "name": "Round door frame",
+      "category": "Doors",
+      "width": 80,
+      "depth": 15,
+      "height": 200,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-rounddoorframe.glb"
+    },
+    {
+      "catalogId": "eTeks#fixedTriangleWindow85x85",
+      "name": "Fixed triangle window",
+      "category": "Doors",
+      "width": 91,
+      "depth": 27,
+      "height": 91,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-fixedtrianglewindow85x85.glb"
+    },
+    {
+      "catalogId": "eTeks#halfRoundWindow",
+      "name": "Half round window",
+      "category": "Doors",
+      "width": 91,
+      "depth": 25,
+      "height": 46,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-halfroundwindow.glb"
+    },
+    {
+      "catalogId": "eTeks#roundWindow",
+      "name": "Round window",
+      "category": "Doors",
+      "width": 91,
+      "depth": 25,
+      "height": 91,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-roundwindow.glb"
+    },
+    {
+      "catalogId": "eTeks#roundedDoor",
+      "name": "Rounded door",
+      "category": "Doors",
+      "width": 91.5,
+      "depth": 14.5,
+      "height": 208.5,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-roundeddoor.glb"
+    },
+    {
+      "catalogId": "eTeks#bed",
+      "name": "Bed",
+      "category": "Bedroom",
+      "width": 144.6,
+      "depth": 193.1,
+      "height": 52.8,
+      "elevation": 44.3,
+      "color": 13882323,
+      "doorOrWindow": false,
+      "tags": [
+        "bedroom"
+      ],
+      "modelPath": "models/eteks-bed.glb"
+    },
+    {
+      "catalogId": "eTeks#flatTV",
+      "name": "Flat TV",
+      "category": "Living",
+      "width": 121,
+      "depth": 30,
+      "height": 79.3,
+      "elevation": -1,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-flattv.glb"
+    },
+    {
+      "catalogId": "eTeks#flowers",
+      "name": "Flowers",
+      "category": "Living",
+      "width": 24.2,
+      "depth": 22.1,
+      "height": 49.3,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-flowers.glb"
+    },
+    {
+      "catalogId": "eTeks#frontDoor",
+      "name": "Front door",
+      "category": "Doors",
+      "width": 101.5,
+      "depth": 23,
+      "height": 208.5,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-frontdoor.glb"
+    },
+    {
+      "catalogId": "eTeks#kitchenUpperCabinet",
+      "name": "Kitchen upper cabinet",
+      "category": "Kitchen",
+      "width": 60,
+      "depth": 40.1,
+      "height": 86.2,
+      "elevation": 0,
+      "color": 13092431,
+      "doorOrWindow": false,
+      "tags": [
+        "kitchen"
+      ],
+      "modelPath": "models/eteks-kitchenuppercabinet.glb"
+    },
+    {
+      "catalogId": "eTeks#texturableTriangle",
+      "name": "Triangle",
+      "category": "Other",
+      "width": 100,
+      "depth": 100,
+      "height": 100,
+      "elevation": 0,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-texturabletriangle.glb"
+    },
+    {
+      "catalogId": "eTeks#spiralStaircase",
+      "name": "Spiral staircase",
+      "category": "Other",
+      "width": 140,
+      "depth": 140,
+      "height": 362,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-spiralstaircase.glb"
+    },
+    {
+      "catalogId": "eTeks#laptop",
+      "name": "Laptop",
+      "category": "Living",
+      "width": 32.5,
+      "depth": 35.5,
+      "height": 19.2,
+      "elevation": 0.7,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-laptop.glb"
+    },
+    {
+      "catalogId": "eTeks#crib",
+      "name": "Crib",
+      "category": "Bedroom",
+      "width": 67,
+      "depth": 125,
+      "height": 85,
+      "elevation": 27.2,
+      "color": 13882323,
+      "doorOrWindow": false,
+      "tags": [
+        "bedroom"
+      ],
+      "modelPath": "models/eteks-crib.glb"
+    },
+    {
+      "catalogId": "eTeks#fireplace",
+      "name": "Fireplace",
+      "category": "Living",
+      "width": 145,
+      "depth": 85,
+      "height": 250,
+      "elevation": 35.2,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-fireplace.glb"
+    },
+    {
+      "catalogId": "eTeks#glassDoorCabinet",
+      "name": "Glass door cabinet",
+      "category": "Living",
+      "width": 70,
+      "depth": 38.7,
+      "height": 198.2,
+      "elevation": 124.2,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-glassdoorcabinet.glb"
+    },
+    {
+      "catalogId": "eTeks#frame",
+      "name": "Frame",
+      "category": "Other",
+      "width": 50,
+      "depth": 2.2,
+      "height": 35,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-frame.glb"
+    },
+    {
+      "catalogId": "eTeks#garageDoor",
+      "name": "Garage door",
+      "category": "Doors",
+      "width": 250,
+      "depth": 25,
+      "height": 205,
+      "elevation": -1,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-garagedoor.glb"
+    },
+    {
+      "catalogId": "eTeks#armchair2",
+      "name": "Armchair",
+      "category": "Living",
+      "width": 80,
+      "depth": 78.1,
+      "height": 77.2,
+      "elevation": 42.5,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-armchair2.glb"
+    },
+    {
+      "catalogId": "eTeks#sofa2",
+      "name": "Sofa",
+      "category": "Living",
+      "width": 200,
+      "depth": 86.5,
+      "height": 88,
+      "elevation": 45,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-sofa2.glb"
+    },
+    {
+      "catalogId": "eTeks#desk",
+      "name": "Desk",
+      "category": "Living",
+      "width": 140,
+      "depth": 67.8,
+      "height": 77,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-desk.glb"
+    },
+    {
+      "catalogId": "eTeks#mannequin",
+      "name": "Mannequin",
+      "category": "Other",
+      "width": 44,
+      "depth": 52.7,
+      "height": 175,
+      "elevation": 0,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-mannequin.glb"
+    },
+    {
+      "catalogId": "eTeks#lamp",
+      "name": "Lamp",
+      "category": "Other",
+      "width": 44,
+      "depth": 44,
+      "height": 49.9,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-lamp.glb"
+    },
+    {
+      "catalogId": "eTeks#dresser",
+      "name": "Dresser",
+      "category": "Living",
+      "width": 170,
+      "depth": 50,
+      "height": 64.7,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-dresser.glb"
+    },
+    {
+      "catalogId": "eTeks#filledBookcase",
+      "name": "Filled bookcase",
+      "category": "Living",
+      "width": 85,
+      "depth": 35,
+      "height": 180,
+      "elevation": 34.8,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-filledbookcase.glb"
+    },
+    {
+      "catalogId": "eTeks#aquarium",
+      "name": "Aquarium",
+      "category": "Living",
+      "width": 60,
+      "depth": 30,
+      "height": 35,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-aquarium.glb"
+    },
+    {
+      "catalogId": "eTeks#doubleOutwardOpeningWindow",
+      "name": "Outward opening window",
+      "category": "Doors",
+      "width": 115.2,
+      "depth": 26,
+      "height": 134,
+      "elevation": 0,
+      "color": 11184810,
+      "doorOrWindow": true,
+      "tags": [
+        "doors"
+      ],
+      "modelPath": "models/eteks-doubleoutwardopeningwindow.glb"
+    },
+    {
+      "catalogId": "eTeks#railing",
+      "name": "Railing",
+      "category": "Other",
+      "width": 94.4,
+      "depth": 5,
+      "height": 90,
+      "elevation": 0,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-railing.glb"
+    },
+    {
+      "catalogId": "eTeks#hood",
+      "name": "Hood",
+      "category": "Kitchen",
+      "width": 60,
+      "depth": 52.6,
+      "height": 94,
+      "elevation": -1,
+      "color": 13092431,
+      "doorOrWindow": false,
+      "tags": [
+        "kitchen"
+      ],
+      "modelPath": "models/eteks-hood.glb"
+    },
+    {
+      "catalogId": "eTeks#coffeeTable",
+      "name": "Coffee table",
+      "category": "Living",
+      "width": 125,
+      "depth": 46,
+      "height": 40,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-coffeetable.glb"
+    },
+    {
+      "catalogId": "eTeks#table",
+      "name": "Table",
+      "category": "Living",
+      "width": 150,
+      "depth": 75,
+      "height": 74,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-table.glb"
+    },
+    {
+      "catalogId": "eTeks#chair2",
+      "name": "Chair",
+      "category": "Living",
+      "width": 48.6,
+      "depth": 49.9,
+      "height": 80,
+      "elevation": 44.5,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "living"
+      ],
+      "modelPath": "models/eteks-chair2.glb"
+    },
+    {
+      "catalogId": "eTeks#blind",
+      "name": "Venetian blind",
+      "category": "Other",
+      "width": 80,
+      "depth": 3.9,
+      "height": 168.3,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-blind.glb"
+    },
+    {
+      "catalogId": "eTeks#curtains",
+      "name": "Curtains",
+      "category": "Other",
+      "width": 150,
+      "depth": 22.9,
+      "height": 225,
+      "elevation": -1,
+      "color": 12105931,
+      "doorOrWindow": false,
+      "tags": [
+        "other"
+      ],
+      "modelPath": "models/eteks-curtains.glb"
+    },
+    {
+      "catalogId": "eTeks#oven",
+      "name": "Oven",
+      "category": "Kitchen",
+      "width": 51.5,
+      "depth": 47.8,
+      "height": 29.5,
+      "elevation": 0,
+      "color": 13092431,
+      "doorOrWindow": false,
+      "tags": [
+        "kitchen"
+      ],
+      "modelPath": "models/eteks-oven.glb"
+    }
+  ]
+}

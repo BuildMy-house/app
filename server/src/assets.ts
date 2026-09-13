@@ -4,8 +4,9 @@ import type { Request, Response } from 'express';
 import { asyncHandler } from './asyncHandler.js';
 import { requireAuth } from './auth.js';
 import type { DbAdapter } from './db.js';
-import { AssetStorage } from './storage.js';
 import { timedAsync, fileIoMetrics } from './telemetry.js';
+import { ASSETS_RATE_LIMIT, makeUserRateLimiter } from './rateLimit.js';
+import { AssetStorage, SAFE_TOKEN_PATTERN } from './storage.js';
 
 // GlTF binary magic number: ASCII "glTF", little-endian (glTF 2.0 spec).
 const GLB_MAGIC = 0x46546c67;
@@ -37,6 +38,7 @@ interface AssetRow {
   blob_key: string;
   glb_path: string;
   source_path: string | null;
+  size_bytes: number | null;
   created_at: number;
 }
 
@@ -85,6 +87,34 @@ function toRecord(row: AssetRow): UserModelRecord {
   };
 }
 
+export const MAX_TOTAL_ASSET_BYTES_PER_USER_DEFAULT = 1024 * 1024 * 1024; // 1GB
+
+function maxTotalAssetBytes(): number {
+  const parsed = Number(process.env.MAX_TOTAL_ASSET_BYTES_PER_USER);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : MAX_TOTAL_ASSET_BYTES_PER_USER_DEFAULT;
+}
+
+/**
+ * Sum of this user's stored asset bytes (glb + source), excluding `excludeId` —
+ * a replace-existing-id upload overwrites that row, so its old size must not
+ * count toward the quota twice (the new size fully replaces it).
+ * SUM ignores NULL size_bytes (rows predating the migration) and returns NULL
+ * over an empty set — both normalize to 0.
+ */
+async function userAssetBytes(db: DbAdapter, userId: string, excludeId?: string): Promise<number> {
+  const row = excludeId
+    ? await db.get<{ total: number | string | null }>(
+        'SELECT SUM(size_bytes) as total FROM assets WHERE user_id = ? AND id != ?',
+        userId,
+        excludeId,
+      )
+    : await db.get<{ total: number | string | null }>(
+        'SELECT SUM(size_bytes) as total FROM assets WHERE user_id = ?',
+        userId,
+      );
+  return Number(row?.total ?? 0);
+}
+
 /**
  * Require auth AND the JWT-authenticated user id to match the :userId path
  * param. Never trust the path param alone — otherwise any caller could pass
@@ -101,6 +131,8 @@ function tenantGuard(req: Request, res: Response, next: () => void): void {
 export function assetsRouter(db: DbAdapter, storage: AssetStorage): Router {
   const router = Router();
   router.use('/:userId', requireAuth, tenantGuard);
+  // Per-user counter (see rateLimit.ts); requireAuth above guarantees req.userId.
+  router.use('/:userId', makeUserRateLimiter(ASSETS_RATE_LIMIT));
 
   router.get(
     '/:userId',
@@ -155,6 +187,13 @@ export function assetsRouter(db: DbAdapter, storage: AssetStorage): Router {
       const { glbBytes, sourceBytes } = importResult as { glbBytes: Buffer; sourceBytes: Buffer | null };
 
       const id = typeof record?.id === 'string' ? record.id : randomUUID();
+      // H17: client-supplied ids become filesystem filenames (`${id}.glb`), so
+      // a traversal id like `../<victim>/<asset>` could overwrite another
+      // tenant's stored file. Accept only safe tokens; storage.ts re-checks.
+      if (!SAFE_TOKEN_PATTERN.test(id)) {
+        res.status(400).json({ error: 'invalid asset id' });
+        return;
+      }
       const userId = req.params.userId!;
       const name = typeof record?.name === 'string' ? record.name : 'Untitled model';
       const category = typeof record?.category === 'string' ? record.category : '';
@@ -171,6 +210,17 @@ export function assetsRouter(db: DbAdapter, storage: AssetStorage): Router {
         userId,
         id,
       );
+
+      // Storage quota: new total = everything stored minus the size this
+      // upload replaces (if any) plus the incoming bytes. Checked before any
+      // file is written so a rejected upload never touches storage.
+      const incomingBytes = glbBytes.byteLength + (sourceBytes?.byteLength ?? 0);
+      const currentBytes = await userAssetBytes(db, userId, existing ? id : undefined);
+      if (currentBytes + incomingBytes > maxTotalAssetBytes()) {
+        res.status(413).json({ error: 'storage quota exceeded' });
+        return;
+      }
+
       if (existing) {
         storage.remove(userId, existing.glb_path.split('/').pop() ?? '');
         if (existing.source_path) storage.remove(userId, existing.source_path.split('/').pop() ?? '');
@@ -188,13 +238,14 @@ export function assetsRouter(db: DbAdapter, storage: AssetStorage): Router {
       // Use INSERT ... ON CONFLICT for cross-db upsert
       await db.run(
         `INSERT INTO assets
-           (id, user_id, catalog_id, name, category, width, depth, height, color, blob_key, glb_path, source_path, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           (id, user_id, catalog_id, name, category, width, depth, height, color, blob_key, glb_path, source_path, size_bytes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET
            user_id=excluded.user_id, catalog_id=excluded.catalog_id, name=excluded.name,
            category=excluded.category, width=excluded.width, depth=excluded.depth,
            height=excluded.height, color=excluded.color, blob_key=excluded.blob_key,
-           glb_path=excluded.glb_path, source_path=excluded.source_path, created_at=excluded.created_at`,
+           glb_path=excluded.glb_path, source_path=excluded.source_path,
+           size_bytes=excluded.size_bytes, created_at=excluded.created_at`,
         id,
         userId,
         catalogId,
@@ -207,6 +258,7 @@ export function assetsRouter(db: DbAdapter, storage: AssetStorage): Router {
         blobKey,
         glbPath,
         sourcePath,
+        incomingBytes,
         createdAt,
       );
 
