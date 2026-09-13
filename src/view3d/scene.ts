@@ -624,6 +624,10 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
   directional.shadow.camera.right = 5000
   directional.shadow.camera.top = 5000
   directional.shadow.camera.bottom = -5000
+  // Bias prevents shadow acne (self-shadowing) at cm-scale geometry.
+  // normalBias offsets sampling along surface normals for clean floor/wall shadows.
+  directional.shadow.bias = -0.001
+  directional.shadow.normalBias = 2
   scene.add(directional)
 
   // Soft fill light from roughly opposite direction — lifts shadowed faces
