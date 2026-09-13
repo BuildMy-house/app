@@ -33,10 +33,14 @@ export interface PlanRenderingContext {
   restore(): void
   globalCompositeOperation: GlobalCompositeOperation
   globalAlpha: number
+<<<<<<< HEAD:homely/src/plan/renderer.ts
+  createPattern?(image: unknown, repetition: string): unknown
+=======
   measureText(text: string): { width: number }
   createPattern?(image: unknown, repetition: string): unknown
   /** Real canvases carry the element; mocks may omit it. */
   readonly canvas?: HTMLCanvasElement
+>>>>>>> feat/b1-1:buildmyhouse/src/plan/renderer.ts
 }
 
 const WALL_COLOR = '#5a5a5a'
@@ -76,6 +80,8 @@ function formatLength(cm: number): string {
 
 const imageCache = new Map<string, HTMLImageElement>()
 
+<<<<<<< HEAD:homely/src/plan/renderer.ts
+=======
 // Finding A.2: the engine needs the live screen cursor + view scale (for the
 // zoom-aware snap margin and the closure preview), but main.ts's pointermove
 // never calls the engine — only the automation runner does (move_mouse). The
@@ -109,6 +115,7 @@ function installCursorTracking(canvas: HTMLCanvasElement): void {
   })
 }
 
+>>>>>>> feat/b1-1:buildmyhouse/src/plan/renderer.ts
 /** Test-only: inject a pre-loaded image into the texture cache. */
 export function setTestImageCache(entries: Map<string, HTMLImageElement>): void {
   imageCache.clear()
@@ -460,6 +467,8 @@ export function drawPlan(
     ctx.lineWidth = selected.has(roof.id) ? 2 : 1
     ctx.stroke()
     ctx.setLineDash([])
+<<<<<<< HEAD:homely/src/plan/renderer.ts
+=======
 
     // Roof label.
     const centroidX = roof.points.reduce((acc, [x]) => acc + x, 0) / roof.points.length
@@ -498,6 +507,7 @@ export function drawPlan(
       ctx.stroke()
       ctx.setLineDash([])
     }
+>>>>>>> feat/b1-1:buildmyhouse/src/plan/renderer.ts
   }
 
   // Walls as filled thick shapes with mitered corners.

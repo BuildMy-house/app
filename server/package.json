@@ -1,5 +1,5 @@
 {
-  "name": "buildmyhouse-server",
+  "name": "homely-server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -18,9 +18,7 @@
     "bcrypt": "^5.1.1",
     "better-sqlite3": "^13.0.3",
     "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.0",
-    "resend": "^6.28.0"
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -28,7 +26,6 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^24.0.0",
-    "@types/pg": "^8.11.0",
     "@types/supertest": "^6.0.3",
     "supertest": "^7.1.0",
     "tsx": "^4.20.0",

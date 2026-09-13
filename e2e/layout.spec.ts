@@ -96,6 +96,8 @@ test.describe('layout', () => {
     expect([...file.slice(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
     expect(file.byteLength).toBeGreaterThan(1000)
   })
+<<<<<<< HEAD:homely/e2e/layout.spec.ts
+=======
 
   test('Edit > Preferences edits and persists default materials', async ({ page }) => {
     const openPrefs = async () => {
@@ -122,4 +124,5 @@ test.describe('layout', () => {
     await expect(page.locator('.prefs-dialog #mat-ceiling-visible')).not.toBeChecked()
     await page.locator('.prefs-cancel').click()
   })
+>>>>>>> feat/b1-1:buildmyhouse/e2e/layout.spec.ts
 })

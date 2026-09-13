@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
+<<<<<<< HEAD:homely/src/view3d/scene.test.ts
+import { createEmptyHome, DEFAULT_WALL_HEIGHT_CM } from '../core/home'
+=======
 import { createEmptyHome, DEFAULT_WALL_HEIGHT_CM, type Furniture } from '../core/home'
+>>>>>>> feat/b1-1:buildmyhouse/src/view3d/scene.test.ts
 import { wallOutlinePoints } from '../core/top-camera-follower'
 import {
   buildScene,
@@ -8,11 +12,14 @@ import {
   __seedModelCache,
   SELECTION_EMISSIVE_COLOR,
 } from './scene'
+<<<<<<< HEAD:homely/src/view3d/scene.test.ts
+=======
 import {
   applySceneUpdate,
   computeSceneUpdates,
   isTransformOnlyFurnitureChange,
 } from './scene-delta'
+>>>>>>> feat/b1-1:buildmyhouse/src/view3d/scene.test.ts
 
 /**
  * Extract every unique XZ position from a THREE.BufferGeometry's position
@@ -413,6 +420,8 @@ describe('furniture mirror (M60)', () => {
   })
 })
 
+<<<<<<< HEAD:homely/src/view3d/scene.test.ts
+=======
 // ── T1: instanced furniture rendering ───────────────────────────────────────
 
 function instancedFurnitureMeshes(scene: THREE.Scene): THREE.InstancedMesh[] {
@@ -521,6 +530,7 @@ describe('instanced furniture rendering (T1)', () => {
   })
 })
 
+>>>>>>> feat/b1-1:buildmyhouse/src/view3d/scene.test.ts
 // ── M66: selecting furniture must not permanently tint shared model materials ─
 //
 // Root cause: Object3D.clone() shares material references with the cached GLB.
@@ -679,6 +689,8 @@ describe('furniture selection material isolation (M66)', () => {
     }
   })
 })
+<<<<<<< HEAD:homely/src/view3d/scene.test.ts
+=======
 
 // ── T2: delta updates ────────────────────────────────────────────────────────
 
@@ -886,3 +898,4 @@ describe('delta updates (T2)', () => {
     expect(elapsed).toBeLessThan(2)
   })
 })
+>>>>>>> feat/b1-1:buildmyhouse/src/view3d/scene.test.ts

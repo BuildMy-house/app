@@ -14,10 +14,10 @@ let app: Express;
 let db: Database.Database;
 const openDbs: Database.Database[] = [];
 
-beforeEach(async () => {
+beforeEach(() => {
   db = new Database(':memory:');
   openDbs.push(db);
-  app = await createApp(db, 'data/assets');
+  app = createApp(db, 'data/assets');
 });
 
 afterEach(() => {

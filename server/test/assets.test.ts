@@ -28,11 +28,11 @@ let db: Database.Database;
 let assetRoot: string;
 const openDbs: Database.Database[] = [];
 
-beforeEach(async () => {
+beforeEach(() => {
   assetRoot = mkdtempSync(join(tmpdir(), 'homely-assets-'));
   db = new Database(':memory:');
   openDbs.push(db);
-  app = await createApp(db, assetRoot);
+  app = createApp(db, assetRoot);
 });
 
 afterEach(() => {

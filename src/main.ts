@@ -1,6 +1,9 @@
 import './style.css'
 import { telemetry } from './telemetry/logger'
+<<<<<<< HEAD:homely/src/main.ts
+=======
 import { traceAction, initActionTrace } from './telemetry/trace'
+>>>>>>> feat/b1-1:buildmyhouse/src/main.ts
 import { AutomationClient, automationPortFromSearch } from './automation/client'
 import type { ClientStatus } from './automation/client'
 import { HomeStore } from './core/store'
@@ -17,7 +20,10 @@ import { exportPlanPng, export3dPng, renderPlanPng } from './services/adapters/p
 import { buildRenderableScene } from './render/scene-builder'
 import { nextLevelElevation } from './core/home'
 import { PreferencesDialog, loadPreferences, hexToIntColor } from './ui/preferences'
+<<<<<<< HEAD:homely/src/main.ts
+=======
 import { confirmDialog, promptDialog } from './ui/dialogs'
+>>>>>>> feat/b1-1:buildmyhouse/src/main.ts
 import { HttpAuth } from './services/auth'
 import { RemoteHomeStore } from './services/adapters/remote-home-store'
 import { AuthDialog } from './ui/auth-dialog'
@@ -265,9 +271,15 @@ function refreshMenus(): void {
             ]
           : [{ label: 'Log In / Register…', action: () => promptLogin() }]),
         { label: '---' },
+<<<<<<< HEAD:homely/src/main.ts
+        { label: 'Export Plan as PNG…', action: () => { exportPlanPng(store.getHome()) } },
+        { label: 'Export 3D View as PNG…', action: () => { if (view3d) export3dPng(view3d.scene, view3d.camera) } },
+        { label: 'Export Scene for LuxCore Render…', action: () => exportSceneJson() },
+=======
         { label: 'Export Plan as PNG…', action: () => { void traceAction('export.plan', () => { exportPlanPng(store.getHome()) }) } },
         { label: 'Export 3D View as PNG…', action: () => { void traceAction('export.3d', () => { if (view3d) export3dPng(view3d.scene, view3d.camera) }) } },
         { label: 'Export Scene for LuxCore Render…', action: () => { void traceAction('export.scene', () => exportSceneJson()) } },
+>>>>>>> feat/b1-1:buildmyhouse/src/main.ts
         { label: 'Print Plan…', action: () => printPlan() },
       ],
     },
@@ -373,7 +385,11 @@ async function saveToAccount(): Promise<void> {
   try {
     const current = store.getHome()
     const defaultName = current.name && current.name.trim() ? current.name : 'Untitled home'
+<<<<<<< HEAD:homely/src/main.ts
+    const name = window.prompt('Home name:', defaultName)
+=======
     const name = await promptDialog('Home name:', defaultName)
+>>>>>>> feat/b1-1:buildmyhouse/src/main.ts
     if (name === null) return
     const trimmed = name.trim() || 'Untitled home'
     model.setName(trimmed)
@@ -394,7 +410,11 @@ async function openFromAccount(): Promise<void> {
     }
     new HomeListDialog(homes, (id) => {
       void (async () => {
+<<<<<<< HEAD:homely/src/main.ts
+        if (store.isDirty() && !confirm('Unsaved changes will be lost. Continue?')) return
+=======
         if (store.isDirty() && !(await confirmDialog('Unsaved changes will be lost. Continue?'))) return
+>>>>>>> feat/b1-1:buildmyhouse/src/main.ts
         try {
           const home = await remoteHomes.load(id)
           store.loadHome(home)
@@ -461,8 +481,13 @@ function buildToolbar(): void {
     })
   }
 
+<<<<<<< HEAD:homely/src/main.ts
+  toolbar.querySelector('#btn-undo')!.addEventListener('click', () => { store.undo(); telemetry.featureUndo(); refreshAll() })
+  toolbar.querySelector('#btn-redo')!.addEventListener('click', () => { store.redo(); telemetry.featureRedo(); refreshAll() })
+=======
   toolbar.querySelector('#btn-undo')!.addEventListener('click', doUndo)
   toolbar.querySelector('#btn-redo')!.addEventListener('click', doRedo)
+>>>>>>> feat/b1-1:buildmyhouse/src/main.ts
 
   toolbar.querySelector('#magnetism')!.addEventListener('change', (e) => {
     engine.setMagnetism((e.target as HTMLInputElement).checked)
@@ -568,11 +593,19 @@ function refreshLevelButtons(): void {
   }
 
   for (const btn of group.querySelectorAll<HTMLButtonElement>('button.level-delete')) {
+<<<<<<< HEAD:homely/src/main.ts
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.deleteLevel!
+      const level = home.levels.find((l) => l.id === id)
+      if (!level) return
+      if (!confirm(`Delete level "${level.name}"? This also removes everything on it. This can be undone.`)) return
+=======
     btn.addEventListener('click', async () => {
       const id = btn.dataset.deleteLevel!
       const level = home.levels.find((l) => l.id === id)
       if (!level) return
       if (!(await confirmDialog(`Delete level "${level.name}"? This also removes everything on it. This can be undone.`))) return
+>>>>>>> feat/b1-1:buildmyhouse/src/main.ts
       model.removeLevel(id)
       if (activeLevelId === id) {
         activeLevelId = null
@@ -582,6 +615,19 @@ function refreshLevelButtons(): void {
     })
   }
 
+<<<<<<< HEAD:homely/src/main.ts
+  group.querySelector('#btn-add-level')!.addEventListener('click', () => {
+    const name = window.prompt('Level name:', `Level ${home.levels.length + 1}`)
+    if (!name || !name.trim()) return
+    const elevation = nextLevelElevation(home.levels)
+    const created = model.addLevel({
+      name: name.trim(),
+      elevation,
+      floorThickness: 20,
+      height: 250,
+      visible: true,
+      viewable: true,
+=======
   group.querySelector('#btn-add-level')!.addEventListener('click', async () => {
     const name = await promptDialog('Level name:', `Level ${home.levels.length + 1}`)
     if (!name || !name.trim()) return
@@ -598,6 +644,7 @@ function refreshLevelButtons(): void {
       activeLevelId = created.id
       engine.setActiveLevel(created.id)
       refreshAll()
+>>>>>>> feat/b1-1:buildmyhouse/src/main.ts
     })
   })
 }
@@ -837,10 +884,14 @@ canvas.addEventListener('pointerup', (event) => {
       : { x: raw.x, y: raw.y, angleDeg: 0, wallRef: null, wallOffset: null }
     pendingSnapWallRef = snap.wallRef
     pendingSnapWallOffset = snap.wallOffset
+<<<<<<< HEAD:homely/src/main.ts
+    catalogPanel.place(snap.x, snap.y, snap.angleDeg)
+=======
     const panel = catalogPanel
     void traceAction(item?.doorOrWindow ? 'doorwindow.add' : 'furniture.place', () => {
       panel.place(snap.x, snap.y, snap.angleDeg)
     })
+>>>>>>> feat/b1-1:buildmyhouse/src/main.ts
     refreshToolbar()
     refreshStatus()
     return
@@ -1125,10 +1176,14 @@ function doFit(): void {
   userHasZoomed = false
   currentView = fitToBounds(store.getHome(), canvas.width, canvas.height, 40, activeLevelId)
   if (view3d) {
+<<<<<<< HEAD:homely/src/main.ts
+    view3d.setActivePreset(view3d.director.getActivePreset())
+=======
     // Real bounds-based fit instead of resetting to the stored preset: the
     // preset sits near the world origin, so content drawn far from the origin
     // stayed out of frame (QA repro at x:-158, y:-308 m).
     view3d.fitToContent()
+>>>>>>> feat/b1-1:buildmyhouse/src/main.ts
   }
   refreshStatus()
 }
@@ -1171,7 +1226,10 @@ function refreshAll(): void {
 // ── Boot ────────────────────────────────────────────────────────────────────
 
 telemetry.appStart()
+<<<<<<< HEAD:homely/src/main.ts
+=======
 initActionTrace({ getSceneComplexity, getLastFrameTime })
+>>>>>>> feat/b1-1:buildmyhouse/src/main.ts
 refreshMenus()
 buildToolbar()
 resizeCanvas()
@@ -1198,7 +1256,10 @@ view3d = new View3D(store, {
   onFloorClick: (p) => {
     if (!catalogPanel?.isArmed()) return
     const item = catalogPanel.armedItem!
+<<<<<<< HEAD:homely/src/main.ts
+=======
     const panel = catalogPanel
+>>>>>>> feat/b1-1:buildmyhouse/src/main.ts
     const raw = engine.isGridSnapEnabled() ? engine.snapToGrid(p.x, p.y) : p
     const snap = snapFurniturePlacement({
       walls: store.getHome().walls,
@@ -1208,9 +1269,13 @@ view3d = new View3D(store, {
     })
     pendingSnapWallRef = snap.wallRef
     pendingSnapWallOffset = snap.wallOffset
+<<<<<<< HEAD:homely/src/main.ts
+    catalogPanel.place(snap.x, snap.y, snap.angleDeg)
+=======
     void traceAction(item.doorOrWindow ? 'doorwindow.add' : 'furniture.place', () => {
       panel.place(snap.x, snap.y, snap.angleDeg)
     })
+>>>>>>> feat/b1-1:buildmyhouse/src/main.ts
     refreshToolbar()
     refreshStatus()
   },

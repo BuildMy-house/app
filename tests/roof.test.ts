@@ -124,6 +124,8 @@ describe('Roof tool — PlanEngine', () => {
     expect(engine.getTool()).toBe('selection')
   })
 })
+<<<<<<< HEAD:homely/tests/roof.test.ts
+=======
 
 describe('Roof schema fields', () => {
   it('addRoof without explicit style/pitch/overhang gets defaults (gable/30/30)', () => {
@@ -165,3 +167,4 @@ describe('Roof schema fields', () => {
     expect(updated.ridgeAngleDeg).toBe(30)
   })
 })
+>>>>>>> feat/b1-1:buildmyhouse/tests/roof.test.ts

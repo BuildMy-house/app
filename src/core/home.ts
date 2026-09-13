@@ -140,10 +140,13 @@ export interface Roof {
   name?: string | null
   color?: number | null
   levelRef?: string | null
+<<<<<<< HEAD:homely/src/core/home.ts
+=======
   style: 'gable' | 'hip'
   pitchDeg: number
   overhangCm: number
   ridgeAngleDeg?: number | null
+>>>>>>> feat/b1-1:buildmyhouse/src/core/home.ts
 }
 
 export interface CameraState {
@@ -185,6 +188,8 @@ export interface EnvironmentState {
   groundTextureId?: string | null
 }
 
+<<<<<<< HEAD:homely/src/core/home.ts
+=======
 export interface HomePreferences {
   defaultFloorColor: number
   defaultFloorShininess: number
@@ -192,6 +197,7 @@ export interface HomePreferences {
   defaultCeilingVisibility: boolean
 }
 
+>>>>>>> feat/b1-1:buildmyhouse/src/core/home.ts
 /** Ground textures reuse the same PNG catalog as walls (SH3D parity). */
 export const GROUND_TEXTURES = WALL_TEXTURES
 
@@ -300,6 +306,8 @@ export function nextLevelElevation(levels: ReadonlyArray<Level>): number {
   if (levels.length === 0) return DEFAULT_WALL_HEIGHT_CM
   return Math.max(...levels.map((l) => l.elevation + l.height))
 }
+<<<<<<< HEAD:homely/src/core/home.ts
+=======
 
 export function getDefaultFloorColor(home: NormalizedHomeState): number {
   return home.preferences?.defaultFloorColor ?? 0xf0f0f0
@@ -316,3 +324,4 @@ export function getDefaultCeilingColor(home: NormalizedHomeState): number {
 export function getDefaultCeilingVisibility(home: NormalizedHomeState): boolean {
   return home.preferences?.defaultCeilingVisibility ?? true
 }
+>>>>>>> feat/b1-1:buildmyhouse/src/core/home.ts

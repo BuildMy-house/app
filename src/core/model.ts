@@ -464,10 +464,13 @@ export class HomeModel {
         name: input.name ?? null,
         color: input.color ?? null,
         levelRef: input.levelRef ?? null,
+<<<<<<< HEAD:homely/src/core/model.ts
+=======
         style: input.style ?? 'gable',
         pitchDeg: input.pitchDeg ?? 30,
         overhangCm: input.overhangCm ?? 30,
         ridgeAngleDeg: input.ridgeAngleDeg ?? null,
+>>>>>>> feat/b1-1:buildmyhouse/src/core/model.ts
       }
       h.roofs.push(created)
     })

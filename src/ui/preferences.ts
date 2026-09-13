@@ -2,7 +2,10 @@ import { DEFAULT_WALL_HEIGHT_CM, GROUND_TEXTURES } from '../core/home'
 import { NEW_WALL_THICKNESS_CM } from '../core/model'
 import type { HomeStore } from '../core/store'
 import { telemetry } from '../telemetry/logger'
+<<<<<<< HEAD:homely/src/ui/preferences.ts
+=======
 import { MaterialsPreferencesPanel } from './MaterialsPreferencesPanel'
+>>>>>>> feat/b1-1:buildmyhouse/src/ui/preferences.ts
 
 export const PREFS_KEY = 'homely-preferences'
 
@@ -88,10 +91,28 @@ export class PreferencesDialog {
             <label><input type="radio" name="prefs-ground-mode" value="color" ${!prefs.groundTextureId ? 'checked' : ''} /> Color</label>
             <label><input type="radio" name="prefs-ground-mode" value="texture" ${prefs.groundTextureId ? 'checked' : ''} /> Texture</label>
           </div>
+<<<<<<< HEAD:homely/src/ui/preferences.ts
         </div>
         <div class="prefs-row prefs-ground-color-row" style="display:${prefs.groundTextureId ? 'none' : ''}">
           <label for="prefs-ground-color">Ground color</label>
           <input id="prefs-ground-color" type="color" value="${prefs.groundColor}" />
+        </div>
+        <div class="prefs-row prefs-ground-texture-row" style="display:${prefs.groundTextureId ? '' : 'none'}">
+          <label for="prefs-ground-texture">Ground texture</label>
+          <select id="prefs-ground-texture">
+            <option value="">None</option>
+            ${GROUND_TEXTURES.map((t) => `<option value="${t.id}"${prefs.groundTextureId === t.id ? ' selected' : ''}>${t.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="prefs-row">
+          <label for="prefs-telemetry-tier2">Usage analytics (Tier 2)</label>
+          <input id="prefs-telemetry-tier2" type="checkbox" ${telemetry.tier2Enabled ? 'checked' : ''} />
+=======
+        </div>
+        <div class="prefs-row prefs-ground-color-row" style="display:${prefs.groundTextureId ? 'none' : ''}">
+          <label for="prefs-ground-color">Ground color</label>
+          <input id="prefs-ground-color" type="color" value="${prefs.groundColor}" />
+>>>>>>> feat/b1-1:buildmyhouse/src/ui/preferences.ts
         </div>
         <div class="prefs-row prefs-ground-texture-row" style="display:${prefs.groundTextureId ? '' : 'none'}">
           <label for="prefs-ground-texture">Ground texture</label>
@@ -162,7 +183,10 @@ export class PreferencesDialog {
 
     const prefs: Preferences = { unit, wallHeightCm, wallThicknessCm, groundColor, groundTextureId }
     savePreferences(prefs)
+<<<<<<< HEAD:homely/src/ui/preferences.ts
+=======
     this.materialsPanel?.apply()
+>>>>>>> feat/b1-1:buildmyhouse/src/ui/preferences.ts
     telemetry.setTier2(tier2)
     this.close()
     this.onClose(prefs)

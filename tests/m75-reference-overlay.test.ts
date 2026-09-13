@@ -32,7 +32,10 @@ class MockContext implements PlanRenderingContext {
   fill(): void { this.ops.push({ type: 'fill' }) }
   fillRect(x: number, y: number, w: number, h: number): void { this.ops.push({ type: 'fillRect', args: [x, y, w, h] }) }
   fillText(text: string, x: number, y: number): void { this.ops.push({ type: 'fillText', args: [text, x, y] }) }
+<<<<<<< HEAD:homely/tests/m75-reference-overlay.test.ts
+=======
   measureText(_text: string): { width: number } { return { width: 0 } }
+>>>>>>> feat/b1-1:buildmyhouse/tests/m75-reference-overlay.test.ts
   strokeRect(x: number, y: number, w: number, h: number): void { this.ops.push({ type: 'strokeRect', args: [x, y, w, h] }) }
   arc(x: number, y: number, r: number, s: number, e: number): void { this.ops.push({ type: 'arc', args: [x, y, r, s, e] }) }
   setLineDash(d: number[]): void { this.ops.push({ type: 'setLineDash', args: [d] }) }
