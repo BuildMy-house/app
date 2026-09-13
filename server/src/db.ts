@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 import { Pool, type PoolClient } from 'pg';
+import { withTelemetry, type DbTelemetryConfig } from './database/telemetry.js';
 
 export type DeploymentMode = 'sqlite' | 'postgres';
 
@@ -206,12 +207,15 @@ export class PgAdapter implements DbAdapter {
 // Factory
 // ---------------------------------------------------------------------------
 
-export function createAdapter(mode: DeploymentMode): DbAdapter {
+export function createAdapter(mode: DeploymentMode, telemetryConfig?: Partial<DbTelemetryConfig>): DbAdapter {
+  let adapter: DbAdapter;
   if (mode === 'postgres') {
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    return new PgAdapter(pool);
+    adapter = new PgAdapter(pool);
+  } else {
+    adapter = new SqliteAdapter(openSqlite(defaultDbPath()));
   }
-  return new SqliteAdapter(openSqlite(defaultDbPath()));
+  return withTelemetry(adapter, telemetryConfig);
 }
 
 // ---------------------------------------------------------------------------
@@ -330,12 +334,15 @@ export function openDatabase(path: string): Database.Database {
   return openSqlite(path);
 }
 
-export function openAdapter(path?: string): DbAdapter {
+export function openAdapter(path?: string, telemetryConfig?: Partial<DbTelemetryConfig>): DbAdapter {
   const mode = getDeploymentMode();
+  let adapter: DbAdapter;
   if (mode === 'postgres') {
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    return new PgAdapter(pool);
+    adapter = new PgAdapter(pool);
+  } else {
+    const dbPath = path ?? defaultDbPath();
+    adapter = new SqliteAdapter(openSqlite(dbPath));
   }
-  const dbPath = path ?? defaultDbPath();
-  return new SqliteAdapter(openSqlite(dbPath));
+  return withTelemetry(adapter, telemetryConfig);
 }
