@@ -267,6 +267,26 @@ const SCHEMA = `
     PRIMARY KEY (team_id, user_id)
   );
   CREATE INDEX IF NOT EXISTS idx_team_members_user ON team_members (user_id);
+
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL,
+    token      TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at    TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens (token);
+
+  CREATE TABLE IF NOT EXISTS magic_link_tokens (
+    id         TEXT PRIMARY KEY,
+    email      TEXT NOT NULL,
+    token      TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at    TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_magic_link_tokens_token ON magic_link_tokens (token);
 `;
 
 // Idempotent init-on-boot: safe to call once per server start, and safe to
