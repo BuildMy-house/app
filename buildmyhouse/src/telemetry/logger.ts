@@ -26,6 +26,12 @@ function makeEvent(event: string, tier: TelemetryTier, extra?: Record<string, un
 }
 
 function emit(event: string, tier: TelemetryTier, extra?: Record<string, unknown>): void {
+  // ponytail: e2e/test observability hook — only exists when a test injects the
+  // array (page.addInitScript); capped so long app sessions can't grow it.
+  const hook = (globalThis as { __telemetryEvents?: TelemetryEvent[] }).__telemetryEvents
+  hook?.push(makeEvent(event, tier, extra))
+  if (hook && hook.length > 500) hook.splice(0, hook.length - 500)
+
   if (!getTelemetryConfig().enabled) return
   enqueue(makeEvent(event, tier, extra))
 }

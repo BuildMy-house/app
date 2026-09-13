@@ -54,3 +54,59 @@ describe('telemetry.renderingMetrics', () => {
     expect(enqueue).not.toHaveBeenCalled()
   })
 })
+
+describe('telemetry.userActionMetrics', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    enqueue.mockClear()
+    vi.unstubAllEnvs()
+    vi.stubEnv('DATABASE_URL', undefined)
+  })
+
+  it('emits user.action_trace as tier 2 with metrics', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token')
+    const { telemetry } = await import('./logger')
+
+    telemetry.userActionMetrics({
+      actionName: 'furniture.place',
+      durationMs: 12.5,
+      sceneComplexityBefore: 3,
+      sceneComplexityAfter: 4,
+      frameTimeDeltaMs: 1.2,
+      success: true,
+    })
+
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
+      event: 'user.action_trace',
+      tier: 2,
+      actionName: 'furniture.place',
+      durationMs: 12.5,
+      sceneComplexityBefore: 3,
+      sceneComplexityAfter: 4,
+      frameTimeDeltaMs: 1.2,
+      success: true,
+    }))
+  })
+
+  it('carries errorMessage on failure', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token')
+    const { telemetry } = await import('./logger')
+
+    telemetry.userActionMetrics({
+      actionName: 'open',
+      durationMs: 5,
+      sceneComplexityBefore: 0,
+      sceneComplexityAfter: 0,
+      frameTimeDeltaMs: 0,
+      success: false,
+      errorMessage: 'file corrupted',
+    })
+
+    expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
+      event: 'user.action_trace',
+      success: false,
+      errorMessage: 'file corrupted',
+    }))
+  })
+})
