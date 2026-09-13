@@ -93,6 +93,20 @@ export const telemetry = {
     emit('perf.catalog_load', 1, { durationMs, itemCount })
   },
 
+  /** Report asset loading metrics (textures, models, memory estimates). */
+  assetMetrics(metrics: {
+    textureLoadDurationMs: number
+    textureMemoryMB: number
+    textureCount: number
+    modelLoadCount: number
+    avgModelLoadDurationMs: number
+    totalAssetBundleSizeMB: number
+    cacheHitRate: number
+    loadedTextureIds: string[]
+  }): void {
+    emit('perf.asset_metrics', 1, metrics)
+  },
+
   fileIo(
     op: 'save' | 'open' | 'export_png' | 'import_model',
     durationMs: number,
