@@ -13,7 +13,7 @@
  */
 
 import * as THREE from 'three'
-import type { Wall, Furniture, Room, Level, NormalizedHomeState } from '../core/home'
+import type { Wall, Furniture, Room, NormalizedHomeState } from '../core/home'
 
 export type SceneUpdateType =
   | 'wall-update'

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { createEmptyHome, DEFAULT_WALL_HEIGHT_CM } from '../core/home'
+import { createEmptyHome, DEFAULT_WALL_HEIGHT_CM, type Furniture } from '../core/home'
 import { wallOutlinePoints } from '../core/top-camera-follower'
 import {
   buildScene,
@@ -405,6 +405,114 @@ describe('furniture mirror (M60)', () => {
     const mesh = meshes[0]!
     expect(mesh.scale.x).toBe(-1)
     expect(mesh.rotation.y).toBeCloseTo(Math.PI / 2, 10)
+  })
+})
+
+// ── T1: instanced furniture rendering ───────────────────────────────────────
+
+function instancedFurnitureMeshes(scene: THREE.Scene): THREE.InstancedMesh[] {
+  const meshes: THREE.InstancedMesh[] = []
+  scene.traverse((obj) => {
+    if (obj instanceof THREE.InstancedMesh && obj.name.startsWith('furniture-instanced-')) {
+      meshes.push(obj)
+    }
+  })
+  return meshes
+}
+
+describe('instanced furniture rendering (T1)', () => {
+  function chair(id: string, x: number, overrides: Partial<Furniture> = {}): Furniture {
+    return {
+      id, name: 'Chair', catalogId: 'chair-a',
+      x, y: 0, angleDeg: 0,
+      width: 40, depth: 40, height: 80,
+      elevation: 0, color: 0xff0000,
+      ...overrides,
+    }
+  }
+
+  it('20 identical pieces render as one InstancedMesh with 20 instances', () => {
+    const home = createEmptyHome()
+    for (let i = 0; i < 20; i++) home.furniture.push(chair(`c${i}`, i * 60))
+    const scene = buildScene(home)
+    const instanced = instancedFurnitureMeshes(scene)
+    expect(instanced.length).toBe(1)
+    expect(instanced[0]!.count).toBe(20)
+    // No leftover individual meshes for grouped pieces
+    expect(furnitureMeshes(scene).length).toBe(0)
+  })
+
+  it('instance matrices match furnitureMesh placement (floor + half-height, Y rotation)', () => {
+    const home = createEmptyHome()
+    for (let i = 0; i < 5; i++) {
+      home.furniture.push({ ...chair(`c${i}`, i * 100), angleDeg: i * 30 })
+    }
+    const scene = buildScene(home)
+    const mesh = instancedFurnitureMeshes(scene)[0]!
+    const matrix = new THREE.Matrix4()
+    const pos = new THREE.Vector3()
+    const quat = new THREE.Quaternion()
+    const scale = new THREE.Vector3()
+    for (let i = 0; i < mesh.count; i++) {
+      mesh.getMatrixAt(i, matrix)
+      matrix.decompose(pos, quat, scale)
+      expect(pos.x).toBeCloseTo(i * 100, 6)
+      expect(pos.y).toBeCloseTo(0, 6) // level 0 + elevation 0; half-height is baked in geometry
+      expect(pos.z).toBeCloseTo(0, 6)
+      expect(quat.angleTo(
+        new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(i * 30)),
+      )).toBeCloseTo(0, 6)
+      // Geometry carries the half-height lift: box spans [0, height] in Y.
+      const geomBox = new THREE.Box3().setFromBufferAttribute(
+        mesh.geometry.getAttribute('position') as THREE.BufferAttribute,
+      )
+      expect(geomBox.min.y).toBeCloseTo(0, 6)
+      expect(geomBox.max.y).toBeCloseTo(80, 6)
+    }
+  })
+
+  it('selected pieces stay individual meshes with selection tint', () => {
+    const home = createEmptyHome()
+    for (let i = 0; i < 5; i++) home.furniture.push(chair(`c${i}`, i * 60))
+    home.selection = ['c2']
+    const scene = buildScene(home)
+    const instanced = instancedFurnitureMeshes(scene)
+    expect(instanced.length).toBe(1)
+    expect(instanced[0]!.count).toBe(4)
+    const individual = furnitureMeshes(scene)
+    expect(individual.length).toBe(1)
+    expect(individual[0]!.name).toBe('furniture:c2')
+    for (const m of meshEmissives(individual[0]!)) {
+      expect(m.hex).toBe(SELECTION_EMISSIVE_COLOR)
+    }
+  })
+
+  it('pieces with differing dimensions are not instanced', () => {
+    const home = createEmptyHome()
+    home.furniture.push(chair('a', 0))
+    home.furniture.push({ ...chair('b', 100), width: 50 })
+    const scene = buildScene(home)
+    expect(instancedFurnitureMeshes(scene).length).toBe(0)
+    expect(furnitureMeshes(scene).length).toBe(2)
+  })
+
+  it('pieces with a GLB modelPath are never instanced', () => {
+    const home = createEmptyHome()
+    home.furniture.push({ ...chair('a', 0), modelPath: 'models/chair.glb' })
+    home.furniture.push({ ...chair('b', 100), modelPath: 'models/chair.glb' })
+    const scene = buildScene(home)
+    expect(instancedFurnitureMeshes(scene).length).toBe(0)
+    expect(furnitureMeshes(scene).length).toBe(2)
+  })
+
+  it('invisible pieces are excluded from groups and instance counts', () => {
+    const home = createEmptyHome()
+    for (let i = 0; i < 4; i++) home.furniture.push(chair(`c${i}`, i * 60))
+    home.furniture.push({ ...chair('hidden', 300), visible: false })
+    const scene = buildScene(home)
+    const instanced = instancedFurnitureMeshes(scene)
+    expect(instanced.length).toBe(1)
+    expect(instanced[0]!.count).toBe(4)
   })
 })
 

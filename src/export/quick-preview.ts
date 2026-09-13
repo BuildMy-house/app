@@ -45,7 +45,7 @@ export class PreviewCache {
    * Initialize the cache (open or create IndexedDB).
    */
   async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       const request = indexedDB.open(this.dbName, 1)
 
       request.onerror = () => {
