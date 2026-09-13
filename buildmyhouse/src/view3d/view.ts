@@ -14,7 +14,7 @@ import {
   type ViewportQuality,
 } from './viewport-quality'
 import { telemetry } from '../telemetry/logger'
-import { computeSceneUpdates, type SceneUpdate } from './scene-delta'
+import { computeSceneUpdates } from './scene-delta'
 import { exportViewportAsImage } from '../export/quick-preview'
 
 export interface View3DOptions {
@@ -421,6 +421,16 @@ export class View3D {
     raycaster.setFromCamera(ndc, this.perspectiveCamera)
     const hits = raycaster.intersectObjects(this._scene.children, true)
     for (const hit of hits) {
+      // Instanced furniture: resolve the clicked instance to its furniture id
+      // (scene.ts stores the per-instance id list in userData).
+      if (hit.object instanceof THREE.InstancedMesh && hit.instanceId != null) {
+        const ids = hit.object.userData.instanceFurnitureIds as string[] | undefined
+        const id = ids?.[hit.instanceId]
+        if (id) {
+          this.model.setSelection([id])
+          return
+        }
+      }
       let o: THREE.Object3D | null = hit.object
       while (o) {
         const id = /^furniture:(.+)$/.exec(o.name)?.[1] ?? /^wall:(.+)$/.exec(o.name)?.[1]

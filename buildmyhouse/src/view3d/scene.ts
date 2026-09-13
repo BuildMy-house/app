@@ -10,6 +10,7 @@ import {
   type Wall,
 } from '../core/home'
 import { isArcWall, wallOutlinePoints } from '../core/top-camera-follower'
+import { createInstancedMesh, groupFurnitureForInstancing } from './instanced-meshes'
 
 type Pt = [number, number]
 
@@ -474,6 +475,68 @@ function furnitureMesh(item: Furniture, elevation: number, onReady?: () => void,
   return mesh
 }
 
+/**
+ * Add furniture meshes to the scene root, using instanced rendering where it
+ * is visually identical: pieces grouped by groupFurnitureForInstancing render
+ * as ONE InstancedMesh only when every member shares the same dimensions and
+ * effective color, has no GLB model (models swap in as per-mesh children),
+ * and is not selected (highlight tint is per-material, so a selected piece
+ * must stay an individual mesh).
+ */
+function addFurnitureMeshes(
+  root: THREE.Group,
+  furniture: readonly Furniture[],
+  elevations: Map<string, number>,
+  onModelReady: (() => void) | undefined,
+  selectionSet: Set<string>,
+): void {
+  const effectiveColor = (it: Furniture): number => it.color ?? DEFAULT_FURNITURE_COLOR
+  const instancedIds = new Set<string>()
+  for (const group of groupFurnitureForInstancing(furniture)) {
+    // Selected pieces render individually so the highlight tint stays
+    // per-material; the rest of the group still instances.
+    const candidates = group.items.filter((it) => !selectionSet.has(it.id))
+    if (candidates.length < 2) continue
+    const first = candidates[0]!
+    const canInstance = candidates.every(
+      (it) =>
+        !it.modelPath &&
+        it.width === first.width &&
+        it.height === first.height &&
+        it.depth === first.depth &&
+        effectiveColor(it) === effectiveColor(first),
+    )
+    if (!canInstance) continue
+    // createInstancedMesh places instance origins at the floor (level +
+    // item elevation); bake the centered box's half-height lift into the
+    // geometry so instances occupy the same volume as furnitureMesh boxes.
+    const geometry = new THREE.BoxGeometry(first.width, first.height, first.depth)
+    geometry.translate(0, first.height / 2, 0)
+    const material = new THREE.MeshStandardMaterial({
+      color: effectiveColor(first),
+      roughness: 0.7,
+      metalness: 0.0,
+    })
+    const mesh = createInstancedMesh(
+      { modelPath: group.modelPath, color: group.color, items: candidates },
+      geometry,
+      material,
+      elevations,
+    )
+    // No ':' in the name — pick() and applySelectionHighlight parse
+    // `furniture:<id>` / `wall:<id>` names and must not match this mesh.
+    mesh.name = `furniture-instanced-${group.modelPath}`
+    mesh.userData.instanceFurnitureIds = candidates.map((it) => it.id)
+    for (const it of candidates) instancedIds.add(it.id)
+    root.add(mesh)
+  }
+  for (const item of furniture) {
+    if (item.visible === false) continue
+    if (instancedIds.has(item.id)) continue
+    root.add(furnitureMesh(item, elevationFor(item.levelRef, elevations), onModelReady, selectionSet.has(item.id)))
+  }
+}
+
 export const SELECTION_EMISSIVE_COLOR = 0x1a66d6
 export const SELECTION_EMISSIVE_INTENSITY = 0.3
 
@@ -608,10 +671,7 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
     if (ceiling) root.add(ceiling)
   }
   const selectionSet = new Set(home.selection)
-  for (const item of home.furniture) {
-    if (item.visible === false) continue
-    root.add(furnitureMesh(item, elevationFor(item.levelRef, elevations), onModelReady, selectionSet.has(item.id)))
-  }
+  addFurnitureMeshes(root, home.furniture, elevations, onModelReady, selectionSet)
   scene.add(root)
 
   // Selection highlight (walls, rooms — furniture handled at creation time)
