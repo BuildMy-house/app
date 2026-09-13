@@ -15,7 +15,13 @@ import {
 } from './viewport-quality'
 import { telemetry } from '../telemetry/logger'
 import type { RenderingMetrics } from '../telemetry/events'
-import { applySceneUpdate, computeSceneUpdates } from './scene-delta'
+import {
+  applySceneUpdate,
+  computeSceneUpdates,
+  recordFullRebuild,
+  recordSceneDelta,
+  snapshotDeltaMetrics,
+} from './scene-delta'
 import { exportViewportAsImage } from '../export/quick-preview'
 
 // Per-texture memory estimate for the telemetry textureMemoryMB figure (1024×1024 RGBA).
@@ -67,6 +73,8 @@ export class View3D {
   // Rendering metrics: sampled every 30 frames, latest snapshot reported with the 30s frame-time report.
   private _metricsFrameCount = 0
   private _lastMetrics: RenderingMetrics | undefined
+  // Delta metrics: 60s aggregation window, reported via telemetry.sceneDeltaMetrics.
+  private _deltaReportTimer: ReturnType<typeof setTimeout> | undefined
   private readonly handleResize = (): void => {
     const container = this.domElement?.parentElement
     if (!container) return
@@ -314,6 +322,7 @@ export class View3D {
 
   /** Rebuild the whole scene graph from current store state. */
   rebuild(): void {
+    const t0 = performance.now()
     let savedTarget: THREE.Vector3 | undefined
     let savedPosition: THREE.Vector3 | undefined
 
@@ -337,6 +346,7 @@ export class View3D {
 
     this._isFirstBuild = false
     this.render()
+    recordFullRebuild(performance.now() - t0)
   }
 
   /**
@@ -362,7 +372,9 @@ export class View3D {
     if (single && single.type !== 'full-rebuild' && this._lastHome) {
       const t0 = performance.now()
       applied = applySceneUpdate(this._scene, single, home, this._lastHome)
-      this._lastDeltaMs = applied ? performance.now() - t0 : 0
+      const deltaMs = performance.now() - t0
+      this._lastDeltaMs = applied ? deltaMs : 0
+      if (applied) recordSceneDelta(single.type, deltaMs)
     }
     if (!applied) this.rebuild()
 
@@ -511,6 +523,15 @@ export class View3D {
             this._frameReportTimer = undefined
           }, 30_000)
         }
+        if (!this._deltaReportTimer) {
+          this._deltaReportTimer = setTimeout(() => {
+            const metrics = snapshotDeltaMetrics()
+            if (metrics.deltaUpdatesCount + metrics.fullRebuildsCount > 0) {
+              telemetry.sceneDeltaMetrics(metrics)
+            }
+            this._deltaReportTimer = undefined
+          }, 60_000)
+        }
       }
       this._frameLastTime = now
       const moving = this.controls ? this.controls.update() : false
@@ -523,6 +544,7 @@ export class View3D {
   dispose(): void {
     this.cancelAnimation()
     if (this._frameReportTimer) clearTimeout(this._frameReportTimer)
+    if (this._deltaReportTimer) clearTimeout(this._deltaReportTimer)
     this.unobserve()
     this.controls?.dispose()
     this.resizeObserver?.disconnect()

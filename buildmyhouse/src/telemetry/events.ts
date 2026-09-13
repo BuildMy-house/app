@@ -123,6 +123,20 @@ export interface FeatureUsageEvent extends BaseEvent {
   tier: 2
 }
 
+/** User action performance trace (Tier 2): what the user did, how long it took,
+ *  and how scene complexity / frame time moved around the action. */
+export interface UserActionMetricsEvent extends BaseEvent {
+  event: 'user.action_trace'
+  tier: 2
+  actionName: string
+  durationMs: number
+  sceneComplexityBefore: number
+  sceneComplexityAfter: number
+  frameTimeDeltaMs: number
+  success: boolean
+  errorMessage?: string
+}
+
 export type TelemetryEvent =
   | ErrorCaughtEvent
   | WebglContextLostEvent
@@ -133,6 +147,6 @@ export type TelemetryEvent =
   | AppLifecycleEvent
   | AutomationEvent
   | RenderingMetricsEvent
-  | SceneDeltaMetricsEvent
   | ToolUsageEvent
   | FeatureUsageEvent
+  | UserActionMetricsEvent

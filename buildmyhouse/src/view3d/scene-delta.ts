@@ -481,3 +481,66 @@ function applyRoomUpdate(
   }
   return true
 }
+
+// ── Delta metrics tracking (A2) ─────────────────────────────────────────────
+//
+// Accumulates delta vs full-rebuild counts and durations for the current 60s
+// telemetry window. view.ts samples snapshotDeltaMetrics() every 60s and
+// reports via telemetry.sceneDeltaMetrics(); sampling resets the window.
+
+export interface SceneDeltaWindowSnapshot {
+  deltaUpdatesCount: number
+  fullRebuildsCount: number
+  avgDeltaDurationMs: number
+  avgRebuildDurationMs: number
+  deltaRatio: number // 0-1, share of applied deltas vs total scene updates
+  windowDurationMs: number
+  deltaCountByType: Record<string, number> // delta counts per operation type
+}
+
+const METRICS_WINDOW_MS = 60_000
+const deltaWindow = {
+  deltaCount: 0,
+  deltaMs: 0,
+  rebuildCount: 0,
+  rebuildMs: 0,
+  byType: new Map<string, { count: number; ms: number }>(),
+}
+
+/** Record one applied delta operation (any type the delta path handled). */
+export function recordSceneDelta(type: SceneUpdateType, durationMs: number): void {
+  deltaWindow.deltaCount++
+  deltaWindow.deltaMs += durationMs
+  const t = deltaWindow.byType.get(type) ?? { count: 0, ms: 0 }
+  t.count++
+  t.ms += durationMs
+  deltaWindow.byType.set(type, t)
+}
+
+/** Record one full-scene rebuild (delta-path fallback or manual rebuild). */
+export function recordFullRebuild(durationMs: number): void {
+  deltaWindow.rebuildCount++
+  deltaWindow.rebuildMs += durationMs
+}
+
+/** Return the current window's metrics and reset all accumulators. */
+export function snapshotDeltaMetrics(): SceneDeltaWindowSnapshot {
+  const { deltaCount, deltaMs, rebuildCount, rebuildMs, byType } = deltaWindow
+  deltaWindow.deltaCount = 0
+  deltaWindow.deltaMs = 0
+  deltaWindow.rebuildCount = 0
+  deltaWindow.rebuildMs = 0
+  deltaWindow.byType = new Map()
+  const deltaCountByType: Record<string, number> = {}
+  for (const [type, t] of byType) deltaCountByType[type] = t.count
+  const total = deltaCount + rebuildCount
+  return {
+    deltaUpdatesCount: deltaCount,
+    fullRebuildsCount: rebuildCount,
+    avgDeltaDurationMs: deltaCount > 0 ? deltaMs / deltaCount : 0,
+    avgRebuildDurationMs: rebuildCount > 0 ? rebuildMs / rebuildCount : 0,
+    deltaRatio: total > 0 ? deltaCount / total : 0,
+    windowDurationMs: METRICS_WINDOW_MS,
+    deltaCountByType,
+  }
+}
