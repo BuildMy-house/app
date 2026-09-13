@@ -5,7 +5,7 @@ import { asyncHandler } from './asyncHandler.js';
 import { requireAuth } from './auth.js';
 import type { DbAdapter } from './db.js';
 import { ASSETS_RATE_LIMIT, makeUserRateLimiter } from './rateLimit.js';
-import { AssetStorage } from './storage.js';
+import { AssetStorage, SAFE_TOKEN_PATTERN } from './storage.js';
 
 // GlTF binary magic number: ASCII "glTF", little-endian (glTF 2.0 spec).
 const GLB_MAGIC = 0x46546c67;
@@ -176,6 +176,13 @@ export function assetsRouter(db: DbAdapter, storage: AssetStorage): Router {
       }
 
       const id = typeof record?.id === 'string' ? record.id : randomUUID();
+      // H17: client-supplied ids become filesystem filenames (`${id}.glb`), so
+      // a traversal id like `../<victim>/<asset>` could overwrite another
+      // tenant's stored file. Accept only safe tokens; storage.ts re-checks.
+      if (!SAFE_TOKEN_PATTERN.test(id)) {
+        res.status(400).json({ error: 'invalid asset id' });
+        return;
+      }
       const userId = req.params.userId!;
       const name = typeof record?.name === 'string' ? record.name : 'Untitled model';
       const category = typeof record?.category === 'string' ? record.category : '';
