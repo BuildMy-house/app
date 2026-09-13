@@ -5,6 +5,7 @@ import { asyncHandler } from './asyncHandler.js';
 import { requireAuth } from './auth.js';
 import type { DbAdapter } from './db.js';
 import { isTeamMember } from './teams.js';
+import { HOMES_RATE_LIMIT, makeUserRateLimiter } from './rateLimit.js';
 
 interface HomeRow {
   id: string;
@@ -53,6 +54,16 @@ let saveTimer: NodeJS.Timeout | null = null;
 let dbInstance: DbAdapter | null = null;
 
 const SAVE_FLUSH_MS = 500; // Coalesce saves within this window
+
+// 400 over 429: the request itself is valid but would exceed a persistent
+// resource quota — 429 implies a transient rate condition where retrying
+// later helps, which is false here (deleting homes is the only remedy).
+export const MAX_HOMES_PER_USER_DEFAULT = 500;
+
+function maxHomesPerUser(): number {
+  const parsed = Number(process.env.MAX_HOMES_PER_USER);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : MAX_HOMES_PER_USER_DEFAULT;
+}
 
 /**
  * Enqueue a home update and schedule flush if not already pending.
@@ -117,6 +128,9 @@ export function homesRouter(db: DbAdapter): Router {
   dbInstance = db; // Store for save queue flush
   const router = Router();
   router.use(requireAuth);
+  // Separate per-user counter (see rateLimit.ts): hitting homes never touches
+  // the assets/teams budgets, and requireAuth above guarantees req.userId.
+  router.use(makeUserRateLimiter(HOMES_RATE_LIMIT));
 
   router.get(
     '/',
@@ -159,6 +173,16 @@ export function homesRouter(db: DbAdapter): Router {
           res.status(403).json({ error: 'forbidden' });
           return;
         }
+      }
+      // Per-user homes quota: counts every home this user owns (personal and
+      // team homes alike — team_id is stored, but ownership never transfers).
+      const countRow = await db.get<{ cnt: number | string }>(
+        'SELECT COUNT(*) as cnt FROM homes WHERE owner_user_id = ?',
+        userId,
+      );
+      if (Number(countRow?.cnt ?? 0) >= maxHomesPerUser()) {
+        res.status(400).json({ error: 'home limit reached (MAX_HOMES_PER_USER)' });
+        return;
       }
       const homeName = typeof name === 'string' && name.trim() ? name.trim() : 'Untitled home';
       const now = new Date().toISOString();

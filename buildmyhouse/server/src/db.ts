@@ -186,6 +186,14 @@ export class PgAdapter implements DbAdapter {
     if (nameCol.rows.length === 0) {
       await this.q('ALTER TABLE users ADD COLUMN name TEXT');
     }
+    // Migration: add size_bytes to assets if missing (existing rows get NULL)
+    const sizeCol = await this.q(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'assets' AND column_name = 'size_bytes'`,
+    );
+    if (sizeCol.rows.length === 0) {
+      await this.q('ALTER TABLE assets ADD COLUMN size_bytes INTEGER');
+    }
   }
 
   private async runUpsert(sql: string, params: unknown[]): Promise<RunResult> {
@@ -248,6 +256,7 @@ const SCHEMA = `
     blob_key    TEXT NOT NULL,
     glb_path    TEXT NOT NULL,
     source_path TEXT,
+    size_bytes  INTEGER,
     created_at  INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_assets_user ON assets (user_id);
@@ -325,6 +334,11 @@ export function initDb(db: Database.Database): void {
   const userCols = db.pragma('table_info(users)') as { name: string }[];
   if (!userCols.some((c) => c.name === 'name')) {
     db.exec('ALTER TABLE users ADD COLUMN name TEXT');
+  }
+  // Guarded migration: add size_bytes to assets if missing (existing rows get NULL).
+  const assetCols = db.pragma('table_info(assets)') as { name: string }[];
+  if (!assetCols.some((c) => c.name === 'size_bytes')) {
+    db.exec('ALTER TABLE assets ADD COLUMN size_bytes INTEGER');
   }
 }
 
