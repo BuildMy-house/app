@@ -8,6 +8,7 @@ import {
   type NormalizedHomeState,
   type Room,
   type Wall,
+  type WallTextureEntry,
 } from '../core/home'
 import { isArcWall, wallOutlinePoints } from '../core/top-camera-follower'
 import { createInstancedMesh, groupFurnitureForInstancing } from './instanced-meshes'
@@ -116,11 +117,9 @@ export function wallMesh(
     material.opacity = 1 - wallsTransparency
   }
 
-  const wallTexture = wall.leftSideTextureId ? loadWallTexture(wall.leftSideTextureId) : null
-  if (wallTexture) {
-    material.map = wallTexture
-    material.needsUpdate = true
-  }
+  const wallTexture = wall.leftSideTextureId
+    ? applyMaterialTextures(material, wall.leftSideTextureId)
+    : null
 
   const ux = dx / (length || 1)
   const uy = dy / (length || 1)
@@ -136,7 +135,10 @@ export function wallMesh(
     const shape = miteredShape(outline, midX, midY)
     const geometry = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false })
     geometry.rotateX(-Math.PI / 2)
-    if (wallTexture) remapExtrudeUvs(geometry)
+    if (wallTexture) {
+      remapExtrudeUvs(geometry)
+      if (wallTexture.aoFile) addUv2(geometry)
+    }
     const mesh = new THREE.Mesh(geometry, material)
     mesh.name = `wall:${wall.id}`
     mesh.position.set(midX, elevation, midY)
@@ -155,7 +157,10 @@ export function wallMesh(
     // ExtrudeGeometry builds in XY extruded along +Z.
     // Rotate -π/2 around X: Y→Z(up), Z→-Y so front face (z=depth) → +Y.
     geometry.rotateX(-Math.PI / 2)
-    if (wallTexture) remapExtrudeUvs(geometry)
+    if (wallTexture) {
+      remapExtrudeUvs(geometry)
+      if (wallTexture.aoFile) addUv2(geometry)
+    }
     const mesh = new THREE.Mesh(geometry, material)
     mesh.name = `wall:${wall.id}`
     mesh.position.set(midX, elevation, midY)
@@ -190,7 +195,10 @@ export function wallMesh(
     const segHeight = y2 - y1
     const geometry = new THREE.ExtrudeGeometry(shape, { depth: segHeight, bevelEnabled: false })
     geometry.rotateX(-Math.PI / 2)
-    if (wallTexture) remapExtrudeUvs(geometry)
+    if (wallTexture) {
+      remapExtrudeUvs(geometry)
+      if (wallTexture.aoFile) addUv2(geometry)
+    }
     const m = new THREE.Mesh(geometry, material)
     m.name = `wall:${wall.id}`
     m.position.set(midX, elevation + y1, midY)
@@ -331,10 +339,13 @@ const TEXTURE_TILE_CM = 100 // 1 repeat per 100 cm — documents the tiling choi
 const textureCache = new Map<string, THREE.Texture | null>()
 const textureLoader = new THREE.TextureLoader()
 
-function loadWallTexture(textureId: string): THREE.Texture | null {
-  const entry = WALL_TEXTURES.find((t) => t.id === textureId)
-  if (!entry) return null
-  const url = `assets/textures/${entry.file}`
+/**
+ * Load one texture file (cached by URL). `colorSpace` must be sRGB for the
+ * diffuse/base-color map only — normal/roughness/metalness/AO maps are data
+ * and must stay linear (NoColorSpace), a classic PBR correctness detail.
+ */
+function loadTextureFile(file: string, colorSpace: THREE.ColorSpace): THREE.Texture | null {
+  const url = `assets/textures/${file}`
   const cached = textureCache.get(url)
   if (cached !== undefined) return cached
   let tex: THREE.Texture | null = null
@@ -342,12 +353,85 @@ function loadWallTexture(textureId: string): THREE.Texture | null {
     tex = textureLoader.load(url)
     tex.wrapS = THREE.RepeatWrapping
     tex.wrapT = THREE.RepeatWrapping
-    tex.colorSpace = THREE.SRGBColorSpace
+    tex.colorSpace = colorSpace
   } catch {
     tex = null
   }
   textureCache.set(url, tex)
   return tex
+}
+
+/** Test-only hook: seed the texture cache so unit tests can exercise the
+ * PBR material wiring synchronously without real image files. */
+export function __seedTextureCache(file: string, tex: THREE.Texture | null): void {
+  textureCache.set(`assets/textures/${file}`, tex)
+}
+
+export function __clearTextureCache(): void {
+  textureCache.clear()
+}
+
+function loadWallTexture(textureId: string): THREE.Texture | null {
+  const entry = WALL_TEXTURES.find((t) => t.id === textureId)
+  if (!entry) return null
+  return loadTextureFile(entry.file, THREE.SRGBColorSpace)
+}
+
+function textureEntryFor(textureId: string): WallTextureEntry | null {
+  return WALL_TEXTURES.find((t) => t.id === textureId) ?? null
+}
+
+/**
+ * Apply a catalog entry's PBR maps + scalar defaults to a MeshStandardMaterial.
+ * Missing fields leave the current values untouched, so texture-free materials
+ * keep the project-wide 0.7/0.0 baseline.
+ */
+function applyPbrMaps(material: THREE.MeshStandardMaterial, entry: WallTextureEntry): void {
+  if (entry.normalFile) {
+    const t = loadTextureFile(entry.normalFile, THREE.NoColorSpace)
+    if (t) material.normalMap = t
+  }
+  if (entry.roughnessFile) {
+    const t = loadTextureFile(entry.roughnessFile, THREE.NoColorSpace)
+    if (t) material.roughnessMap = t
+  }
+  if (entry.metalnessFile) {
+    const t = loadTextureFile(entry.metalnessFile, THREE.NoColorSpace)
+    if (t) material.metalnessMap = t
+  }
+  if (entry.aoFile) {
+    const t = loadTextureFile(entry.aoFile, THREE.NoColorSpace)
+    if (t) material.aoMap = t
+  }
+  if (entry.roughness !== undefined) material.roughness = entry.roughness
+  if (entry.metalness !== undefined) material.metalness = entry.metalness
+  material.needsUpdate = true
+}
+
+/**
+ * three.js aoMap samples the uv2 channel; procedural geometries (extrusions,
+ * boxes, planes) only carry uv. Copying uv → uv2 is the standard workaround
+ * when there is no separate lightmap UV set. Without uv2 the shader samples
+ * aoMap at (0,0) everywhere — a single constant corner-texel occlusion.
+ */
+function addUv2(geometry: THREE.BufferGeometry): void {
+  if (geometry.getAttribute('uv2')) return
+  const uv = geometry.getAttribute('uv')
+  if (uv) geometry.setAttribute('uv2', uv)
+}
+
+/** Wire diffuse + PBR maps for a textureId-bearing material; returns the
+ * catalog entry (or null) so callers can addUv2() geometries needing it. */
+function applyMaterialTextures(material: THREE.MeshStandardMaterial, textureId: string): WallTextureEntry | null {
+  const entry = textureEntryFor(textureId)
+  if (!entry) return null
+  const diffuse = loadWallTexture(textureId)
+  if (diffuse) {
+    material.map = diffuse
+    material.needsUpdate = true
+  }
+  applyPbrMaps(material, entry)
+  return entry
 }
 
 /**
@@ -463,11 +547,8 @@ function furnitureMesh(item: Furniture, elevation: number, onReady?: () => void,
     metalness: 0.0,
   })
   if (item.textureId) {
-    const tex = loadWallTexture(item.textureId)
-    if (tex) {
-      material.map = tex
-      material.needsUpdate = true
-    }
+    const entry = applyMaterialTextures(material, item.textureId)
+    if (entry?.aoFile) addUv2(geometry)
   }
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = `furniture:${item.id}`
@@ -528,11 +609,8 @@ function addFurnitureMeshes(
       metalness: 0.0,
     })
     if (first.textureId) {
-      const tex = loadWallTexture(first.textureId)
-      if (tex) {
-        material.map = tex
-        material.needsUpdate = true
-      }
+      const entry = applyMaterialTextures(material, first.textureId)
+      if (entry?.aoFile) addUv2(geometry)
     }
     const mesh = createInstancedMesh(
       { modelPath: group.modelPath, color: group.color, items: candidates },
@@ -653,21 +731,22 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
 
   if (home.environment.groundColor !== null) {
     const groundTexId = home.environment.groundTextureId
+    const groundGeometry = new THREE.PlaneGeometry(GROUND_SIZE_CM, GROUND_SIZE_CM)
     const mat = groundTexId
       ? (() => {
           const tex = loadWallTexture(groundTexId)
           if (tex) {
             const size = GROUND_SIZE_CM / TEXTURE_TILE_CM
             tex.repeat.set(size, size)
-            return new THREE.MeshStandardMaterial({ map: tex })
+            const groundMaterial = new THREE.MeshStandardMaterial({ map: tex })
+            const entry = applyMaterialTextures(groundMaterial, groundTexId)
+            if (entry?.aoFile) addUv2(groundGeometry)
+            return groundMaterial
           }
           return new THREE.MeshStandardMaterial({ color: home.environment.groundColor })
         })()
       : new THREE.MeshStandardMaterial({ color: home.environment.groundColor })
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(GROUND_SIZE_CM, GROUND_SIZE_CM),
-      mat,
-    )
+    const ground = new THREE.Mesh(groundGeometry, mat)
     ground.rotation.x = -Math.PI / 2
     ground.name = 'ground'
     ground.receiveShadow = true
