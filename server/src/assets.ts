@@ -5,6 +5,7 @@ import { asyncHandler } from './asyncHandler.js';
 import { requireAuth } from './auth.js';
 import type { DbAdapter } from './db.js';
 import { AssetStorage } from './storage.js';
+import { timedAsync, fileIoMetrics } from './telemetry.js';
 
 // GlTF binary magic number: ASCII "glTF", little-endian (glTF 2.0 spec).
 const GLB_MAGIC = 0x46546c67;
@@ -125,23 +126,33 @@ export function assetsRouter(db: DbAdapter, storage: AssetStorage): Router {
         res.status(400).json({ error: 'glb (base64) is required' });
         return;
       }
-      const glbBytes = decodeBase64(glb);
-      if (!glbBytes) {
-        res.status(400).json({ error: 'glb is not valid base64' });
+
+      type ImportResult = { error: string } | { glbBytes: Buffer; sourceBytes: Buffer | null };
+      const importResult: ImportResult = await timedAsync('import', async () => {
+        const glbBytes = decodeBase64(glb);
+        if (!glbBytes) {
+          return { error: 'glb is not valid base64' };
+        }
+
+        const validationError = validateGlb(glbBytes);
+        if (validationError) {
+          return { error: validationError };
+        }
+
+        const sourceBytes = source == null ? null : typeof source === 'string' ? decodeBase64(source) : null;
+        if (source != null && !sourceBytes) {
+          return { error: 'source is not valid base64' };
+        }
+
+        return { glbBytes, sourceBytes };
+      }, { format: 'glb' });
+
+      if ('error' in importResult) {
+        res.status(400).json({ error: importResult.error });
         return;
       }
 
-      const validationError = validateGlb(glbBytes);
-      if (validationError) {
-        res.status(400).json({ error: validationError });
-        return;
-      }
-
-      const sourceBytes = source == null ? null : typeof source === 'string' ? decodeBase64(source) : null;
-      if (source != null && !sourceBytes) {
-        res.status(400).json({ error: 'source is not valid base64' });
-        return;
-      }
+      const { glbBytes, sourceBytes } = importResult as { glbBytes: Buffer; sourceBytes: Buffer | null };
 
       const id = typeof record?.id === 'string' ? record.id : randomUUID();
       const userId = req.params.userId!;
@@ -234,22 +245,24 @@ export function assetsRouter(db: DbAdapter, storage: AssetStorage): Router {
     asyncHandler(async (req: Request, res: Response) => {
       const userId = req.params.userId!;
       const id = req.params.id!;
-      const row = await db.get<AssetRow>(
-        'SELECT * FROM assets WHERE user_id = ? AND id = ?',
-        userId,
-        id,
-      );
-      if (!row) {
-        res.status(404).end();
-        return;
-      }
-      const glb = storage.read(userId, row.glb_path.split('/').pop() ?? '');
-      if (!glb) {
+      const exportResult = await timedAsync('export', async () => {
+        const row = await db.get<AssetRow>(
+          'SELECT * FROM assets WHERE user_id = ? AND id = ?',
+          userId,
+          id,
+        );
+        if (!row) return { status: 404 };
+        const glb = storage.read(userId, row.glb_path.split('/').pop() ?? '');
+        if (!glb) return { status: 404 };
+        return { glb };
+      }, { format: 'glb' });
+
+      if (exportResult.status === 404) {
         res.status(404).end();
         return;
       }
       res.set('Content-Type', 'model/gltf-binary');
-      res.send(glb);
+      res.send((exportResult as { glb: Buffer }).glb);
     }),
   );
 
