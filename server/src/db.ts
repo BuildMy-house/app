@@ -287,6 +287,20 @@ const SCHEMA = `
     used_at    TEXT
   );
   CREATE INDEX IF NOT EXISTS idx_magic_link_tokens_token ON magic_link_tokens (token);
+
+  CREATE TABLE IF NOT EXISTS team_invites (
+    id                 TEXT PRIMARY KEY,
+    team_id            TEXT NOT NULL,
+    email              TEXT NOT NULL,
+    role               TEXT NOT NULL,
+    invited_by_user_id TEXT NOT NULL,
+    token              TEXT NOT NULL UNIQUE,
+    created_at         TEXT NOT NULL,
+    expires_at         TEXT NOT NULL,
+    accepted_at        TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_team_invites_token ON team_invites (token);
+  CREATE INDEX IF NOT EXISTS idx_team_invites_team ON team_invites (team_id);
 `;
 
 // Idempotent init-on-boot: safe to call once per server start, and safe to

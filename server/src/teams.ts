@@ -3,6 +3,7 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { asyncHandler } from './asyncHandler.js';
 import { requireAuth } from './auth.js';
+import { getAppBaseUrl, sendEmail } from './email.js';
 import type { DbAdapter } from './db.js';
 
 interface TeamRow {
@@ -18,9 +19,188 @@ interface TeamMemberRow {
   joined_at: string;
 }
 
+interface TeamInviteRow {
+  id: string;
+  team_id: string;
+  email: string;
+  role: string;
+  invited_by_user_id: string;
+  token: string;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+}
+
 export function teamsRouter(db: DbAdapter): Router {
   const router = Router();
+
+  // GET /api/teams/invites/:token — PUBLIC (no auth): the invitee may not have
+  // an account yet. Returns enough for a frontend to show "You've been invited
+  // to X". Registered before requireAuth so it shadows GET /:id.
+  router.get(
+    '/invites/:token',
+    asyncHandler(async (req: Request, res: Response) => {
+      const invite = await db.get<TeamInviteRow & { team_name: string }>(
+        `SELECT ti.*, t.name AS team_name
+         FROM team_invites ti
+         JOIN teams t ON t.id = ti.team_id
+         WHERE ti.token = ?`,
+        req.params.token!,
+      );
+      if (!invite) {
+        res.status(404).json({ error: 'invite not found' });
+        return;
+      }
+      if (invite.accepted_at !== null || invite.expires_at < new Date().toISOString()) {
+        res.status(410).json({ error: 'invite is no longer valid' });
+        return;
+      }
+      res.json({ teamName: invite.team_name, invitedEmail: invite.email, role: invite.role });
+    }),
+  );
+
   router.use(requireAuth);
+
+  // POST /api/teams/:id/invites — email-invite someone to the team (owner-only).
+  // Works whether or not the invitee has an account yet.
+  router.post(
+    '/:id/invites',
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = req.userId!;
+      const teamId = req.params.id!;
+      const body = (req.body ?? {}) as { email?: unknown; role?: unknown };
+      if (typeof body.email !== 'string' || !body.email.trim()) {
+        res.status(400).json({ error: 'email is required' });
+        return;
+      }
+      const role = typeof body.role === 'string' && body.role ? body.role : 'member';
+      if (role !== 'member' && role !== 'owner') {
+        res.status(400).json({ error: 'role must be member or owner' });
+        return;
+      }
+
+      const team = await db.get<TeamRow>('SELECT id, name FROM teams WHERE id = ?', teamId);
+      if (!team) {
+        res.status(404).json({ error: 'team not found' });
+        return;
+      }
+
+      const callerMembership = await db.get<TeamMemberRow>(
+        'SELECT role FROM team_members WHERE team_id = ? AND user_id = ?',
+        teamId,
+        userId,
+      );
+      if (!callerMembership || callerMembership.role !== 'owner') {
+        res.status(403).json({ error: 'only owners can invite members' });
+        return;
+      }
+
+      const inviteEmail = body.email.trim().toLowerCase();
+      const existingMember = await db.get<{ '1': number }>(
+        `SELECT 1 FROM team_members tm
+         JOIN users u ON u.id = tm.user_id
+         WHERE tm.team_id = ? AND u.email = ?`,
+        teamId,
+        inviteEmail,
+      );
+      if (existingMember) {
+        res.status(409).json({ error: 'user is already a member' });
+        return;
+      }
+
+      const inviteId = randomUUID();
+      const token = randomUUID();
+      const now = new Date().toISOString();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      await db.run(
+        `INSERT INTO team_invites (id, team_id, email, role, invited_by_user_id, token, created_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        inviteId,
+        teamId,
+        inviteEmail,
+        role,
+        userId,
+        token,
+        now,
+        expiresAt,
+      );
+
+      const link = `${getAppBaseUrl()}/invite?token=${token}`;
+      const esc = (s: string) =>
+        s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      await sendEmail({
+        to: inviteEmail,
+        subject: "You've been invited to a Homely team",
+        html:
+          `<p>You've been invited to join <strong>${esc(team.name)}</strong> on Homely.</p>` +
+          `<p><a href="${link}">Accept the invitation</a></p>`,
+        text: `You've been invited to join ${team.name} on Homely. Accept: ${link}`,
+      });
+
+      // Token deliberately omitted from the response — it only leaves via email.
+      res.status(201).json({ id: inviteId, email: inviteEmail, role, expiresAt });
+    }),
+  );
+
+  // POST /api/teams/invites/:token/accept — accept an invite. The caller's own
+  // account email must match the invite's email so a link can't be cashed by
+  // whoever happens to be logged in.
+  router.post(
+    '/invites/:token/accept',
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = req.userId!;
+      const invite = await db.get<TeamInviteRow & { team_name: string }>(
+        `SELECT ti.*, t.name AS team_name
+         FROM team_invites ti
+         JOIN teams t ON t.id = ti.team_id
+         WHERE ti.token = ?`,
+        req.params.token!,
+      );
+      if (!invite) {
+        res.status(404).json({ error: 'invite not found' });
+        return;
+      }
+      if (invite.expires_at < new Date().toISOString()) {
+        res.status(410).json({ error: 'invite has expired' });
+        return;
+      }
+
+      const user = await db.get<{ email: string }>('SELECT email FROM users WHERE id = ?', userId);
+      if (!user || user.email.toLowerCase() !== invite.email.toLowerCase()) {
+        res.status(403).json({ error: 'this invite was sent to a different email address' });
+        return;
+      }
+
+      const alreadyMember = await db.get<{ '1': number }>(
+        'SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?',
+        invite.team_id,
+        userId,
+      );
+      if (alreadyMember) {
+        res.status(409).json({ error: 'user is already a member' });
+        return;
+      }
+      if (invite.accepted_at !== null) {
+        res.status(410).json({ error: 'invite has already been accepted' });
+        return;
+      }
+
+      const now = new Date().toISOString();
+      await db.transaction(async (tx) => {
+        await tx.run(
+          'INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)',
+          invite.team_id,
+          userId,
+          invite.role,
+          now,
+        );
+        await tx.run('UPDATE team_invites SET accepted_at = ? WHERE id = ?', now, invite.id);
+      });
+      res
+        .status(200)
+        .json({ ok: true, teamId: invite.team_id, teamName: invite.team_name, role: invite.role });
+    }),
+  );
 
   // POST /api/teams — create a team; creator becomes owner
   router.post(

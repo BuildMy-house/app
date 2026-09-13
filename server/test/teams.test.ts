@@ -505,3 +505,210 @@ describe('auth required on team routes', () => {
     expect(addMember.status).toBe(401);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Email invites (H11)
+// ---------------------------------------------------------------------------
+
+/** The invite token only leaves the server via the (logged) email, so tests
+ * pull it straight from the in-memory db the app was built with. */
+const inviteToken = (email: string) =>
+  (db.prepare('SELECT token FROM team_invites WHERE email = ?').get(email) as { token: string })
+    .token;
+
+async function createTeamWithOwner(name: string, email: string) {
+  const token = await register(email);
+  const team = await request(app)
+    .post('/api/teams')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ name });
+  return { token, teamId: team.body.id as string };
+}
+
+describe('POST /api/teams/:id/invites', () => {
+  it('owner can invite an email that has no account; token is not in the response', async () => {
+    const { token, teamId } = await createTeamWithOwner('Invite Team', 'alice@example.com');
+
+    const res = await request(app)
+      .post(`/api/teams/${teamId}/invites`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'carol@example.com' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.email).toBe('carol@example.com');
+    expect(res.body.role).toBe('member');
+    expect(res.body.token).toBeUndefined();
+    expect(JSON.stringify(res.body)).not.toContain(inviteToken('carol@example.com'));
+  });
+
+  it('non-owner cannot create an invite', async () => {
+    const { token: tokenA, teamId } = await createTeamWithOwner('Owner Team', 'alice@example.com');
+    const tokenB = await register('bob@example.com');
+    await request(app)
+      .post(`/api/teams/${teamId}/members`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ email: 'bob@example.com' });
+
+    const res = await request(app)
+      .post(`/api/teams/${teamId}/invites`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ email: 'carol@example.com' });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 409 when inviting an email that is already a member', async () => {
+    const { token, teamId } = await createTeamWithOwner('Dup Team', 'alice@example.com');
+    await register('bob@example.com');
+    await request(app)
+      .post(`/api/teams/${teamId}/members`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'bob@example.com' });
+
+    const res = await request(app)
+      .post(`/api/teams/${teamId}/invites`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'BOB@example.com' });
+
+    expect(res.status).toBe(409);
+  });
+});
+
+describe('GET /api/teams/invites/:token', () => {
+  it('returns the invite preview without auth', async () => {
+    const { token, teamId } = await createTeamWithOwner('Preview Team', 'alice@example.com');
+    await request(app)
+      .post(`/api/teams/${teamId}/invites`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'carol@example.com' });
+
+    const res = await request(app).get(`/api/teams/invites/${inviteToken('carol@example.com')}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      teamName: 'Preview Team',
+      invitedEmail: 'carol@example.com',
+      role: 'member',
+    });
+  });
+
+  it('returns 404 for an unknown token', async () => {
+    const res = await request(app).get('/api/teams/invites/not-a-real-token');
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 410 for an expired invite', async () => {
+    const { token, teamId } = await createTeamWithOwner('Old Team', 'alice@example.com');
+    await request(app)
+      .post(`/api/teams/${teamId}/invites`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'carol@example.com' });
+    db.prepare('UPDATE team_invites SET expires_at = ?').run(
+      new Date(Date.now() - 1000).toISOString(),
+    );
+
+    const res = await request(app).get(`/api/teams/invites/${inviteToken('carol@example.com')}`);
+    expect(res.status).toBe(410);
+  });
+});
+
+describe('POST /api/teams/invites/:token/accept', () => {
+  it('full lifecycle: invite by email, preview logged out, register, accept, become member', async () => {
+    const { token: tokenA, teamId } = await createTeamWithOwner('Life Team', 'alice@example.com');
+
+    // Alice invites carol@example.com, who has no account yet
+    const created = await request(app)
+      .post(`/api/teams/${teamId}/invites`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ email: 'carol@example.com' });
+    expect(created.status).toBe(201);
+
+    // Logged-out preview
+    const preview = await request(app).get(`/api/teams/invites/${inviteToken('carol@example.com')}`);
+    expect(preview.status).toBe(200);
+    expect(preview.body.teamName).toBe('Life Team');
+
+    // Carol registers and accepts
+    const tokenC = await register('carol@example.com');
+    const accept = await request(app)
+      .post(`/api/teams/invites/${inviteToken('carol@example.com')}/accept`)
+      .set('Authorization', `Bearer ${tokenC}`);
+    expect(accept.status).toBe(200);
+
+    // Carol is now a member of the team
+    const detail = await request(app)
+      .get(`/api/teams/${teamId}`)
+      .set('Authorization', `Bearer ${tokenA}`);
+    expect(detail.status).toBe(200);
+    expect(detail.body.members.map((m: { email: string }) => m.email)).toContain(
+      'carol@example.com',
+    );
+
+    // Carol sees the team in her own list
+    const carolList = await request(app).get('/api/teams').set('Authorization', `Bearer ${tokenC}`);
+    expect(carolList.status).toBe(200);
+    expect(carolList.body.items.map((t: { id: string }) => t.id)).toContain(teamId);
+  });
+
+  it('returns 403 when a different user accepts someone else\'s invite', async () => {
+    const { token, teamId } = await createTeamWithOwner('Not Yours', 'alice@example.com');
+    await request(app)
+      .post(`/api/teams/${teamId}/invites`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'carol@example.com' });
+
+    const tokenD = await register('dave@example.com');
+    const res = await request(app)
+      .post(`/api/teams/invites/${inviteToken('carol@example.com')}/accept`)
+      .set('Authorization', `Bearer ${tokenD}`);
+
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 409 on double accept', async () => {
+    const { token, teamId } = await createTeamWithOwner('Once Only', 'alice@example.com');
+    await request(app)
+      .post(`/api/teams/${teamId}/invites`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'carol@example.com' });
+
+    const tokenC = await register('carol@example.com');
+    const url = `/api/teams/invites/${inviteToken('carol@example.com')}/accept`;
+    const first = await request(app).post(url).set('Authorization', `Bearer ${tokenC}`);
+    const second = await request(app).post(url).set('Authorization', `Bearer ${tokenC}`);
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(409);
+  });
+
+  it('returns 410 for an expired invite', async () => {
+    const { token, teamId } = await createTeamWithOwner('Stale Team', 'alice@example.com');
+    await request(app)
+      .post(`/api/teams/${teamId}/invites`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'carol@example.com' });
+    db.prepare('UPDATE team_invites SET expires_at = ?').run(
+      new Date(Date.now() - 1000).toISOString(),
+    );
+
+    const tokenC = await register('carol@example.com');
+    const res = await request(app)
+      .post(`/api/teams/invites/${inviteToken('carol@example.com')}/accept`)
+      .set('Authorization', `Bearer ${tokenC}`);
+
+    expect(res.status).toBe(410);
+  });
+
+  it('requires auth', async () => {
+    const { token, teamId } = await createTeamWithOwner('Auth Team', 'alice@example.com');
+    await request(app)
+      .post(`/api/teams/${teamId}/invites`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'carol@example.com' });
+
+    const res = await request(app).post(
+      `/api/teams/invites/${inviteToken('carol@example.com')}/accept`,
+    );
+    expect(res.status).toBe(401);
+  });
+});
