@@ -357,7 +357,7 @@ describe('GET /api/auth/me', () => {
 
     const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${reg.body.token}`);
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ id: userId, email: 'me@example.com', createdAt: expect.any(String) });
+    expect(res.body).toEqual({ id: userId, email: 'me@example.com', name: null, createdAt: expect.any(String) });
   });
 
   it('rejects unauthenticated requests with 401', async () => {
