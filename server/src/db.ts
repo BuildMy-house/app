@@ -2,10 +2,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
-<<<<<<< HEAD
-=======
 import { Pool, type PoolClient } from 'pg';
-import { withTelemetry, type DbTelemetryConfig } from './database/telemetry.js';
 
 export type DeploymentMode = 'sqlite' | 'postgres';
 
@@ -14,18 +11,14 @@ export function getDeploymentMode(): DeploymentMode {
   if (url && url.startsWith('postgresql://')) return 'postgres';
   return 'sqlite';
 }
->>>>>>> feat/b1-2
 
 export interface UserRow {
   id: string;
   email: string;
   password_hash: string;
-  name: string | null;
   created_at: string;
 }
 
-<<<<<<< HEAD
-=======
 export interface RunResult {
   changes: number;
   lastInsertRowid: number | string | bigint;
@@ -184,14 +177,6 @@ export class PgAdapter implements DbAdapter {
     if (rows.length === 0) {
       await this.q('ALTER TABLE homes ADD COLUMN team_id TEXT');
     }
-    // Migration: add name to users if missing
-    const nameCol = await this.q(
-      `SELECT column_name FROM information_schema.columns
-       WHERE table_name = 'users' AND column_name = 'name'`,
-    );
-    if (nameCol.rows.length === 0) {
-      await this.q('ALTER TABLE users ADD COLUMN name TEXT');
-    }
   }
 
   private async runUpsert(sql: string, params: unknown[]): Promise<RunResult> {
@@ -221,22 +206,18 @@ export class PgAdapter implements DbAdapter {
 // Factory
 // ---------------------------------------------------------------------------
 
-export function createAdapter(mode: DeploymentMode, telemetryConfig?: Partial<DbTelemetryConfig>): DbAdapter {
-  let adapter: DbAdapter;
+export function createAdapter(mode: DeploymentMode): DbAdapter {
   if (mode === 'postgres') {
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    adapter = new PgAdapter(pool);
-  } else {
-    adapter = new SqliteAdapter(openSqlite(defaultDbPath()));
+    return new PgAdapter(pool);
   }
-  return withTelemetry(adapter, telemetryConfig);
+  return new SqliteAdapter(openSqlite(defaultDbPath()));
 }
 
 // ---------------------------------------------------------------------------
 // Legacy helpers (kept for backward compat — prefer createAdapter)
 // ---------------------------------------------------------------------------
 
->>>>>>> feat/b1-2
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS users (
     id            TEXT PRIMARY KEY,
@@ -271,28 +252,69 @@ const SCHEMA = `
     updated_at    TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_homes_owner ON homes (owner_user_id);
+
+  CREATE TABLE IF NOT EXISTS teams (
+    id         TEXT PRIMARY KEY,
+    name       TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS team_members (
+    team_id   TEXT NOT NULL,
+    user_id   TEXT NOT NULL,
+    role      TEXT NOT NULL,
+    joined_at TEXT NOT NULL,
+    PRIMARY KEY (team_id, user_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_team_members_user ON team_members (user_id);
+
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL,
+    token      TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at    TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens (token);
+
+  CREATE TABLE IF NOT EXISTS magic_link_tokens (
+    id         TEXT PRIMARY KEY,
+    email      TEXT NOT NULL,
+    token      TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at    TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_magic_link_tokens_token ON magic_link_tokens (token);
+
+  CREATE TABLE IF NOT EXISTS team_invites (
+    id                 TEXT PRIMARY KEY,
+    team_id            TEXT NOT NULL,
+    email              TEXT NOT NULL,
+    role               TEXT NOT NULL,
+    invited_by_user_id TEXT NOT NULL,
+    token              TEXT NOT NULL UNIQUE,
+    created_at         TEXT NOT NULL,
+    expires_at         TEXT NOT NULL,
+    accepted_at        TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_team_invites_token ON team_invites (token);
+  CREATE INDEX IF NOT EXISTS idx_team_invites_team ON team_invites (team_id);
 `;
 
 // Idempotent init-on-boot: safe to call once per server start, and safe to
 // call again (CREATE ... IF NOT EXISTS). No migration framework needed at this scale.
 export function initDb(db: Database.Database): void {
   db.exec(SCHEMA);
-<<<<<<< HEAD
-=======
   // Guarded migration: add team_id to homes if missing (existing rows get NULL).
   const cols = db.pragma('table_info(homes)') as { name: string }[];
   if (!cols.some((c) => c.name === 'team_id')) {
     db.exec('ALTER TABLE homes ADD COLUMN team_id TEXT');
   }
-  // Guarded migration: add name to users if missing (existing rows get NULL).
-  const userCols = db.pragma('table_info(users)') as { name: string }[];
-  if (!userCols.some((c) => c.name === 'name')) {
-    db.exec('ALTER TABLE users ADD COLUMN name TEXT');
-  }
->>>>>>> feat/b1-4
 }
 
-export function openDatabase(path: string): Database.Database {
+function openSqlite(path: string): Database.Database {
   mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path);
   db.pragma('journal_mode = WAL');
@@ -302,25 +324,18 @@ export function openDatabase(path: string): Database.Database {
 export function defaultDbPath(): string {
   // src/db.ts (dev) and dist/db.js (compiled) both sit directly under homely/server/.
   return fileURLToPath(new URL('../data/homely.db', import.meta.url));
-<<<<<<< HEAD
-}
-=======
 }
 
 export function openDatabase(path: string): Database.Database {
   return openSqlite(path);
 }
 
-export function openAdapter(path?: string, telemetryConfig?: Partial<DbTelemetryConfig>): DbAdapter {
+export function openAdapter(path?: string): DbAdapter {
   const mode = getDeploymentMode();
-  let adapter: DbAdapter;
   if (mode === 'postgres') {
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    adapter = new PgAdapter(pool);
-  } else {
-    const dbPath = path ?? defaultDbPath();
-    adapter = new SqliteAdapter(openSqlite(dbPath));
+    return new PgAdapter(pool);
   }
-  return withTelemetry(adapter, telemetryConfig);
+  const dbPath = path ?? defaultDbPath();
+  return new SqliteAdapter(openSqlite(dbPath));
 }
->>>>>>> feat/b1-2
