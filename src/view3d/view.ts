@@ -127,7 +127,9 @@ export class View3D {
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this._quality.pixelRatioCap))
       renderer.setSize(width, height)
       renderer.shadowMap.enabled = true
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap
+      // PCFSoftShadowMap is deprecated in r185+; PCFShadowMap now uses Vogel
+      // disk sampling with IGN noise, giving the same soft-shadow quality.
+      renderer.shadowMap.type = THREE.PCFShadowMap
       container.appendChild(renderer.domElement)
       this.renderer = renderer
       this.applyQualityToScene()
