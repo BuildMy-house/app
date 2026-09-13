@@ -155,6 +155,19 @@ export const telemetry = {
   featureOpen(): void { emit('feature.open', 2) },
   featureExport(): void { emit('feature.export', 2) },
 
+  /** Trace a user action with timing and scene complexity (ticket A4). */
+  userActionMetrics(metrics: {
+    actionName: string
+    durationMs: number
+    sceneComplexityBefore: number
+    sceneComplexityAfter: number
+    frameTimeDeltaMs: number
+    success: boolean
+    errorMessage?: string
+  }): void {
+    emit('user.action_trace', 2, { ...metrics })
+  },
+
   // ── Preferences ──────────────────────────────────────────────────────────
 
   setTier2: setTelemetryTier2,
