@@ -11,6 +11,7 @@ import {
 } from '../core/home'
 import { isArcWall, wallOutlinePoints } from '../core/top-camera-follower'
 import { createInstancedMesh, groupFurnitureForInstancing } from './instanced-meshes'
+import { recordModelLoad, recordTextureLoad } from './asset-metrics'
 
 type Pt = [number, number]
 
@@ -336,10 +337,17 @@ function loadWallTexture(textureId: string): THREE.Texture | null {
   if (!entry) return null
   const url = `assets/textures/${entry.file}`
   const cached = textureCache.get(url)
-  if (cached !== undefined) return cached
+  if (cached !== undefined) {
+    if (cached) recordTextureLoad(textureId, cached, 0, true, url)
+    return cached
+  }
   let tex: THREE.Texture | null = null
   try {
-    tex = textureLoader.load(url)
+    const start = performance.now()
+    tex = textureLoader.load(url, () => {
+      // onLoad fires after network + decode — the real load duration.
+      recordTextureLoad(textureId, tex, performance.now() - start, false, url)
+    })
     tex.wrapS = THREE.RepeatWrapping
     tex.wrapT = THREE.RepeatWrapping
     tex.colorSpace = THREE.SRGBColorSpace
@@ -431,15 +439,18 @@ function swapInModel(mesh: THREE.Mesh, item: Furniture, isSelected: boolean, onR
 
   const cached = getCachedModel(url)
   if (cached) {
+    recordModelLoad(0, true, url)
     addModel(cached)
     return
   }
 
   const loader = modelLoader()
   try {
+    const start = performance.now()
     loader.load(
       url,
       (gltf) => {
+        recordModelLoad(performance.now() - start, false, url)
         cacheModel(url, gltf.scene)
         addModel(gltf.scene)
         onReady?.()
