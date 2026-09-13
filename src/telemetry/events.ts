@@ -82,6 +82,32 @@ export interface AutomationEvent extends BaseEvent {
   durationMs?: number
 }
 
+/** Payload for periodic renderer stats (collected every 30 frames, reported every 30s). */
+export interface RenderingMetrics {
+  drawCalls: number
+  instancedMeshCount: number
+  triangleCount: number
+  textureMemoryMB: number
+  fps: number
+}
+
+export interface RenderingMetricsEvent extends BaseEvent, RenderingMetrics {
+  event: 'perf.rendering_metrics'
+  tier: 1
+}
+
+/** Periodic delta-vs-rebuild ratio for scene updates (60s aggregation window). */
+export interface SceneDeltaMetricsEvent extends BaseEvent {
+  event: 'perf.scene_delta_metrics'
+  tier: 1
+  deltaUpdatesCount: number
+  fullRebuildsCount: number
+  avgDeltaDurationMs: number
+  avgRebuildDurationMs: number
+  deltaRatio: number // 0-1, percentage of deltas vs total
+  windowDurationMs: number // 60000 for 60s aggregation
+}
+
 // ── Tier 2: User Interaction (opt-out) ──────────────────────────────────────
 
 export interface ToolUsageEvent extends BaseEvent {
@@ -106,5 +132,7 @@ export type TelemetryEvent =
   | FileIoEvent
   | AppLifecycleEvent
   | AutomationEvent
+  | RenderingMetricsEvent
+  | SceneDeltaMetricsEvent
   | ToolUsageEvent
   | FeatureUsageEvent

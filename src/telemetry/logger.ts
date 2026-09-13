@@ -8,7 +8,7 @@
  *   telemetry.frameTime([16, 18, 22, 45, 120])
  */
 
-import type { TelemetryEvent, TelemetryTier } from './events'
+import type { RenderingMetrics, TelemetryEvent, TelemetryTier } from './events'
 import { getTelemetryConfig, initTelemetryConfig, setTelemetryTier2 } from './config'
 import { getSessionId, getVersion, initContext } from './context'
 import { enqueue, flush, registerUnload } from './transport'
@@ -113,6 +113,23 @@ export const telemetry = {
 
   automationCommand(command: string, durationMs?: number): void {
     emit('automation.command', 1, { command, durationMs })
+  },
+
+  /** Report renderer stats snapshot (draw calls, instancing, triangles, fps). */
+  renderingMetrics(metrics: RenderingMetrics): void {
+    emit('perf.rendering_metrics', 1, { ...metrics })
+  },
+
+  /** Report scene delta-vs-rebuild ratio for the last 60s window. */
+  sceneDeltaMetrics(metrics: {
+    deltaUpdatesCount: number
+    fullRebuildsCount: number
+    avgDeltaDurationMs: number
+    avgRebuildDurationMs: number
+    deltaRatio: number
+    windowDurationMs: number
+  }): void {
+    emit('perf.scene_delta_metrics', 1, { ...metrics })
   },
 
   // ── Tier 2: User Interaction ─────────────────────────────────────────────
