@@ -16,6 +16,7 @@ import { exportPlanPng, export3dPng, renderPlanPng } from './services/adapters/p
 import { buildRenderableScene } from './render/scene-builder'
 import { nextLevelElevation } from './core/home'
 import { PreferencesDialog, loadPreferences, hexToIntColor } from './ui/preferences'
+import { confirmDialog, promptDialog } from './ui/dialogs'
 import { HttpAuth } from './services/auth'
 import { RemoteHomeStore } from './services/adapters/remote-home-store'
 import { AuthDialog } from './ui/auth-dialog'
@@ -218,8 +219,8 @@ function refreshMenus(): void {
       items: [
         {
           label: 'New',
-          action: () => {
-            if (store.isDirty() && !confirm('Unsaved changes will be lost. Continue?')) return
+          action: async () => {
+            if (store.isDirty() && !(await confirmDialog('Unsaved changes will be lost. Continue?'))) return
             store.resetToEmpty()
             currentAccountHomeId = null
             doFit()
@@ -241,7 +242,7 @@ function refreshMenus(): void {
         {
           label: 'Open',
           action: async () => {
-            if (store.isDirty() && !confirm('Unsaved changes will be lost. Continue?')) return
+            if (store.isDirty() && !(await confirmDialog('Unsaved changes will be lost. Continue?'))) return
             try {
               const home = await loadHomeFile()
               if (home) {
@@ -374,7 +375,7 @@ async function saveToAccount(): Promise<void> {
   try {
     const current = store.getHome()
     const defaultName = current.name && current.name.trim() ? current.name : 'Untitled home'
-    const name = window.prompt('Home name:', defaultName)
+    const name = await promptDialog('Home name:', defaultName)
     if (name === null) return
     const trimmed = name.trim() || 'Untitled home'
     model.setName(trimmed)
@@ -395,7 +396,7 @@ async function openFromAccount(): Promise<void> {
     }
     new HomeListDialog(homes, (id) => {
       void (async () => {
-        if (store.isDirty() && !confirm('Unsaved changes will be lost. Continue?')) return
+        if (store.isDirty() && !(await confirmDialog('Unsaved changes will be lost. Continue?'))) return
         try {
           const home = await remoteHomes.load(id)
           store.loadHome(home)
@@ -557,10 +558,10 @@ function refreshLevelButtons(): void {
       engine.setActiveLevel(activeLevelId)
       refreshAll()
     })
-    btn.addEventListener('dblclick', () => {
+    btn.addEventListener('dblclick', async () => {
       const level = home.levels.find((l) => l.id === btn.dataset.level)
       if (!level) return
-      const newName = window.prompt('Rename level:', level.name)
+      const newName = await promptDialog('Rename level:', level.name)
       if (newName && newName.trim()) {
         model.updateLevel(level.id, { name: newName.trim() })
         refreshAll()
@@ -569,11 +570,11 @@ function refreshLevelButtons(): void {
   }
 
   for (const btn of group.querySelectorAll<HTMLButtonElement>('button.level-delete')) {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const id = btn.dataset.deleteLevel!
       const level = home.levels.find((l) => l.id === id)
       if (!level) return
-      if (!confirm(`Delete level "${level.name}"? This also removes everything on it. This can be undone.`)) return
+      if (!(await confirmDialog(`Delete level "${level.name}"? This also removes everything on it. This can be undone.`))) return
       model.removeLevel(id)
       if (activeLevelId === id) {
         activeLevelId = null
@@ -583,8 +584,8 @@ function refreshLevelButtons(): void {
     })
   }
 
-  group.querySelector('#btn-add-level')!.addEventListener('click', () => {
-    const name = window.prompt('Level name:', `Level ${home.levels.length + 1}`)
+  group.querySelector('#btn-add-level')!.addEventListener('click', async () => {
+    const name = await promptDialog('Level name:', `Level ${home.levels.length + 1}`)
     if (!name || !name.trim()) return
     const elevation = nextLevelElevation(home.levels)
     const created = model.addLevel({
@@ -1100,7 +1101,10 @@ function doFit(): void {
   userHasZoomed = false
   currentView = fitToBounds(store.getHome(), canvas.width, canvas.height, 40, activeLevelId)
   if (view3d) {
-    view3d.setActivePreset(view3d.director.getActivePreset())
+    // Real bounds-based fit instead of resetting to the stored preset: the
+    // preset sits near the world origin, so content drawn far from the origin
+    // stayed out of frame (QA repro at x:-158, y:-308 m).
+    view3d.fitToContent()
   }
   refreshStatus()
 }
