@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'node:path';
 import { assetsRouter } from './assets.js';
+import { telemetryMiddleware } from './middleware/telemetry.js';
 import {
   loginHandler,
   registerHandler,
@@ -62,6 +63,7 @@ export async function createApp(
   // JSON limit must sit well above MAX_IMPORT_BYTES for our own handler check
   // (not body-parser's) to be the one that fires with the intended message.
   app.use(express.json({ limit: '256mb' }));
+  app.use(telemetryMiddleware);
   app.post('/api/auth/register', registerHandler(adapter));
   app.post('/api/auth/login', loginHandler(adapter));
   app.put('/api/auth/password', requireAuth, changePasswordHandler(adapter));
