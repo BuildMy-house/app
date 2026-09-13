@@ -95,12 +95,11 @@ async function flushSaveQueue(): Promise<void> {
   for (const [userId, updates] of saveQueue) {
     for (const { homeId, name, json } of updates) {
       await db.run(
-        'UPDATE homes SET name = ?, json = ?, updated_at = ? WHERE id = ? AND owner_user_id = ?',
+        'UPDATE homes SET name = ?, json = ?, updated_at = ? WHERE id = ?',
         name,
         json,
         now,
         homeId,
-        userId,
       );
       totalWrites++;
     }
