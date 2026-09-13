@@ -44,3 +44,6 @@ ruff_cache/
 # SSH keys and certs
 certs/
 .claude/mcp.json
+
+# SH3D bulk import scratch (downloads, conversion output, checkpoints) — MAT-T8
+.sh3d-scratch/

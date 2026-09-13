@@ -38,6 +38,11 @@ export interface CatalogPanelOptions {
   modelUrlResolver?: (modelPath: string) => string
 }
 
+/** Absolute http(s) model paths (e.g. R2-hosted GLBs) pass through unchanged. */
+function resolveModelUrl(modelPath: string): string {
+  return /^https?:\/\//i.test(modelPath) ? modelPath : `assets/${modelPath}`
+}
+
 const CATEGORY_ORDER = [
   'Living',
   'Bedroom',
@@ -73,7 +78,7 @@ export class CatalogPanel {
     this.onPlace = options.onPlace
     this.onPlaceModeChange = options.onPlaceModeChange
     this.onImportModel = options.onImportModel
-    this.modelUrlResolver = options.modelUrlResolver ?? ((modelPath) => `assets/${modelPath}`)
+    this.modelUrlResolver = options.modelUrlResolver ?? resolveModelUrl
 
     this.root = document.createElement('div')
     this.root.className = 'catalog-panel'
