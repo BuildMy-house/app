@@ -36,7 +36,11 @@ if [ -n "${AXIOM_TOKEN:-}" ]; then
   export OTEL_METRICS_EXPORTER=otlp
   export OTEL_LOGS_EXPORTER=otlp
   export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-  export OTEL_EXPORTER_OTLP_ENDPOINT=https://api.axiom.co
+  # api.axiom.co routes to the default (us-east-1) region; this org's
+  # dataset lives in eu-central-1 and OTLP ingest requires that region's
+  # edge domain directly (confirmed live: /v1/metrics on this domain
+  # accepts requests, api.axiom.co rejects bmh-company writes outright).
+  export OTEL_EXPORTER_OTLP_ENDPOINT=https://eu-central-1.aws.edge.axiom.co
   export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer ${AXIOM_TOKEN},X-Axiom-Dataset=bmh-company"
   export OTEL_RESOURCE_ATTRIBUTES="service.name=claude-code,deployment.environment.name=production"
   echo "[otel] Claude Code telemetry -> Axiom (bmh-company)"

@@ -10,7 +10,11 @@ export const AxiomUsage = async () => {
   if (!token) return {};
 
   const dataset = process.env.AXIOM_DATASET || "bmh-company";
-  const endpoint = `https://api.axiom.co/v1/datasets/${dataset}/ingest`;
+  // api.axiom.co routes to the default (us-east-1) region; this org's
+  // dataset lives in eu-central-1 and ingest requires that region's edge
+  // domain + its /v1/ingest/<dataset> path (confirmed live via GET
+  // /v1/datasets/bmh-company -> edgeDeploymentUrl).
+  const endpoint = `https://eu-central-1.aws.edge.axiom.co/v1/ingest/${dataset}`;
   const queue = [];
   let flushing = false;
 
