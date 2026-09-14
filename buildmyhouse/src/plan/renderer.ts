@@ -711,7 +711,7 @@ export function drawPlan(
       else ctx.lineTo(corner.x, corner.y)
     })
     ctx.closePath()
-    ctx.fillStyle = cssColor(f.color, FURNITURE_FILL)
+    ctx.fillStyle = patternOrNull(ctx, f.textureId) ?? cssColor(f.color, FURNITURE_FILL)
     ctx.fill()
     if (selected.has(f.id)) {
       ctx.lineWidth = 2
@@ -879,6 +879,26 @@ export function drawPlan(
     ctx.setLineDash([])
     ctx.fillStyle = PREVIEW_COLOR
     for (const [x, y] of preview.roomPoints) {
+      ctx.beginPath()
+      ctx.arc(mapper.sx(x), mapper.sy(y), 3, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+
+  // Polyline-tool preview: in-progress open polyline outline + vertex dots.
+  if (preview && preview.tool === 'polyline' && preview.phase === 'drawing' && preview.polylinePoints.length > 0) {
+    ctx.setLineDash([6, 4])
+    ctx.strokeStyle = PREVIEW_COLOR
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    preview.polylinePoints.forEach(([x, y], index) => {
+      if (index === 0) ctx.moveTo(mapper.sx(x), mapper.sy(y))
+      else ctx.lineTo(mapper.sx(x), mapper.sy(y))
+    })
+    ctx.stroke()
+    ctx.setLineDash([])
+    ctx.fillStyle = PREVIEW_COLOR
+    for (const [x, y] of preview.polylinePoints) {
       ctx.beginPath()
       ctx.arc(mapper.sx(x), mapper.sy(y), 3, 0, Math.PI * 2)
       ctx.fill()

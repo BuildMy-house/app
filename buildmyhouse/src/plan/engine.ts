@@ -96,6 +96,8 @@ export type HitResult =
   | { kind: 'furniture'; id: string }
   | { kind: 'room'; id: string }
   | { kind: 'room-vertex'; roomId: string; vertexIndex: number }
+  | { kind: 'polyline'; id: string }
+  | { kind: 'polyline-vertex'; polylineId: string; vertexIndex: number }
   | { kind: 'roof'; id: string }
   | { kind: 'label'; id: string }
   | { kind: 'dimension'; id: string }
@@ -140,6 +142,7 @@ export interface PlanPreview {
   chainStart: Point | null
   pendingWalls: Array<Segment>
   roomPoints: Array<[number, number]>
+  polylinePoints: Array<[number, number]>
   dimensionLine: { start: Point; end: Point; length: number } | null
   marquee: { from: Point; to: Point } | null
   closurePolygon: Array<Point> | null
@@ -165,6 +168,8 @@ export class PlanEngine {
   private sessionOpen = false
   /** Polygon vertices collected during a room-tool drawing session. */
   private roomPoints: Array<[number, number]> = []
+  /** Vertices collected during a polyline-tool drawing session. */
+  private polylinePoints: Array<[number, number]> = []
   /** Start point of a dimension-line-tool drawing session. */
   private dimensionStart: Point | null = null
   private vertexDrag: { wallId: string; endpoint: 'start' | 'end'; startX: number; startY: number; connectedWalls: Array<{ wallId: string; endpoint: 'start' | 'end' }> } | null = null
@@ -223,13 +228,14 @@ export class PlanEngine {
     this.marqueeTo = null
     if (this.phase === 'drawing') {
       if (this.tool === 'room') this.cancelRoomDrawing()
+      else if (this.tool === 'polyline') this.cancelPolylineDrawing()
       else if (this.tool === 'dimensionLine') this.cancelDimensionLine()
       else this.validateDrawnWalls()
     }
     this.tool = tool
     this.closurePolygon = null
     this.closureTooltip = null
-    if (tool !== 'wall' && tool !== 'room' && tool !== 'dimensionLine' && tool !== 'label') this.phase = 'idle'
+    if (tool !== 'wall' && tool !== 'room' && tool !== 'polyline' && tool !== 'dimensionLine' && tool !== 'label') this.phase = 'idle'
     // Mirror the tool into home state without polluting undo history.
     this.model.getStore().patchNonUndoable((h) => {
       h.activeTool = tool === 'panning' ? 'panning' : (tool as never)
@@ -491,6 +497,7 @@ export class PlanEngine {
       // renderer draws them from the store snapshot; nothing stays pending.
       pendingWalls: [],
       roomPoints: this.roomPoints.map(([x, y]) => [x, y] as [number, number]),
+      polylinePoints: this.polylinePoints.map(([x, y]) => [x, y] as [number, number]),
       dimensionLine: dim,
       marquee:
         this._marqueeActive && this.marqueeFrom && this.marqueeTo
@@ -776,6 +783,14 @@ export class PlanEngine {
         )
         return
       }
+      // polyline-vertex: select the parent entity for dragging
+      if (hit.kind === 'polyline-vertex') {
+        if (!home.selection.includes(hit.polylineId)) {
+          this.model.setSelection([hit.polylineId])
+        }
+        this.model.moveSelection(to.x - from.x, to.y - from.y)
+        return
+      }
       if (!home.selection.includes(hit.id)) {
         this.model.setSelection([hit.id])
       }
@@ -826,6 +841,13 @@ export class PlanEngine {
       const cx = sumX / room.points.length
       const cy = sumY / room.points.length
       if (inside({ x: cx, y: cy })) picked.add(room.id)
+    }
+    for (const pl of home.polylines) {
+      const sumX = pl.points.reduce((acc: number, pt) => acc + pt[0], 0)
+      const sumY = pl.points.reduce((acc: number, pt) => acc + pt[1], 0)
+      const cx = sumX / pl.points.length
+      const cy = sumY / pl.points.length
+      if (inside({ x: cx, y: cy })) picked.add(pl.id)
     }
     for (const furniture of home.furniture) {
       if (inside({ x: furniture.x, y: furniture.y })) picked.add(furniture.id)
@@ -880,6 +902,17 @@ export class PlanEngine {
         this.removeLastChainPoint()
         return
       }
+      if (key === 'backspace' && this.tool === 'polyline' && this.phase === 'drawing') {
+        if (this.polylinePoints.length <= 1) {
+          this.cancelPolylineDrawing()
+        } else {
+          this.polylinePoints.pop()
+          this.chainStart = this.polylinePoints.length > 0
+            ? { x: this.polylinePoints[this.polylinePoints.length - 1]![0], y: this.polylinePoints[this.polylinePoints.length - 1]![1] }
+            : null
+        }
+        return
+      }
       const before = this.homeSnapshot()
       const selection = before.selection
       if (selection.length === 0) return
@@ -901,6 +934,10 @@ export class PlanEngine {
     }
     if (this.tool === 'room' && this.phase === 'drawing') {
       this.cancelRoomDrawing()
+      return
+    }
+    if (this.tool === 'polyline' && this.phase === 'drawing') {
+      this.cancelPolylineDrawing()
       return
     }
     if (this.tool === 'dimensionLine' && this.phase === 'drawing') {
@@ -931,7 +968,9 @@ export class PlanEngine {
           ? hit.wallId
           : hit.kind === 'room-vertex'
             ? hit.roomId
-            : hit.id
+            : hit.kind === 'polyline-vertex'
+              ? hit.polylineId
+              : hit.id
       const selection = home.selection
       if (shift) {
         this.model.setSelection(
@@ -966,7 +1005,8 @@ export class PlanEngine {
       return
     }
     if (this.tool === 'polyline') {
-      throw new ModelError('polyline tool is not supported')
+      this.polylineClick(point)
+      return
     }
     if (this.tool !== 'wall') return
 
@@ -1004,6 +1044,25 @@ export class PlanEngine {
         )
         this.model.setSelection([roof.id])
         this.model.getStore().endCompoundEdit()
+      }
+      return
+    }
+    if (this.tool === 'polyline') {
+      if (this.phase === 'drawing' && this.polylinePoints.length >= 2) {
+        // Remove the phantom duplicate point from the double-click gesture
+        const last = this.polylinePoints[this.polylinePoints.length - 1]!
+        const prev = this.polylinePoints.length >= 2
+          ? this.polylinePoints[this.polylinePoints.length - 2]!
+          : null
+        if (prev && distance(point, { x: last[0], y: last[1] }) <= ENDPOINT_HIT_RADIUS
+          && distance(point, { x: prev[0], y: prev[1] }) <= ENDPOINT_HIT_RADIUS) {
+          this.polylinePoints.pop()
+        }
+        if (this.polylinePoints.length >= 2) {
+          this.closePolyline(false)
+        } else {
+          this.cancelPolylineDrawing()
+        }
       }
       return
     }
@@ -1366,6 +1425,46 @@ export class PlanEngine {
 
   private cancelRoomDrawing(): void {
     this.roomPoints = []
+    this.phase = 'idle'
+    this.chainStart = null
+  }
+
+  private polylineClick(point: Point): void {
+    const pt = this.gridSnapEnabled ? this.snapToGrid(point.x, point.y) : point
+    if (this.phase === 'idle') {
+      this.polylinePoints = [[pt.x, pt.y]]
+      this.phase = 'drawing'
+      this.chainStart = pt
+      return
+    }
+    if (this.polylinePoints.length >= 3) {
+      const first = this.polylinePoints[0]!
+      if (distance(pt, { x: first[0], y: first[1] }) <= ENDPOINT_HIT_RADIUS) {
+        this.closePolyline(true)
+        return
+      }
+    }
+    this.polylinePoints.push([pt.x, pt.y])
+    this.chainStart = pt
+  }
+
+  private closePolyline(closed: boolean): void {
+    const points = this.polylinePoints
+    this.polylinePoints = []
+    this.phase = 'idle'
+    this.chainStart = null
+    if (points.length < 2) return
+    this.model.getStore().beginCompoundEdit()
+    const pl = this.model.addPolyline(points, {
+      closed,
+      levelRef: this.activeLevelId ?? undefined,
+    })
+    this.model.setSelection([pl.id])
+    this.model.getStore().endCompoundEdit()
+  }
+
+  private cancelPolylineDrawing(): void {
+    this.polylinePoints = []
     this.phase = 'idle'
     this.chainStart = null
   }
@@ -1846,6 +1945,26 @@ export class PlanEngine {
         }
       }
       if (this.pointInPolygon(point, room.points)) return { kind: 'room', id: room.id }
+    }
+    // 5a. Polylines (vertex + segment hit for open, polygon containment for closed)
+    for (const pl of home.polylines) {
+      if (!this.matchesActiveLevel(pl.levelRef)) continue
+      for (let i = 0; i < pl.points.length; i++) {
+        const [px, py] = pl.points[i]!
+        if (distance(point, { x: px, y: py }) <= ENDPOINT_HIT_RADIUS) {
+          return { kind: 'polyline-vertex', polylineId: pl.id, vertexIndex: i }
+        }
+      }
+      if (pl.closed && pl.points.length >= 3 && this.pointInPolygon(point, pl.points)) {
+        return { kind: 'polyline', id: pl.id }
+      }
+      // Open polyline: hit on any segment
+      for (let i = 0; i < pl.points.length - 1; i++) {
+        const [ax, ay] = pl.points[i]!
+        const [bx, by] = pl.points[i + 1]!
+        const dist = distToSegment(point, { x: ax, y: ay }, { x: bx, y: by })
+        if (dist <= 4) return { kind: 'polyline', id: pl.id }
+      }
     }
     // 5b. Roofs (polygon containment)
     for (const roof of home.roofs) {
