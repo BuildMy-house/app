@@ -1,4 +1,4 @@
-import type { NormalizedHomeState, Wall, Furniture, Level } from '../core/home'
+import type { NormalizedHomeState, Wall, Furniture, Level, Polyline } from '../core/home'
 import { WALL_TEXTURES } from '../core/home'
 import { wallOutlinePoints } from '../core/top-camera-follower'
 import { wallArcHandlePos } from './engine'
@@ -48,6 +48,7 @@ const PREVIEW_COLOR = '#999999'
 const CLOSURE_PREVIEW_FILL = 'rgba(100, 180, 100, 0.18)'
 const CLOSURE_PREVIEW_STROKE = 'rgba(80, 160, 80, 0.7)'
 const FURNITURE_FILL = 'rgba(160, 160, 90, 0.5)'
+const POLYLINE_FILL = 'rgba(120, 160, 200, 0.25)'
 const ROTATION_HANDLE_OFFSET = 20
 const ROTATION_HANDLE_RADIUS = 5
 
@@ -141,6 +142,13 @@ function patternOrNull(
   return pat != null ? (pat as unknown as string) : null
 }
 
+function colorWithAlpha(color: number, alpha: number): string {
+  const r = (color >> 16) & 0xff
+  const g = (color >> 8) & 0xff
+  const b = color & 0xff
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
 function matchesLevel(levelRef: string | null | undefined, activeLevelId: string | null): boolean {
   if (activeLevelId === null) return true
   return (levelRef ?? null) === activeLevelId
@@ -210,6 +218,10 @@ export function fitToBounds(
   for (const room of home.rooms) {
     if (!matchesLevel(room.levelRef, activeLevelId)) continue
     for (const [x, y] of room.points) grow(x, y)
+  }
+  for (const pl of home.polylines) {
+    if (!matchesLevel(pl.levelRef, activeLevelId)) continue
+    for (const [x, y] of pl.points) grow(x, y)
   }
   for (const f of home.furniture) {
     if (!matchesLevel(f.levelRef, activeLevelId)) continue
@@ -445,6 +457,27 @@ export function drawPlan(
     }
   }
 
+  // Polylines — closed shapes get a filled interior; open ones are stroke-only.
+  for (const pl of home.polylines) {
+    if (!matchesLevel(pl.levelRef, activeLevelId)) continue
+    if (pl.points.length < 2) continue
+    ctx.beginPath()
+    pl.points.forEach(([x, y], index) => {
+      if (index === 0) ctx.moveTo(mapper.sx(x), mapper.sy(y))
+      else ctx.lineTo(mapper.sx(x), mapper.sy(y))
+    })
+    if (pl.closed && pl.points.length >= 3) {
+      ctx.closePath()
+      ctx.fillStyle = cssColor(pl.color, POLYLINE_FILL)
+      ctx.fill()
+    }
+    ctx.strokeStyle = selected.has(pl.id)
+      ? SELECTION_COLOR
+      : cssColor(pl.color, '#666666')
+    ctx.lineWidth = pl.thickness != null ? pl.thickness / 10 : (selected.has(pl.id) ? 2 : 1)
+    ctx.stroke()
+  }
+
   // Roofs (dashed outline polygon).
   for (const roof of home.roofs) {
     if (!matchesLevel(roof.levelRef, activeLevelId)) continue
@@ -498,6 +531,31 @@ export function drawPlan(
       ctx.stroke()
       ctx.setLineDash([])
     }
+  }
+
+  // Polylines.
+  for (const polyline of home.polylines) {
+    if (!matchesLevel(polyline.levelRef, activeLevelId)) continue
+    if (polyline.points.length < 2) continue
+
+    ctx.beginPath()
+    polyline.points.forEach(([x, y], index) => {
+      if (index === 0) ctx.moveTo(mapper.sx(x), mapper.sy(y))
+      else ctx.lineTo(mapper.sx(x), mapper.sy(y))
+    })
+
+    const strokeColor = cssColor(polyline.color, WALL_COLOR)
+    const lineW = selected.has(polyline.id) ? 2 : (polyline.thickness ?? 2)
+
+    if (polyline.closed) {
+      ctx.closePath()
+      ctx.fillStyle = polyline.color != null ? colorWithAlpha(polyline.color, 0.15) : ROOM_FILL
+      ctx.fill()
+    }
+
+    ctx.lineWidth = lineW
+    ctx.strokeStyle = selected.has(polyline.id) ? SELECTION_COLOR : strokeColor
+    ctx.stroke()
   }
 
   // Walls as filled thick shapes with mitered corners.
