@@ -23,7 +23,11 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "tauri": "tauri",
-    "thumbnails": "tsx scripts/render-thumbnails.ts"
+    "thumbnails": "tsx scripts/render-thumbnails.ts",
+    "ingest:models": "tsx scripts/model-ingestion.ts",
+    "ingest:sync": "tsx scripts/model-ingestion.ts --sync",
+    "ingest:tags": "tsx scripts/model-ingestion.ts --regenerate-tags",
+    "ingest:list": "tsx scripts/model-ingestion.ts --list"
   },
   "dependencies": {
     "@types/three": "^0.185.4",
