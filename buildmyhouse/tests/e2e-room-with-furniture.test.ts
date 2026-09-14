@@ -4,11 +4,11 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { createEmptyHome, DEFAULT_WALL_HEIGHT_CM } from '../src/core/home'
+import { DEFAULT_WALL_HEIGHT_CM } from '../src/core/home'
 import { HomeStore } from '../src/core/store'
 import { HomeModel } from '../src/core/model'
 import { buildRenderableScene } from '../src/render/scene-builder'
-import type { NormalizedHomeState } from '../src/core/home'
+
 
 describe('E2E: Room with furniture + 3D rendering', () => {
   it('creates a room with walls', () => {
@@ -63,7 +63,7 @@ describe('E2E: Room with furniture + 3D rendering', () => {
     const model = new HomeModel(store)
 
     // Add a wall with texture property
-    const wallId = model.addWall({
+    model.addWall({
       xStart: 0,
       yStart: 0,
       xEnd: 500,
@@ -71,7 +71,7 @@ describe('E2E: Room with furniture + 3D rendering', () => {
       height: 250,
       thickness: 15,
       leftSideTextureId: 'wood-oak'
-    }).id
+    })
 
     const home = store.getHome()
     expect(home.walls[0]!.leftSideTextureId).toBe('wood-oak')

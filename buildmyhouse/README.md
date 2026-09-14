@@ -1,5 +1,7 @@
 # homely
 
+[![CI](https://github.com/BuildMy-house/app/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/BuildMy-house/app/actions/workflows/ci.yml)
+
 Clean-room TypeScript clone of the Sweet Home 3D planner, built with Tauri v2.
 Ticket **B1 (homely-scaffold)** delivered the application shell: build toolchain,
 Tauri desktop window, a pure core state store seeded with the exact SH3D
