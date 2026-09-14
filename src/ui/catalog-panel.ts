@@ -12,7 +12,6 @@
 
 import type { CatalogItem } from '../core/catalog'
 import type { FurnitureCatalog } from '../core/catalog'
-import { renderModelThumbnail } from './model-thumbnail'
 import { CatalogLazyLoader } from './catalog-lazy-loader'
 
 export interface CatalogPlacement {
@@ -565,17 +564,3 @@ function colorCss(color: number | null | undefined): string {
   return `#${(color >>> 0).toString(16).padStart(6, '0')}`
 }
 
-/**
- * Live WebGL thumbnail fallback (MAT-T9): used for user-imported models and
- * any bundled item whose prebaked WebP is missing. Draws the color swatch
- * immediately, then renders the GLB over it via the shared renderer.
- */
-function liveRenderSwatch(modelUrl: string, color: number | null | undefined): HTMLCanvasElement {
-  const canvas = document.createElement('canvas')
-  canvas.className = 'catalog-swatch'
-  canvas.width = 96
-  canvas.height = 72
-  canvas.dataset.modelUrl = modelUrl
-  renderModelThumbnail(canvas, modelUrl, color)
-  return canvas
-}

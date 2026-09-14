@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://homely.local/schema/home-project.schema.json",
+  "title": "NormalizedHomeState",
+  "description": "Canonical, renderer-independent representation of a home design. Mirrors Sweet Home 3D 7.5 model classes (Home, Wall, Room, HomePieceOfFurniture, Level, Camera...). Units: centimeters for lengths, degrees for angles. Coordinates: plan space, x right / y down as in SH3D plan model.",
+  "type": "object",
+  "required": ["schemaVersion", "levels", "walls", "rooms", "furniture", "dimensionLines", "labels", "roofs", "selection", "capabilities"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "name": { "type": ["string", "null"] },
+    "levels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "elevation", "floorThickness", "height", "visible", "viewable"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "elevation": { "$ref": "#/$defs/length" },
+          "floorThickness": { "$ref": "#/$defs/length" },
+          "height": { "$ref": "#/$defs/length" },
+          "visible": { "type": "boolean" },
+          "viewable": { "type": "boolean" }
+        }
+      }
+    },
+    "walls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "xStart", "yStart", "xEnd", "yEnd", "thickness"],
+        "properties": {
+          "id": { "type": "string" },
+          "xStart": { "$ref": "#/$defs/length" },
+          "yStart": { "$ref": "#/$defs/length" },
+          "xEnd": { "$ref": "#/$defs/length" },
+          "yEnd": { "$ref": "#/$defs/length" },
+          "arcExtent": { "$ref": "#/$defs/radianNullable" },
+          "thickness": { "$ref": "#/$defs/lengthPositive" },
+          "height": { "$ref": "#/$defs/lengthNullable" },
+          "heightAtEnd": { "$ref": "#/$defs/lengthNullable" },
+          "levelRef": { "$ref": "#/$defs/ref" },
+          "leftSideColor": { "$ref": "#/$defs/colorNullable" },
+          "rightSideColor": { "$ref": "#/$defs/colorNullable" },
+          "patternId": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "rooms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "points"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": ["string", "null"] },
+          "points": {
+            "type": "array",
+            "minItems": 3,
+            "items": { "type": "array", "items": { "$ref": "#/$defs/length" }, "minItems": 2, "maxItems": 2 }
+          },
+          "areaVisible": { "type": "boolean", "default": true },
+          "floorVisible": { "type": "boolean", "default": true },
+          "floorColor": { "$ref": "#/$defs/colorNullable" },
+          "ceilingVisible": { "type": "boolean", "default": false },
+          "levelRef": { "$ref": "#/$defs/ref" }
+        }
+      }
+    },
+    "furniture": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "x", "y", "angleDeg", "width", "depth", "height", "elevation"],
+        "properties": {
+          "id": { "type": "string" },
+          "catalogId": { "type": ["string", "null"] },
+          "name": { "type": "string" },
+          "x": { "$ref": "#/$defs/length" },
+          "y": { "$ref": "#/$defs/length" },
+          "elevation": { "$ref": "#/$defs/length" },
+          "angleDeg": { "$ref": "#/$defs/angle" },
+          "pitchDeg": { "$ref": "#/$defs/angle", "default": 0 },
+          "rollDeg": { "$ref": "#/$defs/angle", "default": 0 },
+          "width": { "$ref": "#/$defs/lengthPositive" },
+          "depth": { "$ref": "#/$defs/lengthPositive" },
+          "height": { "$ref": "#/$defs/lengthPositive" },
+          "color": { "$ref": "#/$defs/colorNullable" },
+          "textureId": { "type": ["string", "null"] },
+          "visible": { "type": "boolean", "default": true },
+          "movable": { "type": "boolean", "default": true },
+          "doorOrWindow": { "type": "boolean", "default": false },
+          "modelRotationDeg": {
+            "type": "array",
+            "items": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+            "maxItems": 3
+          },
+          "levelRef": { "$ref": "#/$defs/ref" }
+        }
+      }
+    },
+    "dimensionLines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "xStart", "yStart", "xEnd", "yEnd", "offset"],
+        "properties": {
+          "id": { "type": "string" },
+          "xStart": { "$ref": "#/$defs/length" },
+          "yStart": { "$ref": "#/$defs/length" },
+          "xEnd": { "$ref": "#/$defs/length" },
+          "yEnd": { "$ref": "#/$defs/length" },
+          "offset": { "$ref": "#/$defs/length" },
+          "elevationStart": { "$ref": "#/$defs/length" },
+          "elevationEnd": { "$ref": "#/$defs/length" },
+          "levelRef": { "$ref": "#/$defs/ref" }
+        }
+      }
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "text", "x", "y"],
+        "properties": {
+          "id": { "type": "string" },
+          "text": { "type": "string" },
+          "x": { "$ref": "#/$defs/length" },
+          "y": { "$ref": "#/$defs/length" },
+          "angleDeg": { "$ref": "#/$defs/angle" },
+          "elevation": { "$ref": "#/$defs/length" },
+          "color": { "$ref": "#/$defs/colorNullable" },
+          "levelRef": { "$ref": "#/$defs/ref" }
+        }
+      }
+    },
+    "roofs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "points"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": ["string", "null"] },
+          "points": {
+            "type": "array",
+            "minItems": 3,
+            "items": { "type": "array", "items": { "$ref": "#/$defs/length" }, "minItems": 2, "maxItems": 2 }
+          },
+          "color": { "$ref": "#/$defs/colorNullable" },
+          "levelRef": { "$ref": "#/$defs/ref" }
+        }
+      }
+    },
+    "compass": {
+      "type": ["object", "null"],
+      "properties": {
+        "x": { "$ref": "#/$defs/length" },
+        "y": { "$ref": "#/$defs/length" },
+        "diameter": { "$ref": "#/$defs/lengthPositive" },
+        "northDirectionDeg": { "$ref": "#/$defs/angle" },
+        "latitudeRad": { "type": "number" },
+        "longitudeRad": { "type": "number" },
+        "visible": { "type": "boolean" }
+      }
+    },
+    "cameras": {
+      "type": "object",
+      "required": ["top", "observer"],
+      "properties": {
+        "top": {
+          "type": "object",
+          "required": ["x", "y", "z", "yawDeg", "pitchDeg", "fovDeg"],
+          "properties": {
+            "x": { "$ref": "#/$defs/length" },
+            "y": { "$ref": "#/$defs/length" },
+            "z": { "$ref": "#/$defs/length" },
+            "yawDeg": { "$ref": "#/$defs/angle" },
+            "pitchDeg": { "$ref": "#/$defs/angle" },
+            "fovDeg": { "$ref": "#/$defs/angle" },
+            "lens": { "type": "string", "enum": ["PINHOLE", "NORMAL", "FISHEYE", "SPHERICAL"] }
+          }
+        },
+        "observer": {
+          "type": "object",
+          "required": ["x", "y", "z", "yawDeg", "pitchDeg", "fovDeg"],
+          "properties": {
+            "x": { "$ref": "#/$defs/length" },
+            "y": { "$ref": "#/$defs/length" },
+            "z": { "$ref": "#/$defs/length" },
+            "yawDeg": { "$ref": "#/$defs/angle" },
+            "pitchDeg": { "$ref": "#/$defs/angle" },
+            "fovDeg": { "$ref": "#/$defs/angle" },
+            "fixedSize": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "skyColor": { "$ref": "#/$defs/colorNullable" },
+        "groundColor": { "$ref": "#/$defs/colorNullable" },
+        "lightColor": { "$ref": "#/$defs/colorNullable" },
+        "wallsAlpha": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "groundTextureId": { "type": ["string", "null"] }
+      }
+    },
+    "selection": {
+      "type": "array",
+      "description": "IDs of currently selected objects in the active view.",
+      "items": { "type": "string" }
+    },
+    "activeTool": {
+      "type": ["string", "null"],
+      "enum": [null, "selection", "panning", "wall", "room", "polyline", "dimensionLine", "label", "roof"]
+    },
+    "capabilities": {
+      "type": "object",
+      "required": ["canUndo", "canRedo"],
+      "properties": {
+        "canUndo": { "type": "boolean" },
+        "canRedo": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "length": { "type": "number", "description": "centimeters, rounded to 3 decimals" },
+    "lengthNullable": { "type": ["number", "null"], "description": "centimeters or null" },
+    "lengthPositive": { "type": "number", "exclusiveMinimum": 0 },
+    "angle": { "type": "number", "description": "degrees normalized to (-180,180], rounded to 3 decimals" },
+    "radianNullable": { "type": ["number", "null"], "description": "arcExtent stays radians to match SH3D semantics" },
+    "colorNullable": { "type": ["integer", "null"], "description": "0xRRGGBB integer or null" },
+    "ref": { "type": ["string", "null"], "description": "id reference into levels[] or null for default level" }
+  }
+}

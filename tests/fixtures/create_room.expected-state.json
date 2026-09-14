@@ -1,0 +1,120 @@
+{
+  "activeTool": "wall",
+  "cameras": {
+    "observer": {
+      "fixedSize": false,
+      "fovDeg": 63.0,
+      "id": "camera-observer-1",
+      "lens": "PINHOLE",
+      "pitchDeg": 11.25,
+      "x": 50.0,
+      "y": 50.0,
+      "yawDeg": -45.0,
+      "z": 170.0
+    },
+    "top": {
+      "fovDeg": 63.0,
+      "id": "camera-top-1",
+      "lens": "PINHOLE",
+      "pitchDeg": 45.0,
+      "x": 350.0,
+      "y": 1250.0,
+      "yawDeg": -180.0,
+      "z": 1125.0
+    }
+  },
+  "capabilities": {
+    "canRedo": false,
+    "canUndo": true
+  },
+  "compass": {
+    "diameter": 100.0,
+    "latitudeRad": 0.48,
+    "longitudeRad": 1.564,
+    "northDirectionDeg": 0.0,
+    "visible": true,
+    "x": -100.0,
+    "y": 50.0
+  },
+  "dimensionLines": [],
+  "environment": {
+    "groundColor": 11053224,
+    "lightColor": 13684944,
+    "skyColor": 13427964,
+    "wallsAlpha": 0.0
+  },
+  "furniture": [],
+  "labels": [],
+  "levels": [],
+  "name": null,
+  "rooms": [],
+  "schemaVersion": 1,
+  "selection": [
+    "wall-1",
+    "wall-2",
+    "wall-3",
+    "wall-4"
+  ],
+  "walls": [
+    {
+      "arcExtent": null,
+      "height": 250.0,
+      "heightAtEnd": null,
+      "id": "wall-1",
+      "leftSideColor": null,
+      "levelRef": null,
+      "patternId": "hatchUp",
+      "rightSideColor": null,
+      "thickness": 7.0,
+      "xEnd": 600.0,
+      "xStart": 100.0,
+      "yEnd": 100.0,
+      "yStart": 100.0
+    },
+    {
+      "arcExtent": null,
+      "height": 250.0,
+      "heightAtEnd": null,
+      "id": "wall-2",
+      "leftSideColor": null,
+      "levelRef": null,
+      "patternId": "hatchUp",
+      "rightSideColor": null,
+      "thickness": 7.0,
+      "xEnd": 600.0,
+      "xStart": 600.0,
+      "yEnd": 400.0,
+      "yStart": 100.0
+    },
+    {
+      "arcExtent": null,
+      "height": 250.0,
+      "heightAtEnd": null,
+      "id": "wall-3",
+      "leftSideColor": null,
+      "levelRef": null,
+      "patternId": "hatchUp",
+      "rightSideColor": null,
+      "thickness": 7.0,
+      "xEnd": 100.0,
+      "xStart": 600.0,
+      "yEnd": 400.0,
+      "yStart": 400.0
+    },
+    {
+      "arcExtent": null,
+      "height": 250.0,
+      "heightAtEnd": null,
+      "id": "wall-4",
+      "leftSideColor": null,
+      "levelRef": null,
+      "patternId": "hatchUp",
+      "rightSideColor": null,
+      "thickness": 7.0,
+      "xEnd": 100.0,
+      "xStart": 100.0,
+      "yEnd": 100.0,
+      "yStart": 400.0
+    }
+  ]
+}

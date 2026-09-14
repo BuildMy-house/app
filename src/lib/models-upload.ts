@@ -58,7 +58,6 @@ export interface ValidationError {
 /*  Client-side pre-validation                                         */
 /* ------------------------------------------------------------------ */
 
-const GLB_MAGIC = 0x46546c67;
 const MAX_BYTES = 50 * 1024 * 1024;
 const MIN_BYTES = 1024;
 const ALLOWED_EXTS: ModelFormat[] = ['glb', 'gltf', 'obj'];

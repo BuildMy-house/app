@@ -13,7 +13,7 @@
 
 import { createWriteStream } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
-import { join, dirname } from 'node:path'
+import { dirname } from 'node:path'
 import * as THREE from 'three'
 import { createCanvas } from 'canvas'
 import sharp from 'sharp'
@@ -64,7 +64,7 @@ function createCamera(config: Required<ThumbnailConfig>): THREE.Camera {
 /**
  * Create standard three-point lighting setup
  */
-function createLighting(config: Required<ThumbnailConfig>): THREE.Light[] {
+function createLighting(_config: Required<ThumbnailConfig>): THREE.Light[] {
   const lights: THREE.Light[] = []
 
   // Key light (directional, sun-like)

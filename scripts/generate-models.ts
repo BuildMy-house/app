@@ -13,7 +13,7 @@
  * catalog panel shows thumbnails. Run `npm run assets` (or build) to mirror
  * them into the bundle.
  */
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -37,7 +37,6 @@ if (typeof globalThis.FileReader === 'undefined') {
 
 import * as THREE from 'three'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CATALOG_SRC = join(ROOT, 'assets', 'catalog', 'catalog.json')
