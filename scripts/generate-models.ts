@@ -56,6 +56,7 @@ interface CatalogItem {
   depth: number
   height: number
   color?: number | null
+  modelPath?: string | null
 }
 
 interface CatalogManifest {
@@ -276,12 +277,19 @@ function buildOrConvertModel(item: CatalogItem): THREE.Group {
   return buildModel(item)
 }
 
+/** Externally-hosted model (e.g. Cloudflare R2): never generate locally. */
+function isExternalModel(item: CatalogItem): boolean {
+  return typeof item.modelPath === 'string' && /^https?:\/\//.test(item.modelPath)
+}
+
 function main(): void {
   const checkOnly = process.argv.includes('--check')
   const manifest = loadManifest()
   mkdirSync(MODELS_DIR, { recursive: true })
 
-  const expected = manifest.items.map((item) => modelFileName(item.catalogId))
+  // Externally-hosted items don't need a locally-generated GLB.
+  const localItems = manifest.items.filter((item) => !isExternalModel(item))
+  const expected = localItems.map((item) => modelFileName(item.catalogId))
   if (checkOnly) {
     const missing = expected.filter((name) => !exists(join(MODELS_DIR, name)))
     if (missing.length > 0) {
@@ -291,11 +299,11 @@ function main(): void {
     return
   }
 
-  for (const item of manifest.items) {
+  for (const item of localItems) {
     const model = buildOrConvertModel(item)
     exportGlb(model, join(MODELS_DIR, modelFileName(item.catalogId)))
   }
-  console.log(`[models] done (${manifest.items.length} models)`)
+  console.log(`[models] done (${localItems.length} models, ${manifest.items.length - localItems.length} externally hosted)`)
 }
 
 function exists(path: string): boolean {
