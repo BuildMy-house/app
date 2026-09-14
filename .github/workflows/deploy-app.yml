@@ -1,0 +1,54 @@
+name: Deploy buildmyhouse app to app.buildmy.house
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+
+      - name: Deploy via SSH (build + run on host, joins steward_acs_default)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 139.99.89.23
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            REPO_DIR=/home/ubuntu/buildmyhouse-app
+            if [ ! -d "$REPO_DIR" ]; then
+              git clone https://github.com/BuildMy-house/app.git "$REPO_DIR"
+            fi
+            cd "$REPO_DIR"
+            git fetch origin main
+            git reset --hard origin/main
+
+            docker build -t buildmyhouse-app:latest .
+            docker volume create buildmyhouse-app-data >/dev/null
+
+            docker stop buildmyhouse-app || true
+            docker rm buildmyhouse-app || true
+
+            docker run -d --name buildmyhouse-app \
+              --network steward_acs_default \
+              --restart unless-stopped \
+              -e JWT_SECRET="${{ secrets.APP_JWT_SECRET }}" \
+              -e DB_PATH=/data/homely.db \
+              -e ASSET_DIR=/data/assets \
+              -e STATIC_DIR=/app/dist-static \
+              -e PORT=3000 \
+              -v buildmyhouse-app-data:/data \
+              buildmyhouse-app:latest
