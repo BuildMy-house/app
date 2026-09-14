@@ -27,7 +27,9 @@
     "ingest:models": "tsx scripts/model-ingestion.ts",
     "ingest:sync": "tsx scripts/model-ingestion.ts --sync",
     "ingest:tags": "tsx scripts/model-ingestion.ts --regenerate-tags",
-    "ingest:list": "tsx scripts/model-ingestion.ts --list"
+    "ingest:list": "tsx scripts/model-ingestion.ts --list",
+    "import:sh3d": "tsx scripts/import-sh3d-library.ts",
+    "download:sh3d": "bash ../scripts/download-sh3d-models.sh"
   },
   "dependencies": {
     "@types/three": "^0.185.4",
