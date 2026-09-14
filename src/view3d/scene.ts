@@ -25,6 +25,8 @@ export const DEFAULT_FURNITURE_COLOR = 0x9e9e9e
 const DEFAULT_CEILING_COLOR = 0xf0f0f0
 
 const GROUND_SIZE_CM = 100_000
+const GRID_SIZE_CM = 20_000
+const GRID_DIVISIONS = 200
 
 function levelElevationMap(home: NormalizedHomeState): Map<string, number> {
   const elevations = new Map<string, number>()
@@ -48,11 +50,7 @@ function elevationFor(ref: string | null | undefined, levels: Map<string, number
  * is centered at the wall's midpoint so position/rotation on the resulting
  * mesh are straightforward.
  */
-function miteredShape(
-  outline: Pt[],
-  midX: number,
-  midY: number,
-): THREE.Shape {
+function miteredShape(outline: Pt[], midX: number, midY: number): THREE.Shape {
   const shape = new THREE.Shape()
   shape.moveTo(outline[0]![0] - midX, -(outline[0]![1] - midY))
   for (let i = 1; i < outline.length; i++) {
@@ -71,10 +69,7 @@ interface WallOpening {
   top: number
 }
 
-function computeWallOpenings(
-  wall: Wall,
-  furniture: ReadonlyArray<Furniture>,
-): WallOpening[] {
+function computeWallOpenings(wall: Wall, furniture: ReadonlyArray<Furniture>): WallOpening[] {
   const dx = wall.xEnd - wall.xStart
   const dy = wall.yEnd - wall.yStart
   const length = Math.hypot(dx, dy)
@@ -177,8 +172,8 @@ export function wallMesh(
   const group = new THREE.Group()
 
   const segShape = (d1: number, d2: number): THREE.Shape => {
-    const nx = -uy * wall.thickness / 2
-    const ny = ux * wall.thickness / 2
+    const nx = (-uy * wall.thickness) / 2
+    const ny = (ux * wall.thickness) / 2
     const sx = wall.xStart + ux * d1
     const sy = wall.yStart + uy * d1
     const ex = wall.xStart + ux * d2
@@ -212,7 +207,7 @@ export function wallMesh(
   }
 
   const sorted = [...openings].sort(
-    (a, b) => (a.centerAlong - a.width / 2) - (b.centerAlong - b.width / 2),
+    (a, b) => a.centerAlong - a.width / 2 - (b.centerAlong - b.width / 2),
   )
   let pos = 0
   for (const op of sorted) {
@@ -269,7 +264,7 @@ export function roomMesh(room: Room, elevation: number): THREE.Mesh {
 
 export function ceilingMesh(room: Room, elevation: number, levels: Level[]): THREE.Mesh | null {
   if (room.ceilingVisible === false) return null
-  const level = levels.find(l => l.id === room.levelRef)
+  const level = levels.find((l) => l.id === room.levelRef)
   const levelHeight = level ? level.height : DEFAULT_WALL_HEIGHT_CM
   const shape = new THREE.Shape()
   room.points.forEach(([x, y], index) => {
@@ -308,7 +303,11 @@ function roofMesh(roof: Roof, elevation: number, levelHeight: number): THREE.Mes
   const eaveY = elevation + levelHeight
   const ridgeY = eaveY + Math.min(halfX, halfZ) * pitch
   const vertices: number[] = []
-  const triangle = (a: [number, number, number], b: [number, number, number], c: [number, number, number]): void => {
+  const triangle = (
+    a: [number, number, number],
+    b: [number, number, number],
+    c: [number, number, number],
+  ): void => {
     vertices.push(...a, ...b, ...c)
   }
   if (roof.style === 'hip') {
@@ -394,7 +393,10 @@ function createOffscreenRenderer(): THREE.WebGLRenderer {
  * detection falls back to an offscreen context. Idempotent and safe in
  * non-WebGL environments.
  */
-export function configureGltfLoader(loader: GLTFLoader, renderer?: THREE.WebGLRenderer): GLTFLoader {
+export function configureGltfLoader(
+  loader: GLTFLoader,
+  renderer?: THREE.WebGLRenderer,
+): GLTFLoader {
   try {
     loader.setKTX2Loader(ensureKtx2Loader(renderer))
   } catch {
@@ -580,7 +582,10 @@ function addUv2(geometry: THREE.BufferGeometry): void {
 
 /** Wire diffuse + PBR maps for a textureId-bearing material; returns the
  * catalog entry (or null) so callers can addUv2() geometries needing it. */
-function applyMaterialTextures(material: THREE.MeshStandardMaterial, textureId: string): WallTextureEntry | null {
+function applyMaterialTextures(
+  material: THREE.MeshStandardMaterial,
+  textureId: string,
+): WallTextureEntry | null {
   const entry = textureEntryFor(textureId)
   if (!entry) return null
   const diffuse = loadWallTexture(textureId)
@@ -626,11 +631,7 @@ function fitModelToBox(model: THREE.Object3D, item: Furniture): THREE.Object3D {
   const box = new THREE.Box3().setFromObject(model)
   const size = box.getSize(new THREE.Vector3())
   if (size.x <= 0 || size.y <= 0 || size.z <= 0) return model
-  const scale = new THREE.Vector3(
-    item.width / size.x,
-    item.height / size.y,
-    item.depth / size.z,
-  )
+  const scale = new THREE.Vector3(item.width / size.x, item.height / size.y, item.depth / size.z)
   model.scale.copy(scale)
   const center = box.getCenter(new THREE.Vector3()).multiply(scale)
   model.position.sub(center)
@@ -647,7 +648,12 @@ function fitModelToBox(model: THREE.Object3D, item: Furniture): THREE.Object3D {
  * caller can trigger a re-render — without it the swapped-in model would sit
  * un-drawn until the next camera move / store change.
  */
-function swapInModel(mesh: THREE.Mesh, item: Furniture, isSelected: boolean, onReady?: () => void): void {
+function swapInModel(
+  mesh: THREE.Mesh,
+  item: Furniture,
+  isSelected: boolean,
+  onReady?: () => void,
+): void {
   if (!item.modelPath) return
   const url = activeModelUrlResolver(item.modelPath)
 
@@ -704,7 +710,12 @@ function swapInModel(mesh: THREE.Mesh, item: Furniture, isSelected: boolean, onR
   }
 }
 
-function furnitureMesh(item: Furniture, elevation: number, onReady?: () => void, isSelected = false): THREE.Mesh {
+function furnitureMesh(
+  item: Furniture,
+  elevation: number,
+  onReady?: () => void,
+  isSelected = false,
+): THREE.Mesh {
   const geometry = new THREE.BoxGeometry(item.width, item.height, item.depth)
   const material = new THREE.MeshStandardMaterial({
     color: item.color ?? DEFAULT_FURNITURE_COLOR,
@@ -793,7 +804,14 @@ function addFurnitureMeshes(
   for (const item of furniture) {
     if (item.visible === false) continue
     if (instancedIds.has(item.id)) continue
-    root.add(furnitureMesh(item, elevationFor(item.levelRef, elevations), onModelReady, selectionSet.has(item.id)))
+    root.add(
+      furnitureMesh(
+        item,
+        elevationFor(item.levelRef, elevations),
+        onModelReady,
+        selectionSet.has(item.id),
+      ),
+    )
   }
 }
 
@@ -916,6 +934,16 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
     ground.name = 'ground'
     ground.receiveShadow = true
     scene.add(ground)
+
+    // Keep the empty viewport spatially legible without competing with the
+    // plan view: 1 m minor squares, lifted just above the ground to avoid
+    // z-fighting.
+    const grid = new THREE.GridHelper(GRID_SIZE_CM, GRID_DIVISIONS, 0x7f8b96, 0xb7c0c8)
+    grid.position.y = 0.5
+    grid.name = 'ground-grid'
+    grid.material.transparent = true
+    grid.material.opacity = 0.32
+    scene.add(grid)
   }
 
   const elevations = levelElevationMap(home)
@@ -924,7 +952,13 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
   const root = new THREE.Group()
   root.name = 'home'
   for (const wall of home.walls) {
-    const mesh = wallMesh(wall, elevationFor(wall.levelRef, elevations), wallsTransparency, home.furniture, home.walls)
+    const mesh = wallMesh(
+      wall,
+      elevationFor(wall.levelRef, elevations),
+      wallsTransparency,
+      home.furniture,
+      home.walls,
+    )
     root.add(mesh)
     root.add(wallEdges(wall, elevationFor(wall.levelRef, elevations), home.walls))
   }
@@ -937,7 +971,11 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
   }
   for (const roof of home.roofs) {
     const level = home.levels.find((item) => item.id === roof.levelRef)
-    const mesh = roofMesh(roof, elevationFor(roof.levelRef, elevations), level?.height ?? DEFAULT_WALL_HEIGHT_CM)
+    const mesh = roofMesh(
+      roof,
+      elevationFor(roof.levelRef, elevations),
+      level?.height ?? DEFAULT_WALL_HEIGHT_CM,
+    )
     if (mesh) root.add(mesh)
   }
   const selectionSet = new Set(home.selection)
