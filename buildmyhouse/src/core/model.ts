@@ -430,6 +430,7 @@ export class HomeModel {
         doorOrWindow: false,
         modelRotationDeg: [],
         levelRef: null,
+        modelPath: null,
         ...normalizedInput,
         id: this.store.generateId('furniture'),
       }

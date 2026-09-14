@@ -174,9 +174,9 @@
     "semantic_hash": ""
   },
   "PLAN.md": {
-    "mtime": 1789378364.7688737,
-    "seen": 1789378417.0188658,
-    "ast_hash": "484596091400d58ddfe4e1e4546e5892",
+    "mtime": 1789379026.5238185,
+    "seen": 1789379220.816419,
+    "ast_hash": "cf3e5dbb436e8a6506232452ca6d6892",
     "semantic_hash": ""
   },
   "docs/architecture-map.md": {
@@ -402,9 +402,9 @@
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
-    "mtime": 1789378412.829572,
-    "seen": 1789378416.9777293,
-    "ast_hash": "46ef03e95d2372b6b08738d3e7f38bd9",
+    "mtime": 1789379749.7540607,
+    "seen": 1789380995.3155518,
+    "ast_hash": "adfdbcd3b242d546f9cf4a3149139778",
     "semantic_hash": ""
   },
   ".commandcode/settings.json": {
@@ -600,9 +600,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/package.json": {
-    "mtime": 1789374246.0643442,
-    "seen": 1789377293.1128786,
-    "ast_hash": "ea40000199f1dabc6d98a58129b2aa73",
+    "mtime": 1789378817.8874576,
+    "seen": 1789379220.8052516,
+    "ast_hash": "3cfbb51c98c3dee9a915676c8a377ec8",
     "semantic_hash": ""
   },
   "buildmyhouse/playwright.config.ts": {
@@ -624,9 +624,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/scripts/export-scene.ts": {
-    "mtime": 1789326730.50869,
-    "seen": 1789377293.1128821,
-    "ast_hash": "8e53481a434d809f5249815ab2d7444f",
+    "mtime": 1789378970.7020216,
+    "seen": 1789379220.8053293,
+    "ast_hash": "46bb9a30b5a8a2d86e5da50d594476a9",
     "semantic_hash": ""
   },
   "buildmyhouse/scripts/generate-models.ts": {
@@ -816,9 +816,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/src/core/home.ts": {
-    "mtime": 1789326730.5123298,
-    "seen": 1789377293.1129124,
-    "ast_hash": "00d322d012016c3e373a3a4c250acfc5",
+    "mtime": 1789378817.8874576,
+    "seen": 1789379220.806681,
+    "ast_hash": "733769ec2170cec21c055bdff6c9b8df",
     "semantic_hash": ""
   },
   "buildmyhouse/src/core/model-conversion.ts": {
@@ -828,9 +828,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/src/core/model.ts": {
-    "mtime": 1789326730.5123298,
-    "seen": 1789377293.1129131,
-    "ast_hash": "8f5431c7f4277360573555629090a6c0",
+    "mtime": 1789378817.8890746,
+    "seen": 1789379220.8067005,
+    "ast_hash": "f9bc94c7495238237ec5774117839b4b",
     "semantic_hash": ""
   },
   "buildmyhouse/src/core/project-store.ts": {
@@ -876,9 +876,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/src/main.ts": {
-    "mtime": 1789378403.402435,
-    "seen": 1789378417.0105488,
-    "ast_hash": "e8feb57e7d2f15dc639b4c8468fa76d7",
+    "mtime": 1789378826.6385846,
+    "seen": 1789379220.806868,
+    "ast_hash": "d2e6583123e5449b660546e22d1d8b78",
     "semantic_hash": ""
   },
   "buildmyhouse/src/plan/clipboard.test.ts": {
@@ -900,9 +900,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/src/plan/engine.ts": {
-    "mtime": 1789326730.5132298,
-    "seen": 1789377293.1129198,
-    "ast_hash": "299547deb67117ef69b25e9a6fc908f8",
+    "mtime": 1789380578.8402007,
+    "seen": 1789380995.346006,
+    "ast_hash": "bc92cd5ba93e19f69b46c72371ea5548",
     "semantic_hash": ""
   },
   "buildmyhouse/src/plan/furniture-snap.test.ts": {
@@ -930,15 +930,15 @@
     "semantic_hash": ""
   },
   "buildmyhouse/src/plan/renderer.test.ts": {
-    "mtime": 1789326730.5132298,
-    "seen": 1789377293.1129222,
-    "ast_hash": "e72224009a186dc389821f2fbd8c1c6f",
+    "mtime": 1789379819.574083,
+    "seen": 1789380995.346071,
+    "ast_hash": "18f3cd06485b63085ae6bd6ae9c5e2b6",
     "semantic_hash": ""
   },
   "buildmyhouse/src/plan/renderer.ts": {
-    "mtime": 1789326730.5132298,
-    "seen": 1789377293.1129224,
-    "ast_hash": "5a39c603930318af39acd70908f63bdf",
+    "mtime": 1789379831.1912532,
+    "seen": 1789380995.3460715,
+    "ast_hash": "6d7b82464f163bafb65adfd524332d51",
     "semantic_hash": ""
   },
   "buildmyhouse/src/render/__tests__/scene-builder.test.ts": {
@@ -1080,9 +1080,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/src/ui/catalog-panel.ts": {
-    "mtime": 1789376277.8175337,
-    "seen": 1789377293.1129363,
-    "ast_hash": "1d5138891449102618d7dd8168c35357",
+    "mtime": 1789378817.8899434,
+    "seen": 1789379220.8076496,
+    "ast_hash": "bd10c632258bc679167d5607c07906cb",
     "semantic_hash": ""
   },
   "buildmyhouse/src/ui/change-password-dialog.ts": {
@@ -1134,15 +1134,15 @@
     "semantic_hash": ""
   },
   "buildmyhouse/src/view3d/scene.ts": {
-    "mtime": 1789377234.573213,
-    "seen": 1789377293.1129436,
-    "ast_hash": "6676813208c66507eeb51eb631e4e8ae",
+    "mtime": 1789378817.8901904,
+    "seen": 1789379220.8079653,
+    "ast_hash": "1061fe24f182c482055815fcea9b5ab8",
     "semantic_hash": ""
   },
   "buildmyhouse/src/view3d/view.ts": {
-    "mtime": 1789378243.9571183,
-    "seen": 1789378417.0115504,
-    "ast_hash": "741ded31c90ad409780425b8e507dffd",
+    "mtime": 1789378817.8901904,
+    "seen": 1789379220.8079658,
+    "ast_hash": "d1fcab8991cb529a2a12420072341292",
     "semantic_hash": ""
   },
   "buildmyhouse/src/view3d/viewport-quality.ts": {
@@ -1290,9 +1290,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/tests/selection-highlight.test.ts": {
-    "mtime": 1789326730.5159159,
-    "seen": 1789377293.112956,
-    "ast_hash": "87b2b9a8fb4a2143b1224cf3fb92b351",
+    "mtime": 1789378866.2001595,
+    "seen": 1789379220.8084574,
+    "ast_hash": "590239c47da658cd5d78614fd1152a18",
     "semantic_hash": ""
   },
   "buildmyhouse/tests/store.test.ts": {
@@ -1338,9 +1338,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse/vite.config.ts": {
-    "mtime": 1789326730.5159159,
-    "seen": 1789377293.1129594,
-    "ast_hash": "e749a5bf599c94dea902d2fb798dab09",
+    "mtime": 1789378817.8901904,
+    "seen": 1789379220.8086007,
+    "ast_hash": "f16f54ec9a9429db62ea8d161d689064",
     "semantic_hash": ""
   },
   "company-ops/company_ops/__init__.py": {
@@ -4578,38 +4578,38 @@
     "semantic_hash": ""
   },
   "buildmyhouse/assets/textures/carpet.png": {
-    "mtime": 1789378278.4160404,
-    "seen": 1789378417.0533173,
+    "mtime": 1789380716.2751415,
+    "seen": 1789380995.384796,
     "ast_hash": "182cff84b3e6e567a48569fc05147bfc",
     "semantic_hash": ""
   },
   "buildmyhouse/assets/textures/concrete.png": {
-    "mtime": 1789378277.9606123,
-    "seen": 1789378417.0533183,
+    "mtime": 1789380715.8192062,
+    "seen": 1789380995.3847966,
     "ast_hash": "5fb9b231aa5143ec3effc32e51fc9cb2",
     "semantic_hash": ""
   },
   "buildmyhouse/assets/textures/plaster-white.png": {
-    "mtime": 1789378278.4486194,
-    "seen": 1789378417.053319,
+    "mtime": 1789380716.3062134,
+    "seen": 1789380995.384797,
     "ast_hash": "a8acc401e90ae6c50a03cad62e0944bc",
     "semantic_hash": ""
   },
   "buildmyhouse/assets/textures/tile-floor.png": {
-    "mtime": 1789378278.2166162,
-    "seen": 1789378417.0533195,
+    "mtime": 1789380716.07621,
+    "seen": 1789380995.384798,
     "ast_hash": "ac977051c1e8f22af9b22c1c7e03e040",
     "semantic_hash": ""
   },
   "buildmyhouse/assets/textures/wood-oak.png": {
-    "mtime": 1789378277.8866112,
-    "seen": 1789378417.05332,
+    "mtime": 1789380715.7442052,
+    "seen": 1789380995.3847983,
     "ast_hash": "f83137327c813d3a31c3ea6b366c0f8d",
     "semantic_hash": ""
   },
   "buildmyhouse/assets/textures/wood-pine.png": {
-    "mtime": 1789378277.8986115,
-    "seen": 1789378417.0533779,
+    "mtime": 1789380715.7572055,
+    "seen": 1789380995.3848503,
     "ast_hash": "71e19a115696f08fff44d01827a41fa8",
     "semantic_hash": ""
   },
@@ -11807,132 +11807,6 @@
     "ast_hash": "fe9165574b3711dd5f9b45a445e5b93d",
     "semantic_hash": ""
   },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/scripts/command-metadata.json": {
-    "mtime": 1789305882.3375173,
-    "seen": 1789377293.1126497,
-    "ast_hash": "86266801588636b11e00372754118529",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/scripts/data/font-index-failures.json": {
-    "mtime": 1789305882.3375173,
-    "seen": 1789377293.11265,
-    "ast_hash": "c14048ea4e2b4a062933664822bc0399",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/scripts/impeccable": {
-    "mtime": 1789305882.3415172,
-    "seen": 1789377293.1126502,
-    "ast_hash": "e16affb82129f340e5134e4286754eb0",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/scripts/live-browser-dom.js": {
-    "mtime": 1789305882.3415172,
-    "seen": 1789377293.1126506,
-    "ast_hash": "c5da6b95a6184ec6f76d5acbaea98c50",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/scripts/live-browser-ignores.js": {
-    "mtime": 1789305882.3415172,
-    "seen": 1789377293.112651,
-    "ast_hash": "dd05503f92e1cf9b3feedbb19070f59e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/scripts/live-browser-session.js": {
-    "mtime": 1789305882.3415172,
-    "seen": 1789377293.1126513,
-    "ast_hash": "80cb9fcfb1b1810473d830b13db73d40",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/scripts/live-browser.js": {
-    "mtime": 1789305882.3425174,
-    "seen": 1789377293.1126518,
-    "ast_hash": "8c528987ab91769a29c08e6c38e5ce21",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/scripts/modern-screenshot.umd.js": {
-    "mtime": 1789305882.3425174,
-    "seen": 1789377293.112652,
-    "ast_hash": "4fe5f9e490ab4f107afc707d7eafc819",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.astro/content.d.ts": {
-    "mtime": 1789305882.3425174,
-    "seen": 1789377293.1126525,
-    "ast_hash": "4aaaf7e07990466432e5a0fcf9b2e58c",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.astro/types.d.ts": {
-    "mtime": 1789305882.3440573,
-    "seen": 1789377293.1126528,
-    "ast_hash": "f3d48b2aa569815a445d3509aa161559",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/settings.json": {
-    "mtime": 1789305882.3442745,
-    "seen": 1789377293.1126533,
-    "ast_hash": "f5bd90bcdcad28fecf2c2e5d5cad2da3",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/scripts/command-metadata.json": {
-    "mtime": 1789305882.396518,
-    "seen": 1789377293.1126537,
-    "ast_hash": "86266801588636b11e00372754118529",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/scripts/data/font-index-failures.json": {
-    "mtime": 1789305882.396518,
-    "seen": 1789377293.112654,
-    "ast_hash": "c14048ea4e2b4a062933664822bc0399",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/scripts/impeccable": {
-    "mtime": 1789305882.4005182,
-    "seen": 1789377293.1126547,
-    "ast_hash": "e16affb82129f340e5134e4286754eb0",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/scripts/live-browser-dom.js": {
-    "mtime": 1789305882.4005182,
-    "seen": 1789377293.112655,
-    "ast_hash": "c5da6b95a6184ec6f76d5acbaea98c50",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/scripts/live-browser-ignores.js": {
-    "mtime": 1789305882.4005182,
-    "seen": 1789377293.1126554,
-    "ast_hash": "dd05503f92e1cf9b3feedbb19070f59e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/scripts/live-browser-session.js": {
-    "mtime": 1789305882.4005182,
-    "seen": 1789377293.1126559,
-    "ast_hash": "80cb9fcfb1b1810473d830b13db73d40",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/scripts/live-browser.js": {
-    "mtime": 1789305882.401518,
-    "seen": 1789377293.112656,
-    "ast_hash": "8c528987ab91769a29c08e6c38e5ce21",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/scripts/modern-screenshot.umd.js": {
-    "mtime": 1789305882.401518,
-    "seen": 1789377293.1126564,
-    "ast_hash": "4fe5f9e490ab4f107afc707d7eafc819",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.codex/config.json": {
-    "mtime": 1789305882.401518,
-    "seen": 1789377293.1126568,
-    "ast_hash": "53e7812205aaf9f5a7fee2486396ac62",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.codex/hooks.json": {
-    "mtime": 1789305882.4028206,
-    "seen": 1789377293.1126573,
-    "ast_hash": "d2b0eae898eca4785225fd60b5918a69",
-    "semantic_hash": ""
-  },
   "buildmyhouse-b1-4/.github/hooks/impeccable.json": {
     "mtime": 1789305882.4029505,
     "seen": 1789377293.1126575,
@@ -11999,72 +11873,6 @@
     "ast_hash": "3ea725724bc8ebe483c9f13d6aa1124f",
     "semantic_hash": ""
   },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/scripts/command-metadata.json": {
-    "mtime": 1789305882.5065198,
-    "seen": 1789377293.1126623,
-    "ast_hash": "86266801588636b11e00372754118529",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/scripts/data/font-index-failures.json": {
-    "mtime": 1789305882.5065198,
-    "seen": 1789377293.1126628,
-    "ast_hash": "c14048ea4e2b4a062933664822bc0399",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/scripts/impeccable": {
-    "mtime": 1789305882.5105197,
-    "seen": 1789377293.1126633,
-    "ast_hash": "e16affb82129f340e5134e4286754eb0",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/scripts/live-browser-dom.js": {
-    "mtime": 1789305882.5105197,
-    "seen": 1789377293.1126635,
-    "ast_hash": "c5da6b95a6184ec6f76d5acbaea98c50",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/scripts/live-browser-ignores.js": {
-    "mtime": 1789305882.5105197,
-    "seen": 1789377293.112664,
-    "ast_hash": "dd05503f92e1cf9b3feedbb19070f59e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/scripts/live-browser-session.js": {
-    "mtime": 1789305882.5105197,
-    "seen": 1789377293.1126642,
-    "ast_hash": "80cb9fcfb1b1810473d830b13db73d40",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/scripts/live-browser.js": {
-    "mtime": 1789305882.51152,
-    "seen": 1789377293.112665,
-    "ast_hash": "8c528987ab91769a29c08e6c38e5ce21",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/scripts/modern-screenshot.umd.js": {
-    "mtime": 1789305882.51152,
-    "seen": 1789377293.1126652,
-    "ast_hash": "4fe5f9e490ab4f107afc707d7eafc819",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.steward-migration/memories.json": {
-    "mtime": 1789305882.513079,
-    "seen": 1789377293.1126657,
-    "ast_hash": "2ce9fa2b80b43b7ec4bfb853b1d4fc7b",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.steward-migration/skills.json": {
-    "mtime": 1789305882.513079,
-    "seen": 1789377293.112666,
-    "ast_hash": "2a4d951b49244a32fdede59132390cf4",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.steward-migration/specs.json": {
-    "mtime": 1789305882.513079,
-    "seen": 1789377293.1126661,
-    "ast_hash": "f4cdf256346f2668b28ec84af4b6a6ee",
-    "semantic_hash": ""
-  },
   "buildmyhouse-b1-4/buildmyhouse-mcp/claude_desktop_config.json": {
     "mtime": 1789305882.51694,
     "seen": 1789377293.1126666,
@@ -12084,9 +11892,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/assets/catalog/catalog.json": {
-    "mtime": 1789305882.53052,
-    "seen": 1789377293.1126678,
-    "ast_hash": "16fd2b6669ebf89eb94b4ce50640f14f",
+    "mtime": 1789379749.777061,
+    "seen": 1789380995.336121,
+    "ast_hash": "b9693a24892da2584602cedb40fcd973",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/assets/textures/generate.py": {
@@ -12120,9 +11928,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/e2e/catalog-panel.spec.ts": {
-    "mtime": 1789305882.5698717,
-    "seen": 1789377293.1126704,
-    "ast_hash": "da9428f3169c39b04b44a5a09e16e27f",
+    "mtime": 1789379749.8080616,
+    "seen": 1789380995.3362184,
+    "ast_hash": "d9fdf04495aee6d2151f609067aa1a5f",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/e2e/fit-3d-camera-off-origin.spec.ts": {
@@ -12228,45 +12036,45 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/eslint.config.js": {
-    "mtime": 1789305882.5698717,
-    "seen": 1789377293.112677,
-    "ast_hash": "1d754ce28a419c96118498cf2dd24a4d",
+    "mtime": 1789379749.8080616,
+    "seen": 1789380995.3365068,
+    "ast_hash": "77250d7438bc391e70dc5959edd65764",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/package.json": {
-    "mtime": 1789305882.5705206,
-    "seen": 1789377293.1126776,
-    "ast_hash": "4412da86db4d8d7e9834f5eb4ffc7a75",
+    "mtime": 1789379755.3471427,
+    "seen": 1789380995.3365076,
+    "ast_hash": "3cfbb51c98c3dee9a915676c8a377ec8",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/playwright.config.ts": {
-    "mtime": 1789305882.5705206,
-    "seen": 1789377293.1126778,
-    "ast_hash": "d1ca6f5688ac5b8ef5395a52db3b9d54",
+    "mtime": 1789379749.8090615,
+    "seen": 1789380995.3365083,
+    "ast_hash": "1b3a2c5b691b6a8be605b32f1cbb9933",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/scripts/assets.ts": {
-    "mtime": 1789305882.5705206,
-    "seen": 1789377293.1126783,
-    "ast_hash": "81dd900802aa5826f203986940959ec2",
+    "mtime": 1789379749.8850627,
+    "seen": 1789380995.3365092,
+    "ast_hash": "7c7d2d9994cebe90b32ce515d1c342e4",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/scripts/convert-sh3d-models.ts": {
-    "mtime": 1789305882.5714548,
-    "seen": 1789377293.1126788,
-    "ast_hash": "1f7a4ecb0ef75336527bd11880ac766a",
+    "mtime": 1789379749.8850627,
+    "seen": 1789380995.3365097,
+    "ast_hash": "71b605e077d8e6001753cf429f7a099a",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/scripts/export-scene.ts": {
-    "mtime": 1789305882.5714548,
-    "seen": 1789377293.1126792,
-    "ast_hash": "8e53481a434d809f5249815ab2d7444f",
+    "mtime": 1789379755.3471427,
+    "seen": 1789380995.3365104,
+    "ast_hash": "46bb9a30b5a8a2d86e5da50d594476a9",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/scripts/generate-models.ts": {
-    "mtime": 1789305882.5714548,
-    "seen": 1789377293.1126795,
-    "ast_hash": "ddcf25778fe5511e0fb1256402723e5a",
+    "mtime": 1789379749.8850627,
+    "seen": 1789380995.336511,
+    "ast_hash": "bb57c7a7fc830d0d0ec7b63bd90f1df9",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/scripts/smoke-automation.ts": {
@@ -12276,21 +12084,21 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/package.json": {
-    "mtime": 1789305882.5716155,
-    "seen": 1789377293.1126802,
-    "ast_hash": "60b4ace2b44d983929d5f6e4d46fb1ad",
+    "mtime": 1789379749.8870628,
+    "seen": 1789380995.336532,
+    "ast_hash": "53d23d3ffe5fa9e75874aa294394bf65",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/src/app.ts": {
-    "mtime": 1789305882.5716155,
-    "seen": 1789377293.1126807,
-    "ast_hash": "c8ac070dec513eeb81810c7fc7c02df8",
+    "mtime": 1789379749.8870628,
+    "seen": 1789380995.336533,
+    "ast_hash": "c9f273ce9f66625b2d577d5b36dd2b83",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/src/assets.ts": {
-    "mtime": 1789306374.5158048,
-    "seen": 1789377293.112681,
-    "ast_hash": "8d1b84813b05288a05c79e46d296fd3b",
+    "mtime": 1789379749.8870628,
+    "seen": 1789380995.3365335,
+    "ast_hash": "04c333d414863c2dbe772f5162fdea2e",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/src/asyncHandler.ts": {
@@ -12312,9 +12120,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/src/db.ts": {
-    "mtime": 1789305882.5719745,
-    "seen": 1789377293.1126828,
-    "ast_hash": "10ce6f42539c63d6164e05c6fe3a7122",
+    "mtime": 1789379749.8880627,
+    "seen": 1789380995.3365943,
+    "ast_hash": "49ccb431a49cc9b1066aea15c804f876",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/src/email.ts": {
@@ -12324,33 +12132,33 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/src/homes.ts": {
-    "mtime": 1789305882.5719745,
-    "seen": 1789377293.1126835,
-    "ast_hash": "251533fb8bcaedf4e3298f50f6a5aa2a",
+    "mtime": 1789379749.8880627,
+    "seen": 1789380995.3366148,
+    "ast_hash": "ea1f6dd00605d09dd919ef6578618abe",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/src/index.ts": {
-    "mtime": 1789305882.5719745,
-    "seen": 1789377293.112684,
-    "ast_hash": "0a40fe7e2ce79757197aa18dc0e60e70",
+    "mtime": 1789379749.8880627,
+    "seen": 1789380995.3366156,
+    "ast_hash": "ed5f5f50d1b4fa3f4b9cfff6c25e55ac",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/src/render-queue.ts": {
-    "mtime": 1789305882.5719745,
-    "seen": 1789377293.1126842,
-    "ast_hash": "83d1abd554eaaf34e04f9edf4415101d",
+    "mtime": 1789379749.8890626,
+    "seen": 1789380995.3366187,
+    "ast_hash": "cf5fd560a747b8bb2ea2e4a957cadc15",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/src/storage.ts": {
-    "mtime": 1789306102.2467732,
-    "seen": 1789377293.1126847,
-    "ast_hash": "726b3d33e5d8b8e5a5347fe94f045b23",
+    "mtime": 1789379749.8890626,
+    "seen": 1789380995.3366194,
+    "ast_hash": "273160915bfbd6731305b4b36d5566df",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/src/teams.ts": {
-    "mtime": 1789305882.5719745,
-    "seen": 1789377293.112685,
-    "ast_hash": "bcf36d5dc8f57ba76b785308d7a4142c",
+    "mtime": 1789379749.8890626,
+    "seen": 1789380995.33662,
+    "ast_hash": "8e7f0e0b9ca6283dac76b04738517801",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/src/telemetry.ts": {
@@ -12360,15 +12168,15 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/test/account.test.ts": {
-    "mtime": 1789305882.5719745,
-    "seen": 1789377293.112686,
-    "ast_hash": "2d9397fa9424f3b9b41266f48192215b",
+    "mtime": 1789379749.8900628,
+    "seen": 1789380995.3366437,
+    "ast_hash": "9ae29e5f83fca2618ea4c8bd34d84d9c",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/test/assets.test.ts": {
-    "mtime": 1789305882.5723875,
-    "seen": 1789377293.1126862,
-    "ast_hash": "5df8a2030a3d299fe6f2d79b0128059a",
+    "mtime": 1789379749.8900628,
+    "seen": 1789380995.336645,
+    "ast_hash": "fa48f9bb1adc8c6ba832157448195dbd",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/test/auth.test.ts": {
@@ -12408,21 +12216,15 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/tsconfig.json": {
-    "mtime": 1789305882.5723875,
-    "seen": 1789377293.1126885,
-    "ast_hash": "6284a5db4ec133df58b7f574476b4d2c",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/buildmyhouse/server/tsconfig.test.json": {
-    "mtime": 1789305882.5723875,
-    "seen": 1789377293.1126893,
-    "ast_hash": "110ba021ac9a50a4782f146674b1dc00",
+    "mtime": 1789379749.8910627,
+    "seen": 1789380995.336769,
+    "ast_hash": "c2d6089d85c56194205228d52fb1d05d",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/server/vitest.config.ts": {
-    "mtime": 1789305882.5723875,
-    "seen": 1789377293.1126895,
-    "ast_hash": "dc8501792dec20b8f76221e652aaa64b",
+    "mtime": 1789379749.8910627,
+    "seen": 1789380995.3367698,
+    "ast_hash": "7ee103d7ed6b7cba620b13261b346a9a",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src-tauri/Cargo.toml": {
@@ -12516,9 +12318,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/core/home.ts": {
-    "mtime": 1789305882.5735922,
-    "seen": 1789377293.1126955,
-    "ast_hash": "34656970f6ffdc04ef1a28d720c80757",
+    "mtime": 1789379755.3471427,
+    "seen": 1789380995.3370423,
+    "ast_hash": "733769ec2170cec21c055bdff6c9b8df",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/core/model-conversion.ts": {
@@ -12528,9 +12330,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/core/model.ts": {
-    "mtime": 1789305882.5735922,
-    "seen": 1789377293.1126966,
-    "ast_hash": "8f5431c7f4277360573555629090a6c0",
+    "mtime": 1789379755.3471427,
+    "seen": 1789380995.3370607,
+    "ast_hash": "f9bc94c7495238237ec5774117839b4b",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/core/project-store.ts": {
@@ -12588,9 +12390,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/main.ts": {
-    "mtime": 1789305882.5735922,
-    "seen": 1789377293.1127005,
-    "ast_hash": "5da34262c70dc0722b02e104ad0575aa",
+    "mtime": 1789379755.5391455,
+    "seen": 1789380995.3372262,
+    "ast_hash": "4ca0c60ea937ffd70a3e762c9f6d7b08",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/plan/clipboard.test.ts": {
@@ -12648,9 +12450,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/plan/renderer.ts": {
-    "mtime": 1789305882.5743785,
-    "seen": 1789377293.1127043,
-    "ast_hash": "5a39c603930318af39acd70908f63bdf",
+    "mtime": 1789379755.3481426,
+    "seen": 1789380995.337386,
+    "ast_hash": "2fd19831ba47237e6c275dfffafb8da3",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/render/__tests__/scene-builder.test.ts": {
@@ -12780,9 +12582,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/telemetry/events.ts": {
-    "mtime": 1789305882.575324,
-    "seen": 1789377293.1127121,
-    "ast_hash": "4095a3f7fa58111b2eb68b3630dfc967",
+    "mtime": 1789379749.8960629,
+    "seen": 1789380995.3377762,
+    "ast_hash": "564d0696a28a1fa4cf7a4710e32f0ff8",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/telemetry/logger.test.ts": {
@@ -12792,9 +12594,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/telemetry/logger.ts": {
-    "mtime": 1789305882.575324,
-    "seen": 1789377293.1127129,
-    "ast_hash": "accba0f06f9c0bac72d7b69701b527f3",
+    "mtime": 1789379749.8960629,
+    "seen": 1789380995.3377945,
+    "ast_hash": "5f862c942f426c6b12e998eca2c1b7f6",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/telemetry/trace.test.ts": {
@@ -12834,9 +12636,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/ui/catalog-panel.ts": {
-    "mtime": 1789305882.575547,
-    "seen": 1789377293.1127155,
-    "ast_hash": "ccd7b467a4bd92ef06442068f31f86c2",
+    "mtime": 1789379755.3481426,
+    "seen": 1789380995.3379056,
+    "ast_hash": "bd10c632258bc679167d5607c07906cb",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/ui/change-password-dialog.ts": {
@@ -12858,9 +12660,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/ui/model-thumbnail.ts": {
-    "mtime": 1789305882.575547,
-    "seen": 1789377293.1127172,
-    "ast_hash": "5025d50dc936718184ba1756960aa4ec",
+    "mtime": 1789379749.8960629,
+    "seen": 1789380995.3379595,
+    "ast_hash": "2371cdd0b132b5f27379e8aac5276011",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/ui/preferences.ts": {
@@ -12912,15 +12714,15 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/view3d/scene.ts": {
-    "mtime": 1789322353.4883623,
-    "seen": 1789377293.1127207,
-    "ast_hash": "7b1d17ca6d2baf9feb9d8408bc2553e8",
+    "mtime": 1789379755.3481426,
+    "seen": 1789380995.3381073,
+    "ast_hash": "1061fe24f182c482055815fcea9b5ab8",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/view3d/view.ts": {
-    "mtime": 1789305882.5758858,
-    "seen": 1789377293.112721,
-    "ast_hash": "84e69f20881e8f1aea68f79f35dab3ab",
+    "mtime": 1789379755.3481426,
+    "seen": 1789380995.3381078,
+    "ast_hash": "d1fcab8991cb529a2a12420072341292",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src/view3d/viewport-quality.ts": {
@@ -12960,9 +12762,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/tests/catalog.test.ts": {
-    "mtime": 1789305882.5763123,
-    "seen": 1789377293.1127234,
-    "ast_hash": "11f3ebdc9d47cad62b8d8d9154f65f99",
+    "mtime": 1789379749.8970628,
+    "seen": 1789380995.3382134,
+    "ast_hash": "b110a9e85827f8753d3a02b8b55e434d",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/tests/compass-timezones.test.ts": {
@@ -13080,9 +12882,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/tests/selection-highlight.test.ts": {
-    "mtime": 1789305882.5763123,
-    "seen": 1789377293.1127307,
-    "ast_hash": "87b2b9a8fb4a2143b1224cf3fb92b351",
+    "mtime": 1789379755.3481426,
+    "seen": 1789380995.3385246,
+    "ast_hash": "590239c47da658cd5d78614fd1152a18",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/tests/store.test.ts": {
@@ -13134,9 +12936,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/vite.config.ts": {
-    "mtime": 1789305882.5765207,
-    "seen": 1789377293.1127338,
-    "ast_hash": "e749a5bf599c94dea902d2fb798dab09",
+    "mtime": 1789379755.3481426,
+    "seen": 1789380995.338656,
+    "ast_hash": "f16f54ec9a9429db62ea8d161d689064",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/company_ops/__init__.py": {
@@ -13272,9 +13074,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/discord_bridge.py": {
-    "mtime": 1789305882.5789723,
-    "seen": 1789377293.1127422,
-    "ast_hash": "ccc420f55006dcadc8e7ecf703a6594d",
+    "mtime": 1789379749.898063,
+    "seen": 1789380995.339021,
+    "ast_hash": "3f4e39bb89fdeaec4e54429366d6f1a2",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/mcp-workers.example.json": {
@@ -13296,9 +13098,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/opencode/opencode.json": {
-    "mtime": 1789305882.5796096,
-    "seen": 1789377293.1127436,
-    "ast_hash": "115011bb8fcd9c87496d1c82736edae6",
+    "mtime": 1789379749.898063,
+    "seen": 1789380995.3390734,
+    "ast_hash": "63bbf90bcf13da0d2707203760882e61",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/opencode/telemetry/opencode.json": {
@@ -13308,9 +13110,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/opencode/worker/opencode.json": {
-    "mtime": 1789305882.5796583,
-    "seen": 1789377293.112744,
-    "ast_hash": "38050bdb72e306191a10049b949cfc40",
+    "mtime": 1789379749.898063,
+    "seen": 1789380995.3390937,
+    "ast_hash": "e5462f62789454ba6bc577e1b4216892",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/pyproject.toml": {
@@ -13326,9 +13128,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/scripts/engineering-entrypoint.sh": {
-    "mtime": 1789305882.5797493,
-    "seen": 1789377293.1127455,
-    "ast_hash": "482bdffc0d8a3cc13b95816337fb4c3b",
+    "mtime": 1789379749.898063,
+    "seen": 1789380995.3391273,
+    "ast_hash": "4524d8b8bf2c199dfaea5518e82588ed",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/scripts/entrypoint.sh": {
@@ -13344,9 +13146,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/scripts/generate-agent-mcp-config.js": {
-    "mtime": 1789305882.5797493,
-    "seen": 1789377293.1127467,
-    "ast_hash": "b19cc165a9030cd8990dccb4f977fdcf",
+    "mtime": 1789379749.8990629,
+    "seen": 1789380995.339163,
+    "ast_hash": "bc426395d3e0c4f1586bc9a1c89881f1",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/scripts/git-backup.sh": {
@@ -13608,9 +13410,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/equivalence/eq/adapters/mock.py": {
-    "mtime": 1789305882.5825822,
-    "seen": 1789377293.1127632,
-    "ast_hash": "0da90092312cd7cc709eed858faba7eb",
+    "mtime": 1789379749.8990629,
+    "seen": 1789380995.3399358,
+    "ast_hash": "020c3c078002f406ec2a092e3224e380",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/equivalence/eq/adapters/orchestrator.py": {
@@ -13775,18 +13577,6 @@
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": ""
   },
-  "buildmyhouse-b1-4/equivalence/luxcore/asset_server.py": {
-    "mtime": 1789305882.5835514,
-    "seen": 1789377293.1127737,
-    "ast_hash": "9969e8f041a818d1dfaafac380397896",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/asset_store.py": {
-    "mtime": 1789305882.5835514,
-    "seen": 1789377293.1127741,
-    "ast_hash": "bd9dfe43280cc650ae3d2012a59b10cb",
-    "semantic_hash": ""
-  },
   "buildmyhouse-b1-4/equivalence/luxcore/bridge.py": {
     "mtime": 1789305882.5835514,
     "seen": 1789377293.1127744,
@@ -13799,28 +13589,10 @@
     "ast_hash": "12a91dfee516ea248eff1e549495eb5d",
     "semantic_hash": ""
   },
-  "buildmyhouse-b1-4/equivalence/luxcore/full-house.home.json": {
-    "mtime": 1789305882.5835514,
-    "seen": 1789377293.112775,
-    "ast_hash": "42bb0ecfa83c47867b721348e0194897",
-    "semantic_hash": ""
-  },
   "buildmyhouse-b1-4/equivalence/luxcore/install.sh": {
     "mtime": 1789305882.5835514,
     "seen": 1789377293.1127753,
     "ast_hash": "7f19b296d7d745afd5ce3b7425a251c6",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/orientation-room-front.home.json": {
-    "mtime": 1789305882.5845208,
-    "seen": 1789377293.112776,
-    "ast_hash": "fc053478ac49517f604fbd9680495f07",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/orientation-room-top.home.json": {
-    "mtime": 1789305882.5845208,
-    "seen": 1789377293.1127763,
-    "ast_hash": "ce94b9bfb1144614fdafc50859f7adf2",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/equivalence/luxcore/queue.py": {
@@ -13851,24 +13623,6 @@
     "mtime": 1789305882.5845208,
     "seen": 1789377293.1127782,
     "ast_hash": "0d9c6532d103f1f062cad719e8a8eb13",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/smoke-home.json": {
-    "mtime": 1789305882.5845208,
-    "seen": 1789377293.1127784,
-    "ast_hash": "49a9ddcb00f83335915433d0894458c2",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/smoke-scene.json": {
-    "mtime": 1789305882.5845208,
-    "seen": 1789377293.1127787,
-    "ast_hash": "ddf39d8a8ca202472ce64b72606fff9e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/test_asset_store.py": {
-    "mtime": 1789305882.5845208,
-    "seen": 1789377293.1127794,
-    "ast_hash": "124e75ab51e819781829b4d30a3e07d4",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/equivalence/luxcore/test_config.py": {
@@ -13914,9 +13668,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/equivalence/pyproject.toml": {
-    "mtime": 1789305882.585521,
-    "seen": 1789377293.112782,
-    "ast_hash": "93ca94dfa19860daa71d11ee4994ff0c",
+    "mtime": 1789379749.9000628,
+    "seen": 1789380995.340665,
+    "ast_hash": "899838b45b401f0475005d6f3c5e54c7",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/equivalence/scenarios/slice/goldens/create_room.expected-state.json": {
@@ -14001,90 +13755,6 @@
     "mtime": 1789305882.6930368,
     "seen": 1789377293.1127877,
     "ast_hash": "77973874c27b4bd8d554e127f4640521",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/astro.config.mjs": {
-    "mtime": 1789305882.6931593,
-    "seen": 1789377293.1127882,
-    "ast_hash": "a5e17953216aa76475c084d854732307",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/eslint.config.js": {
-    "mtime": 1789305882.6931593,
-    "seen": 1789377293.1127884,
-    "ast_hash": "4d971d56c6474a37aa2ff12f1cc7b961",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/package.json": {
-    "mtime": 1789305882.6931593,
-    "seen": 1789377293.1127887,
-    "ast_hash": "ba0ee9475f4c47933f5b0231e347cd1e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/src/components/ObserverDataSample.astro": {
-    "mtime": 1789305882.6933832,
-    "seen": 1789377293.1127892,
-    "ast_hash": "2830520a03d14493272451f8a0dba5d0",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/src/env.d.ts": {
-    "mtime": 1789305882.6933832,
-    "seen": 1789377293.1127894,
-    "ast_hash": "a34c63603f2fc704c29af63d4a960109",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/src/layouts/DataLayout.astro": {
-    "mtime": 1789305882.6933832,
-    "seen": 1789377293.11279,
-    "ast_hash": "b4c980f88fa81d928f5824796f958022",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/src/pages/api/decisions.json.ts": {
-    "mtime": 1789305882.6934345,
-    "seen": 1789377293.1127906,
-    "ast_hash": "05f251608bb0d90f43aee9982ca7285b",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/src/pages/api/experiments.json.ts": {
-    "mtime": 1789305882.6934514,
-    "seen": 1789377293.1127908,
-    "ast_hash": "685288729d32a54e61ae18b7cdc7e4b0",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/src/pages/api/failures.json.ts": {
-    "mtime": 1789305882.6934514,
-    "seen": 1789377293.112791,
-    "ast_hash": "8e0ae6e1215b9f0b7757dd367cee9fc6",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/src/pages/decisions.astro": {
-    "mtime": 1789305882.6934514,
-    "seen": 1789377293.1127915,
-    "ast_hash": "1b2d0578df01846cd8fe350bb22e5ddb",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/src/pages/experiments.astro": {
-    "mtime": 1789305882.6934514,
-    "seen": 1789377293.112792,
-    "ast_hash": "5a09251eb250c2c9ca39c86ff761f636",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/src/pages/failures.astro": {
-    "mtime": 1789305882.6934514,
-    "seen": 1789377293.1127925,
-    "ast_hash": "27d8a9267eac130fe6bfa8f10eaf8a75",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/src/pages/index.astro": {
-    "mtime": 1789305882.6934514,
-    "seen": 1789377293.1127927,
-    "ast_hash": "c04c887493abc5b24c60b36d2942eec0",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/tsconfig.json": {
-    "mtime": 1789305882.6934514,
-    "seen": 1789377293.1127932,
-    "ast_hash": "188408262b52b5c1be6358681501ca9e",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/qa-loop/analyze.py": {
@@ -15095,66 +14765,6 @@
     "ast_hash": "5582778fc86f5e6b28c30010b36b7abf",
     "semantic_hash": ""
   },
-  "buildmyhouse-b1-4/website/astro.config.mjs": {
-    "mtime": 1789305882.7001774,
-    "seen": 1789377293.1128585,
-    "ast_hash": "aaf688f8c6548c8f215880ebe370184b",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/website/eslint.config.js": {
-    "mtime": 1789305882.7001774,
-    "seen": 1789377293.1128592,
-    "ast_hash": "ceaf74470dbce91d3659e3bd85afc8d9",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/website/package.json": {
-    "mtime": 1789305882.7001774,
-    "seen": 1789377293.1128597,
-    "ast_hash": "0b62d4d0fc15c8735ddcf90abe5597fe",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/website/src/layouts/Layout.astro": {
-    "mtime": 1789305882.7003906,
-    "seen": 1789377293.11286,
-    "ast_hash": "9ae7f79c6e5d452d86006537017d761e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/website/src/pages/about.astro": {
-    "mtime": 1789305882.7003906,
-    "seen": 1789377293.1128604,
-    "ast_hash": "00565a76dc4659d30cbdfb4471569ccc",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/website/src/pages/contact.astro": {
-    "mtime": 1789305882.7004302,
-    "seen": 1789377293.1128607,
-    "ast_hash": "f9b00a1c7dd42004b238bc05998ea7df",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/website/src/pages/docs.astro": {
-    "mtime": 1789305882.7004302,
-    "seen": 1789377293.112861,
-    "ast_hash": "5fdbcecb9e156c8135a91950c196f170",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/website/src/pages/index.astro": {
-    "mtime": 1789305882.7004302,
-    "seen": 1789377293.1128614,
-    "ast_hash": "34e83ab06fdf335fa143b5052bfc1fb2",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/website/src/pages/pricing.astro": {
-    "mtime": 1789305882.7004302,
-    "seen": 1789377293.1128616,
-    "ast_hash": "b076e6d44690dc637d8eeca718ca5233",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/website/tsconfig.json": {
-    "mtime": 1789305882.7004302,
-    "seen": 1789377293.112862,
-    "ast_hash": "fe9165574b3711dd5f9b45a445e5b93d",
-    "semantic_hash": ""
-  },
   "buildmyhouse/assets/basis/basis_transcoder.js": {
     "mtime": 1789329506.6233559,
     "seen": 1789377293.112865,
@@ -15210,8 +14820,8 @@
     "semantic_hash": ""
   },
   "buildmyhouse/public/assets/catalog/catalog.json": {
-    "mtime": 1789378278.9890003,
-    "seen": 1789378417.0091052,
+    "mtime": 1789380716.84278,
+    "seen": 1789380995.3445237,
     "ast_hash": "b9693a24892da2584602cedb40fcd973",
     "semantic_hash": ""
   },
@@ -15222,8 +14832,8 @@
     "semantic_hash": ""
   },
   "buildmyhouse/public/assets/textures/generate_pbr.py": {
-    "mtime": 1789378278.9976275,
-    "seen": 1789378417.0091262,
+    "mtime": 1789380716.8532214,
+    "seen": 1789380995.3445437,
     "ast_hash": "da228dc0f36d131afe5ce9e28e06dd83",
     "semantic_hash": ""
   },
@@ -19079,588 +18689,6 @@
     "ast_hash": "26d493557271c0b94f763b106c2f2dff",
     "semantic_hash": ""
   },
-  "buildmyhouse-b1-4/.agents/skills/frontend-design/LICENSE.txt": {
-    "mtime": 1789305882.276926,
-    "seen": 1789377293.1153533,
-    "ast_hash": "2ee41112a44fe7014dce33e26468ba93",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/frontend-design/SKILL.md": {
-    "mtime": 1789305882.2770555,
-    "seen": 1789377293.1153538,
-    "ast_hash": "06a0520e81f698334258c73ff0de533b",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/SKILL.md": {
-    "mtime": 1789305882.2770555,
-    "seen": 1789377293.1153543,
-    "ast_hash": "2b4ebaacf7af029b9284a511ad6accb5",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/agents/openai.yaml": {
-    "mtime": 1789305882.277223,
-    "seen": 1789377293.1153545,
-    "ast_hash": "f6a36117ebc5ff8f67efb518ad1fe775",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/adapt.md": {
-    "mtime": 1789305882.277223,
-    "seen": 1789377293.1153548,
-    "ast_hash": "7526208103aa6586a4c22639a97da724",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/adapt.native.md": {
-    "mtime": 1789305882.2774503,
-    "seen": 1789377293.1153555,
-    "ast_hash": "d45a12935db7bf28b64dfeb46fca6ab6",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/android.md": {
-    "mtime": 1789305882.2774503,
-    "seen": 1789377293.1153557,
-    "ast_hash": "18f5d94b2c51ac3bfede3b209660bbb5",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/animate.md": {
-    "mtime": 1789305882.2774503,
-    "seen": 1789377293.1153562,
-    "ast_hash": "610f85bc3d6d370810836681204b015d",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/audit.md": {
-    "mtime": 1789305882.2774503,
-    "seen": 1789377293.1153567,
-    "ast_hash": "c1d75edbf64f03959f2ea030cc282401",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/audit.native.md": {
-    "mtime": 1789305882.2774503,
-    "seen": 1789377293.115357,
-    "ast_hash": "62ebbd0cb9c871be414c90bf82410131",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/bolder.md": {
-    "mtime": 1789305882.2774503,
-    "seen": 1789377293.1153574,
-    "ast_hash": "a084531985d83e34538727961ed51470",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/clarify.md": {
-    "mtime": 1789305882.2774503,
-    "seen": 1789377293.1153579,
-    "ast_hash": "413da6eb075a6c3ed05de43f760f3be8",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/colorize.md": {
-    "mtime": 1789305882.2774503,
-    "seen": 1789377293.115358,
-    "ast_hash": "0bf2887698d75473acd5a5b0ccbe1d3e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/craft-floor.md": {
-    "mtime": 1789305882.2774503,
-    "seen": 1789377293.1153588,
-    "ast_hash": "2c497f436c7dbf35b008b174161b861a",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/craft.md": {
-    "mtime": 1789305882.2774503,
-    "seen": 1789377293.115359,
-    "ast_hash": "9075911f45c58c15a720f8188b2738f4",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/critique.md": {
-    "mtime": 1789305882.2774503,
-    "seen": 1789377293.1153595,
-    "ast_hash": "994e5b43a304843939443e48d11ef318",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/degraded/asset-producer.md": {
-    "mtime": 1789305882.2774503,
-    "seen": 1789377293.11536,
-    "ast_hash": "9fd46c4efc321b1bfc7aa9ff4a40226e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/degraded/documenter.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153603,
-    "ast_hash": "401d9dbbedc58caf4bfd1d160c0068a8",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/degraded/finish-reviewer.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153605,
-    "ast_hash": "3aeae1c6e9c93dc21b633d2e836340f7",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/degraded/manual-edit-applier.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.115361,
-    "ast_hash": "1652cf7a403f11f4d57382e5ccec6999",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/delight.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153615,
-    "ast_hash": "4a4fb8494ddda3d2b4687b938209eb32",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/distill.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153617,
-    "ast_hash": "551d826d1e8082ec799f575a40967b41",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/doctor.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153624,
-    "ast_hash": "e7e21152b25551bf9d2a6dc2c27d7f6b",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/document.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.115363,
-    "ast_hash": "4f2674bdf49244e30841448f9d934c40",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/extract.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153631,
-    "ast_hash": "e51e09c25d06f05b6efabb1fc9228d90",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/harden.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153634,
-    "ast_hash": "2bb1578f38fee280620b14cf9371cadb",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/hooks.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153638,
-    "ast_hash": "5dca015a3e95278b6005528d0a46fcdf",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/init.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153643,
-    "ast_hash": "a536a753154b82dfb51edb7aecdd4b1b",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/ios.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153646,
-    "ast_hash": "a8f56b5c246ad44e142853ef59a19039",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/layout.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153648,
-    "ast_hash": "d4db3672050d72bd68949ef6ca614569",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/live-setup.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153653,
-    "ast_hash": "b8c746651c6b6cafbaed844b82a68422",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/live.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.115366,
-    "ast_hash": "1c25265aa755b1bf9035cacc435d9be3",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/new-work.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153665,
-    "ast_hash": "529965c00382ab66ff46cc099d8c0845",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/onboard.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153667,
-    "ast_hash": "e1439e7cb4d19ea29a8990f008aa60f2",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/operate.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153672,
-    "ast_hash": "53a569b985749058f7b178a32e0a157f",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/optimize.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153674,
-    "ast_hash": "69031dca2a97d199862bc514c68c115d",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/overdrive.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.115368,
-    "ast_hash": "a48f82a5a3dc3cfe974228f8240477ed",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/polish.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153681,
-    "ast_hash": "36ed382b9f9692d0545b34dfd643670b",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/quieter.md": {
-    "mtime": 1789305882.2780058,
-    "seen": 1789377293.1153686,
-    "ast_hash": "74730b891cd7fa09bc88831c8371d50e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/routing.md": {
-    "mtime": 1789305882.2785163,
-    "seen": 1789377293.1153693,
-    "ast_hash": "cd99ca8453911c26d7edd1a69d8e3f88",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/shape.md": {
-    "mtime": 1789305882.2785163,
-    "seen": 1789377293.1153696,
-    "ast_hash": "ecf5345d56452d10cd2c9203a7512704",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/typeset.md": {
-    "mtime": 1789305882.2785163,
-    "seen": 1789377293.11537,
-    "ast_hash": "740584b4340794757ebabbd44383fcda",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.agents/skills/impeccable/reference/visualize.md": {
-    "mtime": 1789305882.2785163,
-    "seen": 1789377293.1153703,
-    "ast_hash": "41d2725e968277ffdad81c9ee0d6143d",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/PHASE1_TASKS.md": {
-    "mtime": 1789305882.3440573,
-    "seen": 1789377293.1153708,
-    "ast_hash": "c29e2b9b396eb0a90c5a098e45c36ecb",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/VERIFICATION-ai-cli-mcp-2026-09-08.md": {
-    "mtime": 1789305882.3441155,
-    "seen": 1789377293.115371,
-    "ast_hash": "9d013d408cc59726bf74ff5b6bcd9687",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/agents/agent-manager.md": {
-    "mtime": 1789305882.3441155,
-    "seen": 1789377293.1153712,
-    "ast_hash": "0a2a7c0054564c621f90f1ac83e45ab6",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/agents/ai-cli-mcp-GUIDE.md": {
-    "mtime": 1789305882.3442745,
-    "seen": 1789377293.1153717,
-    "ast_hash": "ee117cf123a220e055ad09ded091cce4",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/agents/ai-cli-mcp-ROUTING.md": {
-    "mtime": 1789305882.3442745,
-    "seen": 1789377293.115372,
-    "ast_hash": "954f104fa5ae414450400cc640f52d69",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/agents/homely-ui-builder.md": {
-    "mtime": 1789305882.3442745,
-    "seen": 1789377293.1153727,
-    "ast_hash": "5bfd174d56695ffb291a16362c6def33",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/agents/impeccable-asset-producer.md": {
-    "mtime": 1789305882.3442745,
-    "seen": 1789377293.115373,
-    "ast_hash": "3e6b5f8fb45089baeba83112f49ede7e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/agents/impeccable-documenter.md": {
-    "mtime": 1789305882.3442745,
-    "seen": 1789377293.1153734,
-    "ast_hash": "06e9eb678d70e2dfb757eba8378c1e48",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/agents/impeccable-finish-reviewer.md": {
-    "mtime": 1789305882.3442745,
-    "seen": 1789377293.1153843,
-    "ast_hash": "3dd14c9346a86bb2ff1b8e957f4504e8",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/agents/impeccable-manual-edit-applier.md": {
-    "mtime": 1789305882.3442745,
-    "seen": 1789377293.1153848,
-    "ast_hash": "7d184b03069620576a3368fb14d93a64",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/agents/plan-engine-specialist.md": {
-    "mtime": 1789305882.3442745,
-    "seen": 1789377293.1153853,
-    "ast_hash": "78ddb8a1f9875a6470deaf708c470738",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/agents/steward.md": {
-    "mtime": 1789305882.3442745,
-    "seen": 1789377293.1153858,
-    "ast_hash": "7d9d790427b97d03bb800aa4735d3e54",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/agents/test-specialist.md": {
-    "mtime": 1789305882.3442745,
-    "seen": 1789377293.115386,
-    "ast_hash": "bae0746e0b8fe101ba1ab9802e78268b",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/opencode-costs.md": {
-    "mtime": 1789305882.3442745,
-    "seen": 1789377293.1153867,
-    "ast_hash": "c13699129dfdf00366b415b5d9291394",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/SKILL.md": {
-    "mtime": 1789305882.344653,
-    "seen": 1789377293.115387,
-    "ast_hash": "f7ad56244df978a42b24ed75314982aa",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/adapt.md": {
-    "mtime": 1789305882.3446736,
-    "seen": 1789377293.1153874,
-    "ast_hash": "93ac74ec6fc9fcff285f627e74f78771",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/adapt.native.md": {
-    "mtime": 1789305882.3447223,
-    "seen": 1789377293.115388,
-    "ast_hash": "83199ca5ed98a15fe6951d5485b7cfa8",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/android.md": {
-    "mtime": 1789305882.3447223,
-    "seen": 1789377293.1153882,
-    "ast_hash": "18f5d94b2c51ac3bfede3b209660bbb5",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/animate.md": {
-    "mtime": 1789305882.3447223,
-    "seen": 1789377293.1153886,
-    "ast_hash": "03c9f7615f5d3c10bf57c1aef1ec9882",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/audit.md": {
-    "mtime": 1789305882.3447223,
-    "seen": 1789377293.1153889,
-    "ast_hash": "6d57f947d39f9b6714e6423f4950c171",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/audit.native.md": {
-    "mtime": 1789305882.3447223,
-    "seen": 1789377293.1153893,
-    "ast_hash": "2e77341f171a3b258b8d7e6b086b0ddc",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/bolder.md": {
-    "mtime": 1789305882.3447223,
-    "seen": 1789377293.1153896,
-    "ast_hash": "6e4a0e724e7ccf1fa38bbf51a6f7d6a0",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/clarify.md": {
-    "mtime": 1789305882.3447223,
-    "seen": 1789377293.1153903,
-    "ast_hash": "3f9b6ded202ec0b912807451daaf1d5c",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/colorize.md": {
-    "mtime": 1789305882.3447223,
-    "seen": 1789377293.1153905,
-    "ast_hash": "99e051670d4153052b96ee844008d012",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/craft-floor.md": {
-    "mtime": 1789305882.3447223,
-    "seen": 1789377293.115391,
-    "ast_hash": "cdc54a0514fe95ecde3fb0cb889a5376",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/craft.md": {
-    "mtime": 1789305882.3447223,
-    "seen": 1789377293.1153913,
-    "ast_hash": "9075911f45c58c15a720f8188b2738f4",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/critique.md": {
-    "mtime": 1789305882.3447223,
-    "seen": 1789377293.1153917,
-    "ast_hash": "80b81d8525c40d989b646d093ffc92d2",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/degraded/asset-producer.md": {
-    "mtime": 1789305882.3447223,
-    "seen": 1789377293.115392,
-    "ast_hash": "4dca498d190b59638cd1860c0ef95d27",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/degraded/documenter.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153927,
-    "ast_hash": "401d9dbbedc58caf4bfd1d160c0068a8",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/degraded/finish-reviewer.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.115393,
-    "ast_hash": "3aeae1c6e9c93dc21b633d2e836340f7",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/degraded/manual-edit-applier.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153936,
-    "ast_hash": "1652cf7a403f11f4d57382e5ccec6999",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/delight.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153939,
-    "ast_hash": "e10166bb38cadd52ee69fb78226e1322",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/distill.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153944,
-    "ast_hash": "2e49b01921563d71b09a12f3fec9d437",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/doctor.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153946,
-    "ast_hash": "7f5c7f532b3e87a16ebb3485add0fb81",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/document.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.115395,
-    "ast_hash": "f567a81a01ec2dcca9243aaa09bb8d01",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/extract.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153953,
-    "ast_hash": "d20662216dd9198edc2cdc67d0359743",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/harden.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153958,
-    "ast_hash": "4655cdf1b18a530609ba921f0971e149",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/hooks.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153963,
-    "ast_hash": "6c5e378f13e450e6e20ea91bccb6e9ac",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/init.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153965,
-    "ast_hash": "69461f8a84ac0ef74d17252f9344abaa",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/ios.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153972,
-    "ast_hash": "a8f56b5c246ad44e142853ef59a19039",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/layout.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153977,
-    "ast_hash": "47a23724d1b8f043665a4e5612d13481",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/live-setup.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.115398,
-    "ast_hash": "f8126e567fc29103b2dd68f4a1c1090f",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/live.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153984,
-    "ast_hash": "5790b521909b8ea08cc18af0dba336f8",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/new-work.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153986,
-    "ast_hash": "398b40fb41d237726a3b84b461c44cbc",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/onboard.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153991,
-    "ast_hash": "7095aaea9e2994e37afb3cf1743bc092",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/operate.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153994,
-    "ast_hash": "53a569b985749058f7b178a32e0a157f",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/optimize.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1153998,
-    "ast_hash": "6c8dd78b1e66f0bb71ef6284b062bb4c",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/overdrive.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1154006,
-    "ast_hash": "a9ea1b7446513bf8bdf7641679facfe6",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/polish.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1154008,
-    "ast_hash": "85a66fe58fdf6e1f353d27486ac25c67",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/quieter.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1154013,
-    "ast_hash": "615792c6a96fd636fbec7218fc2510c1",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/routing.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1154017,
-    "ast_hash": "47f95501b3914aee6b04924f3a7b4552",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/shape.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.115402,
-    "ast_hash": "ecf5345d56452d10cd2c9203a7512704",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/typeset.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1154025,
-    "ast_hash": "964697bac91f691be2b5f7440417f04d",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.claude/skills/impeccable/reference/visualize.md": {
-    "mtime": 1789305882.3451486,
-    "seen": 1789377293.1154027,
-    "ast_hash": "9bf84a9554cf344225dec76c904f7b7e",
-    "semantic_hash": ""
-  },
   "buildmyhouse-b1-4/.github/agents/impeccable-asset-producer.agent.md": {
     "mtime": 1789305882.402915,
     "seen": 1789377293.1154032,
@@ -19926,9 +18954,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/.github/workflows/ci.yml": {
-    "mtime": 1789305882.456519,
-    "seen": 1789377293.1154206,
-    "ast_hash": "ad9990caa5671b5d42ca9577d3159136",
+    "mtime": 1789379749.770061,
+    "seen": 1789380995.365146,
+    "ast_hash": "c94b12c226ab1717462581e0a85475a6",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/.github/workflows/deploy-hermees.yml": {
@@ -19956,9 +18984,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/.github/workflows/release.yml": {
-    "mtime": 1789305882.4578853,
-    "seen": 1789377293.1154227,
-    "ast_hash": "4c0eae570f1ced5c56978b3ae1a77aef",
+    "mtime": 1789379749.770061,
+    "seen": 1789380995.3652155,
+    "ast_hash": "36d3f73a7635181472165a5283defefb",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/.github/workflows/snap.yml": {
@@ -19977,12 +19005,6 @@
     "mtime": 1789305882.4580343,
     "seen": 1789377293.1154237,
     "ast_hash": "4bb66ebf7e09668235d4b6bb787383bc",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/commands/impeccable.md": {
-    "mtime": 1789305882.4580867,
-    "seen": 1789377293.115424,
-    "ast_hash": "d4fdc050a726ed61dee8ae79fd1a0ecd",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/.opencode/skills/graphify/SKILL.md": {
@@ -20039,252 +19061,6 @@
     "ast_hash": "9378bd03d56baaf78bd738ab3848f142",
     "semantic_hash": ""
   },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/SKILL.md": {
-    "mtime": 1789305882.458315,
-    "seen": 1789377293.1154277,
-    "ast_hash": "815aaed3a9afb118db169497763f8b47",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/adapt.md": {
-    "mtime": 1789305882.4585395,
-    "seen": 1789377293.1154282,
-    "ast_hash": "93ac74ec6fc9fcff285f627e74f78771",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/adapt.native.md": {
-    "mtime": 1789305882.4585536,
-    "seen": 1789377293.1154287,
-    "ast_hash": "83199ca5ed98a15fe6951d5485b7cfa8",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/android.md": {
-    "mtime": 1789305882.4585536,
-    "seen": 1789377293.115429,
-    "ast_hash": "18f5d94b2c51ac3bfede3b209660bbb5",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/animate.md": {
-    "mtime": 1789305882.4585536,
-    "seen": 1789377293.1154294,
-    "ast_hash": "03c9f7615f5d3c10bf57c1aef1ec9882",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/audit.md": {
-    "mtime": 1789305882.4585536,
-    "seen": 1789377293.1154299,
-    "ast_hash": "6d57f947d39f9b6714e6423f4950c171",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/audit.native.md": {
-    "mtime": 1789305882.4585536,
-    "seen": 1789377293.11543,
-    "ast_hash": "2e77341f171a3b258b8d7e6b086b0ddc",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/bolder.md": {
-    "mtime": 1789305882.4585536,
-    "seen": 1789377293.1154306,
-    "ast_hash": "360505780dbd3e2b57c707320f20fc77",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/clarify.md": {
-    "mtime": 1789305882.4585536,
-    "seen": 1789377293.1154308,
-    "ast_hash": "3f9b6ded202ec0b912807451daaf1d5c",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/colorize.md": {
-    "mtime": 1789305882.4585536,
-    "seen": 1789377293.115431,
-    "ast_hash": "99e051670d4153052b96ee844008d012",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/craft-floor.md": {
-    "mtime": 1789305882.4585536,
-    "seen": 1789377293.1154318,
-    "ast_hash": "cdc54a0514fe95ecde3fb0cb889a5376",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/craft.md": {
-    "mtime": 1789305882.4585536,
-    "seen": 1789377293.115432,
-    "ast_hash": "9075911f45c58c15a720f8188b2738f4",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/critique.md": {
-    "mtime": 1789305882.4585536,
-    "seen": 1789377293.1154325,
-    "ast_hash": "8ac140be55edf1a1c0ed4bb9abbff347",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/degraded/asset-producer.md": {
-    "mtime": 1789305882.4585536,
-    "seen": 1789377293.1154327,
-    "ast_hash": "0f1e45326bae77fd1ac54a5d90cc8b97",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/degraded/documenter.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.115433,
-    "ast_hash": "401d9dbbedc58caf4bfd1d160c0068a8",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/degraded/finish-reviewer.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154332,
-    "ast_hash": "3aeae1c6e9c93dc21b633d2e836340f7",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/degraded/manual-edit-applier.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154337,
-    "ast_hash": "1652cf7a403f11f4d57382e5ccec6999",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/delight.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.115434,
-    "ast_hash": "e10166bb38cadd52ee69fb78226e1322",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/distill.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154344,
-    "ast_hash": "abf00fb48bd80b31516659af43657f9e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/doctor.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154346,
-    "ast_hash": "0c2a1084735954e7ca18b75788b47eae",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/document.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154354,
-    "ast_hash": "44bb157d15f3ca8e750d613527324a6f",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/extract.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154356,
-    "ast_hash": "86f4d649c9b92075908965a6cff9e63d",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/harden.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.115436,
-    "ast_hash": "4655cdf1b18a530609ba921f0971e149",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/hooks.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154363,
-    "ast_hash": "4c7bfe52f9d7247af66493e06da42991",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/init.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154368,
-    "ast_hash": "e71109be6c1b403941729397ba7e6fa1",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/ios.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.115437,
-    "ast_hash": "a8f56b5c246ad44e142853ef59a19039",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/layout.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154375,
-    "ast_hash": "1891f44ad4e91db880c2a4212515d86d",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/live-setup.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154377,
-    "ast_hash": "d16511f5a5493fdd0377ed62eff40eca",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/live.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154382,
-    "ast_hash": "fb25f31a3f4963ea462ec317b79fee7e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/new-work.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154387,
-    "ast_hash": "522ca5e906d6ec335d83df1bce89c981",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/onboard.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154392,
-    "ast_hash": "7095aaea9e2994e37afb3cf1743bc092",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/operate.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154394,
-    "ast_hash": "53a569b985749058f7b178a32e0a157f",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/optimize.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154397,
-    "ast_hash": "6c8dd78b1e66f0bb71ef6284b062bb4c",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/overdrive.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.11544,
-    "ast_hash": "36ea42ccf825e76d4d387b16dd0aa7d8",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/polish.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154404,
-    "ast_hash": "c0feabd20735b45b55b1fcae8ce1de86",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/quieter.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154406,
-    "ast_hash": "67b48cb9b72213e20440f1201fcb52ee",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/routing.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.115441,
-    "ast_hash": "0cdceaf70ece70b5e1c1b5c2752d9673",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/shape.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154413,
-    "ast_hash": "ecf5345d56452d10cd2c9203a7512704",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/typeset.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154416,
-    "ast_hash": "03b02afcef18fb0ef2e788ee30e3d59d",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.opencode/skills/impeccable/reference/visualize.md": {
-    "mtime": 1789305882.4586997,
-    "seen": 1789377293.1154423,
-    "ast_hash": "b39bb34e7b2b857d9e701aef8c0374a5",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/.steward-migration/README.md": {
-    "mtime": 1789305882.51152,
-    "seen": 1789377293.1154425,
-    "ast_hash": "092675c12fb915552e9352bc1a9e3ade",
-    "semantic_hash": ""
-  },
   "buildmyhouse-b1-4/AGENTS.md": {
     "mtime": 1789305882.5135198,
     "seen": 1789377293.115443,
@@ -20303,70 +19079,22 @@
     "ast_hash": "756840f12b27d36dcb81d551a2120ff0",
     "semantic_hash": ""
   },
-  "buildmyhouse-b1-4/CLOUDFLARE_SETUP.md": {
-    "mtime": 1789305882.51452,
-    "seen": 1789377293.115444,
-    "ast_hash": "c9faccfa6577d3d33e56bae55702ccdd",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/CODEX_STEWARD_SETUP.md": {
-    "mtime": 1789305882.51452,
-    "seen": 1789377293.1154442,
-    "ast_hash": "7987dba399eaa47dbdc1aa3774d4fd46",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/DEPLOYMENT-PLAN.md": {
-    "mtime": 1789305882.51452,
-    "seen": 1789377293.1154444,
-    "ast_hash": "90e1a67bea86ccdb64bfb96fa82fb335",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/DEPLOYMENT_MODES.md": {
-    "mtime": 1789305882.51452,
-    "seen": 1789377293.115445,
-    "ast_hash": "f7d05be22156707ccbdb2a0b386183f7",
-    "semantic_hash": ""
-  },
   "buildmyhouse-b1-4/IMPROVEMENT_PLAN.md": {
     "mtime": 1789305882.51452,
     "seen": 1789377293.1154451,
     "ast_hash": "316db08e06d618c6a8f2aedc81156375",
     "semantic_hash": ""
   },
-  "buildmyhouse-b1-4/INFISICAL_SETUP.md": {
-    "mtime": 1789305882.51452,
-    "seen": 1789377293.1154456,
-    "ast_hash": "b65c9bbb68b5b36d895c5507c168aeb6",
-    "semantic_hash": ""
-  },
   "buildmyhouse-b1-4/PLAN.md": {
-    "mtime": 1789323101.375364,
-    "seen": 1789377293.115446,
-    "ast_hash": "62c7a2a29982d9cac2e6a785f05483bf",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/STATUS-PLAN.md": {
-    "mtime": 1789305882.5155199,
-    "seen": 1789377293.1154463,
-    "ast_hash": "cf3a12d2fbf6af6b6097b7bf751f569d",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/STEWARD_AGENT_SETUP.md": {
-    "mtime": 1789305882.5155199,
-    "seen": 1789377293.1154468,
-    "ast_hash": "8934c183ce6831f1b19a183f4c9ba063",
+    "mtime": 1789379755.3471427,
+    "seen": 1789380995.365494,
+    "ast_hash": "cf3e5dbb436e8a6506232452ca6d6892",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/THIRD_PARTY_LICENSES.md": {
-    "mtime": 1789305882.5155199,
-    "seen": 1789377293.115447,
-    "ast_hash": "020557058873f3a35e8b1e983ed802d9",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/TODOS.md": {
-    "mtime": 1789305882.5155199,
-    "seen": 1789377293.1154473,
-    "ast_hash": "ad582e6315b56fc5695d73024f12225f",
+    "mtime": 1789379749.772061,
+    "seen": 1789380995.3654947,
+    "ast_hash": "696f30aada40128971195ae0255b917f",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse-mcp/README.md": {
@@ -20376,9 +19104,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/README.md": {
-    "mtime": 1789305882.52952,
-    "seen": 1789377293.115448,
-    "ast_hash": "bf75baafda9d995c7b69d5532db0adbf",
+    "mtime": 1789379751.0340796,
+    "seen": 1789380995.365511,
+    "ast_hash": "6808f4e03520552c399e1b00638ff918",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/docker-compose.postgres.yml": {
@@ -20454,9 +19182,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/docker-compose.yml": {
-    "mtime": 1789305882.5789723,
-    "seen": 1789377293.1154528,
-    "ast_hash": "2ccc9d667bffc2267eafae107f6719b8",
+    "mtime": 1789379749.898063,
+    "seen": 1789380995.3657029,
+    "ast_hash": "05c3fb04027dd1d346be7e6e764fdb41",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/docs/BACKUP.md": {
@@ -20478,9 +19206,9 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/hermes/config.yaml": {
-    "mtime": 1789305882.579393,
-    "seen": 1789377293.1154542,
-    "ast_hash": "746da6b33de7d35f0fd28478bb51e804",
+    "mtime": 1789379749.898063,
+    "seen": 1789380995.365754,
+    "ast_hash": "b5452c299f62f07081a844c61a58ab44",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/company-ops/memory/decisions/README.md": {
@@ -20615,12 +19343,6 @@
     "ast_hash": "1bb1ff7f5ce53ad062efd785ac4027a2",
     "semantic_hash": ""
   },
-  "buildmyhouse-b1-4/equivalence/luxcore/README.md": {
-    "mtime": 1789305882.5834353,
-    "seen": 1789377293.1154625,
-    "ast_hash": "1b9e819cbe9467dcb79d5dfd4e8dc142",
-    "semantic_hash": ""
-  },
   "buildmyhouse-b1-4/equivalence/matrix/features.yaml": {
     "mtime": 1789305882.585521,
     "seen": 1789377293.1154633,
@@ -20655,12 +19377,6 @@
     "mtime": 1789305882.5866015,
     "seen": 1789377293.115465,
     "ast_hash": "4aa8fa4e2bc7eb4580ee12bb4bf35b3c",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/flatpak/com.house-designer.homely.yaml": {
-    "mtime": 1789305882.5870774,
-    "seen": 1789377293.1154652,
-    "ast_hash": "9555d2be93e1afee42277ae0701d2f23",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/hermees/AGENT-PROMPT.md": {
@@ -20721,24 +19437,6 @@
     "mtime": 1789305882.6928883,
     "seen": 1789377293.1154692,
     "ast_hash": "af160d88c5cc64cda56e71cbe7b65334",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/DEPLOYMENT.md": {
-    "mtime": 1789305882.6931593,
-    "seen": 1789377293.11547,
-    "ast_hash": "17d56707447207d9d1a1e02e790ac67e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/DEVELOPMENT.md": {
-    "mtime": 1789305882.6931593,
-    "seen": 1789377293.1154704,
-    "ast_hash": "388b53f8ac350416aba31295b583890a",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/observer-website/README.md": {
-    "mtime": 1789305882.6931593,
-    "seen": 1789377293.1154706,
-    "ast_hash": "18ed7731c48ca7cb29438058264c1064",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/qa-loop/ISSUES.md": {
@@ -20807,24 +19505,6 @@
     "ast_hash": "e2cbb7a00a0a0164c7c7e6836b9a20b8",
     "semantic_hash": ""
   },
-  "buildmyhouse-b1-4/website/DEPLOYMENT.md": {
-    "mtime": 1789305882.7001774,
-    "seen": 1789377293.115475,
-    "ast_hash": "b1c3d3d96a1387e26decaa35183de155",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/website/DEVELOPMENT.md": {
-    "mtime": 1789305882.7001774,
-    "seen": 1789377293.1154754,
-    "ast_hash": "a095c1b2e26a1f71133ac3b0400372c7",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/website/README.md": {
-    "mtime": 1789305882.7001774,
-    "seen": 1789377293.1154757,
-    "ast_hash": "26d493557271c0b94f763b106c2f2dff",
-    "semantic_hash": ""
-  },
   "buildmyhouse/assets/basis/README.md": {
     "mtime": 1789329506.6227956,
     "seen": 1789377293.1154776,
@@ -20844,8 +19524,8 @@
     "semantic_hash": ""
   },
   "buildmyhouse/public/assets/hdri/LICENSE.md": {
-    "mtime": 1789378278.9890003,
-    "seen": 1789378417.0346227,
+    "mtime": 1789380716.84278,
+    "seen": 1789380995.366718,
     "ast_hash": "b4d124669383ec0f091ced745c9d662b",
     "semantic_hash": ""
   },
@@ -24570,45 +23250,45 @@
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/assets/textures/carpet.png": {
-    "mtime": 1789322911.4843287,
-    "seen": 1789377293.1168976,
+    "mtime": 1789379777.5474677,
+    "seen": 1789380995.380659,
     "ast_hash": "182cff84b3e6e567a48569fc05147bfc",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/assets/textures/concrete.png": {
-    "mtime": 1789322911.0283215,
-    "seen": 1789377293.116898,
+    "mtime": 1789379777.090461,
+    "seen": 1789380995.38066,
     "ast_hash": "5fb9b231aa5143ec3effc32e51fc9cb2",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/assets/textures/plaster-white.png": {
-    "mtime": 1789322911.5173292,
-    "seen": 1789377293.1168983,
+    "mtime": 1789379777.5804682,
+    "seen": 1789380995.3806608,
     "ast_hash": "a8acc401e90ae6c50a03cad62e0944bc",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/assets/textures/tile-floor.png": {
-    "mtime": 1789322911.2873256,
-    "seen": 1789377293.1168988,
+    "mtime": 1789379777.3484647,
+    "seen": 1789380995.3806615,
     "ast_hash": "ac977051c1e8f22af9b22c1c7e03e040",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/assets/textures/wood-oak.png": {
-    "mtime": 1789322910.9563203,
-    "seen": 1789377293.116899,
+    "mtime": 1789379777.01246,
+    "seen": 1789380995.3806622,
     "ast_hash": "f83137327c813d3a31c3ea6b366c0f8d",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/assets/textures/wood-pine.png": {
-    "mtime": 1789322910.9663205,
-    "seen": 1789377293.1168995,
+    "mtime": 1789379777.0234601,
+    "seen": 1789380995.3806653,
     "ast_hash": "71e19a115696f08fff44d01827a41fa8",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/e2e/viewport3d.spec.ts-snapshots/empty-viewport-chromium-linux.png": {
-    "mtime": 1789305882.5698717,
-    "seen": 1789377293.1169002,
-    "ast_hash": "4a2e1530b8c8c2e76565815c7b41f547",
+    "mtime": 1789379749.8080616,
+    "seen": 1789380995.3807182,
+    "ast_hash": "2bf6533e413199717456fef76bde3df3",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/buildmyhouse/src-tauri/icons/128x128.png": {
@@ -24699,90 +23379,6 @@
     "mtime": 1789305882.5729845,
     "seen": 1789377293.116906,
     "ast_hash": "82744a3f1dee3e132159c77b22ffdfb1",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/buildmyhouse/tmp-browser-after.png": {
-    "mtime": 1789305882.5765207,
-    "seen": 1789377293.1169062,
-    "ast_hash": "faa51ba5a361737872ed5ea422c579bf",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/buildmyhouse/tmp-shadow-after.png": {
-    "mtime": 1789305882.5765207,
-    "seen": 1789377293.1169066,
-    "ast_hash": "6c7eea0da7489f85dddb5d05c7bcb050",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/buildmyhouse/tmp-shadow-top.png": {
-    "mtime": 1789305882.5765207,
-    "seen": 1789377293.1169074,
-    "ast_hash": "f24bbeb7068908bd80676f95b05057bf",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/full-house-asset-fix-render.png": {
-    "mtime": 1789305882.5835514,
-    "seen": 1789377293.1169076,
-    "ast_hash": "0367825cb48df18bcda46012dfe4fffb",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/full-house-camera-final.png": {
-    "mtime": 1789305882.5835514,
-    "seen": 1789377293.116908,
-    "ast_hash": "7da467d8cd1ab0098894783175ecc205",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/full-house-obj-render.png": {
-    "mtime": 1789305882.5835514,
-    "seen": 1789377293.1169086,
-    "ast_hash": "87e2f31985731efa4fcbd5e4a8388122",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/full-house-oriented-render.png": {
-    "mtime": 1789305882.5835514,
-    "seen": 1789377293.116909,
-    "ast_hash": "c33ed23967093a8145bf63df1e7617da",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/full-house-render.png": {
-    "mtime": 1789305882.5835514,
-    "seen": 1789377293.1169093,
-    "ast_hash": "631f9d42c69aa5bd54a7ade84bd04be7",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/full-house-upright-render.png": {
-    "mtime": 1789305882.5835514,
-    "seen": 1789377293.1169097,
-    "ast_hash": "1aa0f97df4d111cb4e36202ded656d25",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/orientation-room-front-fixed-render.png": {
-    "mtime": 1789305882.5835514,
-    "seen": 1789377293.11691,
-    "ast_hash": "1b6ce6f4e4a8762d4c53b9b99fad024e",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/orientation-room-front-render.png": {
-    "mtime": 1789305882.5845208,
-    "seen": 1789377293.1169102,
-    "ast_hash": "4b0b2cd5939b83acb7451730e027b0bd",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/orientation-room-top-fixed-render.png": {
-    "mtime": 1789305882.5845208,
-    "seen": 1789377293.116911,
-    "ast_hash": "7f39a79c0a8617b0d07a32aa30a2c255",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/orientation-room-top-render.png": {
-    "mtime": 1789305882.5845208,
-    "seen": 1789377293.1169114,
-    "ast_hash": "d436a6cc8f565031b99ecdc84dc12441",
-    "semantic_hash": ""
-  },
-  "buildmyhouse-b1-4/equivalence/luxcore/smoke-render.png": {
-    "mtime": 1789305882.5845208,
-    "seen": 1789377293.1169116,
-    "ast_hash": "44091f81ce885bf6619905e2fc204be5",
     "semantic_hash": ""
   },
   "buildmyhouse-b1-4/qa-loop/results/20260827-135725-basic-rectangular-room/screenshots/homely/step-9-3d.png": {
@@ -27162,56 +25758,56 @@
     "semantic_hash": ""
   },
   "buildmyhouse/public/assets/textures/carpet.png": {
-    "mtime": 1789378278.9976275,
-    "seen": 1789378417.059836,
+    "mtime": 1789380716.8529577,
+    "seen": 1789380995.3912368,
     "ast_hash": "182cff84b3e6e567a48569fc05147bfc",
     "semantic_hash": ""
   },
   "buildmyhouse/public/assets/textures/concrete.png": {
-    "mtime": 1789378278.9976275,
-    "seen": 1789378417.0598366,
+    "mtime": 1789380716.8532214,
+    "seen": 1789380995.391238,
     "ast_hash": "5fb9b231aa5143ec3effc32e51fc9cb2",
     "semantic_hash": ""
   },
   "buildmyhouse/public/assets/textures/plaster-white.png": {
-    "mtime": 1789378278.9976275,
-    "seen": 1789378417.0598373,
+    "mtime": 1789380716.8532214,
+    "seen": 1789380995.3912387,
     "ast_hash": "a8acc401e90ae6c50a03cad62e0944bc",
     "semantic_hash": ""
   },
   "buildmyhouse/public/assets/textures/tile-floor.png": {
-    "mtime": 1789378278.9976275,
-    "seen": 1789378417.0598383,
+    "mtime": 1789380716.8544276,
+    "seen": 1789380995.3912394,
     "ast_hash": "ac977051c1e8f22af9b22c1c7e03e040",
     "semantic_hash": ""
   },
   "buildmyhouse/public/assets/textures/wood-oak.png": {
-    "mtime": 1789378278.9976275,
-    "seen": 1789378417.059839,
+    "mtime": 1789380716.8544276,
+    "seen": 1789380995.39124,
     "ast_hash": "f83137327c813d3a31c3ea6b366c0f8d",
     "semantic_hash": ""
   },
   "buildmyhouse/public/assets/textures/wood-oak_ao.png": {
-    "mtime": 1789378278.9986274,
-    "seen": 1789378417.0598397,
+    "mtime": 1789380716.8544276,
+    "seen": 1789380995.391241,
     "ast_hash": "bd63ac0dff158627a8814db4fd8612c5",
     "semantic_hash": ""
   },
   "buildmyhouse/public/assets/textures/wood-oak_normal.png": {
-    "mtime": 1789378278.9986274,
-    "seen": 1789378417.0598404,
+    "mtime": 1789380716.8544276,
+    "seen": 1789380995.3912416,
     "ast_hash": "bc6252879c24ccd96f8c24591489af25",
     "semantic_hash": ""
   },
   "buildmyhouse/public/assets/textures/wood-oak_roughness.png": {
-    "mtime": 1789378278.9986274,
-    "seen": 1789378417.0598414,
+    "mtime": 1789380716.8544276,
+    "seen": 1789380995.3912418,
     "ast_hash": "12573f10d07ecf2cbd6f1746146d5c2c",
     "semantic_hash": ""
   },
   "buildmyhouse/public/assets/textures/wood-pine.png": {
-    "mtime": 1789378278.9986274,
-    "seen": 1789378417.059842,
+    "mtime": 1789380716.8544276,
+    "seen": 1789380995.3912425,
     "ast_hash": "71e19a115696f08fff44d01827a41fa8",
     "semantic_hash": ""
   },
@@ -27411,6 +26007,1008 @@
     "mtime": 1787587749.9900525,
     "seen": 1789377293.1171682,
     "ast_hash": "c01405f7f43ad6154dc55b0c1344e7eb",
+    "semantic_hash": ""
+  },
+  "buildmyhouse/e2e/mobile-workspace.spec.ts": {
+    "mtime": 1789379015.7653327,
+    "seen": 1789379220.8050897,
+    "ast_hash": "4cdc4e3035da5cc1337db40baec318f1",
+    "semantic_hash": ""
+  },
+  ".claude/WORKERS.md": {
+    "mtime": 1789378964.4965878,
+    "seen": 1789379220.815016,
+    "ast_hash": "70d1cf1bb9c4b243e0c87747108d64da",
+    "semantic_hash": ""
+  },
+  ".github/workflows/test-and-build.yml": {
+    "mtime": 1789378932.6791255,
+    "seen": 1789379220.8161223,
+    "ast_hash": "c8ff102fb7282593b4e9527d2ea146ee",
+    "semantic_hash": ""
+  },
+  "buildmyhouse/docs/shared-ui-architecture.md": {
+    "mtime": 1789378783.9439642,
+    "seen": 1789379220.834453,
+    "ast_hash": "d0c82988d0306070d02c41c119d7f9a6",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/basis/basis_transcoder.js": {
+    "mtime": 1789379749.773061,
+    "seen": 1789380995.3361204,
+    "ast_hash": "3acfda59c08cbb3875d1a4a5de3efa5a",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/textures/generate_pbr.py": {
+    "mtime": 1789379749.7980614,
+    "seen": 1789380995.3361442,
+    "ast_hash": "da228dc0f36d131afe5ce9e28e06dd83",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/e2e/door-window-wall-cutouts.spec.ts": {
+    "mtime": 1789379755.4241438,
+    "seen": 1789380995.3362193,
+    "ast_hash": "3512230cc01a706f8d2694e34370f590",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/e2e/hdri-env-verify.spec.ts": {
+    "mtime": 1789379749.8080616,
+    "seen": 1789380995.336288,
+    "ast_hash": "cfb53f10ef348726e35049b6f16c800a",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/e2e/import-pbr.spec.ts": {
+    "mtime": 1789379749.8080616,
+    "seen": 1789380995.3362887,
+    "ast_hash": "00555c5b614c8593575ff44f1eb2b97f",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/e2e/mobile-workspace.spec.ts": {
+    "mtime": 1789379755.3471427,
+    "seen": 1789380995.336374,
+    "ast_hash": "4cdc4e3035da5cc1337db40baec318f1",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/scripts/import-sh3d-library.ts": {
+    "mtime": 1789379749.8850627,
+    "seen": 1789380995.3365123,
+    "ast_hash": "6f19d48a8cbaa6dab4f6bb2063109486",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/scripts/render-thumbnails.ts": {
+    "mtime": 1789379749.8850627,
+    "seen": 1789380995.336513,
+    "ast_hash": "351f6b96dd43b9ff11221c671ef29991",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/src/auth/telemetry.ts": {
+    "mtime": 1789379749.8870628,
+    "seen": 1789380995.3365748,
+    "ast_hash": "2ecd0af01ebb4b7751b5886239e01c8f",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/src/database/telemetry.ts": {
+    "mtime": 1789379749.8870628,
+    "seen": 1789380995.3365936,
+    "ast_hash": "014f2d5f15fbc625860817e71638d2e4",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/src/errorReporting.ts": {
+    "mtime": 1789379749.8880627,
+    "seen": 1789380995.3366141,
+    "ast_hash": "cd7b4bf78dd224a275fe9dd71ac0e9f4",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/src/jobs/telemetry.ts": {
+    "mtime": 1789379749.8880627,
+    "seen": 1789380995.3366163,
+    "ast_hash": "3f9d4ff0eeec260db75aaf06011280d0",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/src/middleware/error-capture.ts": {
+    "mtime": 1789379749.8880627,
+    "seen": 1789380995.3366165,
+    "ast_hash": "46e189216df68fce56c2b51501fad111",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/src/rateLimit.ts": {
+    "mtime": 1789379749.8880627,
+    "seen": 1789380995.3366177,
+    "ast_hash": "3f7161f471e4a6b387a456042ee97e56",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/src/telemetry/axiom-client.ts": {
+    "mtime": 1789379749.8890626,
+    "seen": 1789380995.3366404,
+    "ast_hash": "c4bc42673310683346915642ca329a3d",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/src/telemetry/business.ts": {
+    "mtime": 1789379749.88966,
+    "seen": 1789380995.336641,
+    "ast_hash": "13b2ed160bd7c673a58e72b034a76b08",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/src/telemetry/errors.ts": {
+    "mtime": 1789379749.88966,
+    "seen": 1789380995.3366418,
+    "ast_hash": "5aac7cc32bc3f8e6dbb73a81a2c2f353",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/src/telemetry/resources.ts": {
+    "mtime": 1789379749.88966,
+    "seen": 1789380995.3366423,
+    "ast_hash": "f39ce9f0763c8b16fe15b9954059e4f1",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/src/telemetry/transport.ts": {
+    "mtime": 1789379749.8900628,
+    "seen": 1789380995.3366427,
+    "ast_hash": "0405b01c672d54f24129f645b23d7290",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/test/app.test.ts": {
+    "mtime": 1789379749.8900628,
+    "seen": 1789380995.3366444,
+    "ast_hash": "3ab4107797432fa153e43300921380cc",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/test/auth-telemetry.test.ts": {
+    "mtime": 1789379749.8900628,
+    "seen": 1789380995.3366454,
+    "ast_hash": "900480652ae4790695423fa4308c7202",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/test/axiom-transport.test.ts": {
+    "mtime": 1789379749.8900628,
+    "seen": 1789380995.3366666,
+    "ast_hash": "6b7bafd0139e8ace52e4645135befe26",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/test/business-telemetry.test.ts": {
+    "mtime": 1789379749.8900628,
+    "seen": 1789380995.336667,
+    "ast_hash": "027d268da2f660d3d93e251da61014c0",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/test/error-telemetry.test.ts": {
+    "mtime": 1789379749.8910627,
+    "seen": 1789380995.3366873,
+    "ast_hash": "5b92034610da027be2f53dba21c29524",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/test/errorReporting.test.ts": {
+    "mtime": 1789379749.8910627,
+    "seen": 1789380995.3366878,
+    "ast_hash": "91c4024de0f2c5fdd24f77e4473d2db0",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/test/overhead-benchmark.ts": {
+    "mtime": 1789379749.8910627,
+    "seen": 1789380995.3367076,
+    "ast_hash": "1b31a8309be8bbf48cb3100a3ba2ea3c",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/test/quota.test.ts": {
+    "mtime": 1789379749.8910627,
+    "seen": 1789380995.3367262,
+    "ast_hash": "01229a2a0203d44f331b61223747a7a6",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/test/rateLimit.test.ts": {
+    "mtime": 1789379749.8910627,
+    "seen": 1789380995.3367279,
+    "ast_hash": "8ce9019cf8cf0dce72cbb2d8326c97b1",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/test/resources-telemetry.test.ts": {
+    "mtime": 1789379749.8910627,
+    "seen": 1789380995.3367283,
+    "ast_hash": "45874565c19f44ce486fd390883513a5",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/server/test/telemetry-integration.test.ts": {
+    "mtime": 1789379749.8910627,
+    "seen": 1789380995.3367682,
+    "ast_hash": "c7ba68b18cc58012ddf46ca50426e500",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/src/ui/catalog-lazy-loader.ts": {
+    "mtime": 1789379749.8960629,
+    "seen": 1789380995.337905,
+    "ast_hash": "c363e795dd6c1342bfb8029f2cbf93a4",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/src/view3d/asset-metrics.test.ts": {
+    "mtime": 1789379749.8960629,
+    "seen": 1789380995.3379953,
+    "ast_hash": "8b878b9c5c8d127b9cc70fe1b768be4b",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/src/view3d/asset-metrics.ts": {
+    "mtime": 1789379749.8960629,
+    "seen": 1789380995.3379965,
+    "ast_hash": "94743d68683d57eabe172f0d6ff3bad8",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/src/view3d/hdri-environment.ts": {
+    "mtime": 1789379749.8970628,
+    "seen": 1789380995.3380156,
+    "ast_hash": "e25ba48f8e5c2ffde118cdd94fe31fc3",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/src/view3d/ktx2-wiring.test.ts": {
+    "mtime": 1789379749.8970628,
+    "seen": 1789380995.3380532,
+    "ast_hash": "cd4a3cd0478843edbdc8a7d3ea2fd6fb",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/src/view3d/pbr-maps.test.ts": {
+    "mtime": 1789379749.8970628,
+    "seen": 1789380995.3380537,
+    "ast_hash": "d19204bc2f4fc8c02be039303d797006",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/tests/e2e-room-with-furniture.test.ts": {
+    "mtime": 1789379751.0340796,
+    "seen": 1789380995.3382478,
+    "ast_hash": "72585f844d758448be470bdbc4d02aa9",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/company-ops/scripts/sync-repo.sh": {
+    "mtime": 1789379749.8990629,
+    "seen": 1789380995.3392458,
+    "ast_hash": "7ada9edba98135204fb73c2c48d53c8b",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/equivalence/luxcore/conftest.py": {
+    "mtime": 1789379749.8990629,
+    "seen": 1789380995.3404524,
+    "ast_hash": "e2b2e013e1f35a9a8718f440794fc989",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/homely/e2e/hdri-env-verify.spec.ts": {
+    "mtime": 1789379749.9020228,
+    "seen": 1789380995.340915,
+    "ast_hash": "cfb53f10ef348726e35049b6f16c800a",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/homely/e2e/plan-3d-sync.spec.ts": {
+    "mtime": 1789379749.9020565,
+    "seen": 1789380995.340916,
+    "ast_hash": "502b1def0d1f773aca72b63e8ad56b21",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/homely/src/plan/engine.ts": {
+    "mtime": 1789379749.9021032,
+    "seen": 1789380995.3409166,
+    "ast_hash": "8f34bbb49e8e3d45c9cdf28d4e5811fa",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/homely/src/plan/renderer.test.ts": {
+    "mtime": 1789379749.902242,
+    "seen": 1789380995.3409176,
+    "ast_hash": "bd020df5643d12030e0307d948863f5e",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/homely/src/services/auth.ts": {
+    "mtime": 1789379749.902242,
+    "seen": 1789380995.340918,
+    "ast_hash": "647a714f11d84f9aa1fe5e26bd45011d",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/homely/src/view3d/hdri-environment.ts": {
+    "mtime": 1789379749.902242,
+    "seen": 1789380995.3409185,
+    "ast_hash": "e25ba48f8e5c2ffde118cdd94fe31fc3",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/homely/src/view3d/pbr-maps.test.ts": {
+    "mtime": 1789379749.9023705,
+    "seen": 1789380995.3409193,
+    "ast_hash": "d19204bc2f4fc8c02be039303d797006",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/homely/src/view3d/scene.ts": {
+    "mtime": 1789379749.9023705,
+    "seen": 1789380995.34092,
+    "ast_hash": "e658ae3370939f7ebf516566c4d98519",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/homely/tests/plan-engine.test.ts": {
+    "mtime": 1789379749.9023705,
+    "seen": 1789380995.340921,
+    "ast_hash": "1c983b0d9f9058831cc14481464ac27f",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/homely/vite.config.ts": {
+    "mtime": 1789379749.9023705,
+    "seen": 1789380995.340922,
+    "ast_hash": "2abace90a4e691f72b29f602918c46bd",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/observer-website/.astro/astro/content.d.ts": {
+    "mtime": 1789379749.9030302,
+    "seen": 1789380995.3409226,
+    "ast_hash": "8fc56ccf9d7136dbc2289e7f8135602b",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/observer-website/.astro/types.d.ts": {
+    "mtime": 1789379749.9030302,
+    "seen": 1789380995.340923,
+    "ast_hash": "59dec27afd8140ebbaa7cf5e98050798",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/.claude/WORKERS.md": {
+    "mtime": 1789379755.3471427,
+    "seen": 1789380995.3643143,
+    "ast_hash": "70d1cf1bb9c4b243e0c87747108d64da",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/.github/workflows/test-and-build.yml": {
+    "mtime": 1789379769.164345,
+    "seen": 1789380995.365233,
+    "ast_hash": "c8ff102fb7282593b4e9527d2ea146ee",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/basis/README.md": {
+    "mtime": 1789379749.772061,
+    "seen": 1789380995.3655114,
+    "ast_hash": "9b990b32124ef6ed1f8e5e84aad5eb3e",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/hdri/LICENSE.md": {
+    "mtime": 1789379749.777061,
+    "seen": 1789380995.3655121,
+    "ast_hash": "b4d124669383ec0f091ced745c9d662b",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/docs/shared-ui-architecture.md": {
+    "mtime": 1789379755.3471427,
+    "seen": 1789380995.365561,
+    "ast_hash": "d0c82988d0306070d02c41c119d7f9a6",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/textures/wood-oak_ao.png": {
+    "mtime": 1789379749.7980614,
+    "seen": 1789380995.3806634,
+    "ast_hash": "bd63ac0dff158627a8814db4fd8612c5",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/textures/wood-oak_normal.png": {
+    "mtime": 1789379749.7980614,
+    "seen": 1789380995.380664,
+    "ast_hash": "bc6252879c24ccd96f8c24591489af25",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/textures/wood-oak_roughness.png": {
+    "mtime": 1789379749.7980614,
+    "seen": 1789380995.3806646,
+    "ast_hash": "12573f10d07ecf2cbd6f1746146d5c2c",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-aquarium.webp": {
+    "mtime": 1789379749.7990613,
+    "seen": 1789380995.380666,
+    "ast_hash": "c838f00c6b480e40f62b571b06189567",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-armchair.webp": {
+    "mtime": 1789379749.7990613,
+    "seen": 1789380995.380667,
+    "ast_hash": "1c28b6897f8654dfb4df8276aacd2623",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-armchair2.webp": {
+    "mtime": 1789379749.8000615,
+    "seen": 1789380995.3806677,
+    "ast_hash": "414801d628cf13f69653a9261a3c38cd",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-bath.webp": {
+    "mtime": 1789379749.8000615,
+    "seen": 1789380995.3806682,
+    "ast_hash": "9b81e63753b47d46fea55a9f8dfea7db",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-bed.webp": {
+    "mtime": 1789379749.8000615,
+    "seen": 1789380995.380669,
+    "ast_hash": "1c8164d4b97627d744d1463a65206dae",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-bed140x190.webp": {
+    "mtime": 1789379749.8000615,
+    "seen": 1789380995.3806694,
+    "ast_hash": "7b2ff34ee1bdf2f0b8d2b9a388dbdac6",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-bed90x190.webp": {
+    "mtime": 1789379749.8000615,
+    "seen": 1789380995.38067,
+    "ast_hash": "7475f50227200495db1e0fb4bdf0a272",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-bedsidetable.webp": {
+    "mtime": 1789379749.8000615,
+    "seen": 1789380995.3806703,
+    "ast_hash": "e5a020750f706f60f34f5575e69dad70",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-blind.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.3806708,
+    "ast_hash": "56e26bde214abd20f06d822dd826c396",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-bluelightsource.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.3806713,
+    "ast_hash": "ae76e7f1d21620e934a296484e06d838",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-bookcase.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.3806715,
+    "ast_hash": "88c373ce63fec319316d89baf8080c69",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-bunkbed90x190.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.380672,
+    "ast_hash": "03427646259c18032cc45197635ab826",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-chair.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.3806725,
+    "ast_hash": "47ec310b7a80d6dcbe037e814d00b6c6",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-chair2.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.380673,
+    "ast_hash": "26c75aa587e839b8202540c7d84a70fe",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-chest.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.3806732,
+    "ast_hash": "25c908167d48cc3dce713b3af18f967f",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-clotheswasher.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.3806741,
+    "ast_hash": "def53122018ebd065eddf77be538e60b",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-coffeetable.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.3806746,
+    "ast_hash": "2dc91ee16a8a2306e4013e3e3e6cfda0",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-cooker.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.380675,
+    "ast_hash": "38cb438bc70e41b11cdbc3d06df9a680",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-cornerbunkbed90x190.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.3806756,
+    "ast_hash": "a34598246cecb3ea76a84ee9df011fb5",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-cornersofa.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.380676,
+    "ast_hash": "761e9cdd12f0912cdb35fc8674351396",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-crib.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.3806772,
+    "ast_hash": "3bb7ef963a700e72d1331a798910ddca",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-curtains.webp": {
+    "mtime": 1789379749.8010614,
+    "seen": 1789380995.3806777,
+    "ast_hash": "ddc00458411cfa2252b576ffb96f6c41",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-curvestaircase.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806784,
+    "ast_hash": "472a1732edcf78d52e3cf7830447abac",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-desk.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.380679,
+    "ast_hash": "68e643e36a91da14567bca0646c2d6a7",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-dishwasher.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806794,
+    "ast_hash": "5054b5f4e19bd3e5ee26a87d187ba26c",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-door.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806798,
+    "ast_hash": "49bf00829de1c933153d75e103e3ee58",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-doorframe.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806806,
+    "ast_hash": "660cc0813629ddce3d83f4b2c71f8eaa",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-doublefrenchwindow126x200.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.380681,
+    "ast_hash": "2365fbea54213817aa01e9d3f922cae7",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-doublehungwindow80x122.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806813,
+    "ast_hash": "5b35abe72bb94cfa2e5375fb7c9793b1",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-doubleoutwardopeningwindow.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806818,
+    "ast_hash": "aebc3b863b6d7bff4286dd4aeb0a8cd8",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-doublewindow126x123.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806822,
+    "ast_hash": "26c6e1e6b0505201a5c7637b023b7136",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-doublewindow126x163.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.380683,
+    "ast_hash": "02447bc05cfb8388d27db2f61f6f26a6",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-dresser.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806834,
+    "ast_hash": "ade97e93f1c464e91d9118eb90029be4",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-electricradiator.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806841,
+    "ast_hash": "123d837bd0d6e2a630161324e33a1a33",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-filledbookcase.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806846,
+    "ast_hash": "846a1e88edebf638668e291b4c194662",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-fireglowlightsource.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806853,
+    "ast_hash": "ae76e7f1d21620e934a296484e06d838",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-fireplace.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806858,
+    "ast_hash": "40838f34c130ab71c475f29531f7f136",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-fittedbath.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806863,
+    "ast_hash": "fe87fc780f8ebb5b6e52fdd4364200f5",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-fixedtrianglewindow85x85.webp": {
+    "mtime": 1789379749.8020616,
+    "seen": 1789380995.3806868,
+    "ast_hash": "e9b93bf84d859fec36ca942eb5ee2ed3",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-fixedwindow85x123.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806875,
+    "ast_hash": "5fc25ad13740453574a80d31fb6341fe",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-flattv.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.380688,
+    "ast_hash": "e802dd342ccb2b053894b15c38779faf",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-flooruplight.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806884,
+    "ast_hash": "7b38cc58e0f2f23965b6d71bdd4ff19e",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-flowers.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806887,
+    "ast_hash": "1cb1325763f199662880e12ea59aa5cf",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-frame.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806894,
+    "ast_hash": "10a94c4e2d19f21c242c48ec1039d6eb",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-frenchwindow85x200.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806899,
+    "ast_hash": "ff0134318831b3d33f451de250fe2081",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-fridge.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806903,
+    "ast_hash": "a8f819fc336f34fdb506e206c551d03e",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-fridgefreezer.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.380691,
+    "ast_hash": "73b6b9f2bed5eee405601bb7defb3045",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-frontdoor.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806918,
+    "ast_hash": "bfa2b914470532400dc590fcd6bf9b87",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-garagedoor.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806925,
+    "ast_hash": "10f48ae03e23243de249b1a252c3e73b",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-glassdoorcabinet.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.380693,
+    "ast_hash": "1ee7fd3985e69117cba12f273a40a591",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-greenlightsource.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806934,
+    "ast_hash": "ae76e7f1d21620e934a296484e06d838",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-halfroundwindow.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806937,
+    "ast_hash": "1ce4509770cef1e2fd89a7f050a153c5",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-halogenlightsource.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806944,
+    "ast_hash": "ae76e7f1d21620e934a296484e06d838",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-hood.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806949,
+    "ast_hash": "3263be83ec4e0545ab1a6eeed99e92f9",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-hotwaterradiator.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.380695,
+    "ast_hash": "6fd39e37ca9de67b6d7b937576b47142",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-incandescentlightsource.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806956,
+    "ast_hash": "ae76e7f1d21620e934a296484e06d838",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-kitchencabinet.webp": {
+    "mtime": 1789379749.8030615,
+    "seen": 1789380995.3806963,
+    "ast_hash": "965d7ef3bb2990adc72d6aa95ff21df1",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-kitchenuppercabinet.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3806965,
+    "ast_hash": "6c5de82447b026924c5323201fef5c8b",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-lamp.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.380697,
+    "ast_hash": "2fa2264fcf4972cfa5f84d31a42960fa",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-laptop.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3806975,
+    "ast_hash": "0d3333d3b475a215137b7a04f4a0627c",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-lightsource.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3806982,
+    "ast_hash": "b045921bb5508471e1a164e38efc4694",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-loftbed140x190.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3806987,
+    "ast_hash": "a90936afde72870a5dfe51abcde198be",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-magentalightsource.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.380699,
+    "ast_hash": "ae76e7f1d21620e934a296484e06d838",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-mannequin.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3806996,
+    "ast_hash": "4f563ff17b8ad2a0222131c339f30f69",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-opendoor.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3807,
+    "ast_hash": "68313315e69a944949129d5740c432a7",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-oven.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3807003,
+    "ast_hash": "2c29716110051c386669a7584b681cc7",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-pendantlamp.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3807008,
+    "ast_hash": "cbe8b0e7d20433c37ba84f87bfe7477e",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-piano.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3807015,
+    "ast_hash": "b343d6f91ea1bde41538f60665547b92",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-plant.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3807018,
+    "ast_hash": "8fd622652652aceb2e976bc0cd98c66e",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-railing.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3807023,
+    "ast_hash": "a8e60d03476edfd6bd56215aba18ecb9",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-redlightsource.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3807027,
+    "ast_hash": "ae76e7f1d21620e934a296484e06d838",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-rounddoorframe.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3807032,
+    "ast_hash": "271ae75daf3dc154e4e8633c4db79110",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-roundeddoor.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3807037,
+    "ast_hash": "840a1656507f5e41cddc5e419e00cdfe",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-roundtable.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.380704,
+    "ast_hash": "369628533207491fa293e29fbfaf278a",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-roundwindow.webp": {
+    "mtime": 1789379749.8040614,
+    "seen": 1789380995.3807044,
+    "ast_hash": "4078b2e80600b38ff9a5ec5e12d64887",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-servicehatch.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.380705,
+    "ast_hash": "2909156a080ffbb58dacf9e90641e8ae",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-shower.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.3807054,
+    "ast_hash": "dbc5e8a018a24a4acc2657c94196b151",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-sink.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.380706,
+    "ast_hash": "4b4f0d159894bc33d3cda81d59a89fda",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-sliderwindow126x200.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.3807065,
+    "ast_hash": "9e7cf4a94aeae0e514a4e905de3bf384",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-slidingdoors.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.3807068,
+    "ast_hash": "55e6265412e069a99a9b37ae45b8637c",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-sofa.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.3807073,
+    "ast_hash": "68c3d7379f1c53b9efa3e43ca33cf4e3",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-sofa2.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.3807075,
+    "ast_hash": "c42f85c2658364bab0cb746135938017",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-spiralstaircase.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.380708,
+    "ast_hash": "5d1975457fc4179786a4de4aba82629f",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-spotlight.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.3807087,
+    "ast_hash": "141ad4a9d4cc74ae6d5b597e12949536",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-squaretable.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.3807092,
+    "ast_hash": "f2b2e46ca50219a776aba9dc5ef8e6db",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-staircase.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.3807096,
+    "ast_hash": "83c05a23a29e64641be362b9b7f08e25",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-stool.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.38071,
+    "ast_hash": "de9a9f6daa4a2e78ee72a4372760415a",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-table.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.3807104,
+    "ast_hash": "edcd88efd7b0b2e467539393bcb2b08b",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-texturablebox.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.3807108,
+    "ast_hash": "20b0f61cb4c61bfedab3064d794f2800",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-texturablecylinder0.webp": {
+    "mtime": 1789379749.8050616,
+    "seen": 1789380995.380711,
+    "ast_hash": "3124739edbf678495595c954c9d5312f",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-texturabletriangle.webp": {
+    "mtime": 1789379749.8060615,
+    "seen": 1789380995.3807118,
+    "ast_hash": "c7454455c53525c65b9d4ced409558e4",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-toiletunit.webp": {
+    "mtime": 1789379749.8060615,
+    "seen": 1789380995.3807123,
+    "ast_hash": "065b2792b6c8fae0f6b02db9539bfca6",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-tvunit.webp": {
+    "mtime": 1789379749.8060615,
+    "seen": 1789380995.380713,
+    "ast_hash": "1f327b37758d5051af81741e68c88770",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-walluplight.webp": {
+    "mtime": 1789379749.8060615,
+    "seen": 1789380995.3807135,
+    "ast_hash": "791ffb4ff63d54cb59054b5c86d3ed95",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-wardrobe.webp": {
+    "mtime": 1789379749.8060615,
+    "seen": 1789380995.3807137,
+    "ast_hash": "970a95a4fbe67eeb9c0722e15eb44cd4",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-washbasin.webp": {
+    "mtime": 1789379749.8060615,
+    "seen": 1789380995.3807142,
+    "ast_hash": "d89dd35a7c7dfdeb9047d429f9dfe645",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-washbasinwithcabinet.webp": {
+    "mtime": 1789379749.8060615,
+    "seen": 1789380995.3807147,
+    "ast_hash": "b0d33940e740272dc3d8dd502aa17f49",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-window85x123.webp": {
+    "mtime": 1789379749.8060615,
+    "seen": 1789380995.380715,
+    "ast_hash": "a2494e01d0615e9b1e27ff9a4e461dc3",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-window85x163.webp": {
+    "mtime": 1789379749.8060615,
+    "seen": 1789380995.3807154,
+    "ast_hash": "1b7164c354ec4bf19829fb21bc01b5df",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/assets/thumbs/models/eteks-worklamp.webp": {
+    "mtime": 1789379749.8060615,
+    "seen": 1789380995.3807158,
+    "ast_hash": "161aee049a69052f54b718fb14734d93",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/docs/mat-t2/after-close.png": {
+    "mtime": 1789379749.8070614,
+    "seen": 1789380995.3807163,
+    "ast_hash": "a5a90f93f968cc3b822d4334c928365c",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/docs/mat-t2/after-wide.png": {
+    "mtime": 1789379749.8070614,
+    "seen": 1789380995.3807166,
+    "ast_hash": "9011b6b021601b66f7e84fa5e185e1b7",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/docs/mat-t2/before-close.png": {
+    "mtime": 1789379749.8070614,
+    "seen": 1789380995.380717,
+    "ast_hash": "dce78d1e2e75027a58a49d7566c5f3a9",
+    "semantic_hash": ""
+  },
+  "buildmyhouse-b1-4/buildmyhouse/docs/mat-t2/before-wide.png": {
+    "mtime": 1789379749.8070614,
+    "seen": 1789380995.3807175,
+    "ast_hash": "ec3a0f20a6cb27baf50ce1db98f493a6",
     "semantic_hash": ""
   }
 }
