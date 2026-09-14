@@ -131,15 +131,31 @@ function resolveTextureImage(
   return img
 }
 
+// createPattern() allocates a new CanvasPattern object; the plan view redraws
+// every frame the view/model is touched, so recreating it per textureId per
+// frame is pure per-frame garbage. Cache it once per (rendering context,
+// textureId) — a given texture's backing image never changes for its id, so
+// the pattern stays valid for the life of that context.
+const patternCache = new WeakMap<PlanRenderingContext, Map<string, unknown>>()
+
 function patternOrNull(
   ctx: PlanRenderingContext,
   textureId: string | null | undefined,
 ): string | null {
   if (!textureId || !ctx.createPattern) return null
+  const cached = patternCache.get(ctx)?.get(textureId)
+  if (cached != null) return cached as string
   const img = resolveTextureImage(textureId)
   if (!img || !img.complete || img.naturalWidth === 0) return null
   const pat = ctx.createPattern(img, 'repeat')
-  return pat != null ? (pat as unknown as string) : null
+  if (pat == null) return null
+  let forCtx = patternCache.get(ctx)
+  if (!forCtx) {
+    forCtx = new Map()
+    patternCache.set(ctx, forCtx)
+  }
+  forCtx.set(textureId, pat)
+  return pat as string
 }
 
 function colorWithAlpha(color: number, alpha: number): string {
