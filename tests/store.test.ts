@@ -148,6 +148,11 @@ describe('undo history depth cap', () => {
 })
 
 describe('store scale benchmark (M18)', () => {
+  // Outer timeout is generous CI/instrumentation headroom, not the perf bar —
+  // the actual assertion below still requires total < 500ms measured wall-clock.
+  // Coverage-instrumented runs (V8 coverage adds real per-call overhead) were
+  // occasionally hitting the default 5000ms outer timeout despite the phases
+  // themselves summing to well under 500ms.
   it('200 walls + 500 furniture: select-all, move wall, undo, redo, add furniture < 500ms', () => {
     const store = new HomeStore()
     const model = new HomeModel(store)
@@ -215,7 +220,7 @@ describe('store scale benchmark (M18)', () => {
       `[M18 benchmark] 200 walls + 500 furniture, per-phase ms: ${JSON.stringify(report)} total=${total.toFixed(1)}ms`,
     )
     expect(total).toBeLessThan(500)
-  })
+  }, 15000)
 })
 
 describe('HomeModel validation', () => {
