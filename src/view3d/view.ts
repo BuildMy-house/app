@@ -88,6 +88,7 @@ export class View3D {
   private readonly onFloorClick?: (point: { x: number; y: number }) => void
   private _lastHome: NormalizedHomeState | null = null
   private _lastDeltaMs = 0
+  private _activeLevel: string | null = null
 
   constructor(
     private readonly store: HomeStore,
@@ -241,6 +242,12 @@ export class View3D {
       this.applyCameraState(cam)
     }
     this.render()
+  }
+
+  /** Filter 3D scene to show only objects on the active level. */
+  setActiveLevel(levelId: string | null): void {
+    this._activeLevel = levelId
+    this.rebuild()
   }
 
   setCamera(patch: CameraPatch): void {

@@ -547,6 +547,7 @@ function refreshLevelButtons(): void {
   group.querySelector('#btn-level-all')!.addEventListener('click', () => {
     activeLevelId = null
     engine.setActiveLevel(null)
+    view3d?.setActiveLevel(null)
     refreshAll()
   })
 
@@ -554,6 +555,7 @@ function refreshLevelButtons(): void {
     btn.addEventListener('click', () => {
       activeLevelId = btn.dataset.level!
       engine.setActiveLevel(activeLevelId)
+      view3d?.setActiveLevel(activeLevelId)
       refreshAll()
     })
     btn.addEventListener('dblclick', async () => {
@@ -577,6 +579,7 @@ function refreshLevelButtons(): void {
       if (activeLevelId === id) {
         activeLevelId = null
         engine.setActiveLevel(null)
+        view3d?.setActiveLevel(null)
       }
       refreshAll()
     })
@@ -597,6 +600,7 @@ function refreshLevelButtons(): void {
       })
       activeLevelId = created.id
       engine.setActiveLevel(created.id)
+      view3d?.setActiveLevel(created.id)
       refreshAll()
     })
   })
