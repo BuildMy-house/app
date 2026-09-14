@@ -113,26 +113,38 @@ fi
 # so this checkout was never actually used for anything even when it did
 # clone successfully in an earlier (pre-k8s) deployment.
 MEMORY_STAGING=/opt/hermees-memory
+
+# Something keeps recreating /opt/data/memories root:root well after
+# hermes-agent's own early startup — confirmed live: a fix that held for
+# 90s+ at one point was back to root:root 21 minutes into the same pod's
+# life, with no new failure in between (chown/chmod succeed instantly
+# every time they're reapplied — this isn't a permissions bug, it's
+# something recreating the directory on a cadence tighter than made sense
+# to keep chasing with a single "run this sync function on a timer"
+# design). Splitting the concerns: this fix is nearly free, so it runs on
+# its own tight forever-loop, decoupled from the expensive git sync below
+# — self-heals fast regardless of exactly when or how often the resets
+# happen, without needing to fully pin down the cause.
+fix_memories_perms() {
+  mkdir -p /opt/data/memories
+  chown hermes:hermes /opt/data/memories 2>/dev/null || true
+  chmod a+rwx /opt/data/memories 2>/dev/null || true
+}
+( while true; do fix_memories_perms; sleep 15; done ) &
+
 memory_sync_once() {
   local token
-  token=$(node "$SCRIPT_DIR/github-app-token.js" 2>/dev/null) || return 0
+  token=$(node "$SCRIPT_DIR/github-app-token.js" 2>/dev/null) || { echo "[memory-sync] token mint failed" >&2; return 0; }
   local url="https://x-access-token:${token}@github.com/BuildMy-house/hermees-memory.git"
   if [[ -d "$MEMORY_STAGING/.git" ]]; then
     git -C "$MEMORY_STAGING" remote set-url origin "$url" 2>/dev/null
-    git -C "$MEMORY_STAGING" pull --ff-only origin main >/dev/null 2>&1 || true
+    git -C "$MEMORY_STAGING" pull --ff-only origin main >/dev/null 2>&1 || echo "[memory-sync] pull failed" >&2
   else
     rm -rf "$MEMORY_STAGING"
-    git clone "$url" "$MEMORY_STAGING" >/dev/null 2>&1 || return 0
+    git clone "$url" "$MEMORY_STAGING" >/dev/null 2>&1 || { echo "[memory-sync] clone failed" >&2; return 0; }
   fi
-  mkdir -p "$MEMORY_STAGING/hermes/memories" "$MEMORY_STAGING/hermes/notes" /opt/data/memories
-  # This call only runs from the delayed background loop (see below), well
-  # after hermes-agent's own early bootstrap has already settled — fixing
-  # ownership here any earlier loses a race against hermes recreating this
-  # specific directory itself. Same failure class as the /opt/data ESTOP
-  # bug fixed earlier: the hermes user (which actually writes memory
-  # entries) gets locked out of a root-owned directory otherwise.
-  chown hermes:hermes /opt/data/memories 2>/dev/null || true
-  chmod a+rwx /opt/data/memories 2>/dev/null || true
+  mkdir -p "$MEMORY_STAGING/hermes/memories" "$MEMORY_STAGING/hermes/notes"
+  fix_memories_perms
   if [ -z "$(ls -A /opt/data/memories 2>/dev/null)" ]; then
     cp -a "$MEMORY_STAGING/hermes/memories/." /opt/data/memories/ 2>/dev/null || true
   fi
@@ -142,34 +154,14 @@ memory_sync_once() {
   if ! git -C "$MEMORY_STAGING" diff --cached --quiet 2>/dev/null; then
     git -C "$MEMORY_STAGING" -c user.email="hermes@buildmy.house" -c user.name="Hermes" \
       commit -q -m "chore(memory): sync $(date -u +%Y-%m-%dT%H:%M:%SZ)" 2>/dev/null || true
-    git -C "$MEMORY_STAGING" push -q origin HEAD:main 2>/dev/null || true
+    if git -C "$MEMORY_STAGING" push -q origin HEAD:main 2>&1; then
+      echo "[memory-sync] pushed"
+    else
+      echo "[memory-sync] push failed" >&2
+    fi
   fi
 }
-# Deliberately NOT called synchronously here: `exec hermes "$@"` below
-# replaces this script's own process, and hermes's own early (still-root,
-# pre-privilege-drop) bootstrap recreates $HERMES_HOME/memories fresh —
-# confirmed live, a synchronous call here wins the mkdir race against
-# entrypoint.sh's own earlier chown/chmod but then loses to hermes's,
-# leaving it root:root again seconds later. hermes never touches it again
-# once past its own startup (confirmed stable 90s+ once fixed after the
-# fact), so run the first sync from the backgrounded loop with a short
-# delay instead — after hermes has already settled, not racing it. A
-# single fixed delay isn't reliable either though (confirmed live: 20s
-# wasn't enough margin against hermes's own startup, which apparently
-# takes longer than that to reach its own reset of this directory) — so
-# retry every 10s for the first ~2 minutes instead of guessing an exact
-# number, then fall back to the normal interval once it's had time to
-# actually stick.
-(
-  for _ in $(seq 1 12); do
-    sleep 10
-    memory_sync_once
-  done
-  while true; do
-    sleep "${MEMORY_SYNC_INTERVAL_SECONDS:-600}"
-    memory_sync_once
-  done
-) &
+( while true; do memory_sync_once; sleep "${MEMORY_SYNC_INTERVAL_SECONDS:-300}"; done ) &
 
 if [[ "${1:-}" == "hermes" ]]; then
   shift
