@@ -6,10 +6,13 @@
 # ---- Stage 1: build the Vite frontend (homely/) ----
 FROM node:20-slim AS frontend-builder
 WORKDIR /app
+# prebuild regenerates textures via assets/textures/generate.py (Pillow).
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY index.html vite.config.ts tsconfig.json eslint.config.js ./
 COPY assets ./assets
+RUN pip3 install --break-system-packages -r assets/textures/requirements.txt
 COPY public ./public
 COPY scripts ./scripts
 COPY src ./src
