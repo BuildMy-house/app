@@ -14,6 +14,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:e2e": "playwright test",
+    "check": "tsc --noEmit",
     "e2e": "playwright test",
     "e2e:open": "playwright open",
     "smoke": "tsx scripts/smoke-automation.ts",

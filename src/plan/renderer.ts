@@ -1,4 +1,4 @@
-import type { NormalizedHomeState, Wall, Furniture, Level, Polyline } from '../core/home'
+import type { NormalizedHomeState, Wall, Furniture, Level } from '../core/home'
 import { WALL_TEXTURES } from '../core/home'
 import { wallOutlinePoints } from '../core/top-camera-follower'
 import { wallArcHandlePos } from './engine'

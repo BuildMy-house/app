@@ -223,6 +223,7 @@ function emptyHome() {
     levels: [],
     walls: [],
     rooms: [],
+    polylines: [],
     furniture: [],
     dimensionLines: [],
     labels: [],

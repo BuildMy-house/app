@@ -60,6 +60,12 @@ root.innerHTML = `
       <div id="view3d"></div>
     </div>
   </div>
+  <nav id="mobile-nav" aria-label="Workspace views">
+    <button class="mobile-nav-btn active" type="button" data-mobile-tab="plan">Plan</button>
+    <button class="mobile-nav-btn" type="button" data-mobile-tab="3d">3D</button>
+    <button class="mobile-nav-btn" type="button" data-mobile-tab="furniture">Furniture</button>
+    <button class="mobile-nav-btn" type="button" data-mobile-tab="properties">Properties</button>
+  </nav>
   <div id="context-menu"></div>
   <div id="status-bar">
     <span id="status-cursor">x: 0  y: 0</span>
@@ -84,6 +90,7 @@ const statusAutomation = root.querySelector<HTMLSpanElement>('#status-automation
 const statusAccount = root.querySelector<HTMLSpanElement>('#status-account')!
 const ctx = canvas.getContext('2d')
 const contextMenu = root.querySelector<HTMLDivElement>('#context-menu')!
+const mobileNav = root.querySelector<HTMLElement>('#mobile-nav')!
 
 // ── Store + engine ──────────────────────────────────────────────────────────
 
@@ -649,7 +656,32 @@ function setCameraPreset(preset: string): void {
     btn.classList.toggle('active', btn.dataset.preset === preset)
   }
 
+  if (preset === 'plan' || preset === '3d') refreshMobileNav(preset)
+
   resizeCanvas()
+}
+
+function refreshMobileNav(tab: string): void {
+  for (const btn of mobileNav.querySelectorAll<HTMLButtonElement>('[data-mobile-tab]')) {
+    btn.classList.toggle('active', btn.dataset.mobileTab === tab)
+  }
+}
+
+function setMobileTab(tab: string): void {
+  const properties = root.querySelector<HTMLElement>('#properties-panel')
+  const showCatalog = tab === 'furniture'
+  const showProperties = tab === 'properties'
+
+  catalogHost.classList.toggle('collapsed', !showCatalog)
+  properties?.classList.toggle('collapsed', !showProperties)
+  setCameraPreset(tab === '3d' ? '3d' : 'plan')
+  refreshMobileNav(tab)
+}
+
+function buildMobileNav(): void {
+  for (const btn of mobileNav.querySelectorAll<HTMLButtonElement>('[data-mobile-tab]')) {
+    btn.addEventListener('click', () => setMobileTab(btn.dataset.mobileTab ?? 'plan'))
+  }
 }
 
 // ── Dark mode ───────────────────────────────────────────────────────────────
@@ -1189,6 +1221,7 @@ telemetry.appStart()
 initActionTrace({ getSceneComplexity, getLastFrameTime })
 refreshMenus()
 buildToolbar()
+buildMobileNav()
 resizeCanvas()
 refreshToolbar()
 refreshLevelButtons()
@@ -1240,6 +1273,7 @@ view3d = new View3D(store, {
 // Properties panel — right sidebar
 const mainArea = root.querySelector<HTMLDivElement>('#main-area')!
 const propsPanel = new PropertiesPanel(store, mainArea)
+if (window.matchMedia('(max-width: 799px)').matches) setMobileTab('plan')
 
 // Pending snap wall-ref data set before catalogPanel.place() and consumed in
 // onPlace — bridges the gap because CatalogPanel.place() only forwards (x, y, angleDeg).

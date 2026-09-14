@@ -117,6 +117,16 @@ export interface Room {
   levelRef?: string | null
 }
 
+export interface Polyline {
+  id: string
+  points: Array<[number, number]>
+  closed: boolean
+  name?: string | null
+  color?: number | null
+  thickness?: number | null
+  levelRef?: string | null
+}
+
 export interface Furniture {
   id: string
   name: string
@@ -244,6 +254,7 @@ export interface NormalizedHomeState {
   levels: Level[]
   walls: Wall[]
   rooms: Room[]
+  polylines: Polyline[]
   furniture: Furniture[]
   dimensionLines: DimensionLine[]
   labels: Label[]
@@ -276,6 +287,7 @@ export function createEmptyHome(timeZoneId?: string | null): NormalizedHomeState
     levels: [],
     walls: [],
     rooms: [],
+    polylines: [],
     furniture: [],
     dimensionLines: [],
     labels: [],
