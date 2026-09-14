@@ -21,7 +21,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "tauri": "tauri",
-    "thumbnails": "tsx scripts/render-thumbnails.ts"
+    "thumbnails": "tsx scripts/render-thumbnails.ts",
+    "import:batch": "node --import tsx/esm scripts/import-sh3d-batch.ts"
   },
   "dependencies": {
     "@types/three": "^0.185.4",
