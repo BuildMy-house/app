@@ -57,3 +57,18 @@ helper). Use `gh pr create` if the change should go through review rather
 than straight to the default branch. If a clone/pull/push fails with an
 auth error, that's a real outage (the GitHub App credential likely needs
 attention) — say so plainly in your result rather than retrying silently.
+
+## Cluster state and rollback
+
+You have a `k8s_deployment` MCP tool (same one Hermes has) scoped
+read-only on pods/events and get/list/watch/patch on deployments/
+replicasets in the `company-ops` namespace only — no delete, no secrets.
+Use it to check pod/deployment health (`company-ops`, `engineering`,
+`postgres`) when something in this stack seems off, and to roll back a bad
+deployment: list the target Deployment's ReplicaSets to find the last-good
+one's pod template, then patch the Deployment's `spec.template` to match
+it. There's no dedicated "undo" tool — that patch-to-a-prior-ReplicaSet
+pattern is how a rollback actually happens. Never attempt to bypass
+`--disable-destructive`/the RBAC scope to delete anything — if a real
+delete or a namespace outside `company-ops` is genuinely needed, that's a
+Board decision, not yours to route around.

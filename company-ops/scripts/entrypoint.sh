@@ -26,6 +26,18 @@ else
   echo "[infisical] INFISICAL_UNIVERSAL_AUTH_CLIENT_ID not set; using .env or existing environment variables"
 fi
 
+# /opt/data is a fresh emptyDir on every pod recreation, mounted root:root.
+# `chmod a+rwx` alone isn't enough: hermes-agent's own privilege-drop runs
+# the gateway as a "hermes" system user, and its bootstrap re-tightens
+# $HERMES_HOME to 700 for itself — but without matching ownership, that
+# leaves the directory 700 root:root, locking the hermes user out of its
+# own home entirely. Confirmed live: this crashed every single gateway
+# turn with a raw PermissionError (agent/estop.py's get_state() has an
+# unprotected .exists() call that doesn't catch it), because is_engaged()
+# fails safe to "paused" on any stat error, then get_state() blows up
+# trying to explain why. chown first so whatever hermes-agent chmods
+# afterward is at least owned by the user it's actually locking out.
+chown -R hermes:hermes /opt/data 2>/dev/null || true
 chmod -R a+rwx /opt/data 2>/dev/null || true
 
 # Sync config.yaml + SOUL.md from package into mounted volume (first-volume-only fix)

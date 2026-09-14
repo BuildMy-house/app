@@ -23,7 +23,13 @@ RUN curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash \
   && apt-get update && apt-get install -y --no-install-recommends infisical \
   && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-browser --skip-computer-use --skip-setup || true \
+# --skip-browser was a self-contradiction: it disables Playwright/Chromium
+# install ("browser tools won't work" per the installer's own --help text),
+# directly undoing the comment above this block. Confirmed live — every
+# browser_* tool was unavailable (check_browser_requirements() -> False)
+# because of this flag, which is exactly why Hermes couldn't open
+# buildmy.house/diary to check it before writing to it.
+RUN curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-computer-use --skip-setup || true \
   && mkdir -p /root/.hermes /opt/data \
   && command -v hermes
 

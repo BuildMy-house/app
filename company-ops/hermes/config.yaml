@@ -34,6 +34,20 @@ plugins:
   enabled:
     - axiom_usage
 
+browser:
+  # Unset (default) means Hermes silently prefers "Browser Use CLI" mode
+  # over the built-in browser_* tools whenever that CLI can run at all —
+  # confirmed live it was doing exactly that here, but actually USING it
+  # needs BROWSER_USE_API_KEY (not set) or Nous auth (not configured
+  # either — same "no Nous authentication found" already in the logs),
+  # so every session silently failed to start. `off` (must be unquoted —
+  # YAML 1.1 parses it as boolean False, which the code specifically
+  # checks for) forces the built-in tools instead, which actually work:
+  # Chromium + agent-browser (via npx) both resolve correctly once the
+  # Dockerfile's --skip-browser flag (see company-ops/Dockerfile) was
+  # dropped.
+  backend: off
+
 terminal:
   backend: local
 

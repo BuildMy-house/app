@@ -18,6 +18,11 @@ spec:
       labels:
         app: engineering
     spec:
+      # Same ServiceAccount/Role as company-ops (k8s/rbac.yaml) — read-only
+      # on pods/events, get/list/watch/patch on deployments/replicasets, no
+      # delete, no secrets. Lets Claude/OpenCode see cluster state and roll
+      # back a bad deployment the same way Hermes can, nothing more.
+      serviceAccountName: company-ops
       containers:
         - name: engineering
           image: docker.io/library/company-ops-engineering:latest

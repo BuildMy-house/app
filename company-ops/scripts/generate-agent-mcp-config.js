@@ -89,6 +89,27 @@ function buildServers() {
     };
   }
 
+  // Same k8s_deployment MCP entry as Hermes's own hermes/config.yaml, same
+  // reasoning: MCP command-subprocesses don't inherit the full pod
+  // environment, so KUBERNETES_SERVICE_HOST/PORT must be passed explicitly
+  // or in-cluster auto-detection fails outright (confirmed live earlier for
+  // Hermes's own copy of this). RBAC (k8s/rbac.yaml, engineering.yaml's
+  // serviceAccountName: company-ops) scopes this to read-only on
+  // pods/events, get/list/watch/patch on deployments/replicasets — enough
+  // to see cluster state and roll back a bad deployment, no delete, no
+  // secrets. Always present when actually running in-cluster (K8s injects
+  // these automatically for every pod), so no separate credential to check.
+  if (process.env.KUBERNETES_SERVICE_HOST) {
+    servers.k8s_deployment = {
+      kind: 'stdio',
+      command: ['npx', '-y', 'kubernetes-mcp-server@latest', '--disable-destructive', '--log-file', 'stderr', '--cluster-provider', 'in-cluster'],
+      environment: {
+        KUBERNETES_SERVICE_HOST: process.env.KUBERNETES_SERVICE_HOST,
+        KUBERNETES_SERVICE_PORT: process.env.KUBERNETES_SERVICE_PORT,
+      },
+    };
+  }
+
   // ai-cli-mcp: registered without an explicit env override (matches how
   // Dockerfile.engineering already does `claude mcp add ai-cli-mcp` and
   // `codex mcp add ai-cli-mcp` — no --env flags, so it inherits the
