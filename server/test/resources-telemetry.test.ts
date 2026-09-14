@@ -1,6 +1,8 @@
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { resourceTelemetry, type ResourceEvent } from '../src/telemetry/resources.js';
 
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
 // Capture console output
 let consoleLogOutput: string[] = [];
 let consoleErrorOutput: string[] = [];
@@ -131,24 +133,23 @@ describe('resource telemetry', () => {
     });
   });
 
-  it('monitors overhead and warns if >1ms', (done) => {
+  it('monitors overhead and warns if >1ms', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     // This test might not trigger the warning under normal conditions
     // but verifies the warning mechanism exists
     resourceTelemetry.captureSnapshot();
 
-    setTimeout(() => {
-      // Check if warning was issued (may or may not be, depending on system speed)
-      if (warnSpy.mock.calls.length > 0) {
-        const calls = warnSpy.mock.calls.map((c) => String(c[0]));
-        const hasOverheadWarning = calls.some((c) => c.includes('telemetry-overhead'));
-        // Don't assert — just verify the code path exists
-      }
+    await delay(10);
 
-      warnSpy.mockRestore();
-      done();
-    }, 10);
+    // Check if warning was issued (may or may not be, depending on system speed)
+    if (warnSpy.mock.calls.length > 0) {
+      const calls = warnSpy.mock.calls.map((c) => String(c[0]));
+      const hasOverheadWarning = calls.some((c) => c.includes('telemetry-overhead'));
+      // Don't assert — just verify the code path exists
+    }
+
+    warnSpy.mockRestore();
   });
 
   it('_resetTelemetry clears all state', () => {
@@ -164,7 +165,7 @@ describe('resource telemetry', () => {
     expect(snapshot.connections.activeDbConnections).toBe(0);
   });
 
-  it('startMonitoring begins periodic sampling', (done) => {
+  it('startMonitoring begins periodic sampling', async () => {
     const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     resourceTelemetry.startMonitoring();
@@ -172,20 +173,19 @@ describe('resource telemetry', () => {
     // Should have emitted at least one sample immediately
     expect(spy.mock.calls.length).toBeGreaterThan(0);
 
-    setTimeout(() => {
-      const initialCallCount = spy.mock.calls.length;
+    await delay(100);
 
-      // After a short delay (periodic sampling is every 30s, so this won't trigger another)
-      // But we can verify the monitoring is active
-      expect(spy.mock.calls.length).toBeGreaterThanOrEqual(initialCallCount);
+    const initialCallCount = spy.mock.calls.length;
 
-      spy.mockRestore();
-      resourceTelemetry.stopMonitoring();
-      done();
-    }, 100);
+    // After a short delay (periodic sampling is every 30s, so this won't trigger another)
+    // But we can verify the monitoring is active
+    expect(spy.mock.calls.length).toBeGreaterThanOrEqual(initialCallCount);
+
+    spy.mockRestore();
+    resourceTelemetry.stopMonitoring();
   });
 
-  it('stopMonitoring stops periodic sampling', (done) => {
+  it('stopMonitoring stops periodic sampling', async () => {
     const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     resourceTelemetry.startMonitoring();
@@ -193,16 +193,15 @@ describe('resource telemetry', () => {
 
     resourceTelemetry.stopMonitoring();
 
-    setTimeout(() => {
-      const callCountAfterStop = spy.mock.calls.length;
+    await delay(100);
 
-      // No new samples should have been emitted (or very minimal)
-      // Since sampling interval is 30s, we won't see new samples in this short window
-      expect(callCountAfterStop).toBeLessThanOrEqual(callCountAfterStart + 1);
+    const callCountAfterStop = spy.mock.calls.length;
 
-      spy.mockRestore();
-      done();
-    }, 100);
+    // No new samples should have been emitted (or very minimal)
+    // Since sampling interval is 30s, we won't see new samples in this short window
+    expect(callCountAfterStop).toBeLessThanOrEqual(callCountAfterStart + 1);
+
+    spy.mockRestore();
   });
 
   it('captureSnapshot returns a properly formatted ResourceEvent', () => {
