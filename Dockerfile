@@ -7,7 +7,16 @@
 FROM node:20-slim AS frontend-builder
 WORKDIR /app
 # prebuild regenerates textures via assets/textures/generate.py (Pillow).
-RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip && rm -rf /var/lib/apt/lists/*
+# make/g++/python-is-python3/pkg-config+libx11-dev+libxi-dev+libxext-dev+
+# libgl1-mesa-dev: the `gl` devDependency (headless WebGL for
+# scripts/thumbnail-generator.ts) has no prebuilt binary and compiles its
+# ANGLE backend from source via node-gyp -- needs a C++ toolchain, the
+# `python` binary name specifically (Debian's python3 package alone doesn't
+# symlink it), and the X11/GL dev headers ANGLE links against.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      python3 python3-pip python-is-python3 make g++ pkg-config \
+      libx11-dev libxi-dev libxext-dev libgl1-mesa-dev \
+    && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 RUN npm ci
 # prebuild's thumbnails step renders with headless Chromium (Playwright).
