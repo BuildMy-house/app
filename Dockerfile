@@ -4,7 +4,7 @@
 # process and no reverse-proxy config to maintain.
 
 # ---- Stage 1: build the Vite frontend (homely/) ----
-FROM node:20-slim AS frontend-builder
+FROM node:22-slim AS frontend-builder
 WORKDIR /app
 # prebuild regenerates textures via assets/textures/generate.py (Pillow).
 # make/g++/python-is-python3/pkg-config+libx11-dev+libxi-dev+libxext-dev+
@@ -29,9 +29,10 @@ COPY scripts ./scripts
 COPY src ./src
 RUN npm run build
 
-# better-sqlite3 compiles from source (no prebuilt binary for this image), so
-# both server stages need build tools. Only their non-dev deps run at runtime.
-FROM node:20-slim AS server-builder
+# better-sqlite3@13 requires Node >=22 (its prebuilt binary segfaults on
+# Node 20 -- confirmed by reproducing on plain node:20-slim outside this
+# image entirely). Both server stages need build tools for other natives.
+FROM node:22-slim AS server-builder
 WORKDIR /app/server
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY server/package.json server/package-lock.json ./
@@ -40,7 +41,7 @@ COPY server/ ./
 RUN npm run build
 
 # ---- Stage 3: slim runtime ----
-FROM node:20-slim AS runtime
+FROM node:22-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
