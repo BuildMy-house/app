@@ -1,29 +1,22 @@
 #!/usr/bin/env node
 /**
- * generate-models.ts — Generate low-poly GLB furniture models (ticket U8, M32).
+ * generate-models.ts — Generate low-poly GLB furniture models.
  *
  *   npm run models          # regenerate all GLBs from the catalog manifest
  *   npm run models -- --check
  *
- * Uses three's GLTFExporter (no new deps) to build a recognizable low-poly
- * mesh per catalog item, sized in centimeters to its manifest dims, then
- * exports a `.glb` per catalogId into assets/models/.
- *
- * For catalog items that have a matching Sweet Home 3D OBJ in
- * ../assets/models/sh3d/,
- * the real SH3D geometry is loaded, uniformly scaled to the catalog bounds,
- * centered on the floor, and exported. Missing or failing items fall back to
- * the procedural low-poly shapes.
+ * Uses three's GLTFExporter to build a recognizable low-poly mesh per catalog
+ * item, sized in centimeters to its manifest dims, then exports a `.glb` per
+ * catalogId into assets/models/. Also generates WebP thumbnails for each model.
  *
  * The 3D view loads these via GLTFLoader (view3d/scene.ts swapInModel); the
- * catalog panel shows the same assets as thumbnails. Run `npm run assets`
- * (or build) to mirror them into the bundle.
+ * catalog panel shows thumbnails. Run `npm run assets` (or build) to mirror
+ * them into the bundle.
  */
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { hasSh3dModel, convertSh3dModel } from './convert-sh3d-models.js'
 import { generateThumbnail } from './thumbnail-generator.js'
 
 // GLTFExporter uses FileReader (browser-only) for the binary GLB path.
@@ -272,11 +265,6 @@ function exportGlb(group: THREE.Group, outPath: string): void {
 }
 
 async function buildOrConvertModel(item: CatalogItem): Promise<THREE.Group> {
-  if (hasSh3dModel(item.catalogId)) {
-    const converted = await convertSh3dModel(item)
-    if (converted) return converted
-    console.warn(`[models] SH3D conversion failed for ${item.catalogId}, using procedural fallback`)
-  }
   return buildModel(item)
 }
 
