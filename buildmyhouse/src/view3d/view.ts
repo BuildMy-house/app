@@ -136,6 +136,9 @@ export class View3D {
         antialias: this._quality.antialias,
         powerPreference: 'high-performance',
       })
+      renderer.outputColorSpace = THREE.SRGBColorSpace
+      renderer.toneMapping = THREE.ACESFilmicToneMapping
+      renderer.toneMappingExposure = 1.1
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this._quality.pixelRatioCap))
       renderer.setSize(width, height)
       renderer.shadowMap.enabled = true
@@ -203,6 +206,14 @@ export class View3D {
 
   get camera(): THREE.PerspectiveCamera {
     return this.perspectiveCamera
+  }
+
+  setGridVisible(visible: boolean): void {
+    const grid = this._scene.getObjectByName('ground-grid')
+    if (grid) {
+      grid.visible = visible
+      this.render()
+    }
   }
 
   /** Wall-clock ms of the last delta-applied store change (0 after a rebuild). */

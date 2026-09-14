@@ -445,6 +445,7 @@ function buildToolbar(): void {
     <div class="tool-separator"></div>
     <label><input id="magnetism" type="checkbox" checked /> Mag</label>
     <label><input id="grid-snap" type="checkbox" /> Grid</label>
+    <label><input id="grid-3d" type="checkbox" checked /> 3D Grid</label>
     <label><input id="reference-overlay" type="checkbox" /> Ref</label>
     <div class="toolbar-spacer"></div>
     <button class="tool-btn" id="btn-fit" title="Zoom to fit (double-click middle)">Fit</button>
@@ -480,6 +481,10 @@ function buildToolbar(): void {
 
   toolbar.querySelector('#grid-snap')!.addEventListener('change', (e) => {
     engine.setGridSnap((e.target as HTMLInputElement).checked)
+  })
+
+  toolbar.querySelector('#grid-3d')!.addEventListener('change', (e) => {
+    view3d?.setGridVisible((e.target as HTMLInputElement).checked)
   })
 
   toolbar.querySelector('#reference-overlay')!.addEventListener('change', (e) => {
@@ -1230,6 +1235,7 @@ view3d = new View3D(store, {
 ;(window as unknown as { __model: HomeModel }).__model = model
 ;(window as unknown as { __printPlan: () => void }).__printPlan = printPlan
 ;(window as unknown as { __exportSceneJson: () => void }).__exportSceneJson = exportSceneJson
+;(window as unknown as { __buildRenderableScene: typeof buildRenderableScene }).__buildRenderableScene = buildRenderableScene
 
 // Properties panel — right sidebar
 const mainArea = root.querySelector<HTMLDivElement>('#main-area')!
