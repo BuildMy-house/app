@@ -23,6 +23,13 @@ export class HomeStore {
   private compoundDepth = 0
   private compoundBase: NormalizedHomeState | null = null
   private _dirty = false
+  /**
+   * Bumped on every mutation (undoable or not). The plan render loop
+   * (main.ts) uses this as a cheap "did anything change" check so it can
+   * skip the expensive getHome() clone + full canvas redraw on frames where
+   * nothing did — comparing this integer is far cheaper than diffing state.
+   */
+  private _revision = 0
 
   /**
    * timeZoneId feeds the compass location default (SH3D reads the OS zone);
@@ -55,6 +62,7 @@ export class HomeStore {
       this.home = draft
       followTopCamera(this.home, previous)
       this._dirty = true
+      this._revision++
       return
     }
     this.undoStack.push(previous)
@@ -63,6 +71,7 @@ export class HomeStore {
     this.home = draft
     followTopCamera(this.home, previous)
     this._dirty = true
+    this._revision++
   }
 
   /**
@@ -101,6 +110,7 @@ export class HomeStore {
     this.redoStack.push(structuredClone(current))
     this.home = previous
     followTopCamera(this.home, current)
+    this._revision++
     return true
   }
 
@@ -111,6 +121,7 @@ export class HomeStore {
     this.undoStack.push(structuredClone(current))
     this.home = next
     followTopCamera(this.home, current)
+    this._revision++
     return true
   }
 
@@ -132,6 +143,11 @@ export class HomeStore {
     this._dirty = false
   }
 
+  /** See `_revision` — bumped on every mutation, undoable or not. */
+  getRevision(): number {
+    return this._revision
+  }
+
   /**
    * Mutates view-ish state (e.g. activeTool) WITHOUT recording an undo step —
    * tool switches are not document edits (SH3D mode changes are not undoable).
@@ -139,6 +155,7 @@ export class HomeStore {
    */
   patchNonUndoable(mutate: (draft: NormalizedHomeState) => void): void {
     mutate(this.home)
+    this._revision++
   }
 
   /** Opaque, creation-ordered ids; harness matches by ledger order, not format. */
@@ -160,6 +177,7 @@ export class HomeStore {
     this.compoundDepth = 0
     this.compoundBase = null
     this._dirty = false
+    this._revision++
   }
 
   /**
@@ -175,6 +193,7 @@ export class HomeStore {
     this.compoundBase = null
     this.idCounter = this.maxExistingId(this.home) + 1
     this._dirty = false
+    this._revision++
   }
 
   private maxExistingId(home: NormalizedHomeState): number {

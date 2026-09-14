@@ -1127,7 +1127,7 @@ window.addEventListener('keyup', (event) => {
 
 // ── Render loop ─────────────────────────────────────────────────────────────
 
-function render(): void {
+function render(preview: PlanPreview): void {
   if (!ctx) return
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   const home = store.getHome()
@@ -1136,14 +1136,13 @@ function render(): void {
   // first wall/room/furniture, fit the view exactly once (M76 fix 4).  Skipped
   // while the user is mid-draw (engine preview phase === 'drawing') to avoid
   // the M1 regression of warping the view during a multi-click wall chain.
-  if (!firstGeometryFitted && engine.getPreview().phase !== 'drawing') {
+  if (!firstGeometryFitted && preview.phase !== 'drawing') {
     if (home.walls.length > 0 || home.rooms.length > 0 || home.furniture.length > 0) {
       firstGeometryFitted = true
       doFit()
     }
   }
 
-  const preview: PlanPreview | null = engine.getPreview()
   const rc = ctx as unknown as PlanRenderingContext
   drawPlan(home, preview, rc, currentView, canvas.width, canvas.height, activeLevelId, engine.isReferenceOverlayEnabled())
 }
@@ -1156,10 +1155,59 @@ let firstGeometryFitted = false
 let lastFrameMs = 0
 let prevFrameTs = 0
 
+// ── Idle-skip: the plan canvas used to redraw everything at a full 60fps
+// forever, even while the app just sat there untouched (store.getHome() deep-
+// clones the whole document plus a full drawPlan() every tick). Nothing on
+// this canvas can change without going through one of: a store mutation
+// (revision), the view/pan/zoom, the canvas size, the active level, or an
+// interactive tool being mid-drag/mid-chain (which needs the live cursor
+// position tracked outside the store — see engine.getPreview()'s
+// syncInteractiveCursor). So skip the expensive clone+redraw whenever none of
+// those changed, falling back to a slow safety-net redraw so any mutation
+// path this reasoning missed still self-heals within half a second.
+const IDLE_REDRAW_INTERVAL_MS = 500
+let forceNextRender = true
+let lastRenderTs = 0
+let lastRenderedRevision = -1
+let lastRenderedScale = NaN
+let lastRenderedOffsetX = NaN
+let lastRenderedOffsetY = NaN
+let lastRenderedWidth = -1
+let lastRenderedHeight = -1
+let lastRenderedLevelId: string | null | undefined
+
 function frame(ts: number): void {
   if (prevFrameTs > 0) lastFrameMs = ts - prevFrameTs
   prevFrameTs = ts
-  render()
+
+  const preview = engine.getPreview()
+  const revision = store.getRevision()
+  const needsRender =
+    forceNextRender ||
+    isPanning ||
+    preview.phase === 'drawing' ||
+    revision !== lastRenderedRevision ||
+    currentView.scale !== lastRenderedScale ||
+    currentView.offsetX !== lastRenderedOffsetX ||
+    currentView.offsetY !== lastRenderedOffsetY ||
+    canvas.width !== lastRenderedWidth ||
+    canvas.height !== lastRenderedHeight ||
+    activeLevelId !== lastRenderedLevelId ||
+    ts - lastRenderTs >= IDLE_REDRAW_INTERVAL_MS
+
+  if (needsRender) {
+    render(preview)
+    forceNextRender = false
+    lastRenderTs = ts
+    lastRenderedRevision = revision
+    lastRenderedScale = currentView.scale
+    lastRenderedOffsetX = currentView.offsetX
+    lastRenderedOffsetY = currentView.offsetY
+    lastRenderedWidth = canvas.width
+    lastRenderedHeight = canvas.height
+    lastRenderedLevelId = activeLevelId
+  }
+
   requestAnimationFrame(frame)
 }
 
