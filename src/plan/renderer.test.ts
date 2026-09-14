@@ -236,6 +236,29 @@ describe('drawPlan wall textures', () => {
   })
 })
 
+describe('drawPlan furniture textures', () => {
+  it('uses the furniture texture pattern when its image is loaded', () => {
+    const tex = WALL_TEXTURES.find(t => t.id === 'wood-oak')!
+    const img = { complete: true, naturalWidth: 64 } as unknown as HTMLImageElement
+    setTestImageCache(new Map([[`/assets/textures/${tex.file}`, img]]))
+
+    const home = createEmptyHome()
+    home.furniture.push({
+      id: 'f1', name: 'Table', x: 200, y: 150, angleDeg: 0,
+      width: 120, depth: 60, height: 75, elevation: 0,
+      textureId: 'wood-oak',
+    })
+
+    const ctx = new MockContext()
+    ctx.patternResult = 'furniture-pattern'
+    drawPlan(home, null, ctx, IDENTITY_VIEW)
+
+    expect(ctx.ops.filter(op => op.type === 'createPattern')).toHaveLength(1)
+    expect(ctx.fillStyle).toBe('furniture-pattern')
+    setTestImageCache(new Map())
+  })
+})
+
 describe('drawPlan door swing arcs', () => {
   it('draws a quarter-circle arc and leaf line for a door', () => {
     const home = createEmptyHome()
