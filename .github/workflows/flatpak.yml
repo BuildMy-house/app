@@ -1,0 +1,29 @@
+name: Build Flatpak
+
+# Builds a Flatpak bundle from the manifest for local testing / sideloading.
+# The actual Flathub submission is a one-time manual PR (see docs/RELEASE.md).
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  flatpak:
+    runs-on: ubuntu-22.04
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:gnome-45
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: homely.flatpak
+          manifest-path: flatpak/com.house-designer.homely.yaml
+          cache-key: flatpak-builder-${{ github.sha }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: homely-flatpak
+          path: homely.flatpak
+          if-no-files-found: error

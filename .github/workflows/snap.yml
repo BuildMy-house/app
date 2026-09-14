@@ -1,0 +1,25 @@
+name: Build Snap
+
+# Builds the .snap artifact on every `v*` tag. Publishing to the Snap Store is
+# a one-time manual step (see docs/RELEASE.md).
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  snap:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: snapcore/action-build@v1
+        id: build
+        with:
+          path: snap
+      - uses: actions/upload-artifact@v4
+        with:
+          name: homely-snap
+          path: ${{ steps.build.outputs.snap }}
+          if-no-files-found: error
