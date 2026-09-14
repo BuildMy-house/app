@@ -26,6 +26,18 @@ else
   echo "[infisical] INFISICAL_UNIVERSAL_AUTH_CLIENT_ID not set; using .env or existing environment variables"
 fi
 
+# ── GitHub App private key ──────────────────────────────────────────────────
+# GITHUB_APP_PRIVATE_KEY syncs from Infisical as a raw env var, but
+# github-app-token.js's findPrivateKey() only ever checks fixed file paths —
+# nothing wrote it to one before. Confirmed live: every gh/git operation
+# failed outright with "Private key not found" until this was added.
+if [ -n "${GITHUB_APP_PRIVATE_KEY:-}" ]; then
+  mkdir -p /etc/github
+  printf '%s' "$GITHUB_APP_PRIVATE_KEY" > /etc/github/buildmyhouse-engineering-app.pem
+  chmod 600 /etc/github/buildmyhouse-engineering-app.pem
+  echo "[github-app] private key written to /etc/github/buildmyhouse-engineering-app.pem"
+fi
+
 # ── Claude Code telemetry -> Axiom ──────────────────────────────────────────
 # Native OTLP metrics+logs export (official Claude Code feature, no plugin
 # needed) — token/cost counters and tool accept/reject counts, not full

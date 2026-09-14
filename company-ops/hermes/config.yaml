@@ -11,6 +11,16 @@ model:
   default: upstage/solar-pro4:free
   provider: custom:nous
 
+# Without this, hermes-agent's auxiliary lane (title generation, vision,
+# compression fallbacks) defaults to allowing a PAID OpenRouter fallback
+# model — confirmed live: a real auxiliary call logged "PAID lane engaged...
+# may incur real spend" warnings. Contained today only because no
+# OPENROUTER_API_KEY happens to be set; SOUL.md's own policy is explicit
+# that anything costing money needs Board sign-off first, so this shouldn't
+# depend on a credential just never having been added.
+auxiliary:
+  free_only: true
+
 custom_providers:
   - name: nous
     base_url: https://inference-api.nousresearch.com/v1

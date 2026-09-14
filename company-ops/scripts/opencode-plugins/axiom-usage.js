@@ -16,36 +16,48 @@ export const AxiomUsage = async () => {
   // /v1/datasets/bmh-company -> edgeDeploymentUrl).
   const endpoint = `https://eu-central-1.aws.edge.axiom.co/v1/ingest/${dataset}`;
   const queue = [];
-  let flushing = false;
+  // Track the in-flight flush as a promise (not just a boolean) so dispose()
+  // can genuinely await it — confirmed live this is required: `opencode run`
+  // is a short-lived one-shot process that tears down right after its task
+  // finishes, and a boolean-gated flush left dispose() calling flush() again
+  // while the original was still in flight, which just no-opped (busy flag
+  // still set) and returned immediately — the fetch never got to complete
+  // before the process exited. Zero events reached Axiom until fixed.
+  let inFlight = null;
 
-  async function flush() {
-    if (flushing || queue.length === 0) return;
-    flushing = true;
+  function flush() {
+    if (queue.length === 0) return inFlight || Promise.resolve();
+    if (inFlight) return inFlight;
     const batch = queue.splice(0, queue.length);
-    try {
-      await fetch(endpoint, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(batch),
-      });
-    } catch {
-      // fail-open: usage tracking must never break a coding session
-    } finally {
-      flushing = false;
-    }
+    inFlight = (async () => {
+      try {
+        await fetch(endpoint, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(batch),
+        });
+      } catch {
+        // fail-open: usage tracking must never break a coding session
+      } finally {
+        inFlight = null;
+      }
+    })();
+    return inFlight;
   }
-  setInterval(flush, 5000);
 
   function push(event) {
     try {
       queue.push({ _time: new Date().toISOString(), service: "opencode", ...event });
-      if (queue.length >= 20) flush();
+      flush();
     } catch {
       // fail-open
     }
   }
 
   return {
+    dispose: async () => {
+      await flush();
+    },
     event: async ({ event }) => {
       try {
         if (event.type !== "message.updated") return;
@@ -73,3 +85,9 @@ export const AxiomUsage = async () => {
     },
   };
 };
+
+// opencode's loader resolves a bare file-path entry in `plugin: [...]` via
+// the module's default export (confirmed against @opencode-ai/plugin's own
+// example-workspace.js, which exports both named and default) — a named
+// export alone is silently never invoked, no error, nothing in the logs.
+export default AxiomUsage;

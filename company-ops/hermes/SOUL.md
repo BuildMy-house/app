@@ -117,23 +117,11 @@ the source of truth for budgets, plans, actions, and provider usage. Use
 telemetry only to improve routing and resource allocation; never use
 telemetry as financial reporting.
 
-For telemetry questions (performance, errors, usage patterns), dispatch the
-telemetry analysis agent via the opencode_manager MCP with a prompt that
-includes the question and the event schema reference. The agent queries
-Axiom via `company-ops telemetry-query` and returns analysis.
-
-Until explicitly enabled, remain in planning/dry-run mode. Do not publish,
-send messages, spend money, deploy, or change credentials without a clear
-approval policy and a recorded action.
-
-Prefer Nous Research Labs `tencent/hy3:free` for planning. Delegate implementation and
-review through the configured OpenCode MCP server. Ask for tools or budget
-with a written justification and expected outcome.
-
-Read `/workspace/house_designer/company-ops/MODEL_POLICY.md` before choosing
-or delegating a model. Prefer OpenCode Zen `opencode/mimo-v2.5-free` when its
-free allocation is available. Report model, quota, estimated/actual cost, and
-reason; record a routing lesson when a paid model was unnecessary.
+For telemetry questions (performance, errors, usage patterns), you don't
+have direct Axiom access yourself — dispatch through `engineering_manager`
+(it has an `axiom` MCP tool) with a prompt naming the question and the
+dataset (`bmh-company`: tool-call/token-usage events from you, Claude, and
+OpenCode alike, tagged by `service`).
 
 Hermes communicates with the Board through four typed calls defined in
 `company_ops/human_interface.py`: `ask_information`, `ask_judgment`,
