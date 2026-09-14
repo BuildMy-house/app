@@ -187,64 +187,6 @@ function roomsEqual(a: Room, b: Room): boolean {
   return a.name === b.name && a.floorColor === b.floorColor && a.levelRef === b.levelRef
 }
 
-/**
- * Scene object IDs used for tracking Three.js objects.
- * Maps domain IDs to scene node IDs for update operations.
- */
-export interface SceneNodeMap {
-  walls: Map<string, THREE.Object3D>
-  furniture: Map<string, THREE.Object3D>
-  rooms: Map<string, THREE.Object3D>
-}
-
-/**
- * Get or create the scene node map from userData.
- */
-export function getSceneNodeMap(scene: THREE.Scene): SceneNodeMap {
-  const map: SceneNodeMap = (scene.userData.nodeMap ??= {
-    walls: new Map(),
-    furniture: new Map(),
-    rooms: new Map(),
-  })
-  return map
-}
-
-/**
- * Register a Three.js object as representing a domain entity.
- */
-export function registerSceneNode(
-  nodeMap: SceneNodeMap,
-  type: 'wall' | 'furniture' | 'room',
-  id: string,
-  object: THREE.Object3D,
-): void {
-  nodeMap[type === 'wall' ? 'walls' : type === 'furniture' ? 'furniture' : 'rooms'].set(id, object)
-}
-
-/**
- * Unregister a Three.js object and remove it from the scene.
- */
-export function unregisterSceneNode(
-  scene: THREE.Scene,
-  nodeMap: SceneNodeMap,
-  type: 'wall' | 'furniture' | 'room',
-  id: string,
-): void {
-  const map = nodeMap[type === 'wall' ? 'walls' : type === 'furniture' ? 'furniture' : 'rooms']
-  const object = map.get(id)
-  if (object) {
-    scene.remove(object)
-    map.delete(id)
-    // Clean up geometry/materials if they won't be reused
-    object.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.geometry?.dispose()
-        // Don't dispose material — it may be shared
-      }
-    })
-  }
-}
-
 // ── Delta handlers (T2) ─────────────────────────────────────────────────────
 //
 // Apply ONE clear-scope update in place to a scene built by buildScene().

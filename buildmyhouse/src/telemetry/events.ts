@@ -23,7 +23,7 @@ interface BaseEvent {
 
 // ── Tier 1: Software Health (always on) ─────────────────────────────────────
 
-export interface ErrorCaughtEvent extends BaseEvent {
+interface ErrorCaughtEvent extends BaseEvent {
   event: 'error.caught'
   tier: 1
   message: string
@@ -31,12 +31,12 @@ export interface ErrorCaughtEvent extends BaseEvent {
   source: 'window.onerror' | 'unhandledrejection' | 'catch'
 }
 
-export interface WebglContextLostEvent extends BaseEvent {
+interface WebglContextLostEvent extends BaseEvent {
   event: 'webgl.context_lost'
   tier: 1
 }
 
-export interface FrameTimeEvent extends BaseEvent {
+interface FrameTimeEvent extends BaseEvent {
   event: 'perf.frame_time'
   tier: 1
   p50: number
@@ -45,7 +45,7 @@ export interface FrameTimeEvent extends BaseEvent {
   samples: number
 }
 
-export interface PlanRenderEvent extends BaseEvent {
+interface PlanRenderEvent extends BaseEvent {
   event: 'perf.plan_render'
   tier: 1
   durationMs: number
@@ -53,14 +53,14 @@ export interface PlanRenderEvent extends BaseEvent {
   furnitureCount: number
 }
 
-export interface CatalogLoadEvent extends BaseEvent {
+interface CatalogLoadEvent extends BaseEvent {
   event: 'perf.catalog_load'
   tier: 1
   durationMs: number
   itemCount: number
 }
 
-export interface FileIoEvent extends BaseEvent {
+interface FileIoEvent extends BaseEvent {
   event: 'file.io'
   tier: 1
   op: 'save' | 'open' | 'export_png' | 'import_model'
@@ -70,7 +70,7 @@ export interface FileIoEvent extends BaseEvent {
   error?: string
 }
 
-export interface AssetMetricsEvent extends BaseEvent {
+interface AssetMetricsEvent extends BaseEvent {
   event: 'perf.asset_metrics'
   tier: 1
   textureLoadDurationMs: number
@@ -85,12 +85,12 @@ export interface AssetMetricsEvent extends BaseEvent {
   loadedTextureIds: string[]
 }
 
-export interface AppLifecycleEvent extends BaseEvent {
+interface AppLifecycleEvent extends BaseEvent {
   event: 'app.start' | 'app.exit' | 'app.focus' | 'app.blur'
   tier: 1
 }
 
-export interface AutomationEvent extends BaseEvent {
+interface AutomationEvent extends BaseEvent {
   event: 'automation.connect' | 'automation.disconnect' | 'automation.command'
   tier: 1
   command?: string
@@ -111,27 +111,15 @@ export interface RenderingMetricsEvent extends BaseEvent, RenderingMetrics {
   tier: 1
 }
 
-/** Periodic delta-vs-rebuild ratio for scene updates (60s aggregation window). */
-export interface SceneDeltaMetricsEvent extends BaseEvent {
-  event: 'perf.scene_delta_metrics'
-  tier: 1
-  deltaUpdatesCount: number
-  fullRebuildsCount: number
-  avgDeltaDurationMs: number
-  avgRebuildDurationMs: number
-  deltaRatio: number // 0-1, percentage of deltas vs total
-  windowDurationMs: number // 60000 for 60s aggregation
-}
-
 // ── Tier 2: User Interaction (opt-out) ──────────────────────────────────────
 
-export interface ToolUsageEvent extends BaseEvent {
+interface ToolUsageEvent extends BaseEvent {
   event: 'tool.switch' | 'tool.wall_click' | 'tool.furniture_place'
   tier: 2
   tool: string
 }
 
-export interface FeatureUsageEvent extends BaseEvent {
+interface FeatureUsageEvent extends BaseEvent {
   event: 'feature.undo' | 'feature.redo' | 'feature.room_add'
     | 'feature.level_add' | 'feature.door_window' | 'feature.save'
     | 'feature.open' | 'feature.export'
@@ -140,7 +128,7 @@ export interface FeatureUsageEvent extends BaseEvent {
 
 /** User action performance trace (Tier 2): what the user did, how long it took,
  *  and how scene complexity / frame time moved around the action. */
-export interface UserActionMetricsEvent extends BaseEvent {
+interface UserActionMetricsEvent extends BaseEvent {
   event: 'user.action_trace'
   tier: 2
   actionName: string

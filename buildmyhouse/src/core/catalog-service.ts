@@ -18,7 +18,7 @@ export interface CatalogLoadResult {
 }
 
 /** Fetch a catalog manifest (browser fetch; also works under node with a base). */
-export async function loadCatalogFromUrl(url: string): Promise<CatalogManifest> {
+async function loadCatalogFromUrl(url: string): Promise<CatalogManifest> {
   const response = await fetch(url)
   if (!response.ok) {
     throw new Error(`catalog fetch failed: ${response.status} ${response.statusText} (${url})`)

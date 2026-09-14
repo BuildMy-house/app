@@ -45,7 +45,7 @@ export interface CatalogManifest {
 }
 
 /** Catalog categories in canonical display order. */
-export const CATALOG_CATEGORIES = [
+const CATALOG_CATEGORIES = [
   'Living',
   'Bedroom',
   'Kitchen',
@@ -57,7 +57,7 @@ export const CATALOG_CATEGORIES = [
   'Outdoor',
 ] as const
 
-export function categoryOf(item: CatalogItem): string {
+function categoryOf(item: CatalogItem): string {
   return CATALOG_CATEGORIES.includes(item.category as (typeof CATALOG_CATEGORIES)[number])
     ? item.category
     : 'Other'

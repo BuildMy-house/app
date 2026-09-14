@@ -19,9 +19,9 @@ import { loadViewportQuality } from './viewport-quality'
 
 type Pt = [number, number]
 
-export const DEFAULT_WALL_COLOR = 0xd2d2d2
-export const DEFAULT_FLOOR_COLOR = 0xc8c8c8
-export const DEFAULT_FURNITURE_COLOR = 0x9e9e9e
+const DEFAULT_WALL_COLOR = 0xd2d2d2
+const DEFAULT_FLOOR_COLOR = 0xc8c8c8
+const DEFAULT_FURNITURE_COLOR = 0x9e9e9e
 const DEFAULT_CEILING_COLOR = 0xf0f0f0
 
 const GROUND_SIZE_CM = 100_000
@@ -446,7 +446,7 @@ export function __seedModelCache(url: string, obj: THREE.Object3D): void {
  */
 export type ModelUrlResolver = (modelPath: string) => string
 
-export const defaultModelUrlResolver: ModelUrlResolver = (modelPath) =>
+const defaultModelUrlResolver: ModelUrlResolver = (modelPath) =>
   /^https?:\/\//i.test(modelPath) ? modelPath : `assets/${modelPath}`
 
 /** Scene-level resolver; set once per buildScene call via the options. */
@@ -816,7 +816,7 @@ function addFurnitureMeshes(
 }
 
 export const SELECTION_EMISSIVE_COLOR = 0x1a66d6
-export const SELECTION_EMISSIVE_INTENSITY = 0.3
+const SELECTION_EMISSIVE_INTENSITY = 0.3
 
 export function tintEmissive(object: THREE.Object3D): void {
   object.traverse((child) => {
@@ -833,7 +833,7 @@ export function tintEmissive(object: THREE.Object3D): void {
   })
 }
 
-export function clearEmissive(object: THREE.Object3D): void {
+function clearEmissive(object: THREE.Object3D): void {
   object.traverse((child) => {
     if ('material' in child) {
       const mesh = child as THREE.Mesh

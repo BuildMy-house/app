@@ -25,10 +25,10 @@ import {
 
 // ── Defaults ────────────────────────────────────────────────────
 
-export const DEFAULT_WALL_COLOR = 0xd2d2d2
-export const DEFAULT_FLOOR_COLOR = 0xc8c8c8
-export const DEFAULT_FURNITURE_COLOR = 0x9e9e9e
-export const DEFAULT_CEILING_COLOR = 0xf0f0f0
+const DEFAULT_WALL_COLOR = 0xd2d2d2
+const DEFAULT_FLOOR_COLOR = 0xc8c8c8
+const DEFAULT_FURNITURE_COLOR = 0x9e9e9e
+const DEFAULT_CEILING_COLOR = 0xf0f0f0
 
 // ── Material factory ────────────────────────────────────────────
 

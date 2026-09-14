@@ -78,7 +78,7 @@ export interface PolygonPrimitive {
   materialId: string;
 }
 
-export interface ExtrudePolygonPrimitive {
+interface ExtrudePolygonPrimitive {
   type: "extrudePolygon";
   /** Outline points [[x, z], ...] */
   outline: [number, number][];
@@ -89,7 +89,7 @@ export interface ExtrudePolygonPrimitive {
   materialId: string;
 }
 
-export type Primitive =
+type Primitive =
   | BoxPrimitive
   | PolygonPrimitive
   | ExtrudePolygonPrimitive;

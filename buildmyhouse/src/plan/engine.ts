@@ -16,9 +16,9 @@ import {
 } from './geometry'
 import { ViewMapper, getLastCursorPx, getLastDrawnView } from './renderer'
 
-export const PLAN_SCALE = 1
-export const PIXEL_MARGIN = 4 * PLAN_SCALE
-export const WALL_ENDS_PIXEL_MARGIN = 2 * PLAN_SCALE
+const PLAN_SCALE = 1
+const PIXEL_MARGIN = 4 * PLAN_SCALE
+const WALL_ENDS_PIXEL_MARGIN = 2 * PLAN_SCALE
 /**
  * Finding A.1: the "pixel" margins above are actually WORLD units (cm) — the
  * engine is world-space only and never sees the view transform, so the real
@@ -30,7 +30,7 @@ export const WALL_ENDS_PIXEL_MARGIN = 2 * PLAN_SCALE
  * so it stays usable when zoomed far out (min) and not absurdly grabby when
  * zoomed far in (max).
  */
-export const ENDPOINT_SNAP_RADIUS_PX = 10
+const ENDPOINT_SNAP_RADIUS_PX = 10
 const ENDPOINT_SNAP_MIN_WORLD = 4
 const ENDPOINT_SNAP_MAX_WORLD = 40
 

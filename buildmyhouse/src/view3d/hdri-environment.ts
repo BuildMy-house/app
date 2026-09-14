@@ -39,7 +39,7 @@ export const HDRI_PRESETS: Record<HdriPresetId, HdriPreset> = {
   },
 }
 
-export const DEFAULT_HDRI_PRESET: HdriPresetId = 'studio'
+const DEFAULT_HDRI_PRESET: HdriPresetId = 'studio'
 
 const HDRI_STORAGE_KEY = 'homely-hdri-preset'
 
