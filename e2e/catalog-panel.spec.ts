@@ -28,14 +28,32 @@ test.describe('catalog panel label clipping', () => {
 
       // Collect every catalog card label and assert it is not horizontally
       // clipped (scrollWidth must fit within clientWidth).
-      const clipped = await page.evaluate((samples) => {
-        const cards = Array.from(document.querySelectorAll('.catalog-card'))
+      // MAT-T9: the grid is virtualized — only cards scrolled into view (plus
+      // a small buffer) are mounted. For samples outside the mounted window,
+      // search filters the full item list down so the card gets mounted.
+      const clipped = await page.evaluate(async (samples) => {
+        const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+        const findCard = (needle: string): HTMLElement | null => {
+          for (const c of Array.from(document.querySelectorAll('.catalog-card'))) {
+            if (c.querySelector('.catalog-name')?.textContent?.trim().includes(needle)) {
+              return c as HTMLElement
+            }
+          }
+          return null
+        }
+        const input = document.querySelector('.catalog-search') as HTMLInputElement
         const results: string[] = []
         for (const sample of samples) {
-          const card = cards.find((c) => {
-            const nameEl = c.querySelector('.catalog-name')
-            return nameEl?.textContent?.trim().includes(sample)
-          })
+          let card = findCard(sample)
+          if (!card && input) {
+            input.value = sample
+            input.dispatchEvent(new Event('input', { bubbles: true }))
+            await sleep(100)
+            card = findCard(sample)
+            input.value = ''
+            input.dispatchEvent(new Event('input', { bubbles: true }))
+            await sleep(100)
+          }
           if (!card) {
             results.push(`missing: ${sample}`)
             continue
