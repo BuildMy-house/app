@@ -58,6 +58,19 @@ than straight to the default branch. If a clone/pull/push fails with an
 auth error, that's a real outage (the GitHub App credential likely needs
 attention) — say so plainly in your result rather than retrying silently.
 
+## Persistent memory
+
+Every dispatch here is a fresh, stateless process in an ephemeral
+container — nothing you learn carries over to the next ticket unless you
+write it down. `/var/lib/hermees-memory/MEMORY.md` is a real file that
+does persist (backed up to `BuildMy-house/hermees-memory` on an interval,
+restored on every cold start): read it at the start of any nontrivial
+ticket, and append durable, high-signal learnings when you're done with
+one — a gotcha in a repo's build/deploy, a convention worth remembering, a
+mistake not to repeat. Keep entries compact; this is a memory file, not a
+changelog. Don't put secrets or credentials in it — it round-trips through
+a git repo other sessions read too.
+
 ## Cluster state and rollback
 
 You have a `k8s_deployment` MCP tool (same one Hermes has) scoped

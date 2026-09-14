@@ -84,34 +84,92 @@ done
 
 chmod 644 /opt/data/.env
 
-REPO_DIR="/opt/hermees"
-REMOTE="git@github.com:BuildMy-house/hermees.git"
-
-# Clone or pull on start
-if [[ -d "$REPO_DIR/.git" ]]; then
-  cd "$REPO_DIR" && git pull --ff-only 2>/dev/null || true
-else
-  git clone "$REMOTE" "$REPO_DIR" 2>/dev/null || true
+# GitHub App private key — see engineering-entrypoint.sh for the fuller
+# writeup; same fix, needed here for the memory-backup sync below.
+if [ -n "${GITHUB_APP_PRIVATE_KEY:-}" ]; then
+  mkdir -p /etc/github
+  printf '%s' "$GITHUB_APP_PRIVATE_KEY" > /etc/github/buildmyhouse-engineering-app.pem
+  chmod 600 /etc/github/buildmyhouse-engineering-app.pem
 fi
 
-# Background sync: pull every 30min, commit+push every 2h
-sync_loop() {
-  while true; do
-    sleep 1800  # 30 min
-    cd "$REPO_DIR" 2>/dev/null || continue
-    git pull --ff-only 2>/dev/null || true
-    # Every 4th cycle (~2h), commit and push any local changes
-    if [[ $((RANDOM % 4)) -eq 0 ]]; then
-      changes=$(git status --porcelain 2>/dev/null | wc -l)
-      if [[ "$changes" -gt 0 ]]; then
-        git add -A 2>/dev/null || true
-        git commit -m "auto-sync: $(date -u +%Y-%m-%dT%H:%M:%SZ)" 2>/dev/null || true
-        git push 2>/dev/null || true
-      fi
-    fi
-  done
+# ── Persistent memory backup (BuildMy-house/hermees-memory) ────────────────
+# /opt/data is a fresh emptyDir on every pod recreation — nothing here
+# survives a restart, let alone a move to a different machine. This mirrors
+# the durable, non-secret parts (memories/, top-level *.md work products
+# like buildmy_house_launch_plan.md) into hermes/ in the shared
+# hermees-memory repo: restores once on a cold start (only when the local
+# dir is empty, so it never clobbers newer local state with an older
+# backup), then keeps pushing local changes back on an interval. Deliberate
+# scope: memories/ and *.md only — never .env, never state.db/kanban.db
+# (those are live, version-coupled to this exact hermes-agent build, and
+# restoring a stale one into a different version on a new machine risks
+# corruption; session/task continuity isn't what "memory" means here).
+#
+# Replaces a dead, never-working predecessor: this used to be an SSH-keyed
+# clone of the hermees (diary) repo, but no SSH key was ever mounted in the
+# k8s deployment (confirmed live: /root/.ssh had no key, /opt/hermees never
+# even got created) — and diary posts are written by the engineering
+# container via engineering_manager anyway, not by Hermes's own container,
+# so this checkout was never actually used for anything even when it did
+# clone successfully in an earlier (pre-k8s) deployment.
+MEMORY_STAGING=/opt/hermees-memory
+memory_sync_once() {
+  local token
+  token=$(node "$SCRIPT_DIR/github-app-token.js" 2>/dev/null) || return 0
+  local url="https://x-access-token:${token}@github.com/BuildMy-house/hermees-memory.git"
+  if [[ -d "$MEMORY_STAGING/.git" ]]; then
+    git -C "$MEMORY_STAGING" remote set-url origin "$url" 2>/dev/null
+    git -C "$MEMORY_STAGING" pull --ff-only origin main >/dev/null 2>&1 || true
+  else
+    rm -rf "$MEMORY_STAGING"
+    git clone "$url" "$MEMORY_STAGING" >/dev/null 2>&1 || return 0
+  fi
+  mkdir -p "$MEMORY_STAGING/hermes/memories" "$MEMORY_STAGING/hermes/notes" /opt/data/memories
+  # This call only runs from the delayed background loop (see below), well
+  # after hermes-agent's own early bootstrap has already settled — fixing
+  # ownership here any earlier loses a race against hermes recreating this
+  # specific directory itself. Same failure class as the /opt/data ESTOP
+  # bug fixed earlier: the hermes user (which actually writes memory
+  # entries) gets locked out of a root-owned directory otherwise.
+  chown hermes:hermes /opt/data/memories 2>/dev/null || true
+  chmod a+rwx /opt/data/memories 2>/dev/null || true
+  if [ -z "$(ls -A /opt/data/memories 2>/dev/null)" ]; then
+    cp -a "$MEMORY_STAGING/hermes/memories/." /opt/data/memories/ 2>/dev/null || true
+  fi
+  cp -a /opt/data/memories/. "$MEMORY_STAGING/hermes/memories/" 2>/dev/null || true
+  find /opt/data -maxdepth 1 -iname "*.md" -not -name "SOUL.md" -exec cp -a {} "$MEMORY_STAGING/hermes/notes/" \; 2>/dev/null || true
+  git -C "$MEMORY_STAGING" add hermes 2>/dev/null || true
+  if ! git -C "$MEMORY_STAGING" diff --cached --quiet 2>/dev/null; then
+    git -C "$MEMORY_STAGING" -c user.email="hermes@buildmy.house" -c user.name="Hermes" \
+      commit -q -m "chore(memory): sync $(date -u +%Y-%m-%dT%H:%M:%SZ)" 2>/dev/null || true
+    git -C "$MEMORY_STAGING" push -q origin HEAD:main 2>/dev/null || true
+  fi
 }
-sync_loop &
+# Deliberately NOT called synchronously here: `exec hermes "$@"` below
+# replaces this script's own process, and hermes's own early (still-root,
+# pre-privilege-drop) bootstrap recreates $HERMES_HOME/memories fresh —
+# confirmed live, a synchronous call here wins the mkdir race against
+# entrypoint.sh's own earlier chown/chmod but then loses to hermes's,
+# leaving it root:root again seconds later. hermes never touches it again
+# once past its own startup (confirmed stable 90s+ once fixed after the
+# fact), so run the first sync from the backgrounded loop with a short
+# delay instead — after hermes has already settled, not racing it. A
+# single fixed delay isn't reliable either though (confirmed live: 20s
+# wasn't enough margin against hermes's own startup, which apparently
+# takes longer than that to reach its own reset of this directory) — so
+# retry every 10s for the first ~2 minutes instead of guessing an exact
+# number, then fall back to the normal interval once it's had time to
+# actually stick.
+(
+  for _ in $(seq 1 12); do
+    sleep 10
+    memory_sync_once
+  done
+  while true; do
+    sleep "${MEMORY_SYNC_INTERVAL_SECONDS:-600}"
+    memory_sync_once
+  done
+) &
 
 if [[ "${1:-}" == "hermes" ]]; then
   shift

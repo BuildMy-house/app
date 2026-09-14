@@ -205,4 +205,49 @@ plain `git push` when done, or `gh pr create` if the change should go
 through review.
 EOF
 
+# ── Persistent memory (BuildMy-house/hermees-memory) ────────────────────────
+# Unlike Hermes, Claude/OpenCode here have never had any cross-dispatch
+# memory at all — each ai-cli-mcp dispatch is a fresh, stateless process,
+# and even /root itself has no persistent storage. /var/lib/hermees-memory
+# gives them one real shared file (engineering/MEMORY.md in the backup
+# repo) to accumulate durable, high-signal learnings in — restored once on
+# a cold start (only when empty, never clobbering newer local edits with
+# an older backup), then pushed back on an interval so it survives both a
+# pod restart and a move to a different machine. See CLAUDE.md for the
+# actual read/write convention.
+MEMORY_STAGING=/opt/hermees-memory
+MEMORY_LOCAL=/var/lib/hermees-memory
+memory_sync_once() {
+  local token
+  token=$(node "$SCRIPT_DIR/github-app-token.js" 2>/dev/null) || return 0
+  local url="https://x-access-token:${token}@github.com/BuildMy-house/hermees-memory.git"
+  if [[ -d "$MEMORY_STAGING/.git" ]]; then
+    git -C "$MEMORY_STAGING" remote set-url origin "$url" 2>/dev/null
+    git -C "$MEMORY_STAGING" pull --ff-only origin main >/dev/null 2>&1 || true
+  else
+    rm -rf "$MEMORY_STAGING"
+    git clone "$url" "$MEMORY_STAGING" >/dev/null 2>&1 || return 0
+  fi
+  mkdir -p "$MEMORY_STAGING/engineering" "$MEMORY_LOCAL"
+  if [ ! -f "$MEMORY_LOCAL/MEMORY.md" ] && [ -f "$MEMORY_STAGING/engineering/MEMORY.md" ]; then
+    cp -a "$MEMORY_STAGING/engineering/MEMORY.md" "$MEMORY_LOCAL/MEMORY.md"
+  fi
+  [ -f "$MEMORY_LOCAL/MEMORY.md" ] && cp -a "$MEMORY_LOCAL/MEMORY.md" "$MEMORY_STAGING/engineering/MEMORY.md"
+  git -C "$MEMORY_STAGING" add engineering 2>/dev/null || true
+  if ! git -C "$MEMORY_STAGING" diff --cached --quiet 2>/dev/null; then
+    git -C "$MEMORY_STAGING" -c user.email="engineering@buildmy.house" -c user.name="Engineering worker" \
+      commit -q -m "chore(memory): sync $(date -u +%Y-%m-%dT%H:%M:%SZ)" 2>/dev/null || true
+    git -C "$MEMORY_STAGING" push -q origin HEAD:main 2>/dev/null || true
+  fi
+}
+mkdir -p "$MEMORY_LOCAL"
+[ ! -f "$MEMORY_LOCAL/MEMORY.md" ] && cat > "$MEMORY_LOCAL/MEMORY.md" <<'EOF'
+# Engineering worker memory
+
+Durable, high-signal learnings worth remembering across dispatches — not
+routine status. See CLAUDE.md for how to use this file.
+EOF
+memory_sync_once
+( while true; do sleep "${MEMORY_SYNC_INTERVAL_SECONDS:-600}"; memory_sync_once; done ) &
+
 exec npx -y mcp-proxy --host 0.0.0.0 --port 8000 -- npx -y ai-cli-mcp@latest
