@@ -725,6 +725,10 @@ function furnitureMesh(
   if (item.textureId) {
     const entry = applyMaterialTextures(material, item.textureId)
     if (entry?.aoFile) addUv2(geometry)
+  } else {
+    // Apply wood-oak texture to all furniture by default (MAT-T9)
+    const entry = applyMaterialTextures(material, 'wood-oak')
+    if (entry?.aoFile) addUv2(geometry)
   }
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = `furniture:${item.id}`
@@ -786,6 +790,10 @@ function addFurnitureMeshes(
     })
     if (first.textureId) {
       const entry = applyMaterialTextures(material, first.textureId)
+      if (entry?.aoFile) addUv2(geometry)
+    } else {
+      // Apply wood-oak texture to all furniture by default (MAT-T9)
+      const entry = applyMaterialTextures(material, 'wood-oak')
       if (entry?.aoFile) addUv2(geometry)
     }
     const mesh = createInstancedMesh(
