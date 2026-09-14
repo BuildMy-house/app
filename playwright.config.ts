@@ -21,7 +21,12 @@ const isCI = !!process.env.CI
 
 export default defineConfig({
   testDir: 'e2e',
-  timeout: isCI ? 60_000 : 30_000,
+  // 60s wasn't enough headroom either -- the two remaining multi-step-drag
+  // tests (viewport3d-interactions/viewport3d orbit) still hit exactly that
+  // ceiling on the real CI runner (both pass locally, ~20s, even forcing
+  // software GL), so the runner's real constraint is worse than that local
+  // approximation. Bumping further rather than re-guessing at launch flags.
+  timeout: isCI ? 120_000 : 30_000,
   expect: {
     timeout: isCI ? 10_000 : 5_000,
   },
