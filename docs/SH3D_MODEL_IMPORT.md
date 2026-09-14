@@ -23,6 +23,32 @@ npm run import:sh3d -- --skip-upload
 4. **Bake Textures** — Materials and textures are baked into each GLB file
 5. **Update Catalog** — Models are registered in the catalog with proper metadata
 
+## Incremental Workflow (Recommended)
+
+For gradual rollout with R2 storage:
+
+```bash
+# 1. Download models once
+bash scripts/download-sh3d-models.sh
+
+cd buildmyhouse
+
+# 2. Process a small batch (5-10 models)
+npm run import:batch -- --limit 5
+
+# 3. Review what was created
+npm run ingest:list | head -20
+
+# 4. Merge into catalog
+npm run import:batch -- --merge-catalog
+
+# 5. Process more batches as needed
+npm run import:batch -- --limit 10
+
+# 6. Upload to R2 (with credentials set)
+R2_ACCOUNT_ID=xxx R2_ACCESS_KEY_ID=xxx npm run import:batch -- --limit 20 --upload
+```
+
 ## Step-by-Step Process
 
 ### 1. Download SH3D Models
@@ -86,26 +112,63 @@ npm run build
 # No external URLs needed (no R2 upload required for local use)
 ```
 
-## Upload to Cloudflare R2 (Optional)
+## Upload to Cloudflare R2
 
-If you want to host models externally (for large deployments):
+Store models externally for production:
+
+### 1. Set Up R2 Bucket
+
+In Cloudflare dashboard:
+1. Go to R2 → Create bucket → name it "models"
+2. Go to Settings → API tokens → Create API token
+3. Copy Account ID, Access Key ID, Secret Access Key
+
+### 2. Configure Environment
 
 ```bash
-# Set R2 credentials as environment variables
-export R2_ACCOUNT_ID=your_account_id
-export R2_ACCESS_KEY_ID=your_key
-export R2_SECRET_ACCESS_KEY=your_secret
-export R2_BUCKET_NAME=models
-export R2_PUBLIC_URL=https://cdn.example.com
+export R2_ACCOUNT_ID="your-account-id"
+export R2_ACCESS_KEY_ID="your-access-key"
+export R2_SECRET_ACCESS_KEY="your-secret-key"
+export R2_S3_ENDPOINT="https://your-account-id.r2.cloudflarestorage.com"
+export R2_BUCKET_NAME="models"
+export R2_PUBLIC_URL="https://models.yourdomain.com"  # Or R2 public URL
+```
 
-# Convert, upload, and verify
-npm run import:sh3d
+Or add to `.env.local` (not committed):
+
+```env
+R2_ACCOUNT_ID=xxx
+R2_ACCESS_KEY_ID=xxx
+R2_SECRET_ACCESS_KEY=xxx
+R2_S3_ENDPOINT=https://xxx.r2.cloudflarestorage.com
+R2_BUCKET_NAME=models
+R2_PUBLIC_URL=https://your-cdn-url
+```
+
+### 3. Upload Models
+
+```bash
+# Source env (or set variables)
+source ../.env.local
+
+# Upload and merge batches
+npm run import:batch -- --limit 20 --upload
 
 # This:
 # - Converts OBJ→GLB with textures
 # - Uploads to R2
 # - Verifies uploads succeeded
 # - Updates catalog with R2 URLs
+```
+
+### 4. Verify Uploads
+
+```bash
+# List uploaded models in catalog
+npm run ingest:list | grep "https://"
+
+# Should show R2 URLs like:
+# https://models.yourdomain.com/models/sofa-red.glb
 ```
 
 ## Available Models
