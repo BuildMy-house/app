@@ -1,8 +1,8 @@
-import zipfile
-import xml.etree.ElementTree as ET
 import shutil
+import xml.etree.ElementTree as ET
+import zipfile
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Any
 
 try:
     import javaobj.v2 as javaobj
@@ -17,7 +17,7 @@ def _is_java_serialized(zip_file: zipfile.ZipFile) -> bool:
     return 'Home' in namelist and not any(n.endswith('.xml') for n in namelist)
 
 
-def _extract_java_field_value(instance: Any, field_name: str) -> Optional[Any]:
+def _extract_java_field_value(instance: Any, field_name: str) -> Any | None:
     """Extract a field value from a JavaObject instance by field name."""
     if not hasattr(instance, 'field_data'):
         return None
@@ -39,9 +39,9 @@ class Sh3dTextureExtractor:
 
     def __init__(self, sh3d_path: str):
         self.sh3d_path = Path(sh3d_path)
-        self._zip: Optional[zipfile.ZipFile] = None
-        self._tree: Optional[ET.ElementTree] = None
-        self._java_home: Optional[Any] = None
+        self._zip: zipfile.ZipFile | None = None
+        self._tree: ET.ElementTree | None = None
+        self._java_home: Any | None = None
         self._is_java_format = False
 
     def __enter__(self):
@@ -68,13 +68,13 @@ class Sh3dTextureExtractor:
         if self._zip:
             self._zip.close()
 
-    def get_texture_map(self) -> Dict[str, str]:
+    def get_texture_map(self) -> dict[str, str]:
         """Return {texture_name: internal_path} from the textures section."""
         if self._is_java_format:
             return self._get_texture_map_java()
         return self._get_texture_map_xml()
 
-    def _get_texture_map_xml(self) -> Dict[str, str]:
+    def _get_texture_map_xml(self) -> dict[str, str]:
         root = self._tree.getroot()
         textures = {}
         for tex in root.iter('texture'):
@@ -84,7 +84,7 @@ class Sh3dTextureExtractor:
                 textures[name] = image
         return textures
 
-    def _get_texture_map_java(self) -> Dict[str, str]:
+    def _get_texture_map_java(self) -> dict[str, str]:
         # In Java format, textures are embedded objects, not file references.
         # The zip may contain texture image files directly (numbered or named).
         textures = {}
@@ -96,7 +96,7 @@ class Sh3dTextureExtractor:
                 textures[Path(name).stem] = name
         return textures
 
-    def extract_textures(self, target_dir: Path) -> Dict[str, Path]:
+    def extract_textures(self, target_dir: Path) -> dict[str, Path]:
         """Extract all texture files to target_dir. Returns {name: extracted_path}."""
         target_dir.mkdir(parents=True, exist_ok=True)
         tex_map = self.get_texture_map()
@@ -112,13 +112,13 @@ class Sh3dTextureExtractor:
 
         return extracted
 
-    def get_wall_textures(self) -> Dict[str, Dict[str, Optional[str]]]:
+    def get_wall_textures(self) -> dict[str, dict[str, str | None]]:
         """Return {wall_id: {left: texName|null, right: texName|null}}."""
         if self._is_java_format:
             return self._get_wall_textures_java()
         return self._get_wall_textures_xml()
 
-    def _get_wall_textures_xml(self) -> Dict[str, Dict[str, Optional[str]]]:
+    def _get_wall_textures_xml(self) -> dict[str, dict[str, str | None]]:
         root = self._tree.getroot()
         result = {}
         for wall in root.iter('wall'):
@@ -129,7 +129,7 @@ class Sh3dTextureExtractor:
             }
         return result
 
-    def _get_wall_textures_java(self) -> Dict[str, Dict[str, Optional[str]]]:
+    def _get_wall_textures_java(self) -> dict[str, dict[str, str | None]]:
         result = {}
         walls = _extract_java_field_value(self._java_home, 'walls')
         if walls is None:
@@ -144,13 +144,13 @@ class Sh3dTextureExtractor:
             }
         return result
 
-    def get_room_textures(self) -> Dict[str, Dict[str, Optional[str]]]:
+    def get_room_textures(self) -> dict[str, dict[str, str | None]]:
         """Return {room_id: {floor: texName|null, ceiling: texName|null}}."""
         if self._is_java_format:
             return self._get_room_textures_java()
         return self._get_room_textures_xml()
 
-    def _get_room_textures_xml(self) -> Dict[str, Dict[str, Optional[str]]]:
+    def _get_room_textures_xml(self) -> dict[str, dict[str, str | None]]:
         root = self._tree.getroot()
         result = {}
         for room in root.iter('room'):
@@ -161,7 +161,7 @@ class Sh3dTextureExtractor:
             }
         return result
 
-    def _get_room_textures_java(self) -> Dict[str, Dict[str, Optional[str]]]:
+    def _get_room_textures_java(self) -> dict[str, dict[str, str | None]]:
         result = {}
         rooms = _extract_java_field_value(self._java_home, 'rooms')
         if rooms is None:
@@ -176,13 +176,13 @@ class Sh3dTextureExtractor:
             }
         return result
 
-    def get_furniture_textures(self) -> Dict[str, Optional[str]]:
+    def get_furniture_textures(self) -> dict[str, str | None]:
         """Return {furniture_id: textureName|null}."""
         if self._is_java_format:
             return self._get_furniture_textures_java()
         return self._get_furniture_textures_xml()
 
-    def _get_furniture_textures_xml(self) -> Dict[str, Optional[str]]:
+    def _get_furniture_textures_xml(self) -> dict[str, str | None]:
         root = self._tree.getroot()
         result = {}
         for item in root.iter('furniture'):
@@ -190,7 +190,7 @@ class Sh3dTextureExtractor:
             result[fid] = item.get('texture')
         return result
 
-    def _get_furniture_textures_java(self) -> Dict[str, Optional[str]]:
+    def _get_furniture_textures_java(self) -> dict[str, str | None]:
         result = {}
         furniture = _extract_java_field_value(self._java_home, 'piecesOfFurniture')
         if furniture is None:
@@ -202,7 +202,7 @@ class Sh3dTextureExtractor:
         return result
 
 
-def _get_texture_name(tex_obj: Any) -> Optional[str]:
+def _get_texture_name(tex_obj: Any) -> str | None:
     """Extract texture name from a Java texture object or return None."""
     if tex_obj is None:
         return None

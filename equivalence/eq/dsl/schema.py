@@ -157,8 +157,7 @@ class Step(_Strict):
     params: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="before")
-    @classmethod
-    def _unwrap_single_key(cls, data: Any) -> Any:
+    def _unwrap_single_key(data: Any) -> Any:
         if not isinstance(data, Mapping):
             return data
         keys = list(data.keys())

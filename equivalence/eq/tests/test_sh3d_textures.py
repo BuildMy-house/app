@@ -1,7 +1,8 @@
-import zipfile
-import tempfile
 import struct
+import tempfile
+import zipfile
 from pathlib import Path
+
 from eq.sh3d_textures import Sh3dTextureExtractor
 
 

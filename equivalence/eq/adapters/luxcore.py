@@ -107,7 +107,7 @@ class LuxCoreAdapter(Adapter):
             self._proc.terminate()
             try:
                 await asyncio.wait_for(self._proc.wait(), timeout=5.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 self._proc.kill()
 
     def set_home(self, home: dict[str, Any]) -> None:
@@ -150,7 +150,7 @@ class LuxCoreAdapter(Adapter):
             response = await asyncio.wait_for(
                 self._proc.stdout.readline(), timeout=60.0
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise AdapterError("sidecar render timed out", "RENDER_TIMEOUT")
 
         response = response.decode().strip()
