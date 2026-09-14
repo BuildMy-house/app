@@ -1,5 +1,34 @@
 import { test, expect } from '@playwright/test'
 
+// The app replaced native prompt()/confirm() with a custom promise-based
+// overlay (src/ui/dialogs.ts) specifically so it could be driven from e2e --
+// this spec was still written against page.on('dialog'), which only
+// intercepts native dialogs and therefore never fired here at all (silent
+// no-op, not a slow/flaky one). Drive the actual overlay instead.
+
+async function addLevel(page: import('@playwright/test').Page, name: string): Promise<void> {
+  await page.locator('#btn-add-level').click()
+  const input = page.locator('.prefs-overlay .dialog-input')
+  await expect(input).toBeVisible({ timeout: 5000 })
+  await input.fill(name)
+  await page.locator('.prefs-overlay .dialog-confirm').click()
+  await expect(input).not.toBeVisible()
+}
+
+async function confirmOverlay(page: import('@playwright/test').Page): Promise<void> {
+  const overlay = page.locator('.prefs-overlay')
+  await expect(overlay).toBeVisible({ timeout: 5000 })
+  await overlay.locator('.dialog-confirm').click()
+  await expect(overlay).not.toBeVisible()
+}
+
+async function cancelOverlay(page: import('@playwright/test').Page): Promise<void> {
+  const overlay = page.locator('.prefs-overlay')
+  await expect(overlay).toBeVisible({ timeout: 5000 })
+  await overlay.locator('.dialog-cancel').click()
+  await expect(overlay).not.toBeVisible()
+}
+
 test.describe('level deletion', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
@@ -12,14 +41,12 @@ test.describe('level deletion', () => {
     await expect(page.locator('button.level-delete')).toHaveCount(0)
 
     // Add first level
-    page.once('dialog', (d) => d.accept('Ground Floor'))
-    await page.locator('#btn-add-level').click()
+    await addLevel(page, 'Ground Floor')
     await expect(page.locator('button.level-delete')).toHaveCount(1)
     await expect(page.locator('button.level-delete').first()).toBeDisabled()
 
     // Add second level
-    page.once('dialog', (d) => d.accept('Level 2'))
-    await page.locator('#btn-add-level').click()
+    await addLevel(page, 'Level 2')
     await expect(page.locator('button.level-delete')).toHaveCount(2)
     await expect(page.locator('button.level-delete').nth(0)).toBeEnabled()
     await expect(page.locator('button.level-delete').nth(1)).toBeEnabled()
@@ -27,12 +54,10 @@ test.describe('level deletion', () => {
 
   test('deleting a level removes it and its scoped content, undo restores everything', async ({ page }) => {
     // Add two levels
-    page.once('dialog', (d) => d.accept('Ground Floor'))
-    await page.locator('#btn-add-level').click()
+    await addLevel(page, 'Ground Floor')
     await page.waitForFunction(() => (window as any).__model.getStore().getHome().levels.length === 1)
 
-    page.once('dialog', (d) => d.accept('Level 2'))
-    await page.locator('#btn-add-level').click()
+    await addLevel(page, 'Level 2')
     await page.waitForFunction(() => (window as any).__model.getStore().getHome().levels.length === 2)
 
     // Click on Level 2 tab to make it active
@@ -58,8 +83,8 @@ test.describe('level deletion', () => {
 
     // Delete Level 2 via the × button — accept confirm
     const deleteBtn = page.locator(`button.level-delete[data-delete-level="${level2Id}"]`)
-    page.once('dialog', (d) => d.accept())
     await deleteBtn.click()
+    await confirmOverlay(page)
 
     // Verify Level 2 and its wall are gone
     const home2 = await page.evaluate(() => (window as any).__model.getStore().getHome())
@@ -83,19 +108,17 @@ test.describe('level deletion', () => {
 
   test('canceling confirm does not delete the level', async ({ page }) => {
     // Add two levels
-    page.once('dialog', (d) => d.accept('Ground Floor'))
-    await page.locator('#btn-add-level').click()
+    await addLevel(page, 'Ground Floor')
     await page.waitForFunction(() => (window as any).__model.getStore().getHome().levels.length === 1)
 
-    page.once('dialog', (d) => d.accept('Level 2'))
-    await page.locator('#btn-add-level').click()
+    await addLevel(page, 'Level 2')
     await page.waitForFunction(() => (window as any).__model.getStore().getHome().levels.length === 2)
 
     // Try to delete Level 2 but cancel the confirm
     const level2Id = await page.evaluate(() => (window as any).__model.getStore().getHome().levels[1].id)
     const deleteBtn = page.locator(`button.level-delete[data-delete-level="${level2Id}"]`)
-    page.once('dialog', (d) => d.dismiss())
     await deleteBtn.click()
+    await cancelOverlay(page)
 
     // Level 2 should still exist
     const home = await page.evaluate(() => (window as any).__model.getStore().getHome())

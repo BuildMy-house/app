@@ -69,6 +69,11 @@ test('HDRI environment: presets change background + lighting', async ({ page }) 
     (window as unknown as { __view3d: { setEnvironmentPreset: (id: string) => void } }).__view3d
       .setEnvironmentPreset('overcast'),
   )
+  await page.waitForFunction(
+    () =>
+      (window as unknown as { __view3d?: { getEnvironmentPreset?: () => string } }).__view3d
+        ?.getEnvironmentPreset?.() === 'overcast',
+  )
   const overcast = await envState(page)
   expect(overcast.preset).toBe('overcast')
   expect(overcast.bgUuid).not.toEqual(daylight.bgUuid)

@@ -15,6 +15,18 @@ test.describe('Auto-floor E2E', () => {
     return page.evaluate(() => (window as any).__model?.getStore()?.getHome()?.walls?.length ?? 0)
   }
 
+  // Waits for each click's wall to actually land in the store before firing
+  // the next one -- gives CI's slower software-rendered Chromium (see
+  // playwright.config.ts) room to finish each click's render+state-update
+  // pass before the next synthetic click arrives.
+  async function waitForWallCount(page: any, n: number) {
+    await page.waitForFunction(
+      (expected: number) => ((window as any).__model?.getStore()?.getHome()?.walls?.length ?? 0) >= expected,
+      n,
+      { timeout: 10_000 },
+    )
+  }
+
   async function drawSquareWalls(page: any) {
     // Switch to wall tool
     await page.locator('button[data-tool="wall"]').click()
@@ -26,11 +38,20 @@ test.describe('Auto-floor E2E', () => {
     const cy = box.y + box.height / 2
     const s = 80
 
+    const before = await wallCount(page)
     await page.mouse.click(cx - s, cy - s)
     await page.mouse.click(cx + s, cy - s)
+    await waitForWallCount(page, before + 1)
     await page.mouse.click(cx + s, cy + s)
+    await waitForWallCount(page, before + 2)
     await page.mouse.click(cx - s, cy + s)
-    await page.mouse.click(cx - s, cy - s)
+    await waitForWallCount(page, before + 3)
+    // Closing the loop is a finalize gesture (double-click), not a 5th plain
+    // click back at the start point -- a single click there was never
+    // recognized as "close and finalize" by the wall tool, so the dialog
+    // never appeared regardless of environment (matches the working pattern
+    // in plan-3d-sync.spec.ts's own auto-floor tests).
+    await page.mouse.dblclick(cx - s, cy - s)
   }
 
   test('draw 4 walls, dialog appears, confirm creates room', async ({ page }) => {
