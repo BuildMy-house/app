@@ -1,4 +1,6 @@
 import { readFileSync, writeFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
 
 // Real bundled GLB; slicing it mid-body yields a valid 12-byte "glTF" header
@@ -9,7 +11,7 @@ const truncatedGlb = deskGlb.subarray(0, 300)
 // Playwright refuses in-memory buffers >50MB, so the oversized-file case uses
 // a real 512MB file on disk. The app must reject it on file.size without
 // ever reading the bytes.
-const hugeGlbPath = '/tmp/opencode/huge-512mb.glb'
+const hugeGlbPath = join(tmpdir(), 'huge-512mb.glb')
 writeFileSync(hugeGlbPath, Buffer.alloc(512 * 1024 * 1024, 7))
 
 test.afterAll(() => {

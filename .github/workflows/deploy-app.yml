@@ -23,6 +23,7 @@ jobs:
 
       - run: npm ci
       - run: npm run check
+      - run: npx playwright install --with-deps chromium
       - run: npm run build
 
       - name: Deploy via SSH (build + run on host, joins steward_acs_default)

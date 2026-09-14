@@ -10,6 +10,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 RUN npm ci
+# prebuild's thumbnails step renders with headless Chromium (Playwright).
+RUN npx playwright install --with-deps chromium
 COPY index.html vite.config.ts tsconfig.json eslint.config.js ./
 COPY assets ./assets
 RUN pip3 install --break-system-packages -r assets/textures/requirements.txt

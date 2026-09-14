@@ -6,3 +6,6 @@ src-tauri/gen
 src-tauri/icons/android
 src-tauri/icons/ios
 *.local
+test-results
+playwright-report
+coverage
