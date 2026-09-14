@@ -865,18 +865,23 @@ function applySelectionHighlight(scene: THREE.Scene, selectionSet: Set<string>):
 /** Full scene rebuild from a normalized home snapshot. Deterministic. */
 export function buildScene(
   home: NormalizedHomeState,
-  options?: { modelUrlResolver?: ModelUrlResolver; onModelReady?: () => void },
+  options?: { modelUrlResolver?: ModelUrlResolver; onModelReady?: () => void; activeLevel?: string | null },
 ): THREE.Scene {
   const previousResolver = activeModelUrlResolver
   if (options?.modelUrlResolver) activeModelUrlResolver = options.modelUrlResolver
   try {
-    return buildSceneInner(home, options?.onModelReady)
+    return buildSceneInner(home, options?.onModelReady, options?.activeLevel ?? null)
   } finally {
     activeModelUrlResolver = previousResolver
   }
 }
 
-function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): THREE.Scene {
+function matchesLevel(levelRef: string | undefined | null, activeLevelId: string | null): boolean {
+  if (activeLevelId === null) return true
+  return (levelRef ?? null) === activeLevelId
+}
+
+function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void, activeLevel: string | null = null): THREE.Scene {
   const scene = new THREE.Scene()
   if (home.environment.skyColor !== null) {
     scene.background = new THREE.Color(home.environment.skyColor)
@@ -955,6 +960,7 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
   const root = new THREE.Group()
   root.name = 'home'
   for (const wall of home.walls) {
+    if (!matchesLevel(wall.levelRef, activeLevel)) continue
     const mesh = wallMesh(
       wall,
       elevationFor(wall.levelRef, elevations),
@@ -967,12 +973,14 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
   }
   for (const room of home.rooms) {
     if (room.points.length < 3) continue
+    if (!matchesLevel(room.levelRef, activeLevel)) continue
     const elev = elevationFor(room.levelRef, elevations)
     if (room.floorVisible !== false) root.add(roomMesh(room, elev))
     const ceiling = ceilingMesh(room, elev, home.levels)
     if (ceiling) root.add(ceiling)
   }
   for (const roof of home.roofs) {
+    if (!matchesLevel(roof.levelRef, activeLevel)) continue
     const level = home.levels.find((item) => item.id === roof.levelRef)
     const mesh = roofMesh(
       roof,
@@ -981,8 +989,11 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
     )
     if (mesh) root.add(mesh)
   }
+  const filteredFurniture = activeLevel === null
+    ? home.furniture
+    : home.furniture.filter((f) => matchesLevel(f.levelRef, activeLevel))
   const selectionSet = new Set(home.selection)
-  addFurnitureMeshes(root, home.furniture, elevations, onModelReady, selectionSet)
+  addFurnitureMeshes(root, filteredFurniture, elevations, onModelReady, selectionSet)
   scene.add(root)
 
   // Selection highlight (walls, rooms — furniture handled at creation time)

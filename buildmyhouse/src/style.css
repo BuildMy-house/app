@@ -325,6 +325,10 @@ body {
   position: relative;
 }
 
+#mobile-nav {
+  display: none;
+}
+
 .panel {
   overflow: hidden;
   background: var(--panel-bg);
@@ -438,6 +442,38 @@ body {
 
   #main-area {
     flex-direction: column;
+    padding-bottom: 58px;
+  }
+
+  #mobile-nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    position: fixed;
+    inset: auto 0 22px;
+    z-index: 50;
+    min-height: 56px;
+    padding: 6px 8px max(6px, env(safe-area-inset-bottom));
+    gap: 4px;
+    background: var(--panel-bg);
+    border-top: 1px solid var(--border);
+  }
+
+  .mobile-nav-btn {
+    min-height: 44px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    touch-action: manipulation;
+  }
+
+  .mobile-nav-btn.active {
+    background: var(--active-tool-bg);
+    border-color: var(--border);
+    color: var(--text);
   }
 
   #divider {
@@ -588,12 +624,12 @@ body {
 /* ── Furniture catalog panel (U7) ─────────────────────────────────────────── */
 
 #catalog-host {
-  --catalog-min-width: 240px;
-  --catalog-default-width: 320px;
+  --catalog-min-width: 320px;
+  --catalog-default-width: 380px;
 
   width: var(--catalog-default-width);
   min-width: var(--catalog-min-width);
-  max-width: min(30vw, 380px);
+  max-width: min(40vw, 560px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;

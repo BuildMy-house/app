@@ -61,11 +61,10 @@ function thumbUrlFor(modelUrl: string, modelPath: string): string | null {
   return `assets/thumbs/${modelPath.replace(/\.[^.]+$/, '')}.webp`
 }
 
-/** Virtualization constants — single-column grid, uniform card stride. */
-const GRID_PADDING = 8 // .catalog-grid padding (style.css)
+/** Virtualization constants — single-column grid, variable card heights. */
 const CARD_GAP = 8 // .catalog-grid gap (style.css)
 const WINDOW_BUFFER_ROWS = 3
-const DEFAULT_ROW_STRIDE = 132 // ≈ padding + 56px swatch + 2-line name + dims; re-measured at runtime
+const ESTIMATED_ROW_HEIGHT = 132 // initial guess; overwritten after first measure
 
 const CATEGORY_ORDER = [
   'Living',
@@ -106,7 +105,8 @@ export class CatalogPanel {
   private spacerBottom: HTMLDivElement | null = null
   private mountedStart = -1
   private mountedEnd = -1
-  private rowStride = DEFAULT_ROW_STRIDE
+  private cumOffsets: number[] = [] // cumulative top-offset for each filtered item
+  private cardHeights = new Map<string, number>()
   private lastFilterKey: string | null = null
   private scrollRaf = 0
 
@@ -224,8 +224,8 @@ export class CatalogPanel {
     const host = this.root.parentElement as HTMLElement | null
     if (!host) return
 
-    const MIN_WIDTH = 260
-    const MAX_WIDTH = 480
+    const MIN_WIDTH = 320
+    const MAX_WIDTH = 560
 
     let startX = 0
     let startWidth = 0
@@ -313,6 +313,8 @@ export class CatalogPanel {
     this.cardEls.clear()
     this.mountedStart = -1
     this.mountedEnd = -1
+    this.cumOffsets = []
+    this.cardHeights.clear()
     this.grid.innerHTML = ''
 
     if (items.length === 0) {
@@ -342,51 +344,98 @@ export class CatalogPanel {
     const n = this.filteredItems.length
     if (n === 0 || !this.spacerTop || !this.spacerBottom) return
 
-    const stride = this.rowStride
-    const firstVisible = Math.floor(Math.max(0, this.grid.scrollTop - GRID_PADDING) / stride)
-    const viewportRows = Math.ceil(this.grid.clientHeight / stride) + 1
-    const start = Math.max(0, firstVisible - WINDOW_BUFFER_ROWS)
-    const end = Math.min(n, firstVisible + viewportRows + WINDOW_BUFFER_ROWS)
+    // Ensure cumulative offsets exist (lazily built after cards render).
+    if (this.cumOffsets.length !== n) this.rebuildOffsets()
 
-    if (!force && start === this.mountedStart && end === this.mountedEnd) return
-    this.mountedStart = start
-    this.mountedEnd = end
+    const scrollTop = this.grid.scrollTop
+    const viewportH = this.grid.clientHeight
 
-    this.spacerTop.style.height = `${start * stride}px`
-    this.spacerBottom.style.height = `${Math.max(0, n - end) * stride}px`
+    const start = this.findVisibleStart(scrollTop)
+    const end = this.findVisibleEnd(scrollTop + viewportH)
+
+    const visStart = Math.max(0, start - WINDOW_BUFFER_ROWS)
+    const visEnd = Math.min(n, end + WINDOW_BUFFER_ROWS)
+
+    if (!force && visStart === this.mountedStart && visEnd === this.mountedEnd) return
+    this.mountedStart = visStart
+    this.mountedEnd = visEnd
+
+    const topH = visStart > 0 ? this.cumOffsets[visStart - 1]! + this.heightOf(visStart - 1) + CARD_GAP : 0
+    const bottomH = visEnd < n ? this.cumOffsets[n - 1]! + this.heightOf(n - 1) - (this.cumOffsets[visEnd - 1]! + this.heightOf(visEnd - 1)) : 0
+    this.spacerTop.style.height = `${topH}px`
+    this.spacerBottom.style.height = `${Math.max(0, bottomH - CARD_GAP)}px`
 
     for (const [id, card] of this.cardEls) {
       const index = Number(card.dataset.index)
-      if (index < start || index >= end) {
-        // Card is leaving viewport: unobserve from lazy loader to free resources
+      if (index < visStart || index >= visEnd) {
         this.lazyLoader.unobserve(card)
         card.remove()
         this.cardEls.delete(id)
       }
     }
-    for (let i = start; i < end; i++) {
+    for (let i = visStart; i < visEnd; i++) {
       const item = this.filteredItems[i]!
       if (this.cardEls.has(item.catalogId)) continue
       const card = this.createCard(item, i)
       this.grid.insertBefore(card, this.spacerBottom)
       this.cardEls.set(item.catalogId, card)
-      // Hook up lazy loading for external R2 thumbnails
       const thumbUrl = card.dataset.thumbUrl
-      if (thumbUrl) {
-        this.lazyLoader.observe(card, thumbUrl)
-      }
+      if (thumbUrl) this.lazyLoader.observe(card, thumbUrl)
     }
 
-    // Cards are uniform-height (2-line clamped names); measure the real
-    // stride once laid out and re-window if the estimate was off.
-    const first = this.grid.querySelector<HTMLButtonElement>('.catalog-card')
-    if (first && this.grid.clientHeight > 0) {
-      const measured = first.offsetHeight + CARD_GAP
-      if (measured > 0 && Math.abs(measured - stride) > 1) {
-        this.rowStride = measured
-        this.updateWindow()
+    // Measure newly mounted cards and update offsets if anything changed.
+    this.measureCards()
+  }
+
+  /** Binary search: first index whose bottom edge is past `y`. */
+  private findVisibleStart(y: number): number {
+    let lo = 0, hi = this.filteredItems.length
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1
+      if (this.cumOffsets[mid]! + this.heightOf(mid) <= y) lo = mid + 1
+      else hi = mid
+    }
+    return lo
+  }
+
+  /** Binary search: last index whose top edge is before `y`. */
+  private findVisibleEnd(y: number): number {
+    let lo = 0, hi = this.filteredItems.length
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1
+      if (this.cumOffsets[mid]! <= y) lo = mid + 1
+      else hi = mid
+    }
+    return lo
+  }
+
+  private heightOf(i: number): number {
+    const id = this.filteredItems[i]?.catalogId
+    return id ? (this.cardHeights.get(id) ?? ESTIMATED_ROW_HEIGHT) : ESTIMATED_ROW_HEIGHT
+  }
+
+  /** Rebuild cumulative offsets from current card heights. */
+  private rebuildOffsets(): void {
+    const n = this.filteredItems.length
+    this.cumOffsets = new Array(n)
+    let acc = 0
+    for (let i = 0; i < n; i++) {
+      this.cumOffsets[i] = acc
+      acc += this.heightOf(i) + CARD_GAP
+    }
+  }
+
+  /** Measure all mounted cards; update heights + offsets if anything changed. */
+  private measureCards(): void {
+    let changed = false
+    for (const [id, card] of this.cardEls) {
+      const measured = card.offsetHeight
+      if (measured > 0 && this.cardHeights.get(id) !== measured) {
+        this.cardHeights.set(id, measured)
+        changed = true
       }
     }
+    if (changed) this.rebuildOffsets()
   }
 
   /** Build one catalog card (thumbnail + name + dims). */
@@ -448,14 +497,7 @@ export class CatalogPanel {
     name.className = 'catalog-name'
     name.textContent = item.name
     name.title = `${item.name} — ${item.width}×${item.depth}×${item.height} cm`
-    // Cap names at 2 lines so every card has the same height — the
-    // virtualization stride math depends on uniform rows. Vertical clamp
-    // only; horizontal overflow is forbidden by the label-clipping e2e.
-    name.style.display = '-webkit-box'
-    name.style.webkitLineClamp = '2'
-    name.style.webkitBoxOrient = 'vertical'
-    name.style.overflow = 'hidden'
-    name.style.height = '2.7em' // 2 × line-height (1.35)
+    // Names wrap freely — variable-height virtualization handles uneven cards.
 
     const dims = document.createElement('div')
     dims.className = 'catalog-dims'

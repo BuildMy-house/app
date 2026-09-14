@@ -91,6 +91,7 @@ export function normalizeHome(raw: unknown): NormalizedHomeState {
     levels: Array.isArray(h.levels) ? (h.levels as NormalizedHomeState['levels']) : [],
     walls: Array.isArray(h.walls) ? (h.walls as NormalizedHomeState['walls']) : [],
     rooms: Array.isArray(h.rooms) ? (h.rooms as NormalizedHomeState['rooms']) : [],
+    polylines: Array.isArray(h.polylines) ? (h.polylines as NormalizedHomeState['polylines']) : [],
     furniture: Array.isArray(h.furniture) ? (h.furniture as NormalizedHomeState['furniture']) : [],
     dimensionLines: Array.isArray(h.dimensionLines) ? (h.dimensionLines as NormalizedHomeState['dimensionLines']) : [],
     labels: Array.isArray(h.labels) ? (h.labels as NormalizedHomeState['labels']) : [],
