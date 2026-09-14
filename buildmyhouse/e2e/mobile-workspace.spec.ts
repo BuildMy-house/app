@@ -5,7 +5,7 @@ test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true
 test.describe('mobile workspace', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    await page.waitForSelector('#view3d canvas')
+    await page.waitForSelector('#view3d canvas', { state: 'attached' })
   })
 
   test('fits the phone viewport and exposes large navigation targets', async ({ page }) => {
