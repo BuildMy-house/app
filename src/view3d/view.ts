@@ -280,6 +280,12 @@ export class View3D {
     this.render()
   }
 
+  /** Filter 3D scene to show only objects on the active level. */
+  setActiveLevel(levelId: string | null): void {
+    this._activeLevel = levelId
+    this.rebuild()
+  }
+
   setCamera(patch: CameraPatch): void {
     this.director.setCamera(patch)
     this.syncCamera()
