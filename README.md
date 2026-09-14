@@ -119,3 +119,4 @@ the wire form.
 No Sweet Home 3D code or assets are copied. Behaviour is re-implemented from
 observation of the read-only GPL reference source under `sweethome3d-7.5-wayland-patch/`;
 this package must never import from it.
+<!-- dev-deploy loop smoke test Mon Sep 14 06:25:00 PM UTC 2026 -->
