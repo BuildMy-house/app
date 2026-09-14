@@ -19,11 +19,12 @@
  * catalog panel shows the same assets as thumbnails. Run `npm run assets`
  * (or build) to mirror them into the bundle.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { hasSh3dModel, convertSh3dModel } from './convert-sh3d-models.js'
+import { generateThumbnail } from './thumbnail-generator.js'
 
 // GLTFExporter uses FileReader (browser-only) for the binary GLB path.
 // Provide a minimal Node polyfill before the exporter is imported.
@@ -43,10 +44,12 @@ if (typeof globalThis.FileReader === 'undefined') {
 
 import * as THREE from 'three'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CATALOG_SRC = join(ROOT, 'assets', 'catalog', 'catalog.json')
 const MODELS_DIR = join(ROOT, 'assets', 'models')
+const THUMBS_DIR = join(ROOT, 'assets', 'thumbs', 'models')
 
 interface CatalogItem {
   catalogId: string
@@ -301,7 +304,10 @@ async function main(): Promise<void> {
 
   for (const item of localItems) {
     const model = await buildOrConvertModel(item)
-    exportGlb(model, join(MODELS_DIR, modelFileName(item.catalogId)))
+    const glbName = modelFileName(item.catalogId)
+    exportGlb(model, join(MODELS_DIR, glbName))
+    const thumbPath = join(THUMBS_DIR, glbName.replace('.glb', '.webp'))
+    await generateThumbnail(model, thumbPath)
   }
   console.log(`[models] done (${localItems.length} models, ${manifest.items.length - localItems.length} externally hosted)`)
 }

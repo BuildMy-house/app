@@ -24,6 +24,7 @@ import { AuthDialog } from './ui/auth-dialog'
 import { ChangePasswordDialog } from './ui/change-password-dialog'
 import { HomeListDialog } from './ui/home-list-dialog'
 import { ClipboardManager } from './plan/clipboard'
+import { ModelUploadDialog } from './ui/model-upload-dialog'
 
 import { View3D, type CameraPresetName } from './view3d'
 import { configureGltfLoader } from './view3d/scene'
@@ -1347,70 +1348,62 @@ const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
 
 // ── User model import (runtime) ─────────────────────────────────────────────
 
-let fileInput: HTMLInputElement | null = null
-
 /**
- * Open a .glb file picker and import the model into the user catalog. The
+ * Open the upload dialog and import the model into the user catalog. The
  * model joins the merged catalog immediately; its blob URL feeds View3D.
  */
 function importModelFile(): void {
-  if (!fileInput) {
-    fileInput = document.createElement('input')
-    fileInput.type = 'file'
-    fileInput.accept = '.glb,model/gltf-binary,model/gltf+json'
-    fileInput.addEventListener('change', () => {
-      const file = fileInput?.files?.[0]
-      if (!file) return
-      void (async () => {
-        try {
-          // Fail fast on obviously bad files before buffering anything.
+  new ModelUploadDialog({
+    onUploadSuccess: async (result) => {
+      try {
+        if (!userCatalog) throw new Error('catalog not ready')
+
+        // If the upload returned a blob URL (client-side fallback), import directly
+        if (result.modelPath.startsWith('blob:')) {
+          const response = await fetch(result.modelPath)
+          const data = await response.arrayBuffer()
+
+          // Validate GLB data
           const { MAX_IMPORT_BYTES, validateGlbData } = await import('./core/user-catalog')
-          if (file.size > MAX_IMPORT_BYTES) {
-            throw new Error(
-              `${file.name} is ${(file.size / 1024 / 1024).toFixed(1)} MB — the import limit is ${MAX_IMPORT_BYTES / 1024 / 1024} MB`,
-            )
+          if (data.byteLength > MAX_IMPORT_BYTES) {
+            throw new Error('File too large for import')
           }
-          const data = await file.arrayBuffer()
-          validateGlbData(data, file.name)
-          if (!userCatalog) throw new Error('catalog not ready')
-          // Scene rendering swallows model-load errors (gray box), so the
-          // bytes must parse cleanly before they join the catalog.
+          validateGlbData(data, `${result.name}.glb`)
+
+          // Validate with GLTFLoader
           try {
             const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js')
-            // KTX2-wired so GLBs using KHR_texture_basisu validate on the
-            // real decode path instead of being falsely rejected.
             await configureGltfLoader(new GLTFLoader()).parseAsync(data, '')
           } catch {
-            throw new Error(
-              `${file.name} could not be parsed as a GLB model — the file may be corrupted or truncated`,
-            )
+            throw new Error('Model could not be parsed — file may be corrupted')
           }
+
           const record = await userCatalog.import({
-            fileName: file.name,
+            fileName: `${result.name}.glb`,
             data,
           })
-          // Keep a blob URL so View3D can load the model bytes.
+
+          // Keep a blob URL so View3D can load the model bytes
           const blob = new Blob([data], { type: 'model/gltf-binary' })
           const url = URL.createObjectURL(blob)
           userModelUrls.set(record.blobKey, url)
-          // Refresh the merged catalog + panel + automation surface.
-          sharedCatalog = userCatalog.merged
-          catalogPanel?.setCatalog(sharedCatalog)
-          catalogPanel?.disarm()
-          refreshToolbar()
-          refreshStatus()
-          statusAutomation.textContent = `imported ${record.name}`
-        } catch (err) {
-          console.error('[catalog] import failed:', err)
-          const reason = err instanceof Error ? err.message : String(err)
-          catalogPanel?.renderStatusMessage(`Import failed: ${reason}`)
-          statusAutomation.textContent = 'import failed'
         }
-      })()
-    })
-  }
-  fileInput.value = ''
-  fileInput.click()
+
+        // Refresh the merged catalog + panel + automation surface
+        sharedCatalog = userCatalog.merged
+        catalogPanel?.setCatalog(sharedCatalog)
+        catalogPanel?.disarm()
+        refreshToolbar()
+        refreshStatus()
+        statusAutomation.textContent = `imported ${result.name}`
+      } catch (err) {
+        console.error('[catalog] import failed:', err)
+        const reason = err instanceof Error ? err.message : String(err)
+        catalogPanel?.renderStatusMessage(`Import failed: ${reason}`)
+        statusAutomation.textContent = 'import failed'
+      }
+    },
+  }).open()
 }
 
 // ── Automation ──────────────────────────────────────────────────────────────

@@ -15,6 +15,8 @@ import { createWriteStream } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import * as THREE from 'three'
+import { createCanvas } from 'canvas'
+import sharp from 'sharp'
 
 interface ThumbnailConfig {
   width?: number
@@ -92,16 +94,83 @@ async function renderToWebP(
   camera: THREE.Camera,
   config: Required<ThumbnailConfig>,
 ): Promise<Buffer> {
-  // This would require canvas + sharp in Node.js
-  // For now, return a placeholder implementation
-  // Real implementation would use:
-  // - canvas library for WebGL rendering
-  // - sharp for WebP encoding
+  const { width, height, backgroundColor } = config
+  const canvas = createCanvas(width, height)
+  const ctx = canvas.getContext('2d')
 
-  throw new Error(
-    'WebP rendering requires canvas + sharp libraries. '
-    + 'Install with: npm install canvas sharp',
+  const bgR = (backgroundColor >> 16) & 0xff
+  const bgG = (backgroundColor >> 8) & 0xff
+  const bgB = backgroundColor & 0xff
+  ctx.fillStyle = `rgb(${bgR},${bgG},${bgB})`
+  ctx.fillRect(0, 0, width, height)
+
+  const faces: { verts: [number, number][]; color: string; depth: number }[] = []
+
+  camera.updateMatrixWorld()
+  const pvMatrix = new THREE.Matrix4().multiplyMatrices(
+    camera.projectionMatrix,
+    camera.matrixWorldInverse,
   )
+
+  scene.traverse((obj) => {
+    if (!(obj instanceof THREE.Mesh)) return
+    const mesh = obj as THREE.Mesh
+    const geo = mesh.geometry
+    const mat = mesh.material as THREE.MeshStandardMaterial
+
+    mesh.updateWorldMatrix(true, false)
+    const mvp = new THREE.Matrix4().multiplyMatrices(pvMatrix, mesh.matrixWorld)
+
+    const pos = geo.getAttribute('position')
+    const idx = geo.getIndex()
+    if (!pos) return
+
+    const c = mat?.color || new THREE.Color(0x999999)
+    const colorStr = `rgb(${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)})`
+
+    const project = (vi: number) => {
+      const v = new THREE.Vector4(pos.getX(vi), pos.getY(vi), pos.getZ(vi), 1)
+      v.applyMatrix4(mvp)
+      return {
+        sx: (v.x / v.w * 0.5 + 0.5) * width,
+        sy: (1 - (v.y / v.w * 0.5 + 0.5)) * height,
+        z: v.z / v.w,
+      }
+    }
+
+    const addFace = (i0: number, i1: number, i2: number) => {
+      const a = project(i0), b = project(i1), p2 = project(i2)
+      faces.push({
+        verts: [[a.sx, a.sy], [b.sx, b.sy], [p2.sx, p2.sy]],
+        color: colorStr,
+        depth: (a.z + b.z + p2.z) / 3,
+      })
+    }
+
+    if (idx) {
+      for (let i = 0; i < idx.count; i += 3) {
+        addFace(idx.getX(i), idx.getX(i + 1), idx.getX(i + 2))
+      }
+    } else {
+      for (let i = 0; i < pos.count; i += 3) {
+        addFace(i, i + 1, i + 2)
+      }
+    }
+  })
+
+  faces.sort((a, b) => a.depth - b.depth)
+
+  for (const f of faces) {
+    ctx.beginPath()
+    ctx.moveTo(f.verts[0][0], f.verts[0][1])
+    ctx.lineTo(f.verts[1][0], f.verts[1][1])
+    ctx.lineTo(f.verts[2][0], f.verts[2][1])
+    ctx.closePath()
+    ctx.fillStyle = f.color
+    ctx.fill()
+  }
+
+  return sharp(canvas.toBuffer()).webp({ quality: 85 }).toBuffer()
 }
 
 /**

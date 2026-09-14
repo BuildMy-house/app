@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import path from 'node:path';
 import { assetsRouter } from './assets.js';
+import { modelUploadRouter } from './model-upload.js';
 import {
   loginHandler,
   registerHandler,
@@ -115,6 +116,7 @@ export async function createApp(
   app.post('/api/auth/magic-link/request', magicLinkRequestHandler(adapter));
   app.post('/api/auth/magic-link/consume', magicLinkConsumeHandler(adapter));
   app.use('/api/assets', assetsRouter(adapter, assetStorage));
+  app.use('/api/models/upload', modelUploadRouter(adapter));
   app.use('/api/homes', homesRouter(adapter));
   app.use('/api/teams', teamsRouter(adapter));
 

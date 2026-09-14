@@ -28,6 +28,7 @@ export interface UserRateLimiterOptions {
 export const HOMES_RATE_LIMIT: UserRateLimiterOptions = { windowMs: 5 * 60_000, max: 600 };
 export const ASSETS_RATE_LIMIT: UserRateLimiterOptions = { windowMs: 5 * 60_000, max: 300 };
 export const TEAMS_RATE_LIMIT: UserRateLimiterOptions = { windowMs: 5 * 60_000, max: 120 };
+export const MODEL_UPLOAD_RATE_LIMIT: UserRateLimiterOptions = { windowMs: 5 * 60_000, max: 60 };
 
 export function makeUserRateLimiter({ windowMs, max }: UserRateLimiterOptions): RequestHandler {
   return rateLimit({
