@@ -162,23 +162,31 @@ echo "[ai-cli] ai-cli-mcp configured and ready"
 # Cloning all 5 repos eagerly on every boot slowed startup and meant every
 # task paid for repos it never touched, on top of sharing one fixed
 # checkout per repo across every task the container ever runs (a collision
-# risk if two tasks touch the same repo concurrently). scripts/sync-repo.sh
-# does the actual clone/fetch on demand instead — surface the convention
-# where whichever agent starts up will see it.
+# risk if two tasks touch the same repo concurrently). Claude reads
+# /root/.claude/CLAUDE.md for this automatically; this README is the same
+# convention for Codex/Gemini/Forge/OpenCode, which don't.
 mkdir -p /workspace
 cat > /workspace/README.md <<'EOF'
 # Repo checkouts are on-demand
 
-The BuildMy-house repos are not pre-cloned at container startup. Before
-working in one you haven't synced yet this session, run:
+The BuildMy-house repos are not pre-cloned at container startup, and
+/workspace has no persistent storage — it starts empty on every restart of
+this container. Before working in a repo, check whether it's already
+checked out (/workspace/<name>-checkout/.git exists); if not, clone it
+yourself with plain git/gh — there is no wrapper script:
 
-    bash /opt/company-ops/scripts/sync-repo.sh <name>
+    export GH_TOKEN=$(node /opt/company-ops/scripts/github-app-token.js)
+    gh repo clone "BuildMy-house/<name>" "/workspace/<name>-checkout"
 
-where <name> is one of: app, website, company-os, hermees, observer-website.
-
-This mints a fresh GitHub App installation token and clones (first run) or
-fetches + hard-resets (later runs) into /workspace/<name>-checkout. Safe to
-re-run any time you want the latest remote state.
+where <name> is one of: app, website, company-os, hermees, observer-website
+(the last three all serve under buildmy.house at different paths but are
+separate repos). github-app-token.js mints a short-lived GitHub App
+installation token — always mint fresh, don't cache it across sessions.
+Using GH_TOKEN + gh (rather than embedding the token in the clone URL)
+keeps it out of .git/config. If it's already checked out, just
+`git -C /workspace/<name>-checkout pull`. Push your own commits back with
+plain `git push` when done, or `gh pr create` if the change should go
+through review.
 EOF
 
 exec npx -y mcp-proxy --host 0.0.0.0 --port 8000 -- npx -y ai-cli-mcp@latest

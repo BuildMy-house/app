@@ -17,6 +17,28 @@ Hermes owns planning, memory, approvals, budgets, and delegation. OpenCode is
 an execution worker exposed through `@kud/mcp-opencode`; it must not replace
 Hermes as the user-facing agent.
 
+### Division of responsibility: Hermes vs. the engineering worker
+
+Hermes (`hermes/SOUL.md`) stays strategic: it names a surface (product,
+website, company-os, diary, observer-website) and describes a goal in a
+ticket dispatched through `engineering_manager`. It never knows — and is
+explicitly told not to look for — a filesystem path, a repo URL, or a
+script name; those are implementation details that leak Hermes into a role
+it shouldn't have.
+
+The engineering worker (Claude/Codex/Gemini/Forge/OpenCode, dispatched by
+`engineering_manager` into the separate `engineering` container) owns
+everything mechanical: which repo a surface maps to, where it's checked
+out, and how to clone/pull/push it. That knowledge lives in the
+engineering image's own `CLAUDE.md` (`company-ops/CLAUDE.md`, baked into
+`/root/.claude/CLAUDE.md`) and the on-demand-sync `README.md` the
+container writes to `/workspace` at boot for non-Claude workers — not in
+SOUL.md, and not behind a custom wrapper script. Repo access goes through
+plain `git`/`gh` (a short-lived GitHub App installation token minted by
+`scripts/github-app-token.js`, exported as `GH_TOKEN` so `gh`'s own
+credential helper handles auth instead of a token embedded in the remote
+URL) — no bespoke sync tooling to maintain or keep in sync with SOUL.md.
+
 ## Quick start
 
 Spin up a local Postgres first (see `company-ops/scripts/test-db-up.sh` for
