@@ -89,6 +89,7 @@ export class View3D {
   }
   private _quality: ViewportQuality
   private _envPreset: HdriPresetId
+  private _requestedEnvPreset: HdriPresetId
   private environment: HdriEnvironment | undefined
   private readonly modelUrlResolver: ModelUrlResolver
   private readonly model: HomeModel
@@ -125,6 +126,7 @@ export class View3D {
     }
     this._quality = options.quality ?? stored ?? { ...DEFAULT_VIEWPORT_QUALITY }
     this._envPreset = loadHdriPresetId()
+    this._requestedEnvPreset = this._envPreset
 
     const container = options.container
     if (container) {
@@ -242,9 +244,7 @@ export class View3D {
         this.applyCameraState(cam)
         const dir = new THREE.Vector3()
         this.perspectiveCamera.getWorldDirection(dir)
-        this.controls.target.copy(
-          this.perspectiveCamera.position.clone().addScaledVector(dir, 500),
-        )
+        this.controls.target.copy(this.perspectiveCamera.position.clone().addScaledVector(dir, 500))
         this.controls.update()
       }
       this.controls.enableDamping = true
@@ -328,9 +328,13 @@ export class View3D {
       }
     })
     // Fog density: 0 disables fog, >0 uses FogExp2.
-    this._scene.fog = this._quality.fogDensity > 0
-      ? new THREE.FogExp2(this._scene.background instanceof THREE.Color ? this._scene.background : 0xcce4fc, this._quality.fogDensity)
-      : null
+    this._scene.fog =
+      this._quality.fogDensity > 0
+        ? new THREE.FogExp2(
+            this._scene.background instanceof THREE.Color ? this._scene.background : 0xcce4fc,
+            this._quality.fogDensity,
+          )
+        : null
   }
 
   /** Current HDRI environment preset id (a viewport pref, not home state). */
@@ -340,11 +344,10 @@ export class View3D {
 
   /** Switch HDRI environment; persists the choice and re-renders. */
   setEnvironmentPreset(id: HdriPresetId): void {
-    if (!(id in HDRI_PRESETS) || id === this._envPreset) return
-    this._envPreset = id
-    saveHdriPresetId(id)
+    if (!(id in HDRI_PRESETS) || id === this._requestedEnvPreset) return
+    this._requestedEnvPreset = id
     this.environment?.resetFailure(id)
-    this.applyEnvironment()
+    this.applyEnvironment(id)
     this.render()
   }
 
@@ -353,19 +356,25 @@ export class View3D {
    * synchronously (no flash between rebuild and env); first load is async and
    * falls back to the flat sky color until the .hdr arrives.
    */
-  private applyEnvironment(): void {
+  private applyEnvironment(id: HdriPresetId = this._requestedEnvPreset): void {
     const renderer = this.renderer
     if (!renderer) return // headless: flat scene stays as buildScene made it
     if (!this.environment) this.environment = new HdriEnvironment(renderer)
-    const id = this._envPreset
-    this.environment.applyTo(this._scene, id).then(() => {
-      this.startAnimationLoop()
-    }).catch(() => {
-      // Load failure (offline, missing asset): scene.ts's flat sky color and
-      // analytic lights remain — the pre-HDRI look. Reset so switching back
-      // to this preset can retry.
-      this.environment?.resetFailure(id)
-    })
+    this.environment
+      .applyTo(this._scene, id)
+      .then(() => {
+        if (this._requestedEnvPreset === id) {
+          this._envPreset = id
+          saveHdriPresetId(id)
+        }
+        this.startAnimationLoop()
+      })
+      .catch(() => {
+        // Load failure (offline, missing asset): scene.ts's flat sky color and
+        // analytic lights remain — the pre-HDRI look. Reset so switching back
+        // to this preset can retry.
+        this.environment?.resetFailure(id)
+      })
   }
 
   /** Rebuild the whole scene graph from current store state. */
@@ -442,8 +451,7 @@ export class View3D {
     const home = this.store.getHome()
     const sel = new Set(home.selection)
     const levels = new Map(home.levels.map((l) => [l.id, l.elevation]))
-    const elevOf = (ref?: string | null): number =>
-      ref ? levels.get(ref) ?? 0 : 0
+    const elevOf = (ref?: string | null): number => (ref ? (levels.get(ref) ?? 0) : 0)
 
     const points: THREE.Vector3[] = []
     for (const item of home.furniture) {

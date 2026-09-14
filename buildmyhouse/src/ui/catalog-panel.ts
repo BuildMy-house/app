@@ -13,6 +13,7 @@
 import type { CatalogItem } from '../core/catalog'
 import type { FurnitureCatalog } from '../core/catalog'
 import { renderModelThumbnail } from './model-thumbnail'
+import { CatalogLazyLoader } from './catalog-lazy-loader'
 
 export interface CatalogPlacement {
   catalogId: string
@@ -44,14 +45,19 @@ function resolveModelUrl(modelPath: string): string {
 }
 
 /**
- * Prebaked thumbnail URL for a resolved model URL (MAT-T9): the build-time
- * render-thumbnails script saves `thumbs/<modelPath>.webp` next to every
- * bundled GLB, so only bundled `assets/` models get one. User-imported models
- * (blob:/http(s) URLs) have no prebaked image — they use the live WebGL
- * fallback render.
+ * Prebaked thumbnail URL for a resolved model URL (MAT-T9, extended for R2).
+ * - Bundled local models: `assets/thumbs/<modelPath>.webp`
+ * - External R2 models: `https://.../thumbs/<modelPath>.webp` (lazy-loaded)
+ * - User imports (blob:/unmatched http): null → falls back to color swatch
  */
 function thumbUrlFor(modelUrl: string, modelPath: string): string | null {
+  if (modelUrl.startsWith('https://') || modelUrl.startsWith('http://')) {
+    // External R2 model → prebaked WebP thumbnail at same domain/bucket
+    // Replace /models/ with /thumbs/ and .glb with .webp
+    return modelUrl.replace(/\/models\//, '/thumbs/').replace(/\.glb$/, '.webp')
+  }
   if (!modelUrl.startsWith('assets/')) return null
+  // Local bundled model → asset thumbs directory
   return `assets/thumbs/${modelPath.replace(/\.[^.]+$/, '')}.webp`
 }
 
@@ -103,6 +109,9 @@ export class CatalogPanel {
   private rowStride = DEFAULT_ROW_STRIDE
   private lastFilterKey: string | null = null
   private scrollRaf = 0
+
+  // ── Lazy thumbnail loading (R2 optimization) ───────────────────────────────
+  private lazyLoader = new CatalogLazyLoader()
 
   constructor(options: CatalogPanelOptions) {
     this.catalog = options.catalog
@@ -349,6 +358,8 @@ export class CatalogPanel {
     for (const [id, card] of this.cardEls) {
       const index = Number(card.dataset.index)
       if (index < start || index >= end) {
+        // Card is leaving viewport: unobserve from lazy loader to free resources
+        this.lazyLoader.unobserve(card)
         card.remove()
         this.cardEls.delete(id)
       }
@@ -359,6 +370,11 @@ export class CatalogPanel {
       const card = this.createCard(item, i)
       this.grid.insertBefore(card, this.spacerBottom)
       this.cardEls.set(item.catalogId, card)
+      // Hook up lazy loading for external R2 thumbnails
+      const thumbUrl = card.dataset.thumbUrl
+      if (thumbUrl) {
+        this.lazyLoader.observe(card, thumbUrl)
+      }
     }
 
     // Cards are uniform-height (2-line clamped names); measure the real
@@ -386,20 +402,29 @@ export class CatalogPanel {
       const modelUrl = this.modelUrlResolver(item.modelPath)
       const thumbUrl = thumbUrlFor(modelUrl, item.modelPath)
       if (thumbUrl) {
-        // Prebaked WebP from the build pipeline (MAT-T9). Virtualization
-        // already limits mounted cards; loading="lazy" additionally defers
-        // network/decode for offscreen cards in tall windows.
         const img = document.createElement('img')
-        img.className = 'catalog-swatch'
-        img.loading = 'lazy'
-        img.decoding = 'async'
+        img.className = 'catalog-swatch catalog-thumbnail'
         img.alt = ''
-        img.src = thumbUrl
-        img.addEventListener('error', () => {
-          // Missing/unrenderable thumb: fall back to the live WebGL render.
-          const canvas = liveRenderSwatch(modelUrl, item.color)
-          img.replaceWith(canvas)
-        })
+        img.decoding = 'async'
+
+        if (thumbUrl.startsWith('http://') || thumbUrl.startsWith('https://')) {
+          // External R2 thumbnail: lazy-load when card enters viewport.
+          // Start with no src to avoid parallel 1509 fetches; lazy loader will
+          // populate it as card becomes visible.
+          img.src = '' // Placeholder until lazy loader sets it
+          img.loading = 'lazy'
+          card.dataset.thumbUrl = thumbUrl
+          // Lazy loading will be hooked in updateWindow() when card mounts
+        } else {
+          // Local bundled thumbnail: use native lazy loading for <img>
+          img.src = thumbUrl
+          img.loading = 'lazy'
+          img.addEventListener('error', () => {
+            // Missing/unrenderable thumb: fall back to live WebGL render.
+            const canvas = liveRenderSwatch(modelUrl, item.color)
+            img.replaceWith(canvas)
+          })
+        }
         swatch = img
       } else {
         // User-imported / remote model: live WebGL render with swatch fallback.
@@ -465,6 +490,12 @@ export class CatalogPanel {
     this.catalog = catalog
     this.buildCategories()
     this.renderGrid()
+  }
+
+  /** Clean up resources when the panel is destroyed. */
+  dispose(): void {
+    this.lazyLoader.dispose()
+    cancelAnimationFrame(this.scrollRaf)
   }
 }
 
