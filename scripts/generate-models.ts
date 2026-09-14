@@ -268,9 +268,9 @@ function exportGlb(group: THREE.Group, outPath: string): void {
   )
 }
 
-function buildOrConvertModel(item: CatalogItem): THREE.Group {
+async function buildOrConvertModel(item: CatalogItem): Promise<THREE.Group> {
   if (hasSh3dModel(item.catalogId)) {
-    const converted = convertSh3dModel(item)
+    const converted = await convertSh3dModel(item)
     if (converted) return converted
     console.warn(`[models] SH3D conversion failed for ${item.catalogId}, using procedural fallback`)
   }
@@ -282,7 +282,7 @@ function isExternalModel(item: CatalogItem): boolean {
   return typeof item.modelPath === 'string' && /^https?:\/\//.test(item.modelPath)
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const checkOnly = process.argv.includes('--check')
   const manifest = loadManifest()
   mkdirSync(MODELS_DIR, { recursive: true })
@@ -300,7 +300,7 @@ function main(): void {
   }
 
   for (const item of localItems) {
-    const model = buildOrConvertModel(item)
+    const model = await buildOrConvertModel(item)
     exportGlb(model, join(MODELS_DIR, modelFileName(item.catalogId)))
   }
   console.log(`[models] done (${localItems.length} models, ${manifest.items.length - localItems.length} externally hosted)`)
@@ -315,4 +315,4 @@ function exists(path: string): boolean {
   }
 }
 
-main()
+await main()

@@ -58,7 +58,7 @@ export function hasSh3dModel(catalogId: string): boolean {
  * The model is uniformly scaled so its largest axis matches the catalog's
  * largest axis, then centered on X/Z and set on the floor at Y=0.
  */
-export function convertSh3dModel(item: CatalogItem): THREE.Group | null {
+export async function convertSh3dModel(item: CatalogItem): Promise<THREE.Group | null> {
   const name = item.catalogId.split('#')[1]
   if (!name) return null
 
@@ -103,13 +103,14 @@ export function convertSh3dModel(item: CatalogItem): THREE.Group | null {
       const pngPath = join(objDir, `${name}.png`)
       try {
         accessSync(pngPath)
-        const img = document.createElement('img') as HTMLImageElement
-        img.src = `file://${pngPath}`
-        if (img.complete) {
-          texturedMaterial = flatMaterial.clone()
-          texturedMaterial.map = new THREE.Texture(img)
-          texturedMaterial.map.needsUpdate = true
-        }
+        texturedMaterial = flatMaterial.clone()
+        // Embed PNG texture directly into the material using TextureLoader
+        // TextureLoader is polyfilled below for Node.js with proper image loading
+        const loader = new THREE.TextureLoader()
+        const texture = loader.load(pngPath)
+        texture.colorSpace = THREE.SRGBColorSpace
+        texturedMaterial.map = texture
+        texturedMaterial.needsUpdate = true
       } catch {
         // No matching PNG — keep flat color
       }
