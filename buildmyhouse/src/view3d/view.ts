@@ -190,6 +190,10 @@ export class View3D {
         }
         this.pick(e)
       })
+
+      // Apply the empty-home framing after OrbitControls exists; the initial
+      // camera sync cannot set a useful orbit target without controls.
+      this.setActivePreset(this.director.getActivePreset())
     }
   }
 
@@ -244,7 +248,9 @@ export class View3D {
         this.applyCameraState(cam)
         const dir = new THREE.Vector3()
         this.perspectiveCamera.getWorldDirection(dir)
-        this.controls.target.copy(this.perspectiveCamera.position.clone().addScaledVector(dir, 500))
+        const emptyTarget = this.perspectiveCamera.position.clone().addScaledVector(dir, 500)
+        emptyTarget.y = 0
+        this.controls.target.copy(emptyTarget)
         this.controls.update()
       }
       this.controls.enableDamping = true

@@ -26,7 +26,7 @@ const DEFAULT_CEILING_COLOR = 0xf0f0f0
 
 const GROUND_SIZE_CM = 100_000
 const GRID_SIZE_CM = 20_000
-const GRID_DIVISIONS = 200
+const GRID_DIVISIONS = 40
 
 function levelElevationMap(home: NormalizedHomeState): Map<string, number> {
   const elevations = new Map<string, number>()
@@ -936,13 +936,16 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void): 
     scene.add(ground)
 
     // Keep the empty viewport spatially legible without competing with the
-    // plan view: 1 m minor squares, lifted just above the ground to avoid
+    // plan view: 5 m squares, lifted just above the ground to avoid
     // z-fighting.
-    const grid = new THREE.GridHelper(GRID_SIZE_CM, GRID_DIVISIONS, 0x7f8b96, 0xb7c0c8)
+    const grid = new THREE.GridHelper(GRID_SIZE_CM, GRID_DIVISIONS, 0x596773, 0x8e9aa5)
     grid.position.y = 0.5
     grid.name = 'ground-grid'
     grid.material.transparent = true
-    grid.material.opacity = 0.32
+    grid.material.opacity = 0.55
+    grid.material.depthTest = false
+    grid.renderOrder = 1
+    grid.frustumCulled = false
     scene.add(grid)
   }
 
