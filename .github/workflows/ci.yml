@@ -8,12 +8,9 @@ permissions:
   contents: read
 
 jobs:
-  buildmyhouse-client:
-    name: buildmyhouse client (lint + tsc + vitest + e2e)
+  buildmyhouse-client-checks:
+    name: buildmyhouse client (lint + tsc + vitest)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,11 +25,45 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
-      - run: npm test
-      - run: npx playwright install --with-deps chromium
-      - run: npm run e2e
+      - run: npm test -- --coverage
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
 
-  buildmyhouse:
+  # Sharded across 5 parallel runners so e2e wall-clock stays in the
+  # single-digit minutes. workers:1 in playwright.config.ts (CI branch) still
+  # applies *within* each shard's own runner -- that's what actually fixed
+  # the flakiness (CPU contention between concurrent Chromium instances
+  # sharing one runner's 2 vCPUs), not shard count. Sharding gets parallelism
+  # back a different way: across separate runner VMs, not by running more
+  # workers on the same one.
+  buildmyhouse-client-e2e:
+    name: buildmyhouse client e2e (shard ${{ matrix.shard }}/5)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r assets/textures/requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --shard=${{ matrix.shard }}/5
+
+  buildmyhouse-server:
     name: buildmyhouse server (vitest sqlite + postgres)
     runs-on: ubuntu-latest
     defaults:
