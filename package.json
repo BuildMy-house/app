@@ -10,7 +10,7 @@
     "assets:check": "tsx scripts/assets.ts --check",
     "models": "tsx scripts/generate-models.ts",
     "models:check": "tsx scripts/generate-models.ts --check",
-    "prebuild": "npm run assets:check && npm run models:check && npm run assets && npm run models",
+    "prebuild": "npm run assets:check && npm run models:check && npm run assets && npm run models && npm run thumbnails",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",

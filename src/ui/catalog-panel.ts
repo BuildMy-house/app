@@ -469,15 +469,34 @@ export class CatalogPanel {
           img.src = thumbUrl
           img.loading = 'lazy'
           img.addEventListener('error', () => {
-            // Missing/unrenderable thumb: fall back to live WebGL render.
-            const canvas = liveRenderSwatch(modelUrl, item.color)
-            img.replaceWith(canvas)
+            // Missing/unrenderable thumb: show color swatch (no WebGL for
+            // remote URLs — CORS/bridge crashes the renderer).
+            const fallback = document.createElement('canvas')
+            fallback.className = 'catalog-swatch'
+            fallback.width = 96
+            fallback.height = 72
+            const ctx = fallback.getContext('2d')
+            if (ctx) {
+              ctx.fillStyle = colorCss(item.color)
+              ctx.fillRect(0, 0, fallback.width, fallback.height)
+            }
+            img.replaceWith(fallback)
           })
         }
         swatch = img
       } else {
-        // User-imported / remote model: live WebGL render with swatch fallback.
-        swatch = liveRenderSwatch(modelUrl, item.color)
+        // User-imported / remote model: color swatch (WebGL rendering of
+        // remote URLs crashes the renderer due to CORS/bridge issues).
+        const fallback = document.createElement('canvas')
+        fallback.className = 'catalog-swatch'
+        fallback.width = 96
+        fallback.height = 72
+        const ctx = fallback.getContext('2d')
+        if (ctx) {
+          ctx.fillStyle = colorCss(item.color)
+          ctx.fillRect(0, 0, fallback.width, fallback.height)
+        }
+        swatch = fallback
       }
     } else {
       // No model at all: flat color swatch (existing behavior).
