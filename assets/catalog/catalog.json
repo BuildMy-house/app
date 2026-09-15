@@ -1629,6 +1629,85 @@
         "blend swap"
       ],
       "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-riggedfan.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#antiqueChair",
+      "name": "Chair",
+      "category": "Living",
+      "width": 49.8,
+      "depth": 63.2,
+      "height": 98.2,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "seat"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-antiquechair.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#augalas",
+      "name": "Plant",
+      "category": "Living",
+      "width": 60.9,
+      "depth": 34.9,
+      "height": 31.5,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "patio",
+        "decoration"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-augalas.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#bench",
+      "name": "Bench",
+      "category": "Outdoor",
+      "width": 170.1,
+      "depth": 45.9,
+      "height": 50.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "outdoor"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bench.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#bidet",
+      "name": "Bidet",
+      "category": "Bathroom",
+      "width": 39.9,
+      "depth": 53.6,
+      "height": 51.3,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bidet.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#box",
+      "name": "Box",
+      "category": "Other",
+      "width": 89.9,
+      "depth": 65.7,
+      "height": 31.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-box.glb"
     }
   ]
 }

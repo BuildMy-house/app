@@ -9,3 +9,4 @@ src-tauri/icons/ios
 test-results
 playwright-report
 coverage
+.sh3d-scratch
