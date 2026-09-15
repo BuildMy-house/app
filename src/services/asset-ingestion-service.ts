@@ -32,7 +32,8 @@ import * as THREE from 'three'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import type { S3Client } from '@aws-sdk/client-s3'
+import { getR2S3Client, r2PublicUrl, uploadR2Object } from './r2-client'
 import { chromium } from '@playwright/test'
 import { build } from 'esbuild'
 
@@ -530,18 +531,6 @@ window.__renderThumb = async (dataUrl) => {
 }
 `
 
-function getS3Client(): S3Client {
-  const { R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_S3_ENDPOINT } = process.env
-  if (!R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_S3_ENDPOINT) {
-    throw new Error('R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_S3_ENDPOINT must be set in env')
-  }
-  return new S3Client({
-    region: 'auto',
-    endpoint: R2_S3_ENDPOINT,
-    credentials: { accessKeyId: R2_ACCESS_KEY_ID, secretAccessKey: R2_SECRET_ACCESS_KEY },
-  })
-}
-
 /** The unified ingestion pipeline: convert -> upload -> verify -> catalog -> thumbnails. */
 export class AssetIngestionService {
   readonly scratchRoot: string
@@ -659,7 +648,7 @@ export class AssetIngestionService {
     const queue = limit > 0 ? pending.slice(0, limit) : pending
     console.log(`[import] ${items.length} catalog items; ${pending.length} pending; processing ${queue.length}`)
 
-    const s3 = mode.skipUpload ? null : getS3Client()
+    const s3 = mode.skipUpload ? null : getR2S3Client()
     const errors: string[] = []
     let converted = 0
     let uploaded = 0
@@ -807,7 +796,7 @@ export class AssetIngestionService {
   async renderThumbnails(jobs: ThumbJob[], onProgress?: (p: ProgressInfo) => void): Promise<ThumbResult> {
     if (jobs.length === 0) return { written: 0, skipped: 0 }
 
-    const s3 = jobs.some((job) => isExternalModel(job.modelPath)) ? getS3Client() : null
+    const s3 = jobs.some((job) => isExternalModel(job.modelPath)) ? getR2S3Client() : null
 
     const tmp = mkdtempSync(join(tmpdir(), 'thumbs-'))
     const bundle = join(tmp, 'renderer.js')
@@ -850,12 +839,7 @@ export class AssetIngestionService {
           }
           const webp = Buffer.from(result.slice('data:image/webp;base64,'.length), 'base64')
           if (external) {
-            await s3!.send(new PutObjectCommand({
-              Bucket: process.env.R2_BUCKET_NAME,
-              Key: externalThumbKey(job.modelPath),
-              Body: webp,
-              ContentType: 'image/webp',
-            }))
+            await uploadR2Object(s3!, externalThumbKey(job.modelPath), webp, 'image/webp')
           } else {
             const out = localThumbPath(job.modelPath)
             mkdirSync(dirname(out), { recursive: true })
@@ -939,19 +923,14 @@ function buildEntry(item: LibraryItem): CatalogEntry {
     color: 12632256,
     doorOrWindow: item.doorOrWindow,
     tags: item.tags,
-    modelPath: `${process.env.R2_PUBLIC_URL ?? 'https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev'}/${R2_KEY_PREFIX}/${item.slug}.glb`,
+    modelPath: `${r2PublicUrl()}/${R2_KEY_PREFIX}/${item.slug}.glb`,
   }
 }
 
 async function uploadGlb(s3: S3Client, slug: string, buffer: Buffer): Promise<boolean> {
   const key = `${R2_KEY_PREFIX}/${slug}.glb`
-  await s3.send(new PutObjectCommand({
-    Bucket: process.env.R2_BUCKET_NAME,
-    Key: key,
-    Body: buffer,
-    ContentType: 'model/gltf-binary',
-  }))
-  const publicUrl = `${process.env.R2_PUBLIC_URL}/${key}`
+  await uploadR2Object(s3, key, buffer, 'model/gltf-binary')
+  const publicUrl = `${r2PublicUrl()}/${key}`
   return verifyUpload(publicUrl)
 }
 

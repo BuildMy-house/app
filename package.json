@@ -8,6 +8,8 @@
     "predev": "npm run assets",
     "assets": "tsx scripts/assets.ts",
     "assets:check": "tsx scripts/assets.ts --check",
+    "textures:generate": "python3 assets/textures/generate.py && python3 assets/textures/generate_pbr.py",
+    "textures:upload": "tsx scripts/upload-textures.ts",
     "prebuild": "npm run assets:check && npm run assets && npm run thumbnails",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
