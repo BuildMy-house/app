@@ -775,7 +775,7 @@ body {
   flex: 1;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 8px;
   padding: 8px;
   align-content: start;
@@ -827,6 +827,13 @@ body {
   color: var(--text-secondary);
   line-height: 1.35;
   word-break: break-word;
+}
+
+/* Virtualization spacers must span the full grid width so they reserve
+ * whole blank rows; otherwise each spacer only fills one column cell and
+ * the scroll-height math breaks in the multi-column grid. */
+.catalog-spacer {
+  grid-column: 1 / -1;
 }
 
 .catalog-empty {

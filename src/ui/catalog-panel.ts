@@ -60,7 +60,7 @@ function thumbUrlFor(modelUrl: string, modelPath: string): string | null {
   return `assets/thumbs/${modelPath.replace(/\.[^.]+$/, '')}.webp`
 }
 
-/** Virtualization constants — single-column grid, variable card heights. */
+/** Virtualization constants — multi-column grid, variable card heights. */
 const CARD_GAP = 8 // .catalog-grid gap (style.css)
 const WINDOW_BUFFER_ROWS = 3
 const ESTIMATED_ROW_HEIGHT = 132 // initial guess; overwritten after first measure
@@ -104,7 +104,10 @@ export class CatalogPanel {
   private spacerBottom: HTMLDivElement | null = null
   private mountedStart = -1
   private mountedEnd = -1
-  private cumOffsets: number[] = [] // cumulative top-offset for each filtered item
+  /** Cards per grid row — starts as a guess, corrected from the real DOM. */
+  private columnsPerRow = 1
+  private rowOffsets: number[] = [] // cumulative top-offset for each ROW
+  private rowHeights: number[] = [] // measured max card height per ROW
   private cardHeights = new Map<string, number>()
   private lastFilterKey: string | null = null
   private scrollRaf = 0
@@ -220,16 +223,19 @@ export class CatalogPanel {
 
   private attachResizeHandle(): void {
     const handle = this.root.querySelector<HTMLDivElement>('.catalog-resize-handle')!
-    const host = this.root.parentElement as HTMLElement | null
-    if (!host) return
 
     const MIN_WIDTH = 320
     const MAX_WIDTH = 560
 
+    // The panel root is not appended to #catalog-host until after the
+    // constructor runs, so the host must be resolved lazily at drag time —
+    // reading parentElement up front returns null and the handle never works.
     let startX = 0
     let startWidth = 0
 
     const onMove = (e: MouseEvent): void => {
+      const host = this.root.parentElement
+      if (!host) return
       const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, startWidth + (e.clientX - startX)))
       host.style.width = `${newWidth}px`
     }
@@ -241,6 +247,8 @@ export class CatalogPanel {
     }
 
     handle.addEventListener('mousedown', (e: MouseEvent) => {
+      const host = this.root.parentElement
+      if (!host) return
       e.preventDefault()
       startX = e.clientX
       startWidth = host.getBoundingClientRect().width
@@ -312,7 +320,8 @@ export class CatalogPanel {
     this.cardEls.clear()
     this.mountedStart = -1
     this.mountedEnd = -1
-    this.cumOffsets = []
+    this.rowOffsets = []
+    this.rowHeights = []
     this.cardHeights.clear()
     this.grid.innerHTML = ''
 
@@ -338,71 +347,93 @@ export class CatalogPanel {
     this.renderStatus()
   }
 
+  /** Number of rows the filtered list occupies at the current column count. */
+  private get numRows(): number {
+    return Math.ceil(this.filteredItems.length / this.columnsPerRow)
+  }
+
   /** Mount/unmount the card window matching the current scroll position. */
   private updateWindow(force = false): void {
     const n = this.filteredItems.length
     if (n === 0 || !this.spacerTop || !this.spacerBottom) return
 
-    // Ensure cumulative offsets exist (lazily built after cards render).
-    if (this.cumOffsets.length !== n) this.rebuildOffsets()
+    // Ensure per-row cumulative offsets exist (lazily built after cards render).
+    if (this.rowOffsets.length !== this.numRows) this.rebuildOffsets()
 
+    const cols = this.columnsPerRow
+    const numRows = this.numRows
     const scrollTop = this.grid.scrollTop
     const viewportH = this.grid.clientHeight
 
-    const start = this.findVisibleStart(scrollTop)
-    const end = this.findVisibleEnd(scrollTop + viewportH)
+    const startRow = this.findVisibleStartRow(scrollTop)
+    const endRow = this.findVisibleEndRow(scrollTop + viewportH)
 
-    const visStart = Math.max(0, start - WINDOW_BUFFER_ROWS)
-    const visEnd = Math.min(n, end + WINDOW_BUFFER_ROWS)
+    // Buffer by whole rows, then convert the row range to an item range.
+    const visStartRow = Math.max(0, startRow - WINDOW_BUFFER_ROWS)
+    const visEndRow = Math.min(numRows, endRow + WINDOW_BUFFER_ROWS)
+    const visStart = visStartRow * cols
+    const visEnd = Math.min(n, visEndRow * cols)
 
-    if (!force && visStart === this.mountedStart && visEnd === this.mountedEnd) return
-    this.mountedStart = visStart
-    this.mountedEnd = visEnd
-
-    const topH = visStart > 0 ? this.cumOffsets[visStart - 1]! + this.heightOf(visStart - 1) + CARD_GAP : 0
-    const bottomH = visEnd < n ? this.cumOffsets[n - 1]! + this.heightOf(n - 1) - (this.cumOffsets[visEnd - 1]! + this.heightOf(visEnd - 1)) : 0
+    // Spacer heights must be recomputed on EVERY pass: a measurement
+    // correction (card heights, column count) rebuilds offsets even when
+    // the mounted range stays the same, and stale spacers would otherwise
+    // linger until the range happened to change.
+    const topH = visStartRow > 0
+      ? this.rowOffsets[visStartRow - 1]! + this.rowHeights[visStartRow - 1]! + CARD_GAP
+      : 0
+    const totalH = this.rowOffsets[numRows - 1]! + this.rowHeights[numRows - 1]!
+    const bottomH = visEndRow < numRows
+      ? totalH - (this.rowOffsets[visEndRow - 1]! + this.rowHeights[visEndRow - 1]! + CARD_GAP)
+      : 0
     this.spacerTop.style.height = `${topH}px`
     this.spacerBottom.style.height = `${Math.max(0, bottomH - CARD_GAP)}px`
 
-    for (const [id, card] of this.cardEls) {
-      const index = Number(card.dataset.index)
-      if (index < visStart || index >= visEnd) {
-        this.lazyLoader.unobserve(card)
-        card.remove()
-        this.cardEls.delete(id)
+    const rangeChanged = force || visStart !== this.mountedStart || visEnd !== this.mountedEnd
+    if (rangeChanged) {
+      this.mountedStart = visStart
+      this.mountedEnd = visEnd
+      for (const [id, card] of this.cardEls) {
+        const index = Number(card.dataset.index)
+        if (index < visStart || index >= visEnd) {
+          this.lazyLoader.unobserve(card)
+          card.remove()
+          this.cardEls.delete(id)
+        }
+      }
+      for (let i = visStart; i < visEnd; i++) {
+        const item = this.filteredItems[i]!
+        if (this.cardEls.has(item.catalogId)) continue
+        const card = this.createCard(item, i)
+        this.grid.insertBefore(card, this.spacerBottom)
+        this.cardEls.set(item.catalogId, card)
+        const thumbUrl = card.dataset.thumbUrl
+        if (thumbUrl) this.lazyLoader.observe(card, thumbUrl)
       }
     }
-    for (let i = visStart; i < visEnd; i++) {
-      const item = this.filteredItems[i]!
-      if (this.cardEls.has(item.catalogId)) continue
-      const card = this.createCard(item, i)
-      this.grid.insertBefore(card, this.spacerBottom)
-      this.cardEls.set(item.catalogId, card)
-      const thumbUrl = card.dataset.thumbUrl
-      if (thumbUrl) this.lazyLoader.observe(card, thumbUrl)
-    }
 
-    // Measure newly mounted cards and update offsets if anything changed.
-    this.measureCards()
+    // Measure mounted cards; if real heights or the real column count
+    // differ from the current estimates, rebuild offsets and re-run — the
+    // estimates only converge, so this recursion is bounded.
+    if (this.measureCards()) this.updateWindow()
   }
 
-  /** Binary search: first index whose bottom edge is past `y`. */
-  private findVisibleStart(y: number): number {
-    let lo = 0, hi = this.filteredItems.length
+  /** Binary search over rows: first row whose bottom edge is past `y`. */
+  private findVisibleStartRow(y: number): number {
+    let lo = 0, hi = this.numRows
     while (lo < hi) {
       const mid = (lo + hi) >> 1
-      if (this.cumOffsets[mid]! + this.heightOf(mid) <= y) lo = mid + 1
+      if (this.rowOffsets[mid]! + this.rowHeights[mid]! <= y) lo = mid + 1
       else hi = mid
     }
     return lo
   }
 
-  /** Binary search: last index whose top edge is before `y`. */
-  private findVisibleEnd(y: number): number {
-    let lo = 0, hi = this.filteredItems.length
+  /** Binary search over rows: last row whose top edge is before `y`. */
+  private findVisibleEndRow(y: number): number {
+    let lo = 0, hi = this.numRows
     while (lo < hi) {
       const mid = (lo + hi) >> 1
-      if (this.cumOffsets[mid]! <= y) lo = mid + 1
+      if (this.rowOffsets[mid]! <= y) lo = mid + 1
       else hi = mid
     }
     return lo
@@ -413,19 +444,31 @@ export class CatalogPanel {
     return id ? (this.cardHeights.get(id) ?? ESTIMATED_ROW_HEIGHT) : ESTIMATED_ROW_HEIGHT
   }
 
-  /** Rebuild cumulative offsets from current card heights. */
+  /**
+   * Rebuild cumulative per-row offsets. Row r covers item indices
+   * [r*columnsPerRow, min(n, (r+1)*columnsPerRow)); its height is the MAX
+   * measured height in the row (CSS grid rows size to their tallest cell).
+   */
   private rebuildOffsets(): void {
     const n = this.filteredItems.length
-    this.cumOffsets = new Array(n)
+    const cols = Math.max(1, this.columnsPerRow)
+    const rows = Math.ceil(n / cols)
+    this.rowOffsets = new Array(rows)
+    this.rowHeights = new Array(rows)
     let acc = 0
-    for (let i = 0; i < n; i++) {
-      this.cumOffsets[i] = acc
-      acc += this.heightOf(i) + CARD_GAP
+    for (let r = 0; r < rows; r++) {
+      const start = r * cols
+      const end = Math.min(n, start + cols)
+      let h = 0
+      for (let i = start; i < end; i++) h = Math.max(h, this.heightOf(i))
+      this.rowOffsets[r] = acc
+      this.rowHeights[r] = h
+      acc += h + CARD_GAP
     }
   }
 
-  /** Measure all mounted cards; update heights + offsets if anything changed. */
-  private measureCards(): void {
+  /** Measure all mounted cards; returns true if heights or columns changed. */
+  private measureCards(): boolean {
     let changed = false
     for (const [id, card] of this.cardEls) {
       const measured = card.offsetHeight
@@ -434,7 +477,49 @@ export class CatalogPanel {
         changed = true
       }
     }
+    if (this.measureColumns()) changed = true
     if (changed) this.rebuildOffsets()
+    return changed
+  }
+
+  /**
+   * Derive the real column count from the DOM: cluster ALL mounted cards'
+   * top offsets and take the largest cluster. At most one row in any
+   * mounted range can be genuinely partial (the filtered list's very last
+   * row, when n isn't divisible by the column count) — every other row is
+   * full — so the most populous same-top cluster is always a real full
+   * row. Picking the first-iterated card's row instead was wrong: Map
+   * iteration order is insertion order, which after mount/unmount cycles
+   * need not be visual order, so that card could sit in the partial last
+   * row and under-count (e.g. 2 of 3), corrupting all row offsets.
+   */
+  private measureColumns(): boolean {
+    const tops: number[] = []
+    for (const card of this.cardEls.values()) {
+      const rect = card.getBoundingClientRect()
+      if (rect.width === 0) continue
+      tops.push(rect.top)
+    }
+    tops.sort((a, b) => a - b)
+    let best = 0
+    let run = 0
+    let prev = NaN
+    for (const top of tops) {
+      // Sorted tops within one grid row differ only by float rounding
+      // (<<1px); distinct rows differ by >=100px, so a 1px chain tolerance
+      // can never bridge two rows.
+      run = run > 0 && top - prev <= 1 ? run + 1 : 1
+      if (run > best) best = run
+      prev = top
+    }
+    // No row with >= 2 cards (single card mounted, or 1-item filter)
+    // carries no column information — keep the current count.
+    const cols = Math.max(1, best >= 2 ? best : this.columnsPerRow)
+    if (cols !== this.columnsPerRow) {
+      this.columnsPerRow = cols
+      return true
+    }
+    return false
   }
 
   /** Build one catalog card (thumbnail + name + dims). */
