@@ -24,7 +24,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "tauri": "tauri",
-    "thumbnails": "tsx scripts/render-thumbnails.ts"
+    "thumbnails": "tsx scripts/render-thumbnails.ts",
+    "patch-r2-cache-headers": "tsx scripts/patch-r2-cache-headers.ts"
   },
   "dependencies": {
     "@types/three": "^0.185.4",

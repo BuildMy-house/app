@@ -38,5 +38,14 @@ export async function uploadR2Object(
 ): Promise<void> {
   const bucket = process.env.R2_BUCKET_NAME
   if (!bucket) throw new Error('R2_BUCKET_NAME must be set in env')
-  await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }))
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      // Content-addressed by slug, never mutated in place — cache forever.
+      CacheControl: 'public, max-age=31536000, immutable',
+    }),
+  )
 }
