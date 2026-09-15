@@ -473,7 +473,7 @@ export class CatalogPanel {
             const fallback = document.createElement('canvas')
             fallback.className = 'catalog-swatch'
             fallback.width = 96
-            fallback.height = 72
+            fallback.height = 96
             const ctx = fallback.getContext('2d')
             if (ctx) {
               ctx.fillStyle = colorCss(item.color)
@@ -489,7 +489,7 @@ export class CatalogPanel {
         const fallback = document.createElement('canvas')
         fallback.className = 'catalog-swatch'
         fallback.width = 96
-        fallback.height = 72
+        fallback.height = 96
         const ctx = fallback.getContext('2d')
         if (ctx) {
           ctx.fillStyle = colorCss(item.color)
@@ -502,7 +502,7 @@ export class CatalogPanel {
       const canvas = document.createElement('canvas')
       canvas.className = 'catalog-swatch'
       canvas.width = 96
-      canvas.height = 72
+      canvas.height = 96
       const ctx2d = canvas.getContext('2d')
       if (ctx2d) {
         ctx2d.fillStyle = colorCss(item.color)

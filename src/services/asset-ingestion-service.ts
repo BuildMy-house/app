@@ -34,6 +34,7 @@ import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
 import type { S3Client } from '@aws-sdk/client-s3'
 import { getR2S3Client, r2PublicUrl, uploadR2Object } from './r2-client'
+import { THUMBNAIL_RENDER_SIZE } from '../view3d/thumbnail-camera'
 import { chromium } from '@playwright/test'
 import { build } from 'esbuild'
 
@@ -46,8 +47,6 @@ const DEFAULT_SCRATCH_ROOT = join(ROOT, '.sh3d-scratch')
 const CATALOG_PATH = join(ROOT, 'assets', 'catalog', 'catalog.json')
 const THUMBS_DIR = join(ROOT, 'assets', 'thumbs')
 const R2_KEY_PREFIX = 'models'
-const THUMB_W = 384
-const THUMB_H = 288
 
 /** sub-directory -> license tier, read from each archive's own LICENSE.TXT. */
 const SUB_LICENSES: Record<string, string> = {
@@ -479,9 +478,9 @@ function sanitizeMtlText(mtlPath: string): string {
 const RENDERER_SOURCE = `
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { frameOrthographicCamera } from './src/view3d/thumbnail-camera'
 
-const W = ${THUMB_W}
-const H = ${THUMB_H}
+const SIZE = ${THUMBNAIL_RENDER_SIZE}
 let renderer = null
 let scene = null
 let camera = null
@@ -489,7 +488,7 @@ let camera = null
 function init() {
   if (renderer) return true
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
-  renderer.setSize(W, H)
+  renderer.setSize(SIZE, SIZE)
   renderer.setPixelRatio(1)
   renderer.setClearColor(0x000000, 0)
   scene = new THREE.Scene()
@@ -497,9 +496,7 @@ function init() {
   const key = new THREE.DirectionalLight(0xffffff, 0.8)
   key.position.set(2, 3, 2)
   scene.add(key)
-  camera = new THREE.OrthographicCamera(-2, 2, 1.5, -1.5, 0.1, 100)
-  camera.position.set(0, 0.5, 5)
-  camera.lookAt(0, 0.4, 0)
+  camera = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.1, 100)
   return true
 }
 
@@ -517,6 +514,7 @@ window.__renderThumb = async (dataUrl) => {
   model.position.sub(center)
   model.rotation.y = -0.6
   scene.add(model)
+  frameOrthographicCamera(camera, model)
   renderer.render(scene, camera)
   const data = renderer.domElement.toDataURL('image/webp', 0.85)
   scene.remove(model)
@@ -810,7 +808,7 @@ export class AssetIngestionService {
     })
 
     const browser = await chromium.launch()
-    const page = await browser.newPage({ viewport: { width: THUMB_W, height: THUMB_H } })
+    const page = await browser.newPage({ viewport: { width: THUMBNAIL_RENDER_SIZE, height: THUMBNAIL_RENDER_SIZE } })
     await page.goto('about:blank')
     await page.addScriptTag({ path: bundle })
 
