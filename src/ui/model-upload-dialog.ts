@@ -12,6 +12,7 @@ export interface UploadResult {
   name: string
   category: string
   modelPath: string
+  modelUrl?: string
   thumbnailPath: string | null
 }
 
@@ -253,6 +254,7 @@ export class ModelUploadDialog {
           name: this.nameInput.value.trim(),
           category: this.categorySelect.value,
           modelPath: result.modelPath ?? `models/user-${this.file.name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9-]/g, '-')}.glb`,
+          modelUrl: result.modelUrl,
           thumbnailPath: result.thumbnailPath ?? null,
         })
         setTimeout(() => this.close(), 500)

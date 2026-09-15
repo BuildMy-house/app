@@ -1407,36 +1407,32 @@ function importModelFile(): void {
       try {
         if (!userCatalog) throw new Error('catalog not ready')
 
-        // If the upload returned a blob URL (client-side fallback), import directly
-        if (result.modelPath.startsWith('blob:')) {
-          const response = await fetch(result.modelPath)
-          const data = await response.arrayBuffer()
+        const modelUrl = result.modelUrl ?? (result.modelPath.startsWith('blob:') ? result.modelPath : null)
+        if (!modelUrl) throw new Error('Upload did not return a model URL')
+        const response = await fetch(modelUrl)
+        if (!response.ok) throw new Error(`Uploaded model unavailable (${response.status})`)
+        const data = await response.arrayBuffer()
 
-          // Validate GLB data
-          const { MAX_IMPORT_BYTES, validateGlbData } = await import('./core/user-catalog')
-          if (data.byteLength > MAX_IMPORT_BYTES) {
-            throw new Error('File too large for import')
-          }
-          validateGlbData(data, `${result.name}.glb`)
+        const { MAX_IMPORT_BYTES, validateGlbData } = await import('./core/user-catalog')
+        if (data.byteLength > MAX_IMPORT_BYTES) throw new Error('File too large for import')
+        validateGlbData(data, `${result.name}.glb`)
 
-          // Validate with GLTFLoader
-          try {
-            const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js')
-            await configureGltfLoader(new GLTFLoader()).parseAsync(data, '')
-          } catch {
-            throw new Error('Model could not be parsed — file may be corrupted')
-          }
-
-          const record = await userCatalog.import({
-            fileName: `${result.name}.glb`,
-            data,
-          })
-
-          // Keep a blob URL so View3D can load the model bytes
-          const blob = new Blob([data], { type: 'model/gltf-binary' })
-          const url = URL.createObjectURL(blob)
-          userModelUrls.set(record.blobKey, url)
+        try {
+          const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js')
+          await configureGltfLoader(new GLTFLoader()).parseAsync(data, '')
+        } catch {
+          throw new Error('Model could not be parsed — file may be corrupted')
         }
+
+        const record = await userCatalog.import({
+          fileName: `${result.name}.glb`,
+          name: result.name,
+          category: result.category,
+          data,
+        })
+
+        const blob = new Blob([data], { type: 'model/gltf-binary' })
+        userModelUrls.set(record.blobKey, URL.createObjectURL(blob))
 
         // Refresh the merged catalog + panel + automation surface
         sharedCatalog = userCatalog.merged
