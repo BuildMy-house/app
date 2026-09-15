@@ -4,7 +4,7 @@ import { HomeModel } from '../core/model'
 import { HomeStore } from '../core/store'
 import { DEFAULT_WALL_HEIGHT_CM, type NormalizedHomeState } from '../core/home'
 import { CameraDirector, type CameraPatch, type CameraPresetName } from './cameras'
-import { buildScene, type ModelUrlResolver } from './scene'
+import { buildScene, defaultModelUrlResolver, type ModelUrlResolver } from './scene'
 import { observeStore } from './watch'
 import { computeHomeBounds } from '../core/top-camera-follower'
 import {
@@ -106,7 +106,7 @@ export class View3D {
   ) {
     this.model = new HomeModel(store)
     this.director = new CameraDirector(store, this.model)
-    this.modelUrlResolver = options.modelUrlResolver ?? ((path: string) => `assets/${path}`)
+    this.modelUrlResolver = options.modelUrlResolver ?? defaultModelUrlResolver
     this.isPlacing = options.isPlacing
     this.onFloorClick = options.onFloorClick
     this._scene = buildScene(store.getHome(), {

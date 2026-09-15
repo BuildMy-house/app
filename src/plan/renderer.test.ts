@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { drawPlan, setTestImageCache, type PlanRenderingContext, type ViewTransform } from './renderer'
-import { createEmptyHome, WALL_TEXTURES } from '../core/home'
+import { createEmptyHome, WALL_TEXTURES, resolveTextureUrl } from '../core/home'
 
 interface Op { type: string; args?: unknown[] }
 
@@ -150,7 +150,7 @@ describe('drawPlan wall textures', () => {
   it('uses createPattern fill for a wall with leftSideTextureId when image is loaded', () => {
     const tex = WALL_TEXTURES.find(t => t.id === 'wood-oak')!
     const img = { complete: true, naturalWidth: 64 } as unknown as HTMLImageElement
-    setTestImageCache(new Map([[`/assets/textures/${tex.file}`, img]]))
+    setTestImageCache(new Map([[resolveTextureUrl(tex.file), img]]))
 
     const home = createEmptyHome()
     home.walls.push({
@@ -190,7 +190,7 @@ describe('drawPlan wall textures', () => {
 
   it('falls back to flat color when texture image has not loaded yet', () => {
     const img = { complete: false, naturalWidth: 0 } as unknown as HTMLImageElement
-    setTestImageCache(new Map([['/assets/textures/wood-oak.png', img]]))
+    setTestImageCache(new Map([[resolveTextureUrl('wood-oak.png'), img]]))
 
     const home = createEmptyHome()
     home.walls.push({
@@ -210,7 +210,7 @@ describe('drawPlan wall textures', () => {
   it('textured wall produces different fillStyle than untextured wall', () => {
     const tex = WALL_TEXTURES.find(t => t.id === 'concrete')!
     const img = { complete: true, naturalWidth: 64 } as unknown as HTMLImageElement
-    setTestImageCache(new Map([[`/assets/textures/${tex.file}`, img]]))
+    setTestImageCache(new Map([[resolveTextureUrl(tex.file), img]]))
 
     const textured = createEmptyHome()
     textured.walls.push({
@@ -240,7 +240,7 @@ describe('drawPlan furniture textures', () => {
   it('uses the furniture texture pattern when its image is loaded', () => {
     const tex = WALL_TEXTURES.find(t => t.id === 'wood-oak')!
     const img = { complete: true, naturalWidth: 64 } as unknown as HTMLImageElement
-    setTestImageCache(new Map([[`/assets/textures/${tex.file}`, img]]))
+    setTestImageCache(new Map([[resolveTextureUrl(tex.file), img]]))
 
     const home = createEmptyHome()
     home.furniture.push({

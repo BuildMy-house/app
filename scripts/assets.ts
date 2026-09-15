@@ -2,25 +2,24 @@
 /**
  * assets.ts — Repeatable asset pipeline (ticket U8).
  *
- *   npm run assets            # regenerate textures + sync catalog into dist
+ *   npm run assets            # validate catalog + sync assets into public/
  *   npm run assets -- --check # validate only (fail if out of date)
  *
  * Steps:
- *   1. Regenerate procedural textures (homely/assets/textures/) via
- *      assets/textures/generate.py — deterministic (seeded).
- *   2. Regenerate low-poly GLB furniture models (homely/assets/models/) via
- *      scripts/generate-models.ts — deterministic, no licensed assets.
- *   3. Validate the furniture catalog manifest against the catalog schema
+ *   1. Validate the furniture catalog manifest against the catalog schema
  *      (duplicate ids, positive dims, known categories). If an item declares a
  *      `modelPath` (relative to public/assets/, e.g. "models/sofa.glb"), the
  *      referenced file must exist under assets/.
- *   4. Sync `assets/` (catalog.json, textures, models/) into Vite's public dir
- *      so the bundle serves them at runtime (no network fetch).
+ *   2. Sync `assets/` (catalog.json, models/) into Vite's public dir so the
+ *      bundle serves them at runtime (no network fetch).
  *
- * This keeps every asset committed in-repo and reproducible from source —
- * no ad-hoc local generation, no untracked files.
+ * Wall/floor textures are NOT part of this pipeline: they are hosted on R2
+ * under `materials/` (see scripts/upload-textures.ts) and resolved at runtime
+ * via resolveTextureUrl() — same generate-once/upload-once pattern as the
+ * furniture models. The committed sources in assets/textures/ are the upload
+ * source of truth; regenerate art with `npm run textures:generate` and
+ * re-upload with `npm run textures:upload`.
  */
-import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { copyFileSync, readdirSync, statSync } from 'node:fs'
 import { join, dirname } from 'node:path'
@@ -28,18 +27,8 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ASSETS = join(ROOT, 'assets')
-const TEXTURES = join(ASSETS, 'textures')
 const CATALOG_SRC = join(ASSETS, 'catalog', 'catalog.json')
 const PUBLIC_DIR = join(ROOT, 'public')
-
-const EXPECTED_TEXTURES = [
-  'carpet.png',
-  'concrete.png',
-  'plaster-white.png',
-  'tile-floor.png',
-  'wood-oak.png',
-  'wood-pine.png',
-]
 
 const CATEGORIES = new Set([
   'Living',
@@ -77,21 +66,6 @@ function fail(message: string): never {
 /** Externally-hosted model (e.g. Cloudflare R2): no local file to check/copy. */
 function isExternalModel(modelPath: string): boolean {
   return /^https?:\/\//.test(modelPath)
-}
-
-function run(cmd: string, args: string[]): void {
-  execFileSync(cmd, args, { stdio: 'inherit', cwd: ROOT })
-}
-
-/** Regenerate the procedural textures via the committed generator. */
-function regenerateTextures(): void {
-  const generator = join(TEXTURES, 'generate.py')
-  if (!existsSync(generator)) fail(`missing texture generator: ${generator}`)
-  run('python3', [generator])
-  for (const name of EXPECTED_TEXTURES) {
-    if (!existsSync(join(TEXTURES, name))) fail(`texture not generated: ${name}`)
-  }
-  console.log(`[assets] textures ok (${EXPECTED_TEXTURES.length})`)
 }
 
 /** Validate the catalog manifest structurally. */
@@ -143,8 +117,9 @@ function copyDirContents(src: string, dest: string): void {
   if (!existsSync(src)) return
   mkdirSync(dest, { recursive: true })
   for (const entry of readdirSync(src)) {
-    // Build-time tooling is never a runtime asset.
-    if (entry === 'generate.py' || entry === 'sh3d') continue
+    // Build-time tooling and texture sources (R2-hosted via
+    // scripts/upload-textures.ts) are never runtime assets.
+    if (entry === 'generate_pbr.py' || entry === 'sh3d' || entry === 'textures') continue
     const from = join(src, entry)
     const to = join(dest, entry)
     if (statSync(from).isDirectory()) {
@@ -166,25 +141,17 @@ function main(): void {
   const checkOnly = process.argv.includes('--check')
   if (checkOnly) {
     validateCatalog()
-    for (const name of EXPECTED_TEXTURES) {
-      if (!existsSync(join(TEXTURES, name))) fail(`texture missing: ${name} (run npm run assets)`)
-    }
     // Model files must exist for every catalog item that declares a local
     // modelPath; externally-hosted (http/https) items need no local file.
     const manifest = JSON.parse(readFileSync(CATALOG_SRC, 'utf8')) as CatalogManifest
     for (const item of manifest.items) {
       if (item.modelPath && !isExternalModel(item.modelPath) && !existsSync(join(ASSETS, item.modelPath))) {
-        fail(`model missing for ${item.catalogId}: ${item.modelPath} (run npm run models)`)
+        fail(`model missing for ${item.catalogId}: ${item.modelPath}`)
       }
     }
     console.log('[assets] check ok')
     return
   }
-  regenerateTextures()
-  // GLB models are generated by scripts/generate-models.ts (also run via
-  // `npm run models` / prebuild); keep the pipeline idempotent by ensuring
-  // they exist before validation, without re-running the exporter here.
-  run('npx', ['tsx', 'scripts/generate-models.ts'])
   validateCatalog()
   syncToPublic()
   console.log('[assets] done')

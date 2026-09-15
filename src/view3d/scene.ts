@@ -4,6 +4,7 @@ import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js'
 import {
   DEFAULT_WALL_HEIGHT_CM,
   WALL_TEXTURES,
+  resolveTextureUrl,
   type Furniture,
   type Level,
   type NormalizedHomeState,
@@ -507,7 +508,7 @@ function applyAnisotropyToMaterial(material: THREE.Material): void {
  * and must stay linear (NoColorSpace), a classic PBR correctness detail.
  */
 function loadTextureFile(file: string, colorSpace: THREE.ColorSpace): THREE.Texture | null {
-  const url = `assets/textures/${file}`
+  const url = resolveTextureUrl(file)
   const cached = textureCache.get(url)
   if (cached !== undefined) {
     if (cached) recordTextureLoad(file, cached, 0, true, url)
@@ -540,7 +541,7 @@ function loadTextureFile(file: string, colorSpace: THREE.ColorSpace): THREE.Text
 /** Test-only hook: seed the texture cache so unit tests can exercise the
  * PBR material wiring synchronously without real image files. */
 export function __seedTextureCache(file: string, tex: THREE.Texture | null): void {
-  textureCache.set(`assets/textures/${file}`, tex)
+  textureCache.set(resolveTextureUrl(file), tex)
 }
 
 export function __clearTextureCache(): void {

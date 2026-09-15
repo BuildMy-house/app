@@ -2,1404 +2,1712 @@
   "schemaVersion": 1,
   "items": [
     {
-      "catalogId": "eTeks#bed140x190",
-      "name": "Bed 140x190",
-      "category": "Bedroom",
-      "width": 158,
-      "depth": 208,
-      "height": 70,
-      "elevation": 48,
-      "color": 13882323,
-      "doorOrWindow": false,
-      "tags": [
-        "bedroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#chest",
-      "name": "Chest",
-      "category": "Bedroom",
-      "width": 100,
-      "depth": 55,
-      "height": 80,
-      "elevation": 0,
-      "color": 13882323,
-      "doorOrWindow": false,
-      "tags": [
-        "bedroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#bedsideTable",
-      "name": "Bedside table",
-      "category": "Bedroom",
-      "width": 38,
-      "depth": 38,
-      "height": 50,
-      "elevation": 0,
-      "color": 13882323,
-      "doorOrWindow": false,
-      "tags": [
-        "bedroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#bookcase",
-      "name": "Bookcase",
-      "category": "Living",
-      "width": 100,
-      "depth": 40,
-      "height": 211,
-      "elevation": 97.2,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#chair",
-      "name": "Chair",
-      "category": "Living",
-      "width": 40,
-      "depth": 42,
-      "height": 90,
-      "elevation": 46.2,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#roundTable",
-      "name": "Round table",
-      "category": "Living",
-      "width": 126,
-      "depth": 126,
-      "height": 74,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#toiletUnit",
-      "name": "Toilet unit",
-      "category": "Bathroom",
-      "width": 40,
-      "depth": 80,
-      "height": 62,
-      "elevation": 61,
-      "color": 13487565,
-      "doorOrWindow": false,
-      "tags": [
-        "bathroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#washbasin",
-      "name": "Washbasin",
-      "category": "Bathroom",
-      "width": 56,
-      "depth": 47,
-      "height": 97,
-      "elevation": 77.6,
-      "color": 13487565,
-      "doorOrWindow": false,
-      "tags": [
-        "bathroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#bath",
-      "name": "Bath",
-      "category": "Bathroom",
-      "width": 163,
-      "depth": 73,
-      "height": 57,
-      "elevation": 0,
-      "color": 13487565,
-      "doorOrWindow": false,
-      "tags": [
-        "bathroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#bed90x190",
-      "name": "Bed 90x190",
-      "category": "Bedroom",
-      "width": 108,
-      "depth": 208,
-      "height": 70,
-      "elevation": 48,
-      "color": 13882323,
-      "doorOrWindow": false,
-      "tags": [
-        "bedroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#plant",
-      "name": "Plant",
-      "category": "Living",
-      "width": 58,
-      "depth": 50,
-      "height": 82,
-      "elevation": -1,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#window85x123",
-      "name": "Small window",
-      "category": "Doors",
-      "width": 91,
-      "depth": 34,
-      "height": 134,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#window85x163",
-      "name": "Window",
-      "category": "Doors",
-      "width": 91,
-      "depth": 34,
-      "height": 174,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#frenchWindow85x200",
-      "name": "French window",
-      "category": "Doors",
-      "width": 91,
-      "depth": 34,
-      "height": 210,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#doubleWindow126x123",
-      "name": "Double small window",
-      "category": "Doors",
-      "width": 132,
-      "depth": 34,
-      "height": 134,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#doubleWindow126x163",
-      "name": "Double window",
-      "category": "Doors",
-      "width": 132,
-      "depth": 34,
-      "height": 174,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#doubleFrenchWindow126x200",
-      "name": "Double French window",
-      "category": "Doors",
-      "width": 132,
-      "depth": 34,
-      "height": 210,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#doubleHungWindow80x122",
-      "name": "Double-hung window",
-      "category": "Doors",
-      "width": 81,
-      "depth": 27,
-      "height": 128,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#door",
-      "name": "Door",
-      "category": "Doors",
-      "width": 91.5,
-      "depth": 14.5,
-      "height": 208.5,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#openDoor",
-      "name": "Open door",
-      "category": "Doors",
-      "width": 91.5,
-      "depth": 68,
-      "height": 208.5,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#armchair",
+      "catalogId": "sh3d-full#Blend Swap CC-0#armchair",
       "name": "Armchair",
-      "category": "Living",
-      "width": 87,
-      "depth": 92,
-      "height": 87,
-      "elevation": 32.5,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#bunkBed90x190",
-      "name": "Bunk bed",
-      "category": "Bedroom",
-      "width": 115,
-      "depth": 208,
-      "height": 180,
-      "elevation": 154,
-      "color": 13882323,
-      "doorOrWindow": false,
-      "tags": [
-        "bedroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#clothesWasher",
-      "name": "Clothes washer",
-      "category": "Kitchen",
-      "width": 60,
-      "depth": 63,
-      "height": 85,
-      "elevation": 0,
-      "color": 13092431,
-      "doorOrWindow": false,
-      "tags": [
-        "kitchen"
-      ]
-    },
-    {
-      "catalogId": "eTeks#cooker",
-      "name": "Cooker",
-      "category": "Kitchen",
-      "width": 60,
-      "depth": 62,
-      "height": 85,
-      "elevation": 0,
-      "color": 13092431,
-      "doorOrWindow": false,
-      "tags": [
-        "kitchen"
-      ]
-    },
-    {
-      "catalogId": "eTeks#cornerBunkBed90x190",
-      "name": "Corner bunk bed",
-      "category": "Bedroom",
-      "width": 208,
-      "depth": 208,
-      "height": 155,
-      "elevation": 128.1,
-      "color": 13882323,
-      "doorOrWindow": false,
-      "tags": [
-        "bedroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#cornerSofa",
-      "name": "Corner sofa",
-      "category": "Living",
-      "width": 233,
-      "depth": 168,
-      "height": 87,
-      "elevation": 32.6,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#curveStaircase",
-      "name": "Curve staircase",
-      "category": "Other",
-      "width": 72,
-      "depth": 238,
-      "height": 362.4,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#dishwasher",
-      "name": "Dishwasher",
-      "category": "Kitchen",
-      "width": 60,
-      "depth": 65,
-      "height": 85,
-      "elevation": 0,
-      "color": 13092431,
-      "doorOrWindow": false,
-      "tags": [
-        "kitchen"
-      ]
-    },
-    {
-      "catalogId": "eTeks#fridge",
-      "name": "Fridge",
-      "category": "Kitchen",
-      "width": 60,
-      "depth": 66,
-      "height": 85,
-      "elevation": 0,
-      "color": 13092431,
-      "doorOrWindow": false,
-      "tags": [
-        "kitchen"
-      ]
-    },
-    {
-      "catalogId": "eTeks#fridgeFreezer",
-      "name": "Fridge & Freezer",
-      "category": "Kitchen",
-      "width": 60,
-      "depth": 66,
-      "height": 185,
-      "elevation": 0,
-      "color": 13092431,
-      "doorOrWindow": false,
-      "tags": [
-        "kitchen"
-      ]
-    },
-    {
-      "catalogId": "eTeks#kitchenCabinet",
-      "name": "Kitchen cabinet",
-      "category": "Kitchen",
-      "width": 60,
-      "depth": 64,
-      "height": 85,
-      "elevation": 0,
-      "color": 13092431,
-      "doorOrWindow": false,
-      "tags": [
-        "kitchen"
-      ]
-    },
-    {
-      "catalogId": "eTeks#loftBed140x190",
-      "name": "Loft bed 140x190",
-      "category": "Bedroom",
-      "width": 165,
-      "depth": 208,
-      "height": 180,
-      "elevation": 161,
-      "color": 13882323,
-      "doorOrWindow": false,
-      "tags": [
-        "bedroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#piano",
-      "name": "Piano",
-      "category": "Living",
-      "width": 140,
-      "depth": 43,
-      "height": 82,
+      "category": "Office",
+      "width": 59.4,
+      "depth": 62.7,
+      "height": 105,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "living"
-      ]
+        "blend swap",
+        "seat"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-armchair.glb"
     },
     {
-      "catalogId": "eTeks#sink",
-      "name": "Sink",
-      "category": "Kitchen",
-      "width": 120,
-      "depth": 64,
-      "height": 105.7,
-      "elevation": 87.8,
-      "color": 13092431,
-      "doorOrWindow": false,
-      "tags": [
-        "kitchen"
-      ]
-    },
-    {
-      "catalogId": "eTeks#sofa",
-      "name": "Sofa",
-      "category": "Living",
-      "width": 147,
-      "depth": 87,
-      "height": 87,
-      "elevation": 32.4,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#squareTable",
-      "name": "Square table",
-      "category": "Living",
-      "width": 115,
-      "depth": 115,
-      "height": 74,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#staircase",
-      "name": "Staircase",
-      "category": "Other",
-      "width": 72,
-      "depth": 222,
-      "height": 362.4,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#stool",
-      "name": "Stool",
-      "category": "Living",
-      "width": 40,
-      "depth": 40,
-      "height": 46,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#tvUnit",
-      "name": "TV unit",
-      "category": "Living",
-      "width": 100,
-      "depth": 52,
-      "height": 93,
-      "elevation": 41.6,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#wardrobe",
-      "name": "Wardrobe",
-      "category": "Bedroom",
-      "width": 100,
-      "depth": 54,
-      "height": 165,
-      "elevation": 0,
-      "color": 13882323,
-      "doorOrWindow": false,
-      "tags": [
-        "bedroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#texturableBox",
-      "name": "Box",
-      "category": "Other",
-      "width": 100,
-      "depth": 100,
-      "height": 100,
-      "elevation": 0,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#doorFrame",
-      "name": "Door frame",
-      "category": "Doors",
-      "width": 91.5,
-      "depth": 9.5,
-      "height": 208.5,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#sliderWindow126x200",
-      "name": "Slider window",
-      "category": "Doors",
-      "width": 132,
-      "depth": 31.5,
-      "height": 210,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#texturableCylinder0",
-      "name": "Cylinder",
-      "category": "Other",
-      "width": 100,
-      "depth": 100,
-      "height": 100,
-      "elevation": 0,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#fittedBath",
-      "name": "Fitted bath",
-      "category": "Bathroom",
-      "width": 178,
-      "depth": 77,
-      "height": 72,
-      "elevation": 62.5,
-      "color": 13487565,
-      "doorOrWindow": false,
-      "tags": [
-        "bathroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#washbasinWithCabinet",
-      "name": "Washbasin with cabinet",
-      "category": "Bathroom",
-      "width": 62,
-      "depth": 57,
-      "height": 97,
-      "elevation": 75.3,
-      "color": 13487565,
-      "doorOrWindow": false,
-      "tags": [
-        "bathroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#slidingDoors",
-      "name": "Sliding doors",
-      "category": "Bedroom",
-      "width": 154,
-      "depth": 8,
-      "height": 250,
-      "elevation": 0,
-      "color": 13882323,
-      "doorOrWindow": false,
-      "tags": [
-        "bedroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#shower",
-      "name": "Shower",
-      "category": "Bathroom",
-      "width": 79,
-      "depth": 79,
-      "height": 211,
-      "elevation": 25,
-      "color": 13487565,
-      "doorOrWindow": false,
-      "tags": [
-        "bathroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#electricRadiator",
-      "name": "Electric radiator",
-      "category": "Other",
-      "width": 37,
-      "depth": 10,
-      "height": 45,
-      "elevation": 0,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#hotWaterRadiator",
-      "name": "Hot water radiator",
-      "category": "Other",
-      "width": 65,
-      "depth": 25,
-      "height": 61,
-      "elevation": 0,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#serviceHatch",
-      "name": "Service hatch",
-      "category": "Doors",
-      "width": 50,
-      "depth": 8.3,
-      "height": 50,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#fixedWindow85x123",
-      "name": "Fixed window",
-      "category": "Doors",
-      "width": 91,
-      "depth": 27,
-      "height": 134,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#lightSource",
-      "name": "White light source",
-      "category": "Other",
-      "width": 10,
-      "depth": 10,
-      "height": 10,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#halogenLightSource",
-      "name": "Halogen light source",
-      "category": "Other",
-      "width": 10,
-      "depth": 10,
-      "height": 10,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#incandescentLightSource",
-      "name": "Incandescent light source",
-      "category": "Other",
-      "width": 10,
-      "depth": 10,
-      "height": 10,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#fireglowLightSource",
-      "name": "Fireglow light source",
-      "category": "Other",
-      "width": 10,
-      "depth": 10,
-      "height": 10,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#redLightSource",
-      "name": "Red light source",
-      "category": "Other",
-      "width": 10,
-      "depth": 10,
-      "height": 10,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#greenLightSource",
-      "name": "Green light source",
-      "category": "Other",
-      "width": 10,
-      "depth": 10,
-      "height": 10,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#blueLightSource",
-      "name": "Blue light source",
-      "category": "Other",
-      "width": 10,
-      "depth": 10,
-      "height": 10,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#magentaLightSource",
-      "name": "Magenta light source",
-      "category": "Other",
-      "width": 10,
-      "depth": 10,
-      "height": 10,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#floorUplight",
-      "name": "Floor uplight",
-      "category": "Other",
-      "width": 33,
-      "depth": 33,
-      "height": 181,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#spotlight",
-      "name": "Spotlight",
-      "category": "Other",
-      "width": 6.8,
-      "depth": 9.9,
-      "height": 13.1,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#pendantLamp",
-      "name": "Pendant lamp",
-      "category": "Other",
-      "width": 60,
-      "depth": 60,
-      "height": 80,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#workLamp",
-      "name": "Work lamp",
-      "category": "Other",
-      "width": 12,
-      "depth": 29.5,
-      "height": 49.3,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#wallUplight",
-      "name": "Wall uplight",
-      "category": "Other",
-      "width": 24,
-      "depth": 12,
-      "height": 26,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#roundDoorFrame",
-      "name": "Round door frame",
-      "category": "Doors",
-      "width": 80,
-      "depth": 15,
-      "height": 200,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#fixedTriangleWindow85x85",
-      "name": "Fixed triangle window",
-      "category": "Doors",
-      "width": 91,
-      "depth": 27,
-      "height": 91,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#halfRoundWindow",
-      "name": "Half round window",
-      "category": "Doors",
-      "width": 91,
-      "depth": 25,
-      "height": 46,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#roundWindow",
-      "name": "Round window",
-      "category": "Doors",
-      "width": 91,
-      "depth": 25,
-      "height": 91,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#roundedDoor",
-      "name": "Rounded door",
-      "category": "Doors",
-      "width": 91.5,
-      "depth": 14.5,
-      "height": 208.5,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#bed",
+      "catalogId": "sh3d-full#Blend Swap CC-0#bed1",
       "name": "Bed",
       "category": "Bedroom",
-      "width": 144.6,
-      "depth": 193.1,
-      "height": 52.8,
-      "elevation": 44.3,
-      "color": 13882323,
-      "doorOrWindow": false,
-      "tags": [
-        "bedroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#flatTV",
-      "name": "Flat TV",
-      "category": "Living",
-      "width": 121,
-      "depth": 30,
-      "height": 79.3,
-      "elevation": -1,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#flowers",
-      "name": "Flowers",
-      "category": "Living",
-      "width": 24.2,
-      "depth": 22.1,
-      "height": 49.3,
+      "width": 140.7,
+      "depth": 208,
+      "height": 95.5,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "living"
-      ]
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bed1.glb"
     },
     {
-      "catalogId": "eTeks#frontDoor",
-      "name": "Front door",
-      "category": "Doors",
-      "width": 101.5,
-      "depth": 23,
-      "height": 208.5,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#kitchenUpperCabinet",
-      "name": "Kitchen upper cabinet",
-      "category": "Kitchen",
-      "width": 60,
-      "depth": 40.1,
-      "height": 86.2,
-      "elevation": 0,
-      "color": 13092431,
-      "doorOrWindow": false,
-      "tags": [
-        "kitchen"
-      ]
-    },
-    {
-      "catalogId": "eTeks#texturableTriangle",
-      "name": "Triangle",
-      "category": "Other",
-      "width": 100,
-      "depth": 100,
-      "height": 100,
-      "elevation": 0,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#spiralStaircase",
-      "name": "Spiral staircase",
-      "category": "Other",
-      "width": 140,
-      "depth": 140,
-      "height": 362,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#laptop",
-      "name": "Laptop",
-      "category": "Living",
-      "width": 32.5,
-      "depth": 35.5,
-      "height": 19.2,
-      "elevation": 0.7,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#crib",
-      "name": "Crib",
+      "catalogId": "sh3d-full#Blend Swap CC-0#bed2",
+      "name": "Bed",
       "category": "Bedroom",
-      "width": 67,
-      "depth": 125,
-      "height": 85,
-      "elevation": 27.2,
-      "color": 13882323,
-      "doorOrWindow": false,
-      "tags": [
-        "bedroom"
-      ]
-    },
-    {
-      "catalogId": "eTeks#fireplace",
-      "name": "Fireplace",
-      "category": "Living",
-      "width": 145,
-      "depth": 85,
-      "height": 250,
-      "elevation": 35.2,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#glassDoorCabinet",
-      "name": "Glass door cabinet",
-      "category": "Living",
-      "width": 70,
-      "depth": 38.7,
-      "height": 198.2,
-      "elevation": 124.2,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#frame",
-      "name": "Frame",
-      "category": "Other",
-      "width": 50,
-      "depth": 2.2,
-      "height": 35,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#garageDoor",
-      "name": "Garage door",
-      "category": "Doors",
-      "width": 250,
-      "depth": 25,
-      "height": 205,
-      "elevation": -1,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#armchair2",
-      "name": "Armchair",
-      "category": "Living",
-      "width": 80,
-      "depth": 78.1,
-      "height": 77.2,
-      "elevation": 42.5,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#sofa2",
-      "name": "Sofa",
-      "category": "Living",
-      "width": 200,
-      "depth": 86.5,
-      "height": 88,
-      "elevation": 45,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#desk",
-      "name": "Desk",
-      "category": "Living",
-      "width": 140,
-      "depth": 67.8,
-      "height": 77,
+      "width": 144.7,
+      "depth": 213.7,
+      "height": 107.7,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "living"
-      ]
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bed2.glb"
     },
     {
-      "catalogId": "eTeks#mannequin",
-      "name": "Mannequin",
-      "category": "Other",
-      "width": 44,
-      "depth": 52.7,
-      "height": 175,
-      "elevation": 0,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#lamp",
-      "name": "Lamp",
-      "category": "Other",
-      "width": 44,
-      "depth": 44,
-      "height": 49.9,
-      "elevation": -1,
-      "color": 12105931,
-      "doorOrWindow": false,
-      "tags": [
-        "other"
-      ]
-    },
-    {
-      "catalogId": "eTeks#dresser",
-      "name": "Dresser",
-      "category": "Living",
-      "width": 170,
-      "depth": 50,
-      "height": 64.7,
+      "catalogId": "sh3d-full#Blend Swap CC-0#bedsideTable2",
+      "name": "Bedside table",
+      "category": "Bedroom",
+      "width": 48.55,
+      "depth": 48.1,
+      "height": 45.4,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "living"
-      ]
+        "blend swap",
+        "nightstand"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bedsidetable2.glb"
     },
     {
-      "catalogId": "eTeks#filledBookcase",
-      "name": "Filled bookcase",
-      "category": "Living",
-      "width": 85,
-      "depth": 35,
-      "height": 180,
-      "elevation": 34.8,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "living"
-      ]
-    },
-    {
-      "catalogId": "eTeks#aquarium",
-      "name": "Aquarium",
-      "category": "Living",
-      "width": 60,
-      "depth": 30,
-      "height": 35,
+      "catalogId": "sh3d-full#Blend Swap CC-0#bedWithTexture",
+      "name": "Bed",
+      "category": "Bedroom",
+      "width": 198,
+      "depth": 226.36,
+      "height": 76.5,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "living"
-      ]
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bedwithtexture.glb"
     },
     {
-      "catalogId": "eTeks#doubleOutwardOpeningWindow",
-      "name": "Outward opening window",
-      "category": "Doors",
-      "width": 115.2,
-      "depth": 26,
-      "height": 134,
+      "catalogId": "sh3d-full#Blend Swap CC-0#bookcase",
+      "name": "Bookcase",
+      "category": "Living",
+      "width": 91.9,
+      "depth": 36.5,
+      "height": 147.2,
       "elevation": 0,
-      "color": 11184810,
-      "doorOrWindow": true,
-      "tags": [
-        "doors"
-      ]
-    },
-    {
-      "catalogId": "eTeks#railing",
-      "name": "Railing",
-      "category": "Other",
-      "width": 94.4,
-      "depth": 5,
-      "height": 90,
-      "elevation": 0,
-      "color": 12105931,
+      "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "other"
-      ]
+        "blend swap",
+        "shelves",
+        "bookshelf"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bookcase.glb"
     },
     {
-      "catalogId": "eTeks#hood",
-      "name": "Hood",
+      "catalogId": "sh3d-full#Blend Swap CC-0#butter",
+      "name": "Butter",
       "category": "Kitchen",
-      "width": 60,
-      "depth": 52.6,
-      "height": 94,
-      "elevation": -1,
-      "color": 13092431,
+      "width": 16,
+      "depth": 7.5,
+      "height": 3.4,
+      "elevation": 0,
+      "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "kitchen"
-      ]
+        "blend swap",
+        "food"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-butter.glb"
     },
     {
-      "catalogId": "eTeks#coffeeTable",
-      "name": "Coffee table",
+      "catalogId": "sh3d-full#Blend Swap CC-0#caballito",
+      "name": "Rocking horse",
+      "category": "Bedroom",
+      "width": 67.65,
+      "depth": 29.1,
+      "height": 49.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "toy",
+        "game",
+        "decoration"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-caballito.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#caffe_final",
+      "name": "Coffee cup",
+      "category": "Kitchen",
+      "width": 10,
+      "depth": 10,
+      "height": 4.3,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "food",
+        "drink",
+        "espresso"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-caffe-final.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#cartoon_biplane",
+      "name": "Biplane",
+      "category": "Bedroom",
+      "width": 13.8,
+      "depth": 12.4,
+      "height": 5.7,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "toy",
+        "decoration"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-cartoon-biplane.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#cissors_swap",
+      "name": "Scissors",
+      "category": "Office",
+      "width": 13.7,
+      "depth": 6.9,
+      "height": 1.5,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-cissors-swap.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#comb",
+      "name": "Comb",
+      "category": "Bathroom",
+      "width": 12.5,
+      "depth": 3.6,
+      "height": 0.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-comb.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#cosmeticsPot",
+      "name": "Cosmetics pot",
+      "category": "Bathroom",
+      "width": 7.7,
+      "depth": 7.8,
+      "height": 7.1,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "makeup"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-cosmeticspot.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#deer",
+      "name": "Deer",
       "category": "Living",
-      "width": 125,
-      "depth": 46,
+      "width": 4.6,
+      "depth": 10,
+      "height": 20,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "decoration"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-deer.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#desklamp",
+      "name": "Desk lamp",
+      "category": "Other",
+      "width": 24.4,
+      "depth": 24.4,
       "height": 40,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "living"
-      ]
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-desklamp.glb"
     },
     {
-      "catalogId": "eTeks#table",
-      "name": "Table",
-      "category": "Living",
-      "width": 150,
-      "depth": 75,
-      "height": 74,
+      "catalogId": "sh3d-full#Blend Swap CC-0#doubleOven",
+      "name": "Double oven",
+      "category": "Kitchen",
+      "width": 60,
+      "depth": 51.5,
+      "height": 108.9,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "living"
-      ]
+        "blend swap",
+        "appliance",
+        "cooker"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-doubleoven.glb"
     },
     {
-      "catalogId": "eTeks#chair2",
-      "name": "Chair",
-      "category": "Living",
-      "width": 48.6,
-      "depth": 49.9,
-      "height": 80,
-      "elevation": 44.5,
+      "catalogId": "sh3d-full#Blend Swap CC-0#flowerBox",
+      "name": "Flower box",
+      "category": "Outdoor",
+      "width": 55,
+      "depth": 16.75,
+      "height": 19.4,
+      "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "living"
-      ]
+        "blend swap",
+        "outdoor",
+        "flowers",
+        "plant",
+        "decoration"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-flowerbox.glb"
     },
     {
-      "catalogId": "eTeks#blind",
-      "name": "Venetian blind",
-      "category": "Other",
-      "width": 80,
-      "depth": 3.9,
-      "height": 168.3,
-      "elevation": -1,
-      "color": 12105931,
+      "catalogId": "sh3d-full#Blend Swap CC-0#housePuzzle",
+      "name": "Puzzle",
+      "category": "Bedroom",
+      "width": 15.5,
+      "depth": 15.6,
+      "height": 1.3,
+      "elevation": 0,
+      "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "other"
-      ]
+        "blend swap",
+        "toy",
+        "game",
+        "decoration"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-housepuzzle.glb"
     },
     {
-      "catalogId": "eTeks#curtains",
-      "name": "Curtains",
-      "category": "Other",
-      "width": 150,
-      "depth": 22.9,
-      "height": 225,
-      "elevation": -1,
-      "color": 12105931,
+      "catalogId": "sh3d-full#Blend Swap CC-0#kitchenaid",
+      "name": "Mixer",
+      "category": "Kitchen",
+      "width": 21.4,
+      "depth": 36,
+      "height": 35.3,
+      "elevation": 0,
+      "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "other"
-      ]
+        "blend swap",
+        "appliance"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-kitchenaid.glb"
     },
     {
-      "catalogId": "eTeks#oven",
+      "catalogId": "sh3d-full#Blend Swap CC-0#knifeStandSwap",
+      "name": "Knife stand",
+      "category": "Kitchen",
+      "width": 39.15,
+      "depth": 3.5,
+      "height": 35.6,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-knifestandswap.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#L_shaped_sofa",
+      "name": "Corner sofa",
+      "category": "Living",
+      "width": 233.7,
+      "depth": 143.6,
+      "height": 80,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "couch",
+        "seat"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-l-shaped-sofa.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#led_tv",
+      "name": "TV",
+      "category": "Living",
+      "width": 77.5,
+      "depth": 14.2,
+      "height": 50.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "appliance",
+        "television",
+        "flat",
+        "plasma",
+        "lcd",
+        "led"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-led-tv.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#mamadeira",
+      "name": "Baby bottle",
+      "category": "Kitchen",
+      "width": 5,
+      "depth": 5,
+      "height": 14.7,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-mamadeira.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#mano_cooktop",
+      "name": "Cooktop",
+      "category": "Kitchen",
+      "width": 58,
+      "depth": 50,
+      "height": 3.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "cooker",
+        "hob",
+        "appliance"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-mano-cooktop.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#mofx_mailbox",
+      "name": "Mailbox",
+      "category": "Outdoor",
+      "width": 15.9,
+      "depth": 46.5,
+      "height": 81.55,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "outdoor"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-mofx-mailbox.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#oakChair",
+      "name": "Oak chair",
+      "category": "Living",
+      "width": 49.1,
+      "depth": 61.2,
+      "height": 117.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "seat"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-oakchair.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#oakTable",
+      "name": "Oak table",
+      "category": "Living",
+      "width": 124,
+      "depth": 124,
+      "height": 74.1,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "dining",
+        "dinner"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-oaktable.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#oven",
       "name": "Oven",
       "category": "Kitchen",
-      "width": 51.5,
-      "depth": 47.8,
-      "height": 29.5,
+      "width": 60,
+      "depth": 51.5,
+      "height": 57.8,
       "elevation": 0,
-      "color": 13092431,
+      "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "kitchen"
-      ]
+        "blend swap",
+        "appliance",
+        "cooker"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-oven.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#pallet",
+      "name": "Pallet",
+      "category": "Other",
+      "width": 120,
+      "depth": 120.4,
+      "height": 12,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-pallet.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#pianoAQueue",
+      "name": "Grand piano",
+      "category": "Living",
+      "width": 132,
+      "depth": 170,
+      "height": 178,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "music"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-pianoaqueue.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#plasticChair",
+      "name": "Chair",
+      "category": "Living",
+      "width": 44.4,
+      "depth": 58.4,
+      "height": 82,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "seat"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-plasticchair.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#plasticCup",
+      "name": "Plastic cup",
+      "category": "Kitchen",
+      "width": 7.9,
+      "depth": 7.9,
+      "height": 10,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-plasticcup.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#poolTable",
+      "name": "Pool table",
+      "category": "Other",
+      "width": 256,
+      "depth": 139.2,
+      "height": 82.3,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "billiard",
+        "game"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-pooltable.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#radiator1",
+      "name": "Radiator",
+      "category": "Other",
+      "width": 216.3,
+      "depth": 14.3,
+      "height": 83.4,
+      "elevation": 10,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "heating"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-radiator1.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#radiator2",
+      "name": "Radiator",
+      "category": "Other",
+      "width": 132.6,
+      "depth": 41.4,
+      "height": 45.66,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "heating"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-radiator2.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#radiator",
+      "name": "Radiator",
+      "category": "Other",
+      "width": 140.3,
+      "depth": 24.7,
+      "height": 73.1,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "heating"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-radiator.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#relaxChair",
+      "name": "Relax chair",
+      "category": "Outdoor",
+      "width": 66,
+      "depth": 190,
+      "height": 84.7,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "outdoor",
+        "deck",
+        "garden",
+        "seat"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-relaxchair.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#ruler",
+      "name": "Ruler",
+      "category": "Office",
+      "width": 31.2,
+      "depth": 3.4,
+      "height": 0.17,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-ruler.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#shelves",
+      "name": "Shelves",
+      "category": "Living",
+      "width": 79,
+      "depth": 39.4,
+      "height": 79,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "shelf",
+        "bookcase"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-shelves.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#shower",
+      "name": "Shower head and faucet",
+      "category": "Bathroom",
+      "width": 20.8,
+      "depth": 53.8,
+      "height": 114.3,
+      "elevation": 115,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-shower.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#showerDoor",
+      "name": "Shower door",
+      "category": "Bathroom",
+      "width": 90.5,
+      "depth": 22.5,
+      "height": 229.9,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-showerdoor.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#silla2",
+      "name": "Stool",
+      "category": "Kitchen",
+      "width": 32.6,
+      "depth": 31.1,
+      "height": 78.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "chair",
+        "seat"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-silla2.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#speaker2",
+      "name": "Speaker",
+      "category": "Other",
+      "width": 22.1,
+      "depth": 25.4,
+      "height": 35.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "music",
+        "stereo",
+        "hifi"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-speaker2.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#speaker3",
+      "name": "Speaker",
+      "category": "Other",
+      "width": 22.1,
+      "depth": 25.4,
+      "height": 55.1,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "music",
+        "stereo",
+        "hifi"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-speaker3.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#stool",
+      "name": "Stool",
+      "category": "Kitchen",
+      "width": 53,
+      "depth": 52.1,
+      "height": 98,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "chair"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-stool.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#table_football",
+      "name": "Football table",
+      "category": "Other",
+      "width": 150.3,
+      "depth": 124.6,
+      "height": 100.9,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "game"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-table-football.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#tableFan",
+      "name": "Table fan",
+      "category": "Other",
+      "width": 27.1,
+      "depth": 21.8,
+      "height": 40.1,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "appliance"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-tablefan.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#tableWithTablecloth",
+      "name": "Table with tablecloth",
+      "category": "Living",
+      "width": 80.3,
+      "depth": 81.2,
+      "height": 75,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-tablewithtablecloth.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#technicalTable1",
+      "name": "Technical table",
+      "category": "Office",
+      "width": 214.7,
+      "depth": 118.8,
+      "height": 95,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-technicaltable1.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#technicalTable2",
+      "name": "Technical table",
+      "category": "Office",
+      "width": 136.6,
+      "depth": 171.4,
+      "height": 101.3,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-technicaltable2.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#teddyBear",
+      "name": "Teddy bear",
+      "category": "Bedroom",
+      "width": 33.1,
+      "depth": 21.8,
+      "height": 32.2,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "toy",
+        "baby"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-teddybear.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#televisionCabinet",
+      "name": "Television cabinet",
+      "category": "Living",
+      "width": 135.4,
+      "depth": 69.3,
+      "height": 160,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "tv"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-televisioncabinet.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#tetrapak",
+      "name": "Milk",
+      "category": "Kitchen",
+      "width": 9.55,
+      "depth": 9.5,
+      "height": 26.5,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "bottle",
+        "food",
+        "drink"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-tetrapak.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#textMarker",
+      "name": "Text marker",
+      "category": "Office",
+      "width": 3.1,
+      "depth": 10.3,
+      "height": 1.7,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-textmarker.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#toiletBrush",
+      "name": "Toilet brush",
+      "category": "Bathroom",
+      "width": 9.6,
+      "depth": 12.9,
+      "height": 38.6,
+      "elevation": 20,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-toiletbrush.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#toiletPaperDispenser",
+      "name": "Toilet paper dispenser",
+      "category": "Bathroom",
+      "width": 15.6,
+      "depth": 10.4,
+      "height": 18.45,
+      "elevation": 60,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-toiletpaperdispenser.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#toiletsUnit",
+      "name": "Toilet unit",
+      "category": "Bathroom",
+      "width": 35.3,
+      "depth": 69.2,
+      "height": 77.2,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-toiletsunit.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#towel2",
+      "name": "Towel",
+      "category": "Bathroom",
+      "width": 21.8,
+      "depth": 13.7,
+      "height": 66.85,
+      "elevation": 22,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-towel2.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#towel3",
+      "name": "Towel rack",
+      "category": "Bathroom",
+      "width": 59.6,
+      "depth": 8.1,
+      "height": 47.8,
+      "elevation": 40,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-towel3.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#umbrella",
+      "name": "Umbrella",
+      "category": "Outdoor",
+      "width": 223.1,
+      "depth": 222.7,
+      "height": 199.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "outdoor",
+        "deck",
+        "garden",
+        "sun"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-umbrella.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#verticalShelves",
+      "name": "Vertical shelves",
+      "category": "Living",
+      "width": 44,
+      "depth": 39,
+      "height": 185,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "shelf",
+        "bookcase"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-verticalshelves.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#washbasin",
+      "name": "Washbasin",
+      "category": "Bathroom",
+      "width": 56.4,
+      "depth": 45.7,
+      "height": 93.1,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-washbasin.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#whiteBoard",
+      "name": "White board",
+      "category": "Office",
+      "width": 124.65,
+      "depth": 55.108,
+      "height": 129,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "school",
+        "class"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-whiteboard.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#yogurtBottle",
+      "name": "Yogurt bottle",
+      "category": "Kitchen",
+      "width": 6.85,
+      "depth": 6.85,
+      "height": 21.2,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "food",
+        "drink"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-yogurtbottle.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#deckChair",
+      "name": "Deck chair",
+      "category": "Outdoor",
+      "width": 71.4,
+      "depth": 125.5,
+      "height": 82.2,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "seat",
+        "outdoor",
+        "garden",
+        "swimming",
+        "pool"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-deckchair.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#flacon",
+      "name": "Flacon",
+      "category": "Bathroom",
+      "width": 3.7,
+      "depth": 2.1,
+      "height": 13,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "bottle",
+        "makeup"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-flacon.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#sofa",
+      "name": "Corner sofa",
+      "category": "Living",
+      "width": 248.8,
+      "depth": 189.6,
+      "height": 78,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "couch",
+        "seat"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-sofa.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#wardrobeWithSlidingDoors",
+      "name": "Wardrobe",
+      "category": "Bedroom",
+      "width": 200,
+      "depth": 66,
+      "height": 236.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "closet"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-wardrobewithslidingdoors.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#headphones",
+      "name": "Headphones",
+      "category": "Other",
+      "width": 18.9,
+      "depth": 20,
+      "height": 8.2,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "electronics",
+        "music",
+        "stereo",
+        "hifi"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-headphones.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#iphone",
+      "name": "Apple iPhone",
+      "category": "Other",
+      "width": 5.8,
+      "depth": 11.5,
+      "height": 0.9,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "electronics",
+        "telephone",
+        "smartphone",
+        "mobile",
+        "music"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-iphone.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#ammoBox",
+      "name": "Box",
+      "category": "Other",
+      "width": 100,
+      "depth": 52.1,
+      "height": 30.6,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "storage"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-ammobox.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#barrel",
+      "name": "Barrel",
+      "category": "Other",
+      "width": 81.5,
+      "depth": 81.5,
+      "height": 89.7,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "storage"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-barrel.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#crate",
+      "name": "Crate",
+      "category": "Other",
+      "width": 60,
+      "depth": 58.9,
+      "height": 59.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "storage",
+        "box"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-crate.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#cupboard",
+      "name": "Cupboard",
+      "category": "Bedroom",
+      "width": 100.5,
+      "depth": 39,
+      "height": 150,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "wardrobe"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-cupboard.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#desk",
+      "name": "Desk",
+      "category": "Office",
+      "width": 139.3,
+      "depth": 54.3,
+      "height": 105.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "table"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-desk.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#electricGuitar",
+      "name": "Electric guitar",
+      "category": "Living",
+      "width": 34.5,
+      "depth": 32.1,
+      "height": 110,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "music"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-electricguitar.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#littlePlant",
+      "name": "Little plant",
+      "category": "Living",
+      "width": 26.6,
+      "depth": 26.6,
+      "height": 23.2,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "patio",
+        "decoration"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-littleplant.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#basketball",
+      "name": "Basketball",
+      "category": "Other",
+      "width": 23.8,
+      "depth": 23.8,
+      "height": 23.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "game",
+        "sport"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-basketball.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#sillaBlanca",
+      "name": "Chair",
+      "category": "Living",
+      "width": 50.5,
+      "depth": 58.4,
+      "height": 85,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "seat"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-sillablanca.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#umbrellaFolded",
+      "name": "Umbrella",
+      "category": "Other",
+      "width": 35.8,
+      "depth": 35.7,
+      "height": 80,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-umbrellafolded.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#kalender",
+      "name": "Calendar",
+      "category": "Office",
+      "width": 12,
+      "depth": 7.9,
+      "height": 10.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-kalender.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#fireExtinguisher",
+      "name": "Extinguisher",
+      "category": "Other",
+      "width": 31.1,
+      "depth": 18,
+      "height": 62.3,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "fire"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-fireextinguisher.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#numberLock",
+      "name": "Number lock",
+      "category": "Other",
+      "width": 10,
+      "depth": 0.45,
+      "height": 10.2,
+      "elevation": 140,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "security"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-numberlock.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#potty",
+      "name": "Potty",
+      "category": "Bathroom",
+      "width": 30.3,
+      "depth": 30.3,
+      "height": 18.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "baby"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-potty.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#slippersSeparated",
+      "name": "Slippers",
+      "category": "Bedroom",
+      "width": 23.7,
+      "depth": 28.1,
+      "height": 6.1,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "shoes",
+        "clothes"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-slippersseparated.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#armchair2",
+      "name": "Armchair",
+      "category": "Living",
+      "width": 95.3,
+      "depth": 83.3,
+      "height": 78.3,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "seat"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-armchair2.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#babyRockingBed",
+      "name": "Baby bed",
+      "category": "Bedroom",
+      "width": 59.7,
+      "depth": 82.5,
+      "height": 76.2,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "crib"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-babyrockingbed.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#bed3",
+      "name": "Bed",
+      "category": "Bedroom",
+      "width": 202.2,
+      "depth": 228.2,
+      "height": 114.2,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bed3.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#beerGlass",
+      "name": "Beer glass",
+      "category": "Kitchen",
+      "width": 15.4,
+      "depth": 10.2,
+      "height": 16.5,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "drink"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-beerglass.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#bread",
+      "name": "Bread",
+      "category": "Kitchen",
+      "width": 21.6,
+      "depth": 14.7,
+      "height": 7.6,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "food"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bread.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#cardGame",
+      "name": "Card game",
+      "category": "Bedroom",
+      "width": 21.1,
+      "depth": 11.3,
+      "height": 0.38,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-cardgame.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#ceilingFan",
+      "name": "Ceiling fan",
+      "category": "Other",
+      "width": 91.3,
+      "depth": 79.8,
+      "height": 39.2,
+      "elevation": 210.8,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-ceilingfan.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#chair",
+      "name": "Chair",
+      "category": "Living",
+      "width": 51.3,
+      "depth": 53.1,
+      "height": 80,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "seat"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-chair.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#chicken",
+      "name": "Chicken",
+      "category": "Other",
+      "width": 24.2,
+      "depth": 32.8,
+      "height": 45.6,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "animal"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-chicken.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#couch",
+      "name": "Couch",
+      "category": "Living",
+      "width": 207.4,
+      "depth": 87.6,
+      "height": 85.6,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "sofa"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-couch.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#cuckooClock",
+      "name": "Cuckoo clock",
+      "category": "Other",
+      "width": 26.6,
+      "depth": 17.7,
+      "height": 73.8,
+      "elevation": 100,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "decoration"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-cuckooclock.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#horse2",
+      "name": "Horse",
+      "category": "Other",
+      "width": 58.3,
+      "depth": 261.6,
+      "height": 200,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "animal",
+        "stable"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-horse2.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#lockedLocker",
+      "name": "Locked locker",
+      "category": "Other",
+      "width": 20,
+      "depth": 22,
+      "height": 40,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-lockedlocker.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#modernArmchair",
+      "name": "Armchair",
+      "category": "Living",
+      "width": 77.3,
+      "depth": 84.9,
+      "height": 86.5,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "seat"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-modernarmchair.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#riggedFan",
+      "name": "Rigged fan",
+      "category": "Other",
+      "width": 32.7,
+      "depth": 20.7,
+      "height": 32.2,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-riggedfan.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#antiqueChair",
+      "name": "Chair",
+      "category": "Living",
+      "width": 49.8,
+      "depth": 63.2,
+      "height": 98.2,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "seat"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-antiquechair.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#augalas",
+      "name": "Plant",
+      "category": "Living",
+      "width": 60.9,
+      "depth": 34.9,
+      "height": 31.5,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "patio",
+        "decoration"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-augalas.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#bench",
+      "name": "Bench",
+      "category": "Outdoor",
+      "width": 170.1,
+      "depth": 45.9,
+      "height": 50.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap",
+        "outdoor"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bench.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#bidet",
+      "name": "Bidet",
+      "category": "Bathroom",
+      "width": 39.9,
+      "depth": 53.6,
+      "height": 51.3,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bidet.glb"
+    },
+    {
+      "catalogId": "sh3d-full#Blend Swap CC-0#box",
+      "name": "Box",
+      "category": "Other",
+      "width": 89.9,
+      "depth": 65.7,
+      "height": 31.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "blend swap"
+      ],
+      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-box.glb"
     }
   ]
 }

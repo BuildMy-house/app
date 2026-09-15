@@ -1,5 +1,5 @@
 import type { NormalizedHomeState, Wall, Furniture, Level } from '../core/home'
-import { WALL_TEXTURES } from '../core/home'
+import { WALL_TEXTURES, resolveTextureUrl } from '../core/home'
 import { wallOutlinePoints } from '../core/top-camera-follower'
 import { wallArcHandlePos } from './engine'
 import type { PlanPreview } from './engine'
@@ -122,7 +122,7 @@ function resolveTextureImage(
   if (!textureId) return null
   const tex = WALL_TEXTURES.find((t) => t.id === textureId)
   if (!tex) return null
-  const url = `/assets/textures/${tex.file}`
+  const url = resolveTextureUrl(tex.file)
   const cached = imageCache.get(url)
   if (cached) return cached
   const img = new Image()

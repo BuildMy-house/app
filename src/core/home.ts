@@ -42,13 +42,18 @@ export interface Level {
  * One entry of the shared wall/ground/furniture texture catalog.
  * Base fields are the original catalog shape; the PBR fields (MAT-T2) are
  * optional additions so existing consumers keep working unchanged.
+ *
+ * Files are hosted on R2 under the `materials/` prefix and must always be
+ * resolved through resolveTextureUrl() — never build a local path here.
+ * The committed files under `assets/textures/` are the upload source, not a
+ * runtime fallback.
  */
 export interface WallTextureEntry {
   id: string
   label: string
-  /** Diffuse/base-color map file, relative to `assets/textures/` (sRGB). */
+  /** Diffuse/base-color map file name (sRGB), resolved via resolveTextureUrl. */
   file: string
-  /** Linear-space PBR maps (NOT sRGB), relative to `assets/textures/`. */
+  /** Linear-space PBR maps (NOT sRGB), resolved via resolveTextureUrl. */
   normalFile?: string
   roughnessFile?: string
   metalnessFile?: string
@@ -86,6 +91,18 @@ export const WALL_TEXTURES: WallTextureEntry[] = [
 ]
 
 export type WallTextureId = (typeof WALL_TEXTURES)[number]['id']
+
+/** R2 key prefix + public base serving the texture files (see r2-client.ts). */
+const R2_MATERIALS_BASE = 'https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/materials'
+
+/**
+ * Resolve a texture file name to its fetchable URL. The single resolution
+ * path for every texture consumer (3D scene + 2D plan renderer). Full URLs
+ * pass through untouched so entries/tests can override if ever needed.
+ */
+export function resolveTextureUrl(file: string): string {
+  return /^https?:\/\//i.test(file) ? file : `${R2_MATERIALS_BASE}/${file}`
+}
 
 export interface Wall {
   id: string
