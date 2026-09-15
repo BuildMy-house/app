@@ -807,7 +807,8 @@ body {
 
 .catalog-swatch {
   width: 100%;
-  height: 56px;
+  aspect-ratio: 1 / 1;
+  height: auto;
   border-radius: 3px;
   border: 1px solid var(--border);
   background: var(--bg);

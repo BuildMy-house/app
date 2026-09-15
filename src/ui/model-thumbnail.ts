@@ -10,6 +10,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { configureGltfLoader } from '../view3d/scene'
+import { frameOrthographicCamera } from '../view3d/thumbnail-camera'
 
 let sharedRenderer: THREE.WebGLRenderer | null = null
 let sharedScene: THREE.Scene | null = null
@@ -20,12 +21,10 @@ function ensureShared(): boolean {
   if (sharedRenderer) return true
   try {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-    renderer.setSize(96, 72)
+    renderer.setSize(96, 96)
     renderer.setPixelRatio(1)
     const scene = new THREE.Scene()
-    const camera = new THREE.OrthographicCamera(-2, 2, 1.5, -1.5, 0.1, 100)
-    camera.position.set(0, 0.5, 5)
-    camera.lookAt(0, 0.4, 0)
+    const camera = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.1, 100)
     const ambient = new THREE.AmbientLight(0xffffff, 0.6)
     const key = new THREE.DirectionalLight(0xffffff, 0.8)
     key.position.set(2, 3, 2)
@@ -68,6 +67,7 @@ export function renderModelThumbnail(canvas: HTMLCanvasElement, url: string, col
       model.position.sub(center)
       model.rotation.y = -0.6 // slight 3/4 view
       sharedScene!.add(model)
+      frameOrthographicCamera(sharedCamera!, model)
       sharedRenderer!.render(sharedScene!, sharedCamera!)
       // Blit the WebGL framebuffer into the 2D canvas.
       const gl = sharedRenderer!.getContext()
