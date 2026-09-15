@@ -4,8 +4,9 @@
  *
  *   npm run thumbnails          # render assets/thumbs/<modelPath>.webp per item
  *
- * For every catalog.json item with a modelPath (and an existing GLB under
- * assets/), renders the model with headless Chromium (Playwright — already a
+ * For every catalog.json item with a modelPath (a local GLB under assets/, or
+ * an external R2 URL whose thumbnail uploads to thumbs/ in the same bucket),
+ * renders the model with headless Chromium (Playwright — already a
  * devDependency for e2e) using the same orthographic 3/4-view framing as the
  * runtime fallback in src/ui/model-thumbnail.ts, and saves a WebP next to the
  * GLBs under assets/thumbs/ (mirrored to public/ by `npm run assets` sync).
@@ -26,6 +27,7 @@ import { fileURLToPath } from 'node:url'
 
 import { chromium } from '@playwright/test'
 import { build } from 'esbuild'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CATALOG_SRC = join(ROOT, 'assets', 'catalog', 'catalog.json')
@@ -46,9 +48,32 @@ interface CatalogManifest {
   items: CatalogItem[]
 }
 
+/** Externally-hosted model (e.g. Cloudflare R2) — mirrors scripts/assets.ts. */
+function isExternalModel(modelPath: string): boolean {
+  return /^https?:\/\//i.test(modelPath)
+}
+
+/** R2 object key for an external model's thumbnail: .../models/x.glb -> thumbs/x.webp. */
+function externalThumbKey(modelPath: string): string {
+  const base = new URL(modelPath).pathname.split('/').pop() ?? ''
+  return `thumbs/${base.replace(/\.[^.]+$/, '')}.webp`
+}
+
 /** Thumbnail path for a modelPath, mirroring the CatalogPanel convention. */
 function thumbPath(modelPath: string): string {
   return join(THUMBS_DIR, modelPath.replace(/\.[^.]+$/, '') + '.webp')
+}
+
+function getS3Client(): S3Client {
+  const { R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_S3_ENDPOINT } = process.env
+  if (!R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_S3_ENDPOINT) {
+    fail('external models present but R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_S3_ENDPOINT are not set')
+  }
+  return new S3Client({
+    region: 'auto',
+    endpoint: R2_S3_ENDPOINT,
+    credentials: { accessKeyId: R2_ACCESS_KEY_ID, secretAccessKey: R2_SECRET_ACCESS_KEY },
+  })
 }
 
 /**
@@ -120,9 +145,13 @@ function fail(message: string): never {
 async function main(): Promise<void> {
   const manifest = JSON.parse(readFileSync(CATALOG_SRC, 'utf8')) as CatalogManifest
   const jobs = manifest.items.filter(
-    (item) => item.modelPath && existsSyncQuiet(join(MODELS_DIR, item.modelPath)),
+    (item) =>
+      item.modelPath &&
+      (isExternalModel(item.modelPath) || existsSyncQuiet(join(MODELS_DIR, item.modelPath))),
   )
   console.log(`[thumbs] rendering ${jobs.length} thumbnails (${manifest.items.length} catalog items)`)
+
+  const s3 = jobs.some((item) => isExternalModel(item.modelPath!)) ? getS3Client() : null
 
   const tmp = mkdtempSync(join(tmpdir(), 'thumbs-'))
   const bundle = join(tmp, 'renderer.js')
@@ -143,9 +172,16 @@ async function main(): Promise<void> {
   let written = 0
   let skipped = 0
   for (const item of jobs) {
-    const out = thumbPath(item.modelPath!)
+    const external = isExternalModel(item.modelPath!)
     try {
-      const glb = readFileSync(join(MODELS_DIR, item.modelPath!))
+      let glb: Buffer
+      if (external) {
+        const res = await fetch(item.modelPath!)
+        if (!res.ok) throw new Error(`fetch failed: HTTP ${res.status}`)
+        glb = Buffer.from(await res.arrayBuffer())
+      } else {
+        glb = readFileSync(join(MODELS_DIR, item.modelPath!))
+      }
       const dataUrl = `data:model/gltf-binary;base64,${glb.toString('base64')}`
       const result = (await page.evaluate(async (url) => {
         return await (window as unknown as { __renderThumb: (u: string) => Promise<string | null> }).__renderThumb(url)
@@ -155,8 +191,19 @@ async function main(): Promise<void> {
         console.warn(`[thumbs] skip ${item.catalogId}: renderer returned no image`)
         continue
       }
-      mkdirSync(dirname(out), { recursive: true })
-      writeFileSync(out, Buffer.from(result.slice('data:image/webp;base64,'.length), 'base64'))
+      const webp = Buffer.from(result.slice('data:image/webp;base64,'.length), 'base64')
+      if (external) {
+        await s3!.send(new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: externalThumbKey(item.modelPath!),
+          Body: webp,
+          ContentType: 'image/webp',
+        }))
+      } else {
+        const out = thumbPath(item.modelPath!)
+        mkdirSync(dirname(out), { recursive: true })
+        writeFileSync(out, webp)
+      }
       written++
     } catch (err) {
       skipped++
