@@ -25,6 +25,7 @@ import { AssetStorage } from './storage.js';
 import { renderQueue } from './render-queue.js';
 import { reportError } from './errorReporting.js';
 import Database from 'better-sqlite3';
+import { readFileSync } from 'node:fs';
 
 export async function createApp(
   dbOrAdapter: DbAdapter | Database.Database,
@@ -130,8 +131,31 @@ export async function createApp(
       return
     }
 
-    const jobId = renderQueue.enqueue(userId, homeId, homeName ?? 'Untitled', homeJson, quality ?? 'standard')
+    if (!['thumbnail', 'low', 'medium', 'high'].includes(quality ?? 'medium')) {
+      res.status(400).json({ error: 'quality must be thumbnail, low, medium, or high' })
+      return
+    }
+    let jobId: string
+    try {
+      jobId = renderQueue.enqueue(userId, homeId, homeName ?? 'Untitled', homeJson, quality ?? 'medium')
+    } catch (error) {
+      res.status(503).json({ error: error instanceof Error ? error.message : String(error) })
+      return
+    }
     res.status(202).json({ jobId, status: 'queued' })
+  })
+
+  app.get('/api/render/queue/:jobId/artifact', requireAuth, (req, res) => {
+    const job = renderQueue.getJob(req.params.jobId, (req as any).userId!)
+    if (!job?.resultPath) {
+      res.status(404).json({ error: 'render artifact not found' })
+      return
+    }
+    try {
+      res.type('png').send(readFileSync(job.resultPath))
+    } catch {
+      res.status(404).json({ error: 'render artifact not found' })
+    }
   })
 
   // Get render job status

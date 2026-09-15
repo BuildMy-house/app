@@ -12,11 +12,29 @@ services:
       JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be set (e.g. in a .env file)}"
       DB_PATH: /data/homely.db
       ASSET_DIR: /data/assets
+      RENDER_DIR: /data/renders
+      LUXCORE_WORKER_URL: http://luxcore-worker:8081
+      LUXCORE_WORKER_TOKEN: "${LUXCORE_WORKER_TOKEN:?LUXCORE_WORKER_TOKEN must be set}"
       STATIC_DIR: /app/dist-static
       PORT: "3000"
     volumes:
       - homely-data:/data
     restart: unless-stopped
 
+  luxcore-worker:
+    build:
+      context: ..
+      dockerfile: equivalence/luxcore/Dockerfile
+    image: homely-luxcore-worker:local
+    container_name: luxcore-worker
+    environment:
+      LUXCORE_WORKER_TOKEN: "${LUXCORE_WORKER_TOKEN:?LUXCORE_WORKER_TOKEN must be set}"
+      LUXCORE_RENDER_ROOT: /data/renders
+      PORT: "8081"
+    volumes:
+      - luxcore-renders:/data/renders
+    restart: unless-stopped
+
 volumes:
   homely-data:
+  luxcore-renders:

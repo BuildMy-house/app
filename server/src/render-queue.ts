@@ -2,14 +2,16 @@
  * render-queue.ts — Server-side render job queue for photorealistic exports.
  *
  * Manages background render jobs (LuxCoreRender, path tracing, etc.).
- * Optional premium feature: users can queue high-quality renders instead of
- * instant client-side previews. Jobs processed in background, results cached.
+ * Users queue final LuxCore renders (or catalog thumbnails) instead of
+ * rendering them in the browser. Jobs are processed in the worker background.
  *
  * No database needed: in-memory queue + filesystem storage.
  * Scales: supports 1-2 concurrent renders even on tiny servers.
  */
 
 import { randomUUID } from 'node:crypto'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { jobTelemetry } from './jobs/telemetry.js'
 
 export interface NormalizedHomeState {
@@ -17,6 +19,7 @@ export interface NormalizedHomeState {
   [key: string]: unknown
 }
 
+export type RenderProfile = 'thumbnail' | 'low' | 'medium' | 'high'
 export type RenderJobStatus = 'pending' | 'processing' | 'complete' | 'failed'
 
 export interface RenderJob {
@@ -26,7 +29,7 @@ export interface RenderJob {
   homeName: string
   homeJson: NormalizedHomeState
   status: RenderJobStatus
-  quality: 'quick' | 'standard' | 'ultra' // Affects render time
+  quality: RenderProfile
   createdAt: number
   startedAt?: number
   completedAt?: number
@@ -42,13 +45,16 @@ export class RenderQueue {
   private jobs = new Map<string, RenderJob>()
   private queue: string[] = [] // Job IDs in order
   private processing = false
-  private maxConcurrent = 1 // Start 1 render at a time; increase if server has headroom
+  private readonly workerUrl = (process.env.LUXCORE_WORKER_URL ?? '').replace(/\/$/, '')
+  private readonly workerToken = process.env.LUXCORE_WORKER_TOKEN ?? ''
+  private readonly renderRoot = process.env.RENDER_DIR ?? 'data/renders'
 
   /**
    * Add a render job to the queue.
    * Returns job ID immediately; client polls for status.
    */
-  enqueue(userId: string, homeId: string, homeName: string, home: NormalizedHomeState, quality = 'standard'): string {
+  enqueue(userId: string, homeId: string, homeName: string, home: NormalizedHomeState, quality: RenderProfile = 'medium'): string {
+    if (!this.workerUrl || !this.workerToken) throw new Error('LuxCore worker is not configured')
     const id = randomUUID()
     const job: RenderJob = {
       id,
@@ -57,7 +63,7 @@ export class RenderQueue {
       homeName,
       homeJson: home,
       status: 'pending',
-      quality: quality as 'quick' | 'standard' | 'ultra',
+      quality,
       createdAt: Date.now(),
     }
     this.jobs.set(id, job)
@@ -103,9 +109,7 @@ export class RenderQueue {
       jobTelemetry.jobStarted('render', jobId, job.startedAt - job.createdAt)
 
       try {
-        // TODO: Integrate actual render engine here (LuxCoreRender, Cycles, etc.)
-        // For now: placeholder that simulates a render job
-        await this.renderPlaceholder(job)
+        await this.renderWithWorker(job)
         job.status = 'complete'
         job.completedAt = Date.now()
         jobTelemetry.jobCompleted('render', jobId, job.completedAt - job.startedAt!, true)
@@ -122,24 +126,30 @@ export class RenderQueue {
   }
 
   /**
-   * Placeholder render: in production, call LuxCoreRender or other engine.
-   * For now: just logs that render would happen.
+   * Submit one job to the worker, poll it, and cache the PNG locally.
    */
-  private async renderPlaceholder(job: RenderJob): Promise<void> {
-    // Simulate render time based on quality setting
-    const delayMs = {
-      quick: 1000, // 1s placeholder
-      standard: 3000, // 3s placeholder
-      ultra: 10000, // 10s placeholder
-    }[job.quality]
-
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // In production: save actual render to disk here
-        job.resultPath = `/tmp/render-${job.id}.png`
-        resolve()
-      }, delayMs)
+  private async renderWithWorker(job: RenderJob): Promise<void> {
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.workerToken}` }
+    const submitted = await fetch(`${this.workerUrl}/api/render/jobs/${job.userId}`, {
+      method: 'POST', headers, body: JSON.stringify({ scene: job.homeJson, profile: job.quality }),
     })
+    if (!submitted.ok) throw new Error(`LuxCore submit failed: ${submitted.status}`)
+    const remote = (await submitted.json()) as { id: string }
+    for (;;) {
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const response = await fetch(`${this.workerUrl}/api/render/jobs/${job.userId}/${remote.id}`, { headers })
+      if (!response.ok) throw new Error(`LuxCore status failed: ${response.status}`)
+      const status = (await response.json()) as { status: string; error?: string }
+      if (status.status === 'failed') throw new Error(status.error ?? 'LuxCore render failed')
+      if (status.status !== 'completed') continue
+      const artifact = await fetch(`${this.workerUrl}/api/render/jobs/${job.userId}/${remote.id}/artifact`, { headers })
+      if (!artifact.ok) throw new Error(`LuxCore artifact failed: ${artifact.status}`)
+      mkdirSync(this.renderRoot, { recursive: true })
+      const path = join(this.renderRoot, `${job.id}.png`)
+      writeFileSync(path, Buffer.from(await artifact.arrayBuffer()))
+      job.resultPath = path
+      return
+    }
   }
 
   /**
@@ -152,9 +162,10 @@ export class RenderQueue {
 
     // Estimate wait time: average render time × pending jobs
     const avgRenderTime = {
-      quick: 1000,
-      standard: 3000,
-      ultra: 10000,
+      thumbnail: 60_000,
+      low: 300_000,
+      medium: 600_000,
+      high: 1_800_000,
     }
     const totalWaitMs = allJobs
       .filter((j) => j.status === 'pending' || j.status === 'processing')
