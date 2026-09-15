@@ -135,6 +135,7 @@ let catalogPanel: CatalogPanel | null = null
 // `assets/<path>`. Declared before View3D (used in its options).
 const userModelUrls = new Map<string, string>()
 const modelUrlResolver = (modelPath: string): string => {
+  if (/^https?:\/\//i.test(modelPath)) return modelPath
   const blobUrl = userModelUrls.get(modelPath)
   return blobUrl ?? `assets/${modelPath}`
 }
