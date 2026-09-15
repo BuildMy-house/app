@@ -39,6 +39,22 @@ function elevationFor(ref: string | null | undefined, levels: Map<string, number
   return levels.get(ref) ?? 0
 }
 
+/**
+ * Fallback for furniture whose catalog entry never got an explicit
+ * modelPath: derive one from catalogId (e.g. 'eTeks#chair' -> 'eteks-chair.glb')
+ * so the model still loads instead of silently keeping the colored-box
+ * placeholder. Bundled models live under assets/models/, matching
+ * defaultModelUrlResolver's `assets/${modelPath}` prefixing below.
+ */
+function deriveModelPath(catalogId: string | null | undefined): string | null {
+  if (!catalogId) return null
+  const slug = catalogId
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return `models/${slug || 'model'}.glb`
+}
+
 // ── Wall outline (M50/M53c) ─────────────────────────────────────────────────
 //
 // Reuses wallOutlinePoints() from top-camera-follower.ts for straight and arc
@@ -654,8 +670,9 @@ function swapInModel(
   isSelected: boolean,
   onReady?: () => void,
 ): void {
-  if (!item.modelPath) return
-  const url = activeModelUrlResolver(item.modelPath)
+  const modelPath = item.modelPath || deriveModelPath(item.catalogId)
+  if (!modelPath) return
+  const url = activeModelUrlResolver(modelPath)
 
   const addModel = (source: THREE.Object3D): void => {
     const model = fitModelToBox(source.clone(), item)
