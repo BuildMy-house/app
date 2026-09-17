@@ -56,7 +56,11 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
   },
   ultra: {
     preset: 'ultra',
-    pixelRatioCap: 3,
+    // Capped at 2 rather than a true 1:1 devicePixelRatio (which can be 3 on
+    // many phones/high-DPI laptops) — going to 3 nearly triples fragment-
+    // shader work per axis (9x pixels) for a sharpness gain that's hard to
+    // see, and was a major contributor to laggy orbiting on this preset.
+    pixelRatioCap: 2,
     shadowMapSize: 8192,
     antialias: true,
     fogDensity: 0.00004,

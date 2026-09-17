@@ -147,6 +147,13 @@ export class View3D {
       // PCFSoftShadowMap is deprecated in r185+; PCFShadowMap now uses Vogel
       // disk sampling with IGN noise, giving the same soft-shadow quality.
       renderer.shadowMap.type = THREE.PCFShadowMap
+      // Shadow-casting geometry/lights are static during orbit — only camera
+      // moves. Re-rendering the full shadow pass every orbit frame (three.js's
+      // default) was the single biggest cost in the render loop; gate it to
+      // fire only when the scene/quality actually changes (see needsUpdate
+      // sets in applyQualityToScene() and onStoreChanged()).
+      renderer.shadowMap.autoUpdate = false
+      renderer.shadowMap.needsUpdate = true
       container.appendChild(renderer.domElement)
       this.renderer = renderer
       this.applyQualityToScene()
@@ -361,6 +368,9 @@ export class View3D {
             this._quality.fogDensity,
           )
         : null
+    // autoUpdate is off (see renderer setup) — force one shadow pass now that
+    // shadow-casting geometry/resolution may have changed.
+    this.renderer.shadowMap.needsUpdate = true
   }
 
   /** Current HDRI environment preset id (a viewport pref, not home state). */
@@ -460,6 +470,9 @@ export class View3D {
       const deltaMs = performance.now() - t0
       this._lastDeltaMs = applied ? deltaMs : 0
       if (applied) recordSceneDelta(single.type, deltaMs)
+      // Delta path moved/changed shadow-casting geometry directly; autoUpdate
+      // is off, so force one shadow pass to pick it up.
+      if (applied && this.renderer) this.renderer.shadowMap.needsUpdate = true
     }
     if (!applied) this.rebuild()
 
