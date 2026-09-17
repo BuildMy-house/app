@@ -14,7 +14,16 @@
 
 import * as THREE from 'three'
 import type { Wall, Furniture, Room, NormalizedHomeState } from '../core/home'
-import { ceilingMesh, roomMesh, tintEmissive, wallEdges, wallMesh } from './scene'
+import {
+  ceilingMesh,
+  furnitureMesh,
+  roomMesh,
+  tintEmissive,
+  wallEdges,
+  wallMesh,
+  withModelUrlResolver,
+  type ModelUrlResolver,
+} from './scene'
 
 export type SceneUpdateType =
   | 'wall-update'
@@ -285,12 +294,24 @@ export function isTransformOnlyFurnitureChange(a: Furniture, b: Furniture): bool
   )
 }
 
+/**
+ * Options the delta path needs to mirror buildScene's behaviour: custom model
+ * URL resolution, the animation-loop kick after an async GLB swap-in, and the
+ * active level filter (furniture on other levels must NOT be rendered).
+ */
+export interface ApplySceneUpdateOptions {
+  modelUrlResolver?: ModelUrlResolver
+  onModelReady?: () => void
+  activeLevel?: string | null
+}
+
 /** Apply one delta in place. False = caller must fall back to full rebuild. */
 export function applySceneUpdate(
   scene: THREE.Scene,
   update: SceneUpdate,
   home: NormalizedHomeState,
   oldHome?: NormalizedHomeState | null,
+  opts?: ApplySceneUpdateOptions,
 ): boolean {
   switch (update.type) {
     case 'furniture-update': {
@@ -302,9 +323,18 @@ export function applySceneUpdate(
     }
     case 'wall-update':
       return applyWallUpdate(scene, update, home, oldHome)
+    case 'wall-delete':
+      return applyWallDelete(scene, update, home, oldHome)
     case 'room-update':
       return applyRoomUpdate(scene, update, home)
+    case 'room-delete':
+      return applyRoomDelete(scene, update)
+    case 'furniture-delete':
+      return applyFurnitureDelete(scene, update)
+    case 'furniture-add':
+      return applyFurnitureAdd(scene, update, home, opts)
     default:
+      // 'level-change' and 'full-rebuild' always rebuild.
       return false
   }
 }
@@ -435,14 +465,71 @@ function applyWallUpdate(
 
   const elevations = levelElevations(home)
   const wallsTransparency = home.environment.wallsAlpha ?? 0
-  for (const [wid, w] of touched) {
-    removeNamed(scene, `wall:${wid}`)
-    removeNamed(scene, `wall-edge:${wid}`)
-    const elev = elevationAt(w.levelRef, elevations)
-    const mesh = wallMesh(w, elev, wallsTransparency, home.furniture, home.walls)
-    root.add(mesh)
-    root.add(wallEdges(w, elev, home.walls))
-    if (home.selection.includes(wid)) tintEmissive(mesh)
+  for (const [, w] of touched) {
+    remeshWall(scene, root, w, home, elevations, wallsTransparency)
+  }
+  return true
+}
+
+/**
+ * Remove and rebuild one wall's mesh + edge highlight, mirroring buildScene.
+ * Shared by wall-update (edited + miter-affected neighbors) and wall-delete
+ * (neighbors whose miter changed when the deleted wall vanished).
+ */
+function remeshWall(
+  scene: THREE.Scene,
+  root: THREE.Object3D,
+  w: Wall,
+  home: NormalizedHomeState,
+  elevations: Map<string, number>,
+  wallsTransparency: number,
+): void {
+  removeNamed(scene, `wall:${w.id}`)
+  removeNamed(scene, `wall-edge:${w.id}`)
+  const elev = elevationAt(w.levelRef, elevations)
+  const mesh = wallMesh(w, elev, wallsTransparency, home.furniture, home.walls)
+  root.add(mesh)
+  root.add(wallEdges(w, elev, home.walls))
+  if (home.selection.includes(w.id)) tintEmissive(mesh)
+}
+
+/**
+ * wall-delete: remove the deleted wall's mesh + edges, and re-mesh every wall
+ * that shared an endpoint with it — wallOutlinePoints miters wall ends
+ * against joined neighbors, so the neighbors' geometry changes when the
+ * deleted wall disappears. Without oldHome we don't know the deleted wall's
+ * endpoints, so we can't identify affected neighbors → conservative rebuild.
+ */
+function applyWallDelete(
+  scene: THREE.Scene,
+  update: SceneUpdate,
+  home: NormalizedHomeState,
+  oldHome?: NormalizedHomeState | null,
+): boolean {
+  const id = update.wallId
+  if (!id) return false
+  const deleted = oldHome?.walls.find((w) => w.id === id)
+  if (!deleted) return false
+  const root = scene.getObjectByName('home')
+  if (!root) return false
+
+  const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.5
+  const joins = (w: Wall, x: number, y: number): boolean =>
+    (near(w.xStart, x) && near(w.yStart, y)) || (near(w.xEnd, x) && near(w.yEnd, y))
+  const corners: Array<[number, number]> = [
+    [deleted.xStart, deleted.yStart],
+    [deleted.xEnd, deleted.yEnd],
+  ]
+
+  // The deleted wall is already absent from home.walls; only neighbors remain.
+  const touched = home.walls.filter((w) => corners.some(([cx, cy]) => joins(w, cx, cy)))
+
+  removeNamed(scene, `wall:${id}`)
+  removeNamed(scene, `wall-edge:${id}`)
+  const elevations = levelElevations(home)
+  const wallsTransparency = home.environment.wallsAlpha ?? 0
+  for (const w of touched) {
+    remeshWall(scene, root, w, home, elevations, wallsTransparency)
   }
   return true
 }
@@ -479,6 +566,74 @@ function applyRoomUpdate(
     if (floor) tintEmissive(floor)
     if (ceiling) tintEmissive(ceiling)
   }
+  return true
+}
+
+/**
+ * room-delete: remove the deleted room's floor + ceiling meshes. Rooms have
+ * no cross-object geometry dependencies (unlike walls' miters), so removal
+ * alone mirrors what buildScene would render. Nothing is added, so the
+ * 'home' root is not required.
+ */
+function applyRoomDelete(scene: THREE.Scene, update: SceneUpdate): boolean {
+  const id = update.roomId
+  if (!id) return false
+  removeNamed(scene, `room:${id}`)
+  removeNamed(scene, `ceiling:${id}`)
+  return true
+}
+
+/**
+ * furniture-delete: remove the standalone mesh when one exists. If the id
+ * has no standalone mesh it is either an InstancedMesh group member (shrinking
+ * instance buffers is NOT supported here) or was invisible/off-level and never
+ * rendered — both fall back to rebuild.
+ */
+function applyFurnitureDelete(scene: THREE.Scene, update: SceneUpdate): boolean {
+  const id = update.furnitureId
+  if (!id) return false
+  if (!scene.getObjectByName(`furniture:${id}`)) return false
+  removeNamed(scene, `furniture:${id}`)
+  return true
+}
+
+/**
+ * furniture-add: build the new item with the same single-item builder
+ * buildScene uses (furnitureMesh). Cases that buildScene would NOT render are
+ * handled as consistent no-ops (true, nothing added): invisible items and
+ * items on another level when a level filter is active. Door/window openings
+ * are baked into the referenced wall's geometry, so those adds fall back to
+ * rebuild (conservative — see wallMesh's furniture-driven opening cutouts).
+ */
+function applyFurnitureAdd(
+  scene: THREE.Scene,
+  update: SceneUpdate,
+  home: NormalizedHomeState,
+  opts?: ApplySceneUpdateOptions,
+): boolean {
+  const id = update.furnitureId
+  const item = update.furniture
+  if (!id || !item) return false
+  const root = scene.getObjectByName('home')
+  if (!root) return false
+
+  // Mirror scene.ts matchesLevel: null activeLevel renders everything.
+  const activeLevel = opts?.activeLevel ?? null
+  if (item.visible === false) return true
+  if (activeLevel !== null && (item.levelRef ?? null) !== activeLevel) return true
+  if (item.doorOrWindow) {
+    // Opening cutouts live in the wall mesh, not a standalone furniture mesh.
+    return false
+  }
+
+  // The scene predates this item, so it cannot already sit in an InstancedMesh
+  // group; if it matches a grouped catalog shape it renders as a standalone
+  // mesh until the next rebuild regroups — visually identical either way.
+  const elev = elevationAt(item.levelRef, levelElevations(home))
+  const mesh = withModelUrlResolver(opts?.modelUrlResolver, () =>
+    furnitureMesh(item, elev, opts?.onModelReady, home.selection.includes(item.id)),
+  )
+  root.add(mesh)
   return true
 }
 

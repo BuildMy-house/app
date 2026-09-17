@@ -469,6 +469,23 @@ export const defaultModelUrlResolver: ModelUrlResolver = (modelPath) =>
 /** Scene-level resolver; set once per buildScene call via the options. */
 let activeModelUrlResolver: ModelUrlResolver = defaultModelUrlResolver
 
+/**
+ * Run `fn` with `resolver` installed as the active model resolver (mirrors
+ * buildScene's set/restore). Lets the delta path resolve modelPaths against
+ * the view's resolver without a full buildScene. No-op when resolver is
+ * undefined (keep whatever is active).
+ */
+export function withModelUrlResolver<T>(resolver: ModelUrlResolver | undefined, fn: () => T): T {
+  if (!resolver) return fn()
+  const previous = activeModelUrlResolver
+  activeModelUrlResolver = resolver
+  try {
+    return fn()
+  } finally {
+    activeModelUrlResolver = previous
+  }
+}
+
 // ── Wall texture loading (M52) ──────────────────────────────────────────────
 
 const TEXTURE_TILE_CM = 100 // 1 repeat per 100 cm — documents the tiling choice
@@ -728,7 +745,7 @@ function swapInModel(
   }
 }
 
-function furnitureMesh(
+export function furnitureMesh(
   item: Furniture,
   elevation: number,
   onReady?: () => void,

@@ -28,6 +28,7 @@ import {
   recordFullRebuild,
   recordSceneDelta,
   snapshotDeltaMetrics,
+  type SceneUpdateType,
 } from './scene-delta'
 import { exportViewportAsImage } from '../export/quick-preview'
 
@@ -462,18 +463,33 @@ export class View3D {
     // Compute what actually changed since the last render
     const updates = computeSceneUpdates(this._lastHome, home)
 
-    // Delta path: exactly one clear-scope update (single furniture move,
-    // single wall edit, or single room edit) → apply in place, skipping the
-    // full scene rebuild. Anything ambiguous or complex falls back to
-    // rebuild() for safety.
+    // Delta path: apply every computed update in place, but only when ALL of
+    // them apply cleanly (and none is a 'full-rebuild'). A single failure
+    // anywhere falls back to rebuild() for the WHOLE batch — partial applies
+    // are simply discarded because rebuild() reconstructs the scene from
+    // store state, so nothing double-applies.
     let applied = false
-    const single = updates.length === 1 ? updates[0] : undefined
-    if (single && single.type !== 'full-rebuild' && this._lastHome) {
-      const t0 = performance.now()
-      applied = applySceneUpdate(this._scene, single, home, this._lastHome)
-      const deltaMs = performance.now() - t0
-      this._lastDeltaMs = applied ? deltaMs : 0
-      if (applied) recordSceneDelta(single.type, deltaMs)
+    if (this._lastHome && updates.length > 0 && !updates.some((u) => u.type === 'full-rebuild')) {
+      const batchStart = performance.now()
+      applied = true
+      const deltaTimings: Array<{ type: SceneUpdateType; ms: number }> = []
+      for (const update of updates) {
+        const t0 = performance.now()
+        const ok = applySceneUpdate(this._scene, update, home, this._lastHome, {
+          modelUrlResolver: this.modelUrlResolver,
+          onModelReady: () => this.startAnimationLoop(),
+          activeLevel: this._activeLevel,
+        })
+        if (!ok) {
+          applied = false
+          break
+        }
+        deltaTimings.push({ type: update.type, ms: performance.now() - t0 })
+      }
+      if (applied) {
+        for (const { type, ms } of deltaTimings) recordSceneDelta(type, ms)
+      }
+      this._lastDeltaMs = applied ? performance.now() - batchStart : 0
       // Delta path moved/changed shadow-casting geometry directly; autoUpdate
       // is off, so force one shadow pass to pick it up.
       if (applied && this.renderer) this.renderer.shadowMap.needsUpdate = true
