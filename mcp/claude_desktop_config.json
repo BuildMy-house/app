@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "buildmyhouse": {
+      "command": "/home/nahar/Documents/code/buildmy.house/app/mcp/run.sh"
+    }
+  }
+}

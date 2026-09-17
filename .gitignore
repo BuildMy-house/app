@@ -1,5 +1,9 @@
 node_modules
 dist
+mcp/.venv
+__pycache__
+*.pyc
+.env
 public/assets
 src-tauri/target
 src-tauri/gen

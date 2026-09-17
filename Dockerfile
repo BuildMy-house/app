@@ -49,5 +49,8 @@ COPY --from=server-builder /app/server/package.json /app/server/package-lock.jso
 RUN npm ci --omit=dev
 COPY --from=server-builder /app/server/dist ./dist
 COPY --from=frontend-builder /app/dist ./dist-static
+COPY scripts/fetch-infisical-secrets.js scripts/entrypoint.sh ./scripts/
+RUN chmod 755 ./scripts/entrypoint.sh
 EXPOSE 3000
+ENTRYPOINT ["/app/scripts/entrypoint.sh"]
 CMD ["node", "dist/index.js"]

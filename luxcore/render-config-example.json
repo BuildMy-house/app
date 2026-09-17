@@ -1,0 +1,38 @@
+{
+  "materials": {
+    "type": "glossy2",
+    "kd": {"r": 0.85, "g": 0.82, "b": 0.78},
+    "ks": {"r": 0.4, "g": 0.4, "b": 0.4},
+    "roughness": 0.15,
+    "index": 1.5
+  },
+  "lighting": {
+    "environment_gain": {"r": 1.0, "g": 1.0, "b": 1.0},
+    "portal_gain": {"r": 1.2, "g": 1.2, "b": 1.2},
+    "interior_gain": {"r": 0.8, "g": 0.8, "b": 0.8},
+    "sun": {
+      "type": "directional",
+      "name": "sun",
+      "gain": {"r": 1.5, "g": 1.5, "b": 1.5},
+      "direction": [0.5, -0.5, -1.0]
+    }
+  },
+  "camera": {
+    "use": "observer",
+    "fov": 63.0
+  },
+  "quality": {
+    "preset": null,
+    "engine": "PATHCPU",
+    "width": 640,
+    "height": 480,
+    "samples_per_pixel": 32,
+    "seconds": 30,
+    "denoise": "none",
+    "adaptive": true,
+    "adaptive_warmup_spp": 16,
+    "adaptive_step_spp": 16,
+    "adaptive_strength": 0.7,
+    "noise_threshold": 0.8
+  }
+}

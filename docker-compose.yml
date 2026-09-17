@@ -1,32 +1,38 @@
 services:
-  homely:
+  bmh:
     build:
       context: .
       dockerfile: Dockerfile
-    image: homely:local
-    container_name: homely
+    image: bmh:local
+    container_name: bmh
     ports:
       - "${HOMELY_PORT:-3000}:3000"
     environment:
       # Required: no default is provided. Set it in a .env file or in your shell.
       JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be set (e.g. in a .env file)}"
+      INFISICAL_HOST_URL: "${INFISICAL_HOST_URL:-}"
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_ID: "${INFISICAL_UNIVERSAL_AUTH_CLIENT_ID:-}"
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET: "${INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET:-}"
+      INFISICAL_PROJECT_ID: "${INFISICAL_PROJECT_ID:-}"
+      INFISICAL_ENV: "${INFISICAL_ENV:-dev}"
+      INFISICAL_SECRET_PATH: "${INFISICAL_SECRET_PATH:-/}"
       DB_PATH: /data/homely.db
       ASSET_DIR: /data/assets
       RENDER_DIR: /data/renders
-      LUXCORE_WORKER_URL: http://luxcore-worker:8081
+      LUXCORE_WORKER_URL: http://bmh-renderer:8081
       LUXCORE_WORKER_TOKEN: "${LUXCORE_WORKER_TOKEN:?LUXCORE_WORKER_TOKEN must be set}"
       STATIC_DIR: /app/dist-static
       PORT: "3000"
     volumes:
-      - homely-data:/data
+      - bmh-data:/data
     restart: unless-stopped
 
-  luxcore-worker:
+  bmh-renderer:
     build:
-      context: ..
-      dockerfile: equivalence/luxcore/Dockerfile
-    image: homely-luxcore-worker:local
-    container_name: luxcore-worker
+      context: .
+      dockerfile: luxcore/Dockerfile
+    image: bmh-renderer:local
+    container_name: bmh-renderer
     environment:
       LUXCORE_WORKER_TOKEN: "${LUXCORE_WORKER_TOKEN:?LUXCORE_WORKER_TOKEN must be set}"
       LUXCORE_RENDER_ROOT: /data/renders
@@ -36,5 +42,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  homely-data:
+  bmh-data:
+    name: app_homely-data
   luxcore-renders:

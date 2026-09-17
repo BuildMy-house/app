@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://homely.local/schema/render-config.schema.json",
+  "title": "RenderConfig",
+  "description": "Unified render configuration for the LuxCore renderer. Controls material defaults, lighting, camera, and render quality in one JSON file.",
+  "type": "object",
+  "properties": {
+    "materials": {
+      "type": "object",
+      "description": "Default material properties applied to wall/floor/furniture.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["matte", "glossy2"],
+          "default": "matte"
+        },
+        "kd": { "$ref": "#/$defs/rgb01" },
+        "ks": { "$ref": "#/$defs/rgb01" },
+        "roughness": {
+          "type": "number", "minimum": 0.02, "maximum": 1.0, "default": 0.5
+        },
+        "index": {
+          "type": "number", "minimum": 1.0, "maximum": 3.0, "default": 1.5
+        }
+      }
+    },
+    "lighting": {
+      "type": "object",
+      "description": "Scene lighting controls.",
+      "properties": {
+        "environment_gain": { "$ref": "#/$defs/rgb" },
+        "portal_gain": { "$ref": "#/$defs/rgb" },
+        "interior_gain": { "$ref": "#/$defs/rgb" },
+        "sun": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["directional", "point", "constantinfinite"],
+              "default": "directional"
+            },
+            "name": { "type": "string", "default": "sun" },
+            "gain": { "$ref": "#/$defs/rgb" },
+            "direction": {
+              "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3
+            },
+            "color": { "$ref": "#/$defs/rgb01" }
+          }
+        }
+      }
+    },
+    "camera": {
+      "type": "object",
+      "description": "Camera selection or override.",
+      "properties": {
+        "use": {
+          "type": ["string", "null"],
+          "enum": ["top", "observer", null]
+        },
+        "lookat": {
+          "type": "array",
+          "description": "[eye, target, up] — each [x, y, z] in metres (Z-up).",
+          "items": {
+            "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3
+          },
+          "minItems": 3, "maxItems": 3
+        },
+        "fov": {
+          "type": "number", "minimum": 5.0, "maximum": 179.0, "default": 60.0
+        }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "description": "Render quality / performance knobs.",
+      "properties": {
+        "preset": {
+          "type": ["string", "null"],
+          "enum": ["cpu-preview", "cpu-final", "gpu-fast", "gpu-final", null]
+        },
+        "engine": {
+          "type": "string", "enum": ["PATHCPU", "PATHOCL"], "default": "PATHCPU"
+        },
+        "width": {
+          "type": "integer", "minimum": 1, "maximum": 4096, "default": 800
+        },
+        "height": {
+          "type": "integer", "minimum": 1, "maximum": 4096, "default": 600
+        },
+        "samples_per_pixel": {
+          "type": "integer", "minimum": 1, "maximum": 4096, "default": 256
+        },
+        "seconds": {
+          "type": "integer", "minimum": 1, "maximum": 1800, "default": 300
+        },
+        "denoise": {
+          "type": "string", "enum": ["none", "oidn", "bcd"], "default": "none"
+        },
+        "denoise_sharpness": {
+          "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.1
+        },
+        "denoise_oidn_memory_mb": {
+          "type": "integer", "minimum": 512, "maximum": 24000, "default": 6000
+        },
+        "adaptive": {
+          "type": "boolean", "default": false
+        },
+        "adaptive_warmup_spp": {
+          "type": "integer", "minimum": 1, "maximum": 512, "default": 32
+        },
+        "adaptive_step_spp": {
+          "type": "integer", "minimum": 1, "maximum": 512, "default": 32
+        },
+        "adaptive_strength": {
+          "type": "number", "minimum": 0.5, "maximum": 0.9, "default": 0.7
+        },
+        "noise_threshold": {
+          "type": "number", "minimum": 0.01, "maximum": 1.0, "default": 0.5
+        }
+      }
+    }
+  },
+  "$defs": {
+    "rgb": {
+      "type": "object",
+      "description": "RGB triplet, unbounded (used for light gains).",
+      "properties": {
+        "r": { "type": "number", "minimum": 0.0 },
+        "g": { "type": "number", "minimum": 0.0 },
+        "b": { "type": "number", "minimum": 0.0 }
+      }
+    },
+    "rgb01": {
+      "type": "object",
+      "description": "RGB colour in [0, 1].",
+      "properties": {
+        "r": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "g": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "b": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      }
+    }
+  }
+}

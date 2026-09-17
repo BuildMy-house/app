@@ -15,9 +15,8 @@ elsewhere and Homely connects out to them:
 
 | Server | Bind | Notes |
 |---|---|---|
-| `equivalence/eq/adapters/server.py` (`AutomationServer`) | `127.0.0.1` by default | Used by `qa-loop/run.py` and the equivalence runner with the default host. |
-| `homely-mcp/server.py` | `127.0.0.1` by default (`HOMELY_MCP_HOST` to override) | MCP bridge for AI agents; stdio transport, HTTP only behind `HOMELY_MCP_HTTP_PORT`. |
-| `homely/src/dev/mock-orchestrator.ts` | explicit `127.0.0.1` | Dev/test stand-in only, never shipped. |
+| `mcp/server.py` | `127.0.0.1` by default (`HOMELY_MCP_HOST` to override) | MCP bridge for AI agents; stdio transport, HTTP only behind `HOMELY_MCP_HTTP_PORT`. |
+| `src/dev/mock-orchestrator.ts` | explicit `127.0.0.1` | Dev/test stand-in only, never shipped. |
 
 The Tauri shell (`homely/src-tauri/src/lib.rs`) opens no port either — it only
 reads `HOMELY_AUTOMATION_PORT` and hands the number to the webview.
@@ -43,7 +42,7 @@ This setup is loopback-only **by design**, and that is what makes it safe:
   persist to `localStorage` (`src/core/project-store.ts`); the WebView sandbox
   has no disk access. Worst case, a command mutates or exports the in-memory
   home design.
-- **LAN access is an explicit opt-in.** `homely-mcp` exposes
+- **LAN access is an explicit opt-in.** `mcp/server.py` exposes
   `HOMELY_MCP_HOST` (and `HOMELY_MCP_HTTP_PORT` for the streamable-HTTP MCP
   transport). Both default to loopback; network exposure requires setting env
   vars deliberately and should only be done on a trusted network, since

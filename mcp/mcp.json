@@ -1,0 +1,9 @@
+{
+  "name": "buildmyhouse",
+  "version": "1.0.0",
+  "description": "Drive the Homely house designer (Sweet Home 3D clone) from an AI assistant.",
+  "transport": {
+    "type": "stdio",
+    "command": "/home/nahar/Documents/code/buildmy.house/app/mcp/run.sh"
+  }
+}
