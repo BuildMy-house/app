@@ -99,6 +99,8 @@ export class View3D {
   private _lastHome: NormalizedHomeState | null = null
   private _lastDeltaMs = 0
   private _activeLevel: string | null = null
+  // Only changes when the scene graph is rebuilt, never during camera orbit.
+  private _instancedMeshCount = 0
 
   constructor(
     private readonly store: HomeStore,
@@ -114,6 +116,7 @@ export class View3D {
       onModelReady: () => this.startAnimationLoop(),
       activeLevel: this._activeLevel,
     })
+    this.countInstancedMeshes()
     this.perspectiveCamera = new THREE.PerspectiveCamera(63, 4 / 3, 1, 500_000)
     this.perspectiveCamera.rotation.order = 'YXZ'
     this.unobserve = observeStore(store, () => this.onStoreChanged())
@@ -430,6 +433,7 @@ export class View3D {
       onModelReady: () => this.startAnimationLoop(),
       activeLevel: this._activeLevel,
     })
+    this.countInstancedMeshes()
     this.applyQualityToScene()
     this.applyEnvironment()
 
@@ -659,6 +663,14 @@ export class View3D {
     }
   }
 
+  /** Count THREE.InstancedMesh instances once per scene build (not per metrics sample). */
+  private countInstancedMeshes(): void {
+    this._instancedMeshCount = 0
+    this._scene.traverse((object) => {
+      if (object instanceof THREE.InstancedMesh) this._instancedMeshCount++
+    })
+  }
+
   /**
    * Snapshot renderer stats from renderer.info (already tracked per frame by
    * Three.js — no extra render work). Called every 30 frames.
@@ -666,10 +678,7 @@ export class View3D {
   private collectRenderingMetrics(): RenderingMetrics | undefined {
     const renderer = this.renderer
     if (!renderer) return undefined
-    let instancedMeshCount = 0
-    this._scene.traverse((object) => {
-      if (object instanceof THREE.InstancedMesh) instancedMeshCount++
-    })
+    const instancedMeshCount = this._instancedMeshCount
     const samples = this._frameSamples
     const avgDt = samples.length > 0 ? samples.reduce((a, b) => a + b, 0) / samples.length : 0
     return {
