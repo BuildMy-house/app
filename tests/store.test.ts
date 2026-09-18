@@ -29,6 +29,24 @@ describe('HomeStore undo/redo', () => {
     expect(store.canRedo()).toBe(false)
   })
 
+  it('undoes mixed wall and furniture additions in reverse action order', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    model.addWall(wallInput())
+    model.addFurniture({ name: 'chair', x: 10, y: 10, angleDeg: 0, width: 40, depth: 40, height: 80, elevation: 0 })
+
+    expect(store.undo()).toBe(true)
+    expect(store.getHome().furniture).toHaveLength(0)
+    expect(store.getHome().walls).toHaveLength(1)
+    expect(store.undo()).toBe(true)
+    expect(store.getHome().walls).toHaveLength(0)
+
+    expect(store.redo()).toBe(true)
+    expect(store.redo()).toBe(true)
+    expect(store.getHome().walls).toHaveLength(1)
+    expect(store.getHome().furniture).toHaveLength(1)
+  })
+
   it('undo/redo round-trip is byte-identical through the serializer', () => {
     const store = new HomeStore()
     const model = new HomeModel(store)
@@ -109,7 +127,7 @@ describe('undo history depth cap', () => {
     for (let i = 1; i <= HomeStore.MAX_UNDO_DEPTH + 5; i++) model.setName(`home-${i}`)
     expect(store.getHome().name).toBe(`home-${HomeStore.MAX_UNDO_DEPTH + 5}`)
 
-    // Only the newest 100 undo steps survive: undoing to the bottom lands on
+    // Only the newest 20 undo steps survive: undoing to the bottom lands on
     // edit #6 — the empty home and the first five edits are gone for good.
     let undos = 0
     while (store.undo()) undos++

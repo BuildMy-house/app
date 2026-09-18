@@ -6,7 +6,7 @@ import { followTopCamera } from './top-camera-follower'
  * apply() so the automation layer and the UI share one truth.
  *
  * Undo/redo is snapshot-based: every undoable mutation clones the whole home.
- * Depth-capped (SH3D keeps full history; 100 is ample for equivalence runs).
+ * Depth-capped to the 20 most recent actions.
  *
  * The SH3D top-camera follower runs after every content change (apply/undo/
  * redo) — HomeController3D$TopCameraState parity. It skips camera-only
@@ -14,7 +14,7 @@ import { followTopCamera } from './top-camera-follower'
  * (camera placement is not an undoable edit in SH3D either).
  */
 export class HomeStore {
-  static readonly MAX_UNDO_DEPTH = 100
+  static readonly MAX_UNDO_DEPTH = 20
 
   private home: NormalizedHomeState
   private undoStack: NormalizedHomeState[] = []
