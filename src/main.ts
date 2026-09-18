@@ -224,7 +224,13 @@ document.addEventListener('click', closeAllMenus)
 const hasUndo = () => store.canUndo()
 const hasRedo = () => store.canRedo()
 
-const doUndo = (): void => { telemetry.featureUndo(); void traceAction('undo', () => { store.undo(); refreshAll() }) }
+const doUndo = (): void => {
+  telemetry.featureUndo()
+  void traceAction('undo', () => {
+    if (!engine.removeLastChainPoint()) store.undo()
+    refreshAll()
+  })
+}
 const doRedo = (): void => { telemetry.featureRedo(); void traceAction('redo', () => { store.redo(); refreshAll() }) }
 
 function refreshMenus(): void {
@@ -1037,12 +1043,13 @@ canvas.addEventListener('wheel', (event) => {
 }, { passive: false })
 
 window.addEventListener('keydown', (event) => {
-  if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
+  const shortcutKey = event.key.toLowerCase()
+  if ((event.ctrlKey || event.metaKey) && shortcutKey === 'z' && !event.shiftKey) {
     event.preventDefault()
     doUndo()
     return
   }
-  if ((event.ctrlKey || event.metaKey) && (event.key === 'y' || (event.shiftKey && event.key === 'z'))) {
+  if ((event.ctrlKey || event.metaKey) && (shortcutKey === 'y' || (event.shiftKey && shortcutKey === 'z'))) {
     event.preventDefault()
     doRedo()
     return
