@@ -9,6 +9,7 @@ import { AutoFloorDialog } from '../ui/AutoFloorDialog'
 import { pointWithAngleMagnetism, wallPointMagnetism } from './magnetism'
 import { snapFurniturePlacement } from './furniture-snap'
 import {
+  closestPointOnSegment,
   distance,
   distToSegment,
   signedArea,
@@ -351,7 +352,7 @@ export class PlanEngine {
     return stored !== 'false'
   }
 
-  private gridSnapEnabled = false
+  private gridSnapEnabled = true
   private gridSnapSizeCm = 10
 
   setGridSnap(enabled: boolean, sizeCm?: number): void {
@@ -1731,8 +1732,11 @@ export class PlanEngine {
    */
   private resolveChainStart(point: Point): Point {
     const home = this.homeSnapshot()
-    const free = this.freeEndpointAt(home, point, endpointSnapMargin())
+    const margin = endpointSnapMargin()
+    const free = this.freeEndpointAt(home, point, margin)
     if (free) return free
+    const onWall = this.wallBodySnapAt(home, point, margin)
+    if (onWall) return onWall
     if (this.gridSnapEnabled) return this.snapToGrid(point.x, point.y)
     return point
   }
@@ -1768,6 +1772,13 @@ export class PlanEngine {
         return refResult
       }
     }
+    // No endpoint-based snap fired on either axis: try snapping onto the
+    // BODY of the nearest wall (T-junction) before giving up to the plain
+    // magnetized point.
+    if (sameResult.x === base.x && sameResult.y === base.y) {
+      const onWall = this.wallBodySnapAt(home, base, margin)
+      if (onWall) return onWall
+    }
     return sameResult
   }
 
@@ -1802,6 +1813,32 @@ export class PlanEngine {
           bestDist = dist
           best = endpoint
         }
+      }
+    }
+    return best
+  }
+
+  /**
+   * T-junction snap: pull a point onto the nearest wall's BODY (not just its
+   * endpoints) so a new wall can end flush against the middle of another
+   * wall. No wall-splitting occurs — this only affects where the new wall's
+   * point lands, matching SH3D's visual snap without the structural join.
+   */
+  private wallBodySnapAt(
+    home: NormalizedHomeState,
+    point: Point,
+    margin: number,
+  ): Point | null {
+    let best: Point | null = null
+    let bestDist = margin
+    for (const wall of home.walls) {
+      const a = { x: wall.xStart, y: wall.yStart }
+      const b = { x: wall.xEnd, y: wall.yEnd }
+      const onSegment = closestPointOnSegment(point, a, b)
+      const dist = distance(point, onSegment)
+      if (dist <= bestDist) {
+        bestDist = dist
+        best = onSegment
       }
     }
     return best

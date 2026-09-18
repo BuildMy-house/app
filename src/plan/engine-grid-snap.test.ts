@@ -11,9 +11,9 @@ function setup() {
 }
 
 describe('PlanEngine grid snap', () => {
-  it('defaults to off', () => {
+  it('defaults to on', () => {
     const { engine } = setup()
-    expect(engine.isGridSnapEnabled()).toBe(false)
+    expect(engine.isGridSnapEnabled()).toBe(true)
     expect(engine.getGridSnapSize()).toBe(10)
   })
 

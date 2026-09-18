@@ -110,6 +110,42 @@ describe('wall tool state machine', () => {
     expect(engine.getPreview().chainStart).toEqual({ x: 100, y: 0 })
   })
 
+  it('a chain segment ending near the BODY of another wall snaps onto that wall (T-junction)', () => {
+    const { engine, click, store } = setup()
+    engine.setTool('wall')
+    engine.setMagnetism(false)
+    engine.setGridSnap(false)
+    click(0, 0)
+    click(100, 0)
+    engine.key('escape')
+
+    // New chain starting far from any endpoint, ending 3 units off the
+    // middle of the first wall's body (well away from either free end).
+    click(50, 50)
+    click(50, 3)
+    engine.key('escape')
+
+    expect(wallGraph(store)).toContainEqual([0, 0, 100, 0])
+    expect(wallGraph(store)).toContainEqual([50, 0, 50, 50])
+  })
+
+  it('a NEW chain start near the BODY of another wall snaps onto that wall (T-junction)', () => {
+    const { engine, click, store } = setup()
+    engine.setTool('wall')
+    engine.setMagnetism(false)
+    engine.setGridSnap(false)
+    click(0, 0)
+    click(100, 0)
+    engine.key('escape')
+
+    click(50, 3) // chain START near the wall body, away from either free end
+    expect(engine.getPreview().chainStart).toEqual({ x: 50, y: 0 })
+    click(50, 50)
+    engine.key('escape')
+
+    expect(wallGraph(store)).toContainEqual([50, 0, 50, 50])
+  })
+
   it('escape with an empty chain returns to the selection tool', () => {
     const { engine, click } = setup()
     engine.setTool('wall')
@@ -195,6 +231,7 @@ describe('magnetism', () => {
     const { engine, click, store } = setup()
     engine.setTool('wall')
     engine.setMagnetism(true)
+    engine.setGridSnap(false)
     click(0, 0)
     click(103, 1)
     engine.key('escape')
@@ -453,6 +490,7 @@ describe('room vertex interaction', () => {
     const s = setup()
     s.engine.setTool('room')
     s.engine.setMagnetism(false)
+    s.engine.setGridSnap(false)
     s.click(0, 0)
     s.click(200, 0)
     s.click(200, 150)
@@ -963,6 +1001,7 @@ describe('wall endpoint drag magnetism', () => {
     const s = setup()
     s.engine.setTool('wall')
     s.engine.setMagnetism(false)
+    s.engine.setGridSnap(false)
     s.click(0, 0)
     s.click(100, 0)
     s.engine.key('escape')
@@ -1067,6 +1106,7 @@ describe('room vertex drag magnetism', () => {
     const s = setup()
     s.engine.setTool('room')
     s.engine.setMagnetism(false)
+    s.engine.setGridSnap(false)
     s.click(0, 0)
     s.click(200, 0)
     s.click(200, 150)
@@ -1218,9 +1258,9 @@ describe('marquee selection', () => {
 })
 
 describe('grid snap', () => {
-  it('is disabled by default and reports its size', () => {
+  it('is enabled by default and reports its size', () => {
     const { engine } = setup()
-    expect(engine.isGridSnapEnabled()).toBe(false)
+    expect(engine.isGridSnapEnabled()).toBe(true)
     expect(engine.getGridSnapSize()).toBe(10)
   })
 
