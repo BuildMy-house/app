@@ -12,12 +12,13 @@ export class AuthDialog {
   private overlay: HTMLDivElement
   private auth: AuthAdapter
   private onAuthenticated: () => void
-  private mode: 'login' | 'register' = 'login'
+  private mode: 'login' | 'register'
   private escHandler: ((e: KeyboardEvent) => void) | null = null
 
-  constructor(auth: AuthAdapter, onAuthenticated: () => void) {
+  constructor(auth: AuthAdapter, onAuthenticated: () => void, initialMode: 'login' | 'register' = 'login') {
     this.auth = auth
     this.onAuthenticated = onAuthenticated
+    this.mode = initialMode
     this.overlay = document.createElement('div')
     this.overlay.className = 'prefs-overlay'
   }

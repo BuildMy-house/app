@@ -84,4 +84,22 @@ export class RemoteHomeStore {
     const response = await this.request(`${this.baseUrl}/${encodeURIComponent(id)}`, { method: 'DELETE' })
     if (!response.ok) throw new Error(`home removal failed (${response.status})`)
   }
+
+  /**
+   * Rename a saved home in place. The server's PUT requires the full json
+   * blob, so this round-trips the existing one unchanged and only swaps the
+   * name — callers never need to hold a loaded copy just to rename.
+   */
+  async rename(id: string, name: string): Promise<RemoteHome> {
+    const getResponse = await this.request(`${this.baseUrl}/${encodeURIComponent(id)}`)
+    if (!getResponse.ok) throw new Error(`home load failed (${getResponse.status})`)
+    const record = (await getResponse.json()) as RemoteHome
+    const putResponse = await this.request(`${this.baseUrl}/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, json: record.json }),
+    })
+    if (!putResponse.ok) throw new Error(`home rename failed (${putResponse.status})`)
+    return (await putResponse.json()) as RemoteHome
+  }
 }

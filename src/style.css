@@ -89,6 +89,116 @@ body {
   user-select: none;
 }
 
+/* ── Profile widget (top-left account control) ───────────────────────────── */
+
+#profile-widget {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 10px;
+  padding-right: 10px;
+  border-right: 1px solid var(--border);
+}
+
+.profile-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent, #4d94ff);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  flex: none;
+}
+
+.profile-avatar-guest {
+  background: var(--text-secondary, #888);
+}
+
+.profile-signup-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--accent, #4d94ff);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.profile-signup-btn:hover {
+  background: var(--menu-hover);
+}
+
+.profile-login-link {
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 3px 4px;
+  font-family: inherit;
+}
+
+.profile-login-link:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.profile-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: 12.5px;
+  padding: 3px 8px 3px 4px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.profile-trigger:hover {
+  background: var(--menu-hover);
+}
+
+.profile-email {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 200px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 50;
+  padding: 4px 0;
+}
+
+.profile-dropdown-header {
+  padding: 6px 12px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
 .menu-item {
   position: relative;
 }
@@ -418,6 +528,10 @@ body {
 
 #status-bar span {
   white-space: nowrap;
+}
+
+#status-hint:empty {
+  display: none;
 }
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
@@ -984,20 +1098,32 @@ body {
 
 .home-list-item {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  padding: 8px 10px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 10px;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--bg);
-  color: var(--text);
-  cursor: pointer;
-  text-align: left;
 }
 
 .home-list-item:hover {
   border-color: var(--accent, #4d94ff);
+}
+
+.home-list-open {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  min-width: 0;
 }
 
 .home-list-name {
@@ -1008,6 +1134,39 @@ body {
 .home-list-date {
   font-size: 11.5px;
   color: var(--text-secondary);
+}
+
+.home-list-item-actions {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+
+.home-list-item-actions button {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.home-list-item-actions button:hover {
+  border-color: var(--accent, #4d94ff);
+}
+
+.home-list-delete:hover {
+  color: var(--danger, #e5534b);
+  border-color: var(--danger, #e5534b);
+}
+
+.home-list-empty {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 20px 0;
 }
 
 @media (max-width: 799px) {

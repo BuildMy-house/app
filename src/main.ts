@@ -25,6 +25,8 @@ import { ChangePasswordDialog } from './ui/change-password-dialog'
 import { HomeListDialog } from './ui/home-list-dialog'
 import { ClipboardManager } from './plan/clipboard'
 import { ModelUploadDialog } from './ui/model-upload-dialog'
+import { saveDraft, loadDraft } from './services/adapters/local-draft'
+import { ProfileWidget } from './ui/profile-widget'
 
 import { View3D, type CameraPresetName } from './view3d'
 import { configureGltfLoader } from './view3d/scene'
@@ -49,7 +51,10 @@ window.addEventListener('pagehide', () => telemetry.appExit())
 const root = document.querySelector<HTMLDivElement>('#root')!
 
 root.innerHTML = `
-  <div id="menu-bar"></div>
+  <div id="menu-bar">
+    <div id="profile-widget-host"></div>
+    <div id="menu-items"></div>
+  </div>
   <div id="toolbar"></div>
   <div id="main-area">
     <div id="catalog-host"></div>
@@ -77,7 +82,8 @@ root.innerHTML = `
   </div>
 `
 
-const menuBar = root.querySelector<HTMLDivElement>('#menu-bar')!
+const menuBar = root.querySelector<HTMLDivElement>('#menu-items')!
+const profileWidgetHost = root.querySelector<HTMLDivElement>('#profile-widget-host')!
 const toolbar = root.querySelector<HTMLDivElement>('#toolbar')!
 const catalogHost = root.querySelector<HTMLDivElement>('#catalog-host')!
 const planPanel = root.querySelector<HTMLDivElement>('#plan-panel')!
@@ -114,10 +120,20 @@ let currentAccountHomeId: string | null = null
 // Apply stored preferences (wall defaults, ground color).
 const bootPrefs = loadPreferences()
 engine.setWallDefaults(bootPrefs.wallHeightCm, bootPrefs.wallThicknessCm)
-store.patchNonUndoable((h) => {
-  h.environment.groundColor = hexToIntColor(bootPrefs.groundColor)
-  h.environment.groundTextureId = bootPrefs.groundTextureId ?? null
-})
+
+// Restore the local autosave draft (whatever was open on last refresh/close),
+// so the workspace survives a reload without requiring an explicit save. Only
+// a fresh, never-opened document gets the stored ground-appearance defaults —
+// a restored draft already carries its own environment.
+const bootDraft = loadDraft()
+if (bootDraft) {
+  store.loadHome(bootDraft)
+} else {
+  store.patchNonUndoable((h) => {
+    h.environment.groundColor = hexToIntColor(bootPrefs.groundColor)
+    h.environment.groundTextureId = bootPrefs.groundTextureId ?? null
+  })
+}
 
 // Restore reference overlay toggle. New users default to ON; an explicit
 // stored `false` (user toggled it off previously) is respected on reload.
@@ -273,7 +289,7 @@ function refreshMenus(): void {
         },
         { label: '---' },
         { label: 'Save to My Account…', action: () => accountGuard(saveToAccount) },
-        { label: 'Open from My Account…', action: () => accountGuard(openFromAccount) },
+        { label: 'My Projects…', action: () => accountGuard(openProjectManager) },
         ...(auth.currentUser()
           ? [
               { label: `Signed in as ${auth.currentUser()}`, disabled: true },
@@ -410,31 +426,57 @@ async function saveToAccount(): Promise<void> {
   }
 }
 
-async function openFromAccount(): Promise<void> {
+async function openProjectManager(): Promise<void> {
   try {
     const homes = await remoteHomes.list()
-    if (homes.length === 0) {
-      alert('No homes saved to your account yet.')
-      return
-    }
-    new HomeListDialog(homes, (id) => {
-      void (async () => {
-        if (store.isDirty() && !(await confirmDialog('Unsaved changes will be lost. Continue?'))) return
-        try {
-          const home = await remoteHomes.load(id)
-          store.loadHome(home)
-          currentAccountHomeId = id
-          doFit()
-          refreshAll()
-        } catch (err) {
-          alert(err instanceof Error ? err.message : `Failed to open home from account: ${String(err)}`)
-        }
-      })()
+    new HomeListDialog(homes, {
+      onPick: (id) => {
+        void (async () => {
+          if (store.isDirty() && !(await confirmDialog('Unsaved changes will be lost. Continue?'))) return
+          try {
+            const home = await remoteHomes.load(id)
+            store.loadHome(home)
+            currentAccountHomeId = id
+            doFit()
+            refreshAll()
+          } catch (err) {
+            alert(err instanceof Error ? err.message : `Failed to open home from account: ${String(err)}`)
+          }
+        })()
+      },
+      onRename: async (id, name) => {
+        await remoteHomes.rename(id, name)
+      },
+      onDelete: async (id) => {
+        await remoteHomes.remove(id)
+        if (currentAccountHomeId === id) currentAccountHomeId = null
+      },
     }).open()
   } catch (err) {
     alert(err instanceof Error ? err.message : `Failed to list account homes: ${String(err)}`)
   }
 }
+
+const profileWidget = new ProfileWidget(profileWidgetHost, auth, {
+  onSignUp: () => {
+    new AuthDialog(auth, () => { refreshAll(); profileWidget.refresh() }, 'register').open()
+  },
+  onLogIn: () => {
+    promptLogin(() => profileWidget.refresh())
+  },
+  onLogOut: () => {
+    auth.logout()
+    currentAccountHomeId = null
+    refreshAll()
+    profileWidget.refresh()
+  },
+  onChangePassword: () => {
+    new ChangePasswordDialog(auth, () => {}).open()
+  },
+  onManageProjects: () => {
+    accountGuard(openProjectManager)
+  },
+})
 
 // ── Toolbar ─────────────────────────────────────────────────────────────────
 
@@ -666,6 +708,7 @@ function refreshStatus(): void {
   statusZoom.textContent = `zoom: ${Math.round(currentView.scale * 100)}%`
   const user = auth.currentUser()
   statusAccount.textContent = user ? `account: ${user}` : 'account: signed out'
+  profileWidget.refresh()
 }
 
 // ── Camera preset ───────────────────────────────────────────────────────────
@@ -1322,6 +1365,22 @@ window.addEventListener('beforeunload', (e) => {
   if (store.isDirty()) {
     e.preventDefault()
   }
+})
+
+// Local draft autosave — keeps the current document across a refresh even if
+// the user never explicitly saves (to a file or their account). Revision-based
+// check avoids re-serializing on every animation frame when idle; `getRevision()`
+// bumps on every mutation (undoable or not), unlike isDirty() which resets on
+// explicit save.
+let lastDraftRevision = -1
+setInterval(() => {
+  const rev = store.getRevision()
+  if (rev === lastDraftRevision) return
+  lastDraftRevision = rev
+  saveDraft(store.getHome())
+}, 2000)
+window.addEventListener('beforeunload', () => {
+  saveDraft(store.getHome())
 })
 
 // 3D view — creates its own renderer inside #view3d
