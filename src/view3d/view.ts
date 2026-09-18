@@ -100,6 +100,7 @@ export class View3D {
   private _lastHome: NormalizedHomeState | null = null
   private _lastDeltaMs = 0
   private _activeLevel: string | null = null
+  private _isOutsideView = false
   // Only changes when the scene graph is rebuilt, never during camera orbit.
   private _instancedMeshCount = 0
 
@@ -116,6 +117,7 @@ export class View3D {
       modelUrlResolver: this.modelUrlResolver,
       onModelReady: () => this.startAnimationLoop(),
       activeLevel: this._activeLevel,
+      isOutsideView: this._isOutsideView,
     })
     this.countInstancedMeshes()
     this.perspectiveCamera = new THREE.PerspectiveCamera(63, 4 / 3, 1, 500_000)
@@ -233,6 +235,21 @@ export class View3D {
   setActiveLevel(id: string | null): void {
     if (this._activeLevel === id) return
     this._activeLevel = id
+    this.rebuild()
+  }
+
+  get isOutsideView(): boolean {
+    return this._isOutsideView
+  }
+
+  /**
+   * Toggle outside/whole-model view. Ceilings normally stay hidden while
+   * working inside a floor; outside view shows every room's ceiling for a
+   * fully enclosed look (see shouldShowCeiling in scene.ts).
+   */
+  setOutsideView(value: boolean): void {
+    if (this._isOutsideView === value) return
+    this._isOutsideView = value
     this.rebuild()
   }
 
@@ -433,6 +450,7 @@ export class View3D {
       modelUrlResolver: this.modelUrlResolver,
       onModelReady: () => this.startAnimationLoop(),
       activeLevel: this._activeLevel,
+      isOutsideView: this._isOutsideView,
     })
     this.countInstancedMeshes()
     this.applyQualityToScene()
@@ -479,6 +497,7 @@ export class View3D {
           modelUrlResolver: this.modelUrlResolver,
           onModelReady: () => this.startAnimationLoop(),
           activeLevel: this._activeLevel,
+          isOutsideView: this._isOutsideView,
         })
         if (!ok) {
           applied = false

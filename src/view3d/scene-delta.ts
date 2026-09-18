@@ -15,9 +15,13 @@
 import * as THREE from 'three'
 import type { Wall, Furniture, Room, NormalizedHomeState } from '../core/home'
 import {
+  BELOW_LEVEL_FLOOR_OPACITY,
   ceilingMesh,
+  findLevelBelowId,
   furnitureMesh,
+  matchesLevel,
   roomMesh,
+  shouldShowCeiling,
   tintEmissive,
   wallEdges,
   wallMesh,
@@ -303,6 +307,7 @@ export interface ApplySceneUpdateOptions {
   modelUrlResolver?: ModelUrlResolver
   onModelReady?: () => void
   activeLevel?: string | null
+  isOutsideView?: boolean
 }
 
 /** Apply one delta in place. False = caller must fall back to full rebuild. */
@@ -326,7 +331,7 @@ export function applySceneUpdate(
     case 'wall-delete':
       return applyWallDelete(scene, update, home, oldHome)
     case 'room-update':
-      return applyRoomUpdate(scene, update, home)
+      return applyRoomUpdate(scene, update, home, opts)
     case 'room-delete':
       return applyRoomDelete(scene, update)
     case 'furniture-delete':
@@ -542,6 +547,7 @@ function applyRoomUpdate(
   scene: THREE.Scene,
   update: SceneUpdate,
   home: NormalizedHomeState,
+  opts?: ApplySceneUpdateOptions,
 ): boolean {
   const room = update.room
   if (!room || !update.roomId) return false
@@ -551,16 +557,27 @@ function applyRoomUpdate(
   removeNamed(scene, `room:${room.id}`)
   removeNamed(scene, `ceiling:${room.id}`)
 
+  const activeLevel = opts?.activeLevel ?? null
+  const isOutsideView = opts?.isOutsideView ?? false
+  const isActive = matchesLevel(room.levelRef, activeLevel)
+  const belowLevelId = findLevelBelowId(activeLevel, home.levels)
+  const isBelowActive = belowLevelId !== undefined && (room.levelRef ?? null) === belowLevelId
+
   const elev = elevationAt(room.levelRef, levelElevations(home))
   let floor: THREE.Mesh | null = null
   let ceiling: THREE.Mesh | null = null
-  if (room.points.length >= 3) {
-    if (room.floorVisible !== false) {
+  if (room.points.length >= 3 && (isActive || isBelowActive)) {
+    if (isActive && room.floorVisible !== false) {
       floor = roomMesh(room, elev)
       root.add(floor)
+    } else if (isBelowActive) {
+      floor = roomMesh(room, elev, { opacity: BELOW_LEVEL_FLOOR_OPACITY })
+      root.add(floor)
     }
-    ceiling = ceilingMesh(room, elev, home.levels)
-    if (ceiling) root.add(ceiling)
+    if (shouldShowCeiling(room, { isOutsideView, isBelowActiveLevel: isBelowActive })) {
+      ceiling = ceilingMesh(room, elev, home.levels)
+      root.add(ceiling)
+    }
   }
   if (home.selection.includes(room.id)) {
     if (floor) tintEmissive(floor)

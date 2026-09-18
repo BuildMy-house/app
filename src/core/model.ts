@@ -351,7 +351,7 @@ export class HomeModel {
         areaVisible: input.areaVisible ?? true,
         floorVisible: input.floorVisible ?? true,
         floorColor: input.floorColor ?? null,
-        ceilingVisible: input.ceilingVisible ?? false,
+        ceilingVisible: input.ceilingVisible,
         levelRef: input.levelRef ?? null,
       }
       h.rooms.push(created)

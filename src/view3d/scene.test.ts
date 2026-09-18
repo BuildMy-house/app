@@ -308,7 +308,7 @@ describe('ceiling mesh height (M56)', () => {
       id: 'r1', points: [[0, 0], [100, 0], [100, 100], [0, 100]],
       levelRef: 'L0',
     })
-    const scene = buildScene(home)
+    const scene = buildScene(home, { isOutsideView: true })
     const ceilings = ceilingMeshes(scene)
     expect(ceilings.length).toBe(1)
     expect(ceilings[0]!.position.y).toBeCloseTo(250, 0)
@@ -324,7 +324,7 @@ describe('ceiling mesh height (M56)', () => {
       id: 'r1', points: [[0, 0], [100, 0], [100, 100], [0, 100]],
       levelRef: 'L1',
     })
-    const scene = buildScene(home)
+    const scene = buildScene(home, { isOutsideView: true })
     const ceilings = ceilingMeshes(scene)
     expect(ceilings.length).toBe(1)
     expect(ceilings[0]!.position.y).toBeCloseTo(400, 0)
@@ -335,7 +335,7 @@ describe('ceiling mesh height (M56)', () => {
     home.rooms.push({
       id: 'r1', points: [[0, 0], [100, 0], [100, 100], [0, 100]],
     })
-    const scene = buildScene(home)
+    const scene = buildScene(home, { isOutsideView: true })
     const ceilings = ceilingMeshes(scene)
     expect(ceilings.length).toBe(1)
     expect(ceilings[0]!.position.y).toBeCloseTo(DEFAULT_WALL_HEIGHT_CM, 0)

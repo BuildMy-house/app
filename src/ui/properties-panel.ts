@@ -75,6 +75,18 @@ function checkboxInput(checked: boolean): HTMLInputElement {
   return el
 }
 
+function selectInput(value: string, options: Array<{ value: string; label: string }>): HTMLSelectElement {
+  const select = document.createElement('select')
+  for (const opt of options) {
+    const option = document.createElement('option')
+    option.value = opt.value
+    option.textContent = opt.label
+    option.selected = opt.value === value
+    select.appendChild(option)
+  }
+  return select
+}
+
 function wallLength(wall: Wall): number {
   return Math.hypot(wall.xEnd - wall.xStart, wall.yEnd - wall.yStart)
 }
@@ -337,8 +349,16 @@ export class PropertiesPanel {
     body.appendChild(fieldRow('Floor', floorVis))
 
     // Ceiling visible
-    const ceilingVis = checkboxInput(room.ceilingVisible !== false)
-    ceilingVis.addEventListener('change', () => commit({ ceilingVisible: ceilingVis.checked }))
+    const ceilingMode = room.ceilingVisible === true ? 'show' : room.ceilingVisible === false ? 'hide' : 'auto'
+    const ceilingVis = selectInput(ceilingMode, [
+      { value: 'auto', label: 'Auto' },
+      { value: 'show', label: 'Show' },
+      { value: 'hide', label: 'Hide' },
+    ])
+    ceilingVis.addEventListener('change', () => {
+      const mode = ceilingVis.value
+      commit({ ceilingVisible: mode === 'show' ? true : mode === 'hide' ? false : undefined })
+    })
     body.appendChild(fieldRow('Ceiling', ceilingVis))
 
     // Floor color

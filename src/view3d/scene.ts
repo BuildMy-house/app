@@ -258,7 +258,7 @@ export function wallEdges(wall: Wall, elevation: number, allWalls: Wall[]): THRE
   return line
 }
 
-export function roomMesh(room: Room, elevation: number): THREE.Mesh {
+export function roomMesh(room: Room, elevation: number, opts?: { opacity?: number }): THREE.Mesh {
   const shape = new THREE.Shape()
   room.points.forEach(([x, y], index) => {
     if (index === 0) shape.moveTo(x, -y)
@@ -272,6 +272,10 @@ export function roomMesh(room: Room, elevation: number): THREE.Mesh {
     roughness: 0.7,
     metalness: 0.0,
   })
+  if (opts?.opacity !== undefined) {
+    material.transparent = true
+    material.opacity = opts.opacity
+  }
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = `room:${room.id}`
   mesh.position.y = elevation
@@ -279,8 +283,35 @@ export function roomMesh(room: Room, elevation: number): THREE.Mesh {
   return mesh
 }
 
-export function ceilingMesh(room: Room, elevation: number, levels: Level[]): THREE.Mesh | null {
-  if (room.ceilingVisible === false) return null
+/** Opacity used to render the floor of the level below the active one, as
+ * standing-surface context under the floor being worked on. */
+export const BELOW_LEVEL_FLOOR_OPACITY = 0.4
+/** Transparency (SH3D-style: 0 = opaque) for walls of the level below the
+ * active one — enough to read as context without blocking the active floor. */
+export const BELOW_LEVEL_WALL_TRANSPARENCY = 0.75
+
+export interface CeilingVisibilityContext {
+  /** Viewing the whole model from outside (no single floor being edited). */
+  isOutsideView: boolean
+  /** This room is on the level directly below the currently active level. */
+  isBelowActiveLevel: boolean
+}
+
+/**
+ * A room's ceiling is hidden by default so the active floor stays open to
+ * work in, except: an explicit per-room override always wins (lets a top
+ * floor opt into a visible/styled ceiling); otherwise it shows in the
+ * outside/whole-model view, or when the room is the floor below the one the
+ * user is editing (its ceiling doubles as the surface the active floor
+ * stands on).
+ */
+export function shouldShowCeiling(room: Room, ctx: CeilingVisibilityContext): boolean {
+  if (room.ceilingVisible === true) return true
+  if (room.ceilingVisible === false) return false
+  return ctx.isOutsideView || ctx.isBelowActiveLevel
+}
+
+export function ceilingMesh(room: Room, elevation: number, levels: Level[]): THREE.Mesh {
   const level = levels.find((l) => l.id === room.levelRef)
   const levelHeight = level ? level.height : DEFAULT_WALL_HEIGHT_CM
   const shape = new THREE.Shape()
@@ -900,23 +931,59 @@ function applySelectionHighlight(scene: THREE.Scene, selectionSet: Set<string>):
 /** Full scene rebuild from a normalized home snapshot. Deterministic. */
 export function buildScene(
   home: NormalizedHomeState,
-  options?: { modelUrlResolver?: ModelUrlResolver; onModelReady?: () => void; activeLevel?: string | null },
+  options?: {
+    modelUrlResolver?: ModelUrlResolver
+    onModelReady?: () => void
+    activeLevel?: string | null
+    isOutsideView?: boolean
+  },
 ): THREE.Scene {
   const previousResolver = activeModelUrlResolver
   if (options?.modelUrlResolver) activeModelUrlResolver = options.modelUrlResolver
   try {
-    return buildSceneInner(home, options?.onModelReady, options?.activeLevel ?? null)
+    return buildSceneInner(
+      home,
+      options?.onModelReady,
+      options?.activeLevel ?? null,
+      options?.isOutsideView ?? false,
+    )
   } finally {
     activeModelUrlResolver = previousResolver
   }
 }
 
-function matchesLevel(levelRef: string | undefined | null, activeLevelId: string | null): boolean {
+export function matchesLevel(levelRef: string | undefined | null, activeLevelId: string | null): boolean {
   if (activeLevelId === null) return true
   return (levelRef ?? null) === activeLevelId
 }
 
-function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void, activeLevel: string | null = null): THREE.Scene {
+/**
+ * Id (or null for the implicit ground floor) of the level immediately below
+ * `activeLevel`, or undefined when `activeLevel` is null (all levels shown)
+ * or is already the lowest level (nothing below it).
+ */
+export function findLevelBelowId(activeLevel: string | null, levels: Level[]): string | null | undefined {
+  if (activeLevel === null) return undefined
+  const active = levels.find((l) => l.id === activeLevel)
+  if (!active) return undefined
+  let bestId: string | null = null
+  let bestElevation = 0 < active.elevation ? 0 : -Infinity
+  for (const level of levels) {
+    if (level.id === activeLevel) continue
+    if (level.elevation < active.elevation && level.elevation >= bestElevation) {
+      bestId = level.id
+      bestElevation = level.elevation
+    }
+  }
+  return bestElevation === -Infinity ? undefined : bestId
+}
+
+function buildSceneInner(
+  home: NormalizedHomeState,
+  onModelReady?: () => void,
+  activeLevel: string | null = null,
+  isOutsideView = false,
+): THREE.Scene {
   const scene = new THREE.Scene()
   if (home.environment.skyColor !== null) {
     scene.background = new THREE.Color(home.environment.skyColor)
@@ -991,31 +1058,42 @@ function buildSceneInner(home: NormalizedHomeState, onModelReady?: () => void, a
 
   const elevations = levelElevationMap(home)
   const wallsTransparency = home.environment.wallsAlpha ?? 0
+  // The level directly below the one being edited renders as ghosted
+  // context — its ceiling doubles as the surface the active floor stands
+  // on, instead of the active floor's rooms floating in empty space.
+  const belowLevelId = findLevelBelowId(activeLevel, home.levels)
 
   const root = new THREE.Group()
   root.name = 'home'
   for (const wall of home.walls) {
-    if (!matchesLevel(wall.levelRef, activeLevel)) continue
-    const mesh = wallMesh(
-      wall,
-      elevationFor(wall.levelRef, elevations),
-      wallsTransparency,
-      home.furniture,
-      home.walls,
-    )
+    const isActive = matchesLevel(wall.levelRef, activeLevel)
+    const isBelowActive = belowLevelId !== undefined && (wall.levelRef ?? null) === belowLevelId
+    // Outside view means "step outside and look at the whole model" — every
+    // level's geometry is included regardless of which floor is active.
+    if (!isActive && !isBelowActive && !isOutsideView) continue
+    const elev = elevationFor(wall.levelRef, elevations)
+    const transparency = isBelowActive
+      ? Math.max(wallsTransparency, BELOW_LEVEL_WALL_TRANSPARENCY)
+      : wallsTransparency
+    const mesh = wallMesh(wall, elev, transparency, home.furniture, home.walls)
     root.add(mesh)
-    root.add(wallEdges(wall, elevationFor(wall.levelRef, elevations), home.walls))
+    if (isActive) root.add(wallEdges(wall, elev, home.walls))
   }
   for (const room of home.rooms) {
     if (room.points.length < 3) continue
-    if (!matchesLevel(room.levelRef, activeLevel)) continue
+    const isActive = matchesLevel(room.levelRef, activeLevel)
+    const isBelowActive = belowLevelId !== undefined && (room.levelRef ?? null) === belowLevelId
+    if (!isActive && !isBelowActive && !isOutsideView) continue
     const elev = elevationFor(room.levelRef, elevations)
-    if (room.floorVisible !== false) root.add(roomMesh(room, elev))
-    const ceiling = ceilingMesh(room, elev, home.levels)
-    if (ceiling) root.add(ceiling)
+    if (isActive && room.floorVisible !== false) root.add(roomMesh(room, elev))
+    else if (isBelowActive) root.add(roomMesh(room, elev, { opacity: BELOW_LEVEL_FLOOR_OPACITY }))
+    else if (isOutsideView && room.floorVisible !== false) root.add(roomMesh(room, elev))
+    if (shouldShowCeiling(room, { isOutsideView, isBelowActiveLevel: isBelowActive })) {
+      root.add(ceilingMesh(room, elev, home.levels))
+    }
   }
   for (const roof of home.roofs) {
-    if (!matchesLevel(roof.levelRef, activeLevel)) continue
+    if (!matchesLevel(roof.levelRef, activeLevel) && !isOutsideView) continue
     const level = home.levels.find((item) => item.id === roof.levelRef)
     const mesh = roofMesh(
       roof,

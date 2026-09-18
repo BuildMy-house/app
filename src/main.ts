@@ -474,6 +474,10 @@ function buildToolbar(): void {
       <button class="tool-btn active" data-camera3d="observer" title="Perspective 3D view">Persp</button>
       <button class="tool-btn" data-camera3d="top" title="Top-down 3D view">Top</button>
     </div>
+    <div class="camera-toggle" id="outside-toggle" title="3D view context: inside current floor vs outside/whole model">
+      <button class="tool-btn active" data-outside-view="false" title="Inside view (see the active floor from within)">Inside</button>
+      <button class="tool-btn" data-outside-view="true" title="Outside view (see the whole model, all ceilings shown)">Outside</button>
+    </div>
     <button class="tool-btn" id="dark-toggle" title="Toggle dark mode">◐</button>
   `
 
@@ -523,6 +527,13 @@ function buildToolbar(): void {
     })
   }
 
+  for (const btn of toolbar.querySelectorAll<HTMLButtonElement>('button[data-outside-view]')) {
+    btn.addEventListener('click', () => {
+      view3d?.setOutsideView(btn.dataset.outsideView === 'true')
+      refreshOutsideViewButtons()
+    })
+  }
+
   toolbar.querySelector('#dark-toggle')!.addEventListener('click', toggleDarkMode)
 
   toolbar.querySelector('#btn-catalog')!.addEventListener('click', () => {
@@ -549,6 +560,7 @@ function refreshToolbar(): void {
   undoBtn.disabled = !hasUndo()
   redoBtn.disabled = !hasRedo()
   refreshCamera3DButtons()
+  refreshOutsideViewButtons()
 }
 
 function refreshCamera3DButtons(): void {
@@ -558,6 +570,13 @@ function refreshCamera3DButtons(): void {
   const active = view3d.director.getActivePreset()
   for (const btn of toolbar.querySelectorAll<HTMLButtonElement>('button[data-camera3d]')) {
     btn.classList.toggle('active', btn.dataset.camera3d === active)
+  }
+}
+
+function refreshOutsideViewButtons(): void {
+  if (!view3d) return
+  for (const btn of toolbar.querySelectorAll<HTMLButtonElement>('button[data-outside-view]')) {
+    btn.classList.toggle('active', btn.dataset.outsideView === String(view3d.isOutsideView))
   }
 }
 
