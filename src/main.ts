@@ -719,9 +719,14 @@ applyDarkMode()
 // ── Draggable divider ───────────────────────────────────────────────────────
 
 let dragging = false
+let dragGrabOffset = 0
 
 divider.addEventListener('pointerdown', (e) => {
   dragging = true
+  const dividerRect = divider.getBoundingClientRect()
+  dragGrabOffset = window.innerWidth >= 800
+    ? e.clientX - dividerRect.left
+    : e.clientY - dividerRect.top
   divider.classList.add('dragging')
   divider.setPointerCapture(e.pointerId)
   e.preventDefault()
@@ -733,12 +738,12 @@ divider.addEventListener('pointermove', (e) => {
   const isVertical = window.innerWidth >= 800
 
   if (isVertical) {
-    const pct = ((e.clientX - mainRect.left) / mainRect.width) * 100
+    const pct = ((e.clientX - mainRect.left - dragGrabOffset) / mainRect.width) * 100
     const clamped = Math.max(15, Math.min(85, pct))
     planPanel.style.flex = `0 0 ${clamped}%`
     view3dPanel.style.flex = `0 0 ${100 - clamped}%`
   } else {
-    const pct = ((e.clientY - mainRect.top) / mainRect.height) * 100
+    const pct = ((e.clientY - mainRect.top - dragGrabOffset) / mainRect.height) * 100
     const clamped = Math.max(15, Math.min(85, pct))
     planPanel.style.flex = `0 0 ${clamped}%`
     view3dPanel.style.flex = `0 0 ${100 - clamped}%`
@@ -746,10 +751,13 @@ divider.addEventListener('pointermove', (e) => {
   resizeCanvas()
 })
 
-divider.addEventListener('pointerup', () => {
+const stopDividerDrag = (): void => {
   dragging = false
   divider.classList.remove('dragging')
-})
+}
+
+divider.addEventListener('pointerup', stopDividerDrag)
+divider.addEventListener('pointercancel', stopDividerDrag)
 
 // ── Canvas input (screen px -> model cm) ────────────────────────────────────
 
