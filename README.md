@@ -1,5 +1,10 @@
 # homely
 
+> Part of **buildmy.house**. "Homely" was this repo's internal dev codename
+> before the project settled on its current name — it survives here only as
+> the existing README title and long-standing functional identifiers (env
+> vars, directory names, Docker volumes), not as a separate product name.
+
 [![CI](https://github.com/BuildMy-house/app/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/BuildMy-house/app/actions/workflows/ci.yml)
 
 Clean-room TypeScript clone of the Sweet Home 3D planner, built with Tauri v2.
