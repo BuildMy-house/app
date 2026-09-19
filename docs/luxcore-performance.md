@@ -14,6 +14,11 @@
 - Worker status polling backs off from 1s to 5s.
 - Top-camera change detection fingerprints only bounds-relevant content instead
   of serializing unrelated home metadata.
+- The renderer image installs `libatomic1`, required by the `pyluxcore` wheel
+  at runtime.
+- Legacy home scenes get an environment fill light, and their Z-up camera uses
+  a non-singular Z-up vector, so real furniture renders are visible instead of
+  failing or producing a flat black frame.
 
 ## Known limits
 
@@ -25,4 +30,3 @@
 - The `high` profile is intentionally expensive: 4096² at 4096 samples with a
   30-minute timeout. Keep it opt-in until real render timings justify a larger
   worker.
-

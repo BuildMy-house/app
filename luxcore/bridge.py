@@ -50,8 +50,10 @@ def home_to_scene(home: dict[str, Any], asset_root: str | None = None) -> dict[s
         return {"materials": {"wall": {"type": "matte", "kd": [0.7, 0.7, 0.7]},
                                "floor": {"type": "matte", "kd": [0.9, 0.9, 0.88]},
                                "furniture": {"type": "matte", "kd": [0.6, 0.6, 0.75]}},
-                "objects": objects, "lights": [{"type": "directional", "name": "sun",
-                                                   "direction": [0, 0, -1], "gain": [3, 3, 3]}],
+                "objects": objects, "lights": [{"type": "constantinfinite", "name": "env",
+                                                  "color": [1, 1, 1], "gain": [1, 1, 1]},
+                                                 {"type": "directional", "name": "sun",
+                                                  "direction": [0, 0, -1], "gain": [3, 3, 3]}],
                 "camera": {"lookat": lookat, "fov": explicit_camera.get("fov", 60)}}
     cam = home.get("cameras", {}).get("observer") or home.get("cameras", {}).get("top", {})
     yaw = math.radians(cam.get("yawDeg", 0))
@@ -64,10 +66,12 @@ def home_to_scene(home: dict[str, Any], asset_root: str | None = None) -> dict[s
     return {"materials": {"wall": {"type": "matte", "kd": [0.7, 0.7, 0.7]},
                            "floor": {"type": "matte", "kd": [0.9, 0.9, 0.88]},
                            "furniture": {"type": "matte", "kd": [0.6, 0.6, 0.75]}},
-            "objects": objects, "lights": [{"type": "directional", "name": "sun",
-                                                "direction": [0, 0, -1], "gain": [3, 3, 3]}],
+            "objects": objects, "lights": [{"type": "constantinfinite", "name": "env",
+                                              "color": [1, 1, 1], "gain": [1, 1, 1]},
+                                             {"type": "directional", "name": "sun",
+                                              "direction": [0, 0, -1], "gain": [3, 3, 3]}],
             "camera": {"lookat": [[cam.get("x", 200) / 100, cam.get("y", 150) / 100, cam.get("z", 900) / 100],
-                                     target, [0, 1, 0]],
+                       target, [0, 0, 1]],
                        "fov": cam.get("fovDeg", 60)}}
 
 
