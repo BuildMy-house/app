@@ -60,7 +60,12 @@ def make_handler(store: RenderJobStore, pool: ThreadPoolExecutor, token: str):
                 return
             try:
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-                record = store.create(parts[3], body["scene"], settings_for(body.get("profile", "medium")))
+                record = store.create(
+                    parts[3],
+                    body["scene"],
+                    settings_for(body.get("profile", "medium")),
+                    body.get("home"),
+                )
                 pool.submit(store.run, parts[3], record["id"])
                 self._json(202, record)
             except (KeyError, ValueError, OSError, json.JSONDecodeError) as exc:

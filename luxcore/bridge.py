@@ -1,10 +1,25 @@
 import math
+import os
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 
+def _asset_root(asset_root: str | None = None) -> Path:
+    if asset_root:
+        return Path(asset_root)
+    configured = os.environ.get("LUXCORE_ASSET_ROOT")
+    if configured:
+        return Path(configured)
+    candidates = (
+        Path(__file__).parents[1] / "homely" / "assets" / "models" / "sh3d",
+        Path(__file__).parents[1] / "public" / "assets" / "models" / "sh3d",
+    )
+    return next((path for path in candidates if path.is_dir()), candidates[0])
+
+
 def home_to_scene(home: dict[str, Any], asset_root: str | None = None) -> dict[str, Any]:
-    source_root = Path(asset_root or Path(__file__).parents[2] / "homely" / "assets" / "models" / "sh3d")
+    source_root = _asset_root(asset_root)
     objects = []
     for wall in home.get("walls", []):
         dx = wall["xEnd"] - wall["xStart"]
@@ -80,6 +95,9 @@ def renderable_to_bridge(scene: dict, home: dict | None = None) -> dict:
         materials[mat["id"]] = _material_to_bridge(mat, kd)
 
     objects = []
+    furniture_by_id = {
+        str(item.get("id")): item for item in (home or {}).get("furniture", [])
+    }
     for obj in scene.get("objects", []):
         if obj.get("visible", {}).get("luxcore") is False:
             continue
@@ -89,7 +107,7 @@ def renderable_to_bridge(scene: dict, home: dict | None = None) -> dict:
             name = f"{obj['id']}:{idx}" if multi else obj["id"]
             if prim["type"] == "box":
                 if obj["id"].startswith("furniture:") and home is not None:
-                    item = _find_furniture(home, obj["id"][len("furniture:"):])
+                    item = furniture_by_id.get(obj["id"][len("furniture:"):])
                     if item is not None and _resolve_asset(item) is not None:
                         objects.append(_furniture_to_asset(item, prim["materialId"]))
                         continue
@@ -191,15 +209,8 @@ def _polygon_to_bridge(name: str, prim: dict) -> dict:
             "z": prim.get("y", 0) / 100, "height": prim.get("height", 0) / 100}
 
 
-def _find_furniture(home: dict, furniture_id: str) -> dict | None:
-    for furn in home.get("furniture", []):
-        if str(furn.get("id")) == furniture_id:
-            return furn
-    return None
-
-
 def _resolve_asset(item: dict) -> Path | None:
-    asset_root = Path(__file__).parents[2] / "homely" / "assets" / "models" / "sh3d"
+    asset_root = _asset_root()
     asset_name = str(item.get("catalogId", "")).split("#")[-1]
     source = _find_asset(asset_root, asset_name)
     return source if source.exists() else None
@@ -421,6 +432,7 @@ def _sanitize(name: str) -> str:
     return "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in name)
 
 
+@lru_cache(maxsize=256)
 def _load_mtl(mtl_path: Path) -> dict[str, dict]:
     """Parse a Wavefront .mtl into {name: {kd: [r,g,b]|None, map_kd: str|None}}."""
     materials: dict[str, dict] = {}
@@ -442,6 +454,7 @@ def _load_mtl(mtl_path: Path) -> dict[str, dict]:
     return materials
 
 
+@lru_cache(maxsize=256)
 def _parse_obj_raw(source: Path) -> dict | None:
     """Single-pass OBJ parse: v/vt/f (corners keep vidx+uvidx+material), mtllib.
 
@@ -637,6 +650,7 @@ def _asset_materials(path: str) -> dict | None:
             "coverage": loaded["coverage"]}
 
 
+@lru_cache(maxsize=512)
 def _find_asset(root: Path, name: str) -> Path:
     expected = f"{name}.obj".casefold()
     for candidate in root.rglob("*.obj"):
