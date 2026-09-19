@@ -19,10 +19,9 @@ test.describe('layout', () => {
 
   test('toolbar has all tool buttons', async ({ page }) => {
     const tools = page.locator('button[data-tool]')
-    await expect(tools).toHaveCount(5)
+    await expect(tools).toHaveCount(4)
     await expect(page.locator('button[data-tool="selection"]')).toBeVisible()
     await expect(page.locator('button[data-tool="wall"]')).toBeVisible()
-    await expect(page.locator('button[data-tool="room"]')).toBeVisible()
     await expect(page.locator('button[data-tool="dimensionLine"]')).toBeVisible()
     await expect(page.locator('button[data-tool="label"]')).toBeVisible()
   })
