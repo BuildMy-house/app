@@ -9,6 +9,7 @@ import type {
   DimensionLine,
   Label,
   Level,
+  Roof,
 } from '../core/home'
 import { isNormalizedHome, saveProject, loadProject } from '../core/project-store'
 import type { CameraPatch } from '../view3d/cameras'
@@ -49,6 +50,9 @@ const COMMANDS = [
   'duplicate',
   'modify_selected',
   'add_room',
+  'add_wall',
+  'add_polyline',
+  'add_roof',
   'set_active_level',
   'add_level',
   'remove_level',
@@ -178,6 +182,7 @@ export class HomelyCommandHandler implements CommandHandler {
           color,
           doorOrWindow,
           modelPath,
+          levelRef: (params.levelRef as string | null) ?? null,
         })
         return { ok: true, data: { id: furniture.id } }
       }
@@ -207,6 +212,7 @@ export class HomelyCommandHandler implements CommandHandler {
           color: resolved.color ?? null,
           doorOrWindow: resolved.doorOrWindow ?? false,
           modelPath: resolved.modelPath ?? null,
+          levelRef: (params.levelRef as string | null) ?? null,
         })
         return { ok: true, data: { id: furniture.id } }
       }
@@ -296,9 +302,11 @@ export class HomelyCommandHandler implements CommandHandler {
           ...home.levels,
           ...home.walls,
           ...home.rooms,
+          ...home.polylines,
           ...home.furniture,
           ...home.dimensionLines,
           ...home.labels,
+          ...home.roofs,
         ].map((item) => item.id)
         this.model.setSelection(ids)
         return { ok: true, data: { selection: ids } }
@@ -362,6 +370,51 @@ export class HomelyCommandHandler implements CommandHandler {
           rest as Partial<Omit<Room, 'id' | 'points'>>,
         )
         return { ok: true, data: { id: room.id } }
+      }
+      case 'add_wall': {
+        const wall = this.model.addWall({
+          xStart: requireNumber(params, 'xStart'),
+          yStart: requireNumber(params, 'yStart'),
+          xEnd: requireNumber(params, 'xEnd'),
+          yEnd: requireNumber(params, 'yEnd'),
+          thickness: params.thickness === undefined ? 7 : requireNumber(params, 'thickness'),
+          height: params.height === undefined ? 250 : requireNumber(params, 'height'),
+          arcExtent: params.arcExtent as number | null | undefined,
+          heightAtEnd: params.heightAtEnd as number | null | undefined,
+          levelRef: (params.levelRef as string | null) ?? null,
+          patternId: (params.patternId as string | null) ?? 'hatchUp',
+          leftSideColor: (params.leftSideColor as number | null) ?? null,
+          rightSideColor: (params.rightSideColor as number | null) ?? null,
+          leftSideTextureId: (params.leftSideTextureId as string | null) ?? null,
+          rightSideTextureId: (params.rightSideTextureId as string | null) ?? null,
+        })
+        return { ok: true, data: { id: wall.id } }
+      }
+      case 'add_polyline': {
+        const points = params.points
+        assert(Array.isArray(points) && points.length >= 2, 'add_polyline requires points with >=2 entries')
+        const polyline = this.model.addPolyline(points as Array<[number, number]>, {
+          closed: params.closed === true,
+          name: params.name as string | null | undefined,
+          color: params.color as number | null | undefined,
+          thickness: params.thickness as number | null | undefined,
+          levelRef: params.levelRef as string | null | undefined,
+        })
+        return { ok: true, data: { id: polyline.id } }
+      }
+      case 'add_roof': {
+        const points = params.points
+        assert(Array.isArray(points) && points.length >= 3, 'add_roof requires points with >=3 entries')
+        const roof = this.model.addRoof(points as Array<[number, number]>, {
+          name: params.name as string | null | undefined,
+          color: params.color as number | null | undefined,
+          levelRef: params.levelRef as string | null | undefined,
+          style: params.style as Roof['style'] | undefined,
+          pitchDeg: params.pitchDeg as number | undefined,
+          overhangCm: params.overhangCm as number | undefined,
+          ridgeAngleDeg: params.ridgeAngleDeg as number | null | undefined,
+        })
+        return { ok: true, data: { id: roof.id } }
       }
       case 'add_level': {
         const level = this.model.addLevel({

@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "buildmyhouse": {
-      "command": "/home/nahar/Documents/code/buildmy.house/app/mcp/run.sh"
+      "command": "/home/nahar/Documents/code/buildmy.house/app-rooms-feature/mcp/run.sh"
     }
   }
 }

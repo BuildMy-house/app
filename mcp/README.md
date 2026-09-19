@@ -1,4 +1,4 @@
-# BuildMyHouse MCP — let ChatGPT / Claude design a house
+# buildmy.house MCP — let ChatGPT / Claude design a house
 
 An MCP server shipped with the BuildMyHouse app. It speaks the app's existing
 automation WebSocket protocol and forwards assistant tools to the live app.
@@ -19,9 +19,10 @@ automation WebSocket protocol and forwards assistant tools to the live app.
    HOMELY_AUTOMATION_PORT=9529 npm run tauri dev
    ```
 
-3. **Connect your assistant** — add `mcp/claude_desktop_config.json` to Claude
-   Desktop, or `mcp/mcp.json` to a ChatGPT connector. Then say:
-   *"Design a 3-bedroom house and show me a 3D screenshot."*
+3. **Connect your assistant** — add the MCP config to Claude Desktop or a
+   ChatGPT connector. Replace the sample absolute path with this checkout's
+   `mcp/run.sh` path. Then say: *"Use build_house to create a 3-bedroom
+   house from this image, verify the plan, and render a 3D view."*
 
 For cloud ChatGPT (no local stdio), expose HTTP instead:
 
@@ -36,6 +37,7 @@ and point the connector at `http://127.0.0.1:8080/mcp`.
 | Tool | Purpose |
 |------|---------|
 | `homely_status` | Which app is connected + the WS port |
+| `build_house` | Build a complete declarative house in one call |
 | `reset_home` | New empty home |
 | `get_home_state` | Full `NormalizedHomeState` JSON |
 | `screenshot` | Offscreen plan/3D PNG (returned as an image) |
@@ -48,12 +50,34 @@ and point the connector at `http://127.0.0.1:8080/mcp`.
 
 Units: centimeters for lengths, degrees for angles, plan coords x-right / y-down.
 
-## Known limits (see parity audit)
+## Agent workflow
 
-The current Homely clone implements the wall tool, furniture placement, camera
-presets, undo/redo, state export and screenshots. **Not yet wired** to the
-automation protocol: room floor/ceiling editing, doors/windows cutouts, levels,
-dimension lines, labels, `modify_selected`, and `.sh3d` save/open round-trip.
-The `draw_rectangular_room` helper draws walls only (no auto floor). These are
-tracked as handler gaps and can be added using the already-present `core/model.ts`
-operations.
+Use the image as design input, infer approximate dimensions in centimeters,
+then call `build_house` with `levels`, `walls`, `rooms`, `doors`, `windows`,
+`furniture`, and optional `roofs`. Give walls local `key` values so openings
+can refer to them with `wallKey`. If rooms are supplied without walls, the
+tool creates walls around each room automatically; use explicit walls when
+rooms share boundaries. Call `get_home_state` to check counts and IDs, then
+call `screenshot` for both `plan` and `3d` and iterate with the small edit
+tools.
+
+Minimal shape:
+
+```json
+{
+  "levels": [{"key": "ground", "name": "Ground floor", "elevation": 0}],
+  "walls": [{"key": "north", "xStart": 0, "yStart": 0, "xEnd": 1200, "yEnd": 0}],
+  "rooms": [{"name": "Living room", "points": [[0,0],[600,0],[600,500],[0,500]]}],
+  "doors": [{"wallKey": "north", "x": 300, "width": 90}],
+  "furniture": [{"catalogId": "sofa-3-seater", "x": 250, "y": 250}]
+}
+```
+
+The assistant remains the vision/planning layer; the MCP is the deterministic
+scene builder and renderer. A cloud deployment must put the streamable HTTP
+endpoint behind authentication and a trusted network boundary. The default
+listener is loopback-only because the automation socket has no authentication.
+
+The MCP does not infer architectural dimensions or identify furniture from
+pixels; those are assistant-side decisions and should be checked against the
+returned plan screenshot.

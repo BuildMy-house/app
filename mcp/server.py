@@ -89,6 +89,114 @@ async def reset_home() -> dict:
 
 
 @mcp.tool()
+async def build_house(plan: dict, reset: bool = True) -> dict:
+    """Build a complete house from one declarative plan and return its state.
+
+    Plan shape: {name?, levels?, walls?, rooms?, furniture?, doors?, windows?,
+    roofs?, polylines?, labels?, dimensions?, camera?}. Coordinates are centimeters. Each
+    wall may have a local `key`; openings refer to that key. Each level may have
+    a local `key`; objects may use `levelKey`. If `walls` is omitted, closed
+    room polygons generate walls automatically (explicit walls are better for
+    shared walls). Use screenshot(view='plan'|'3d') after this tool.
+    """
+    if not isinstance(plan, dict):
+        raise ValueError("plan must be an object")
+    s = _session()
+    if reset:
+        await s.request("new_home")
+    level_ids: dict[str, str] = {}
+    wall_ids: dict[str, str] = {}
+
+    for level in plan.get("levels", []):
+        result = await s.request("add_level", {
+            "name": level.get("name", "Level"),
+            "elevation": level["elevation"],
+            "floorThickness": level.get("floorThickness", 20),
+            "height": level.get("height", 250),
+        })
+        if level.get("key"):
+            level_ids[level["key"]] = result["id"]
+
+    walls = list(plan.get("walls", []))
+    if not walls and plan.get("auto_walls", True):
+        for room in plan.get("rooms", []):
+            points = room["points"]
+            walls.extend({"xStart": a[0], "yStart": a[1], "xEnd": b[0], "yEnd": b[1],
+                          "levelKey": room.get("levelKey")}
+                         for a, b in zip(points, points[1:] + points[:1]))
+    for wall in walls:
+        params = {k: wall[k] for k in (
+            "xStart", "yStart", "xEnd", "yEnd", "thickness", "height",
+            "arcExtent", "heightAtEnd", "patternId", "leftSideColor",
+            "rightSideColor", "leftSideTextureId", "rightSideTextureId"
+        ) if k in wall}
+        if wall.get("levelKey") in level_ids:
+            params["levelRef"] = level_ids[wall["levelKey"]]
+        result = await s.request("add_wall", params)
+        if wall.get("key"):
+            wall_ids[wall["key"]] = result["id"]
+
+    for room in plan.get("rooms", []):
+        params = {"points": room["points"]}
+        for source, target in (("name", "name"), ("floorColor", "floorColor"),
+                               ("floorVisible", "floorVisible"), ("ceilingVisible", "ceilingVisible"),
+                               ("areaVisible", "areaVisible")):
+            if source in room:
+                params[target] = room[source]
+        if room.get("levelKey") in level_ids:
+            params["levelRef"] = level_ids[room["levelKey"]]
+        await s.request("add_room", params)
+
+    for opening, command in (("doors", "add_door"), ("windows", "add_window")):
+        for item in plan.get(opening, []):
+            wall_id = wall_ids.get(item.get("wallKey"), item.get("wallId"))
+            if not wall_id:
+                raise ValueError(f"{opening} item requires wallKey or wallId")
+            params = {"wallId": wall_id}
+            if "x" in item:
+                params["x"] = item["x"]
+            if "width" in item:
+                params["width"] = item["width"]
+            await s.request(command, params)
+
+    for item in plan.get("furniture", []):
+        params = {"x": item["x"], "y": item["y"], "angleDeg": item.get("angleDeg", 0)}
+        if item.get("levelKey") in level_ids:
+            params["levelRef"] = level_ids[item["levelKey"]]
+            params["elevation"] = item.get("elevation", 0)
+        elif "elevation" in item:
+            params["elevation"] = item["elevation"]
+        if item.get("catalogId"):
+            params["catalogId"] = item["catalogId"]
+            await s.request("catalog_add_furniture", params)
+        else:
+            params.update({k: item[k] for k in ("name", "width", "depth", "height") if k in item})
+            await s.request("add_furniture", params)
+
+    for item in plan.get("roofs", []):
+        params = {k: item[k] for k in (
+            "points", "name", "color", "style", "pitchDeg", "overhangCm", "ridgeAngleDeg"
+        ) if k in item}
+        if item.get("levelKey") in level_ids:
+            params["levelRef"] = level_ids[item["levelKey"]]
+        await s.request("add_roof", params)
+    for item in plan.get("polylines", []):
+        await s.request("add_polyline", {k: item[k] for k in (
+            "points", "closed", "name", "color", "thickness"
+        ) if k in item})
+    for item in plan.get("labels", []):
+        await s.request("add_label", {k: item[k] for k in ("x", "y", "text") if k in item})
+    for item in plan.get("dimensions", []):
+        await s.request("add_dimension_line", {k: item[k] for k in (
+            "xStart", "yStart", "xEnd", "yEnd", "offset"
+        ) if k in item})
+    if isinstance(plan.get("camera"), dict):
+        await s.request("set_camera", plan["camera"])
+    state = await s.request("get_state")
+    return {"state": state, "levelIds": level_ids, "wallIds": wall_ids}
+
+
+@mcp.tool()
 async def get_home_state() -> dict:
     """Return the full NormalizedHomeState JSON (walls, rooms, furniture, cameras)."""
     return await _session().request("get_state")
@@ -135,6 +243,31 @@ async def draw_rectangular_room(x: float, y: float, width: float, height: float)
     await s.request("click", {"x": x, "y": y, "dbl": True})
     await s.request("add_room", {"points": corners})
     return await s.request("get_state")
+
+
+@mcp.tool()
+async def add_wall(
+    x_start: float, y_start: float, x_end: float, y_end: float,
+    thickness: float = 7, height: float = 250, level_ref: str | None = None,
+) -> dict:
+    """Add one wall directly in plan coordinates (cm)."""
+    params = {"xStart": x_start, "yStart": y_start, "xEnd": x_end, "yEnd": y_end,
+              "thickness": thickness, "height": height}
+    if level_ref is not None:
+        params["levelRef"] = level_ref
+    return await _session().request("add_wall", params)
+
+
+@mcp.tool()
+async def add_roof(
+    points: list[list[float]], style: str = "gable", pitch_deg: float = 30,
+    overhang_cm: float = 30, level_ref: str | None = None,
+) -> dict:
+    """Add a gable or hip roof footprint from plan points."""
+    params: dict = {"points": points, "style": style, "pitchDeg": pitch_deg, "overhangCm": overhang_cm}
+    if level_ref is not None:
+        params["levelRef"] = level_ref
+    return await _session().request("add_roof", params)
 
 
 @mcp.tool()

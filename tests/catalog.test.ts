@@ -354,4 +354,15 @@ describe('automation catalog commands', () => {
     expect(commands).toContain('list_catalog')
     expect(commands).toContain('catalog_add_furniture')
   })
+
+  it('automation can add direct scene primitives', () => {
+    const store = new HomeStore()
+    const handler = new HomelyCommandHandler(store, { catalog: new FurnitureCatalog(fixture) })
+    expect(handler.execute('add_wall', { xStart: 0, yStart: 0, xEnd: 400, yEnd: 0 }).ok).toBe(true)
+    expect(handler.execute('add_roof', { points: [[0, 0], [400, 0], [400, 300]] }).ok).toBe(true)
+    expect(handler.execute('add_polyline', { points: [[0, 0], [10, 10]] }).ok).toBe(true)
+    expect(store.getHome().walls).toHaveLength(1)
+    expect(store.getHome().roofs).toHaveLength(1)
+    expect(store.getHome().polylines).toHaveLength(1)
+  })
 })
