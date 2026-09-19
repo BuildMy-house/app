@@ -961,6 +961,21 @@ export class PlanEngine {
       const home = this.homeSnapshot()
       const hit = this.hitTest(home, point)
       if (!hit) {
+        // Empty-space click in Selection tool: offer the make-room dialog if
+        // the point sits inside a closed (not-yet-a-room) wall loop — same
+        // confirm-via-dialog flow as wall finalization. walls:[] is safe,
+        // the dialog only reads vertices.length/area and room creation only
+        // reads vertices. Area reuses the same shoelace math as
+        // findEnclosingWallLoop/roof footprint.
+        const loopPoints = this.findEnclosingWallLoop(point)
+        if (loopPoints) {
+          this.openAutoFloorDialog({
+            walls: [],
+            vertices: loopPoints,
+            area: Math.abs(signedArea(loopPoints)),
+          })
+          return
+        }
         if (!shift) this.model.setSelection([])
         return
       }
