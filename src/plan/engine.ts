@@ -169,6 +169,15 @@ export class PlanEngine {
   private sessionOpen = false
   /** Polygon vertices collected during a room-tool drawing session. */
   private roomPoints: Array<[number, number]> = []
+  /** Currently-open AutoFloorDialog, tracked so a dblclick can dismiss it
+   *  (click-before-dblclick race: singleClick opens the dialog, then the
+   *  dblclick handler must clear it before auto-creating the room). */
+  private activeAutoFloorDialog: AutoFloorDialog | null = null
+  /** Timer for the deferred AutoFloorDialog open. The dialog must not exist
+   *  while a click+dblclick gesture is in flight — the dialog box would
+   *  swallow the gesture's second click. Deferring the open lets the whole
+   *  gesture reach the canvas; the dblclick handler cancels the pending open. */
+  private pendingAutoFloorOpen: ReturnType<typeof setTimeout> | null = null
   /** Vertices collected during a polyline-tool drawing session. */
   private polylinePoints: Array<[number, number]> = []
   /** Start point of a dimension-line-tool drawing session. */
@@ -269,12 +278,35 @@ export class PlanEngine {
     if (typeof document === 'undefined') {
       return
     }
-    const dialog = new AutoFloorDialog(
-      loop,
-      () => this.createRoomFromLoop(loop),
-      () => { /* skip — user cancelled */ },
-    )
-    dialog.open()
+    // A click+dblclick gesture fires click twice: the second click re-runs
+    // the same detection path. Drop any stale/pending dialog so only one is
+    // ever open (or pending) at a time.
+    if (this.pendingAutoFloorOpen !== null) {
+      clearTimeout(this.pendingAutoFloorOpen)
+      this.pendingAutoFloorOpen = null
+    }
+    if (this.activeAutoFloorDialog) {
+      this.activeAutoFloorDialog.dismiss()
+      this.activeAutoFloorDialog = null
+    }
+    // Defer the open so a double-click gesture already in flight completes
+    // before the dialog exists on screen.
+    this.pendingAutoFloorOpen = setTimeout(() => {
+      this.pendingAutoFloorOpen = null
+      const dialog = new AutoFloorDialog(
+        loop,
+        () => {
+          this.activeAutoFloorDialog = null
+          this.createRoomFromLoop(loop)
+        },
+        () => {
+          this.activeAutoFloorDialog = null
+          /* skip — user cancelled */
+        },
+      )
+      this.activeAutoFloorDialog = dialog
+      dialog.open()
+    }, 250)
   }
 
   /**
@@ -1079,6 +1111,33 @@ export class PlanEngine {
         } else {
           this.cancelPolylineDrawing()
         }
+      }
+      return
+    }
+    if (this.tool === 'selection') {
+      // A real browser dblclick is preceded by a click, which (inside a
+      // closed wall loop) already scheduled/opened the AutoFloorDialog.
+      // Cancel the pending open and dismiss any open dialog — the dblclick
+      // supersedes it, this is not a user cancellation — then auto-create
+      // the room directly, no dialog.
+      if (this.pendingAutoFloorOpen !== null) {
+        clearTimeout(this.pendingAutoFloorOpen)
+        this.pendingAutoFloorOpen = null
+      }
+      if (this.activeAutoFloorDialog) {
+        this.activeAutoFloorDialog.dismiss()
+        this.activeAutoFloorDialog = null
+      }
+      const loop = this.findEnclosingWallLoop(point)
+      if (loop) {
+        const home = this.homeSnapshot()
+        this.model.getStore().beginCompoundEdit()
+        const room = this.model.addRoom(
+          loop.map((p) => [p.x, p.y] as [number, number]),
+          this.roomDefaults(home),
+        )
+        this.model.setSelection([room.id])
+        this.model.getStore().endCompoundEdit()
       }
       return
     }

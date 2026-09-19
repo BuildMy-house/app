@@ -22,6 +22,10 @@ function addRectWalls(model: HomeModel): void {
   model.addWall({ xStart: 0, yStart: 100, xEnd: 0, yEnd: 0, thickness: 7 })
 }
 
+// The engine defers opening the dialog (~250ms) so an in-flight
+// click+dblclick gesture completes before the dialog exists on screen.
+const flushAutoFloorOpen = (): Promise<void> => new Promise((r) => setTimeout(r, 300))
+
 describe('selection tool: click inside enclosure offers make-room dialog', () => {
   // jsdom DOM is shared across tests in this file — close any dialog a
   // previous test left open via its Escape handler.
@@ -29,12 +33,13 @@ describe('selection tool: click inside enclosure offers make-room dialog', () =>
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
   })
 
-  it('click inside a closed wall loop opens the dialog; Create makes a room', () => {
+  it('click inside a closed wall loop opens the dialog; Create makes a room', async () => {
     const { store, model, engine } = setup()
     addRectWalls(model)
     engine.setTool('selection')
 
     engine.click({ x: 50, y: 50 })
+    await flushAutoFloorOpen()
 
     // No silent creation — the confirm dialog must be up and no room yet.
     expect(document.querySelector('.auto-floor-dialog')).not.toBeNull()
@@ -55,7 +60,7 @@ describe('selection tool: click inside enclosure offers make-room dialog', () =>
     expect(ys[3]).toBeCloseTo(100, 5)
   })
 
-  it('dialog click leaves the current selection untouched (no clear)', () => {
+  it('dialog click leaves the current selection untouched (no clear)', async () => {
     const { store, model, engine } = setup()
     addRectWalls(model)
     const wallId = store.getHome().walls[0]!.id
@@ -63,6 +68,7 @@ describe('selection tool: click inside enclosure offers make-room dialog', () =>
     engine.setTool('selection')
 
     engine.click({ x: 50, y: 50 })
+    await flushAutoFloorOpen()
 
     expect(document.querySelector('.auto-floor-dialog')).not.toBeNull()
     expect(store.getHome().selection).toEqual([wallId])

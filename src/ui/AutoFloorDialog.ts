@@ -63,12 +63,21 @@ export class AutoFloorDialog {
     window.addEventListener('keydown', this.escHandler)
   }
 
-  private close(): void {
+  /**
+   * Teardown without invoking onCancel — used when the engine dismisses the
+   * dialog because an immediately-following dblclick supersedes it (not a
+   * user cancellation).
+   */
+  dismiss(): void {
     if (this.escHandler) {
       window.removeEventListener('keydown', this.escHandler)
       this.escHandler = null
     }
     this.overlay.remove()
+  }
+
+  private close(): void {
+    this.dismiss()
     this.onCancel()
   }
 }
