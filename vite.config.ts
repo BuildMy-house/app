@@ -12,26 +12,31 @@ export default defineConfig({
     },
   },
   build: {
+    // Vite 8 runs on Rolldown; the old object-form manualChunks is gone.
+    // codeSplitting groups match module ids — order the specific
+    // loader/control patterns before the broad three/ one.
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Three.js and core rendering
-          'three-core': ['three'],
+        codeSplitting: {
+          groups: [
+            // Three.js loaders (split to lazy-load)
+            { name: 'three-loaders', test: /three[\\/]examples[\\/]jsm[\\/]loaders[\\/]GLTFLoader/ },
 
-          // Three.js loaders (split to lazy-load)
-          'three-loaders': ['three/examples/jsm/loaders/GLTFLoader.js'],
+            // Three.js controls
+            { name: 'three-controls', test: /three[\\/]addons[\\/]controls[\\/]OrbitControls/ },
 
-          // Three.js controls
-          'three-controls': ['three/addons/controls/OrbitControls.js'],
+            // Three.js and core rendering
+            { name: 'three-core', test: /[\\/]node_modules[\\/]three[\\/]/ },
 
-          // UI components (properties panel, catalog, etc.)
-          'ui-core': ['src/ui/properties-panel.ts', 'src/ui/catalog-panel.ts'],
+            // UI components (properties panel, catalog, etc.)
+            { name: 'ui-core', test: /src[\\/](ui[\\/])?(properties-panel|catalog-panel)/ },
 
-          // Core domain logic (should be loaded early)
-          'core-logic': ['src/core/model.ts', 'src/core/store.ts', 'src/core/home.ts'],
+            // Core domain logic (should be loaded early)
+            { name: 'core-logic', test: /src[\\/]core[\\/](model|store|home)/ },
 
-          // Plan (2D) rendering
-          'plan-render': ['src/plan/renderer.ts', 'src/plan/engine.ts'],
+            // Plan (2D) rendering
+            { name: 'plan-render', test: /src[\\/]plan[\\/](renderer|engine)/ },
+          ],
         },
       },
     },
