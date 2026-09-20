@@ -18,6 +18,15 @@ export interface RemoteHome {
   updatedAt: string
 }
 
+export interface HomeUpdateEvent {
+  type: 'home.updated'
+  homeId: string
+  revision: string
+  actor: 'user' | 'agent'
+  json: string
+  name: string
+}
+
 /**
  * Server-backed home-project store ("Save to my account" / "Open from my
  * account"). Additive persistence path next to home-persistence.ts's local
@@ -59,9 +68,14 @@ export class RemoteHomeStore {
    */
   async save(
     home: NormalizedHomeState,
-    options: { id?: string; name?: string } = {},
+    options: { id?: string; name?: string; baseUpdatedAt?: string; actor?: 'user' | 'agent' } = {},
   ): Promise<RemoteHome> {
-    const body = { name: options.name, json: serializeForSave(home) }
+    const body = {
+      name: options.name,
+      json: serializeForSave(home),
+      ...(options.baseUpdatedAt ? { baseUpdatedAt: options.baseUpdatedAt } : {}),
+      ...(options.actor ? { actor: options.actor } : {}),
+    }
     const response = await this.request(options.id ? `${this.baseUrl}/${encodeURIComponent(options.id)}` : this.baseUrl, {
       method: options.id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -71,12 +85,54 @@ export class RemoteHomeStore {
     return (await response.json()) as RemoteHome
   }
 
+  /** Subscribe to revisioned updates from the same house while it is open. */
+  async subscribe(id: string, onUpdate: (event: HomeUpdateEvent) => void): Promise<() => void> {
+    const controller = new AbortController()
+    const response = await this.request(`${this.baseUrl}/${encodeURIComponent(id)}/events`, { signal: controller.signal })
+    if (!response.ok || !response.body) throw new Error(`home events unavailable (${response.status})`)
+    void this.readEvents(response.body, onUpdate, controller.signal)
+    return () => controller.abort()
+  }
+
+  async setPresence(id: string, role: 'user' | 'agent' = 'user'): Promise<void> {
+    const response = await this.request(`${this.baseUrl}/${encodeURIComponent(id)}/presence`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    })
+    if (!response.ok) throw new Error(`home presence unavailable (${response.status})`)
+  }
+
+  private async readEvents(body: ReadableStream<Uint8Array>, onUpdate: (event: HomeUpdateEvent) => void, signal: AbortSignal): Promise<void> {
+    const reader = body.pipeThrough(new TextDecoderStream()).getReader()
+    let buffer = ''
+    try {
+      while (!signal.aborted) {
+        const next = await reader.read()
+        if (next.done) break
+        buffer += next.value
+        const chunks = buffer.split('\n\n')
+        buffer = chunks.pop() ?? ''
+        for (const chunk of chunks) {
+          const line = chunk.split('\n').find((entry) => entry.startsWith('data: '))
+          if (line) onUpdate(JSON.parse(line.slice(6)) as HomeUpdateEvent)
+        }
+      }
+    } finally {
+      reader.releaseLock()
+    }
+  }
+
   /** Load and parse a saved home by id. */
   async load(id: string): Promise<NormalizedHomeState> {
+    return parseHomeFile((await this.loadRecord(id)).json)
+  }
+
+  /** Load a saved home and its revision metadata. */
+  async loadRecord(id: string): Promise<RemoteHome> {
     const response = await this.request(`${this.baseUrl}/${encodeURIComponent(id)}`)
     if (!response.ok) throw new Error(`home load failed (${response.status})`)
-    const record = (await response.json()) as RemoteHome
-    return parseHomeFile(record.json)
+    return (await response.json()) as RemoteHome
   }
 
   /** Delete a saved home by id. */

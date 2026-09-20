@@ -7,6 +7,11 @@ import type { DbAdapter } from './db.js';
 import { isTeamMember } from './teams.js';
 import { HOMES_RATE_LIMIT, makeUserRateLimiter } from './rateLimit.js';
 
+type HomeEvent = { type: 'home.updated'; homeId: string; revision: string; actor: 'user' | 'agent'; json: string; name: string };
+type HomeSubscriber = (event: HomeEvent) => void;
+const homeSubscribers = new Map<string, Set<HomeSubscriber>>();
+const homePresence = new Map<string, Map<string, { userId: string; role: 'user' | 'agent'; seenAt: string }>>();
+
 interface HomeRow {
   id: string;
   owner_user_id: string;
@@ -89,6 +94,20 @@ function enqueueSave(userId: string, homeId: string, name: string, json: string)
   }
 }
 
+function publish(event: HomeEvent): void {
+  for (const subscriber of homeSubscribers.get(event.homeId) ?? []) subscriber(event);
+}
+
+function subscribe(homeId: string, subscriber: HomeSubscriber): () => void {
+  const subscribers = homeSubscribers.get(homeId) ?? new Set<HomeSubscriber>();
+  subscribers.add(subscriber);
+  homeSubscribers.set(homeId, subscribers);
+  return () => {
+    subscribers.delete(subscriber);
+    if (subscribers.size === 0) homeSubscribers.delete(homeId);
+  };
+}
+
 /**
  * Flush all pending saves to the database in one batch.
  * Reduces 50+ individual writes to a small number of transactions.
@@ -158,6 +177,46 @@ export function homesRouter(db: DbAdapter): Router {
     }),
   );
 
+  router.get(
+    '/:id/events',
+    asyncHandler(async (req: Request, res: Response) => {
+      const row = await resolveOwnedHome(db, req.userId!, req.params.id!, res);
+      if (!row) return;
+      res.status(200).set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+      res.flushHeaders();
+      const send = (event: HomeEvent) => res.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
+      send({ type: 'home.updated', homeId: row.id, revision: row.updated_at, actor: 'user', json: row.json, name: row.name });
+      const unsubscribe = subscribe(row.id, send);
+      const heartbeat = setInterval(() => res.write(': keep-alive\n\n'), 15_000);
+      req.on('close', () => { clearInterval(heartbeat); unsubscribe(); });
+    }),
+  );
+
+  router.get(
+    '/:id/presence',
+    asyncHandler(async (req: Request, res: Response) => {
+      const row = await resolveOwnedHome(db, req.userId!, req.params.id!, res);
+      if (!row) return;
+      const now = Date.now();
+      const entries = [...(homePresence.get(row.id)?.values() ?? [])].filter((entry) => now - Date.parse(entry.seenAt) < 60_000);
+      res.json({ items: entries });
+    }),
+  );
+
+  router.post(
+    '/:id/presence',
+    asyncHandler(async (req: Request, res: Response) => {
+      const row = await resolveOwnedHome(db, req.userId!, req.params.id!, res);
+      if (!row) return;
+      const role = (req.body as { role?: unknown } | undefined)?.role;
+      if (role !== 'user' && role !== 'agent') { res.status(400).json({ error: 'role must be user or agent' }); return; }
+      const entries = homePresence.get(row.id) ?? new Map();
+      entries.set(`${req.userId!}:${role}`, { userId: req.userId!, role, seenAt: new Date().toISOString() });
+      homePresence.set(row.id, entries);
+      res.json({ ok: true, seenAt: entries.get(`${req.userId!}:${role}`)!.seenAt });
+    }),
+  );
+
   router.post(
     '/',
     asyncHandler(async (req: Request, res: Response) => {
@@ -216,12 +275,29 @@ export function homesRouter(db: DbAdapter): Router {
     asyncHandler(async (req: Request, res: Response) => {
       const row = await resolveOwnedHome(db, req.userId!, req.params.id!, res);
       if (!row) return;
-      const { name, json } = (req.body ?? {}) as { name?: unknown; json?: unknown };
+      const { name, json, baseUpdatedAt, actor = 'user' } = (req.body ?? {}) as { name?: unknown; json?: unknown; baseUpdatedAt?: unknown; actor?: unknown };
       if (typeof json !== 'string') {
         res.status(400).json({ error: 'json (serialized home) is required' });
         return;
       }
       const homeName = typeof name === 'string' && name.trim() ? name.trim() : row.name;
+      if (baseUpdatedAt !== undefined && (typeof baseUpdatedAt !== 'string' || baseUpdatedAt !== row.updated_at)) {
+        res.status(409).json({ error: 'home changed since it was loaded', current: toRecord(row) });
+        return;
+      }
+      if (actor !== 'user' && actor !== 'agent') { res.status(400).json({ error: 'actor must be user or agent' }); return; }
+      if (typeof baseUpdatedAt === 'string') {
+        const updatedAt = new Date().toISOString();
+        const result = await db.run(
+          'UPDATE homes SET name = ?, json = ?, updated_at = ? WHERE id = ? AND updated_at = ?',
+          homeName, json, updatedAt, row.id, baseUpdatedAt,
+        );
+        if (result.changes !== 1) { res.status(409).json({ error: 'home changed since it was loaded' }); return; }
+        const updated = { ...row, name: homeName, json, updated_at: updatedAt };
+        publish({ type: 'home.updated', homeId: row.id, revision: updatedAt, actor, json, name: homeName });
+        res.json(toRecord(updated));
+        return;
+      }
       // Enqueue save instead of writing immediately (batches multiple saves)
       enqueueSave(req.userId!, req.params.id!, homeName, json);
       // Return the updated record immediately (optimistic response)

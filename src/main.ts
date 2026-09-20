@@ -12,7 +12,7 @@ import { CatalogPanel } from './ui/catalog-panel'
 import { PlanEngine, type PlanPreview, type PlanTool } from './plan/engine'
 import { snapFurniturePlacement } from './plan/furniture-snap'
 import { ViewMapper, drawPlan, fitToBounds, type PlanRenderingContext, type ViewTransform } from './plan/renderer'
-import { saveHomeFile, loadHomeFile } from './services/adapters/home-persistence'
+import { saveHomeFile, loadHomeFile, parseHomeFile } from './services/adapters/home-persistence'
 import { exportPlanPng, export3dPng, renderPlanPng } from './services/adapters/plan-export'
 import { buildRenderableScene } from './render/scene-builder'
 import { nextLevelElevation } from './core/home'
@@ -116,6 +116,30 @@ const remoteHomes = new RemoteHomeStore('/api/homes', () => auth.getToken())
 // (POST). Cleared when the document stops being that account home (New, local
 // Open, Log Out).
 let currentAccountHomeId: string | null = null
+let currentAccountHomeRevision: string | null = null
+let stopHomeSubscription: (() => void) | null = null
+
+function closeHomeSession(): void {
+  stopHomeSubscription?.()
+  stopHomeSubscription = null
+  currentAccountHomeId = null
+  currentAccountHomeRevision = null
+}
+
+async function watchAccountHome(id: string): Promise<void> {
+  stopHomeSubscription?.()
+  stopHomeSubscription = await remoteHomes.subscribe(id, (event) => {
+    if (event.revision === currentAccountHomeRevision) return
+    if (store.isDirty()) {
+      statusAutomation.textContent = 'home changed remotely — save or reload'
+      return
+    }
+    store.loadHome(parseHomeFile(event.json))
+    currentAccountHomeRevision = event.revision
+    refreshAll()
+  })
+  void remoteHomes.setPresence(id, 'user')
+}
 
 // Apply stored preferences (wall defaults, ground color).
 const bootPrefs = loadPreferences()
@@ -259,7 +283,7 @@ function refreshMenus(): void {
           action: async () => {
             if (store.isDirty() && !(await confirmDialog('Unsaved changes will be lost. Continue?'))) return
             store.resetToEmpty()
-            currentAccountHomeId = null
+            closeHomeSession()
             doFit()
             refreshAll()
           },
@@ -280,7 +304,7 @@ function refreshMenus(): void {
               const home = await loadHomeFile()
               if (home) {
                 store.loadHome(home)
-                currentAccountHomeId = null
+                closeHomeSession()
                 doFit()
                 refreshAll()
               }
@@ -294,7 +318,7 @@ function refreshMenus(): void {
           ? [
               { label: `Signed in as ${auth.currentUser()}`, disabled: true },
               { label: 'Change Password…', action: () => { new ChangePasswordDialog(auth, () => {}).open() } },
-              { label: 'Log Out', action: () => { auth.logout(); currentAccountHomeId = null; refreshAll() } },
+              { label: 'Log Out', action: () => { auth.logout(); closeHomeSession(); refreshAll() } },
             ]
           : [{ label: 'Log In / Register…', action: () => promptLogin() }]),
         { label: '---' },
@@ -418,8 +442,15 @@ async function saveToAccount(): Promise<void> {
     if (name === null) return
     const trimmed = name.trim() || 'Untitled home'
     model.setName(trimmed)
-    const record = await remoteHomes.save(store.getHome(), { id: currentAccountHomeId ?? undefined, name: trimmed })
+    const record = await remoteHomes.save(store.getHome(), {
+      id: currentAccountHomeId ?? undefined,
+      name: trimmed,
+      baseUpdatedAt: currentAccountHomeRevision ?? undefined,
+      actor: 'user',
+    })
     currentAccountHomeId = record.id
+    currentAccountHomeRevision = record.updatedAt
+    if (!stopHomeSubscription) void watchAccountHome(record.id)
     store.markClean()
   } catch (err) {
     alert(err instanceof Error ? err.message : `Failed to save home to account: ${String(err)}`)
@@ -434,9 +465,11 @@ async function openProjectManager(): Promise<void> {
         void (async () => {
           if (store.isDirty() && !(await confirmDialog('Unsaved changes will be lost. Continue?'))) return
           try {
-            const home = await remoteHomes.load(id)
-            store.loadHome(home)
+            const record = await remoteHomes.loadRecord(id)
+            store.loadHome(parseHomeFile(record.json))
             currentAccountHomeId = id
+            currentAccountHomeRevision = record.updatedAt
+            void watchAccountHome(id)
             doFit()
             refreshAll()
           } catch (err) {
@@ -449,7 +482,7 @@ async function openProjectManager(): Promise<void> {
       },
       onDelete: async (id) => {
         await remoteHomes.remove(id)
-        if (currentAccountHomeId === id) currentAccountHomeId = null
+        if (currentAccountHomeId === id) closeHomeSession()
       },
     }).open()
   } catch (err) {
@@ -466,7 +499,7 @@ const profileWidget = new ProfileWidget(profileWidgetHost, auth, {
   },
   onLogOut: () => {
     auth.logout()
-    currentAccountHomeId = null
+    closeHomeSession()
     refreshAll()
     profileWidget.refresh()
   },
