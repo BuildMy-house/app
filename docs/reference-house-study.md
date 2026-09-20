@@ -110,9 +110,21 @@ architectural measurement.
   Done — see issue #3 above (`showRoof` option on `buildScene`/`View3D`,
   toolbar toggle, `set_roof_visible` automation command and MCP tool).
 - Exterior site context: trees, snow, decks, patios, landscape, terrain, and
-  background photography.
-- Real glass, reflective materials, exterior cladding, furniture fabrics,
-  and lighting controls.
+  background photography. **Tracked as Ticket 5d** (not yet done).
+- ~~Real glass, reflective materials~~ for windows. **Closed 2026-09-21
+  (Ticket 5a):** window furniture (`Furniture.doorOrWindow === true` and a
+  `/window/i` name match — the same convention `add_door`/`add_window` in
+  `src/automation/homely-handler.ts` already uses to tell doors from
+  windows, since there is no separate structural discriminator field) now
+  gets a `THREE.MeshPhysicalMaterial` with `transmission`/`ior`/`thickness`
+  in `furnitureMesh()` (`src/view3d/scene.ts`, `isWindowFurniture()` /
+  `windowGlassMaterial()`) instead of the flat blue-box placeholder. Windows
+  are also excluded from `addFurnitureMeshes()`'s instancing path so each
+  one keeps its own glass material rather than being batched into a shared
+  opaque `InstancedMesh`. Covered by tests in `src/view3d/scene.test.ts`
+  (`describe('window glass material (Ticket 5a)')`). Exterior cladding,
+  furniture fabrics, and lighting controls remain open — **tracked as
+  Tickets 5b (fabrics/lighting) and 5c (cladding)**.
 - Image-based reference overlay or camera matching for tracing proportions
   from a photo.
 - More architectural elements: large sliding-glass assemblies, skylights,

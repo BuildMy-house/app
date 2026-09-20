@@ -25,6 +25,19 @@ const DEFAULT_FLOOR_COLOR = 0xc8c8c8
 const DEFAULT_FURNITURE_COLOR = 0x9e9e9e
 const DEFAULT_CEILING_COLOR = 0xf0f0f0
 
+// Ticket 5a: real glass/reflective window materials. Windows have no
+// dedicated data-model discriminator (Furniture.doorOrWindow?: boolean is
+// shared with doors) — reuse the same name-regex convention already used by
+// src/automation/homely-handler.ts's add_door/add_window case to tell them
+// apart, rather than inventing a second mechanism.
+const WINDOW_GLASS_COLOR = 0xbfe3f0
+const WINDOW_GLASS_ROUGHNESS = 0.05
+const WINDOW_GLASS_METALNESS = 0
+const WINDOW_GLASS_TRANSMISSION = 0.9
+const WINDOW_GLASS_IOR = 1.5
+const WINDOW_GLASS_THICKNESS = 2
+const WINDOW_GLASS_TINT = 0x1a2a33
+
 const GROUND_SIZE_CM = 100_000
 const GRID_SIZE_CM = 20_000
 const GRID_DIVISIONS = 40
@@ -776,6 +789,35 @@ function swapInModel(
   }
 }
 
+/**
+ * Windows have no dedicated data-model discriminator: Furniture.doorOrWindow
+ * is shared with doors, so this mirrors the exact convention already used by
+ * src/automation/homely-handler.ts's add_door/add_window case (a name regex
+ * combined with the doorOrWindow flag) instead of inventing a new one.
+ */
+export function isWindowFurniture(item: Furniture): boolean {
+  return item.doorOrWindow === true && /window/i.test(item.name)
+}
+
+/**
+ * Real glass material (Ticket 5a) replacing the flat blue-box "glazing
+ * placeholder": MeshPhysicalMaterial with transmission gives actual
+ * refraction/see-through behavior instead of an opaque colored box.
+ */
+function windowGlassMaterial(): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
+    color: WINDOW_GLASS_COLOR,
+    roughness: WINDOW_GLASS_ROUGHNESS,
+    metalness: WINDOW_GLASS_METALNESS,
+    transmission: WINDOW_GLASS_TRANSMISSION,
+    ior: WINDOW_GLASS_IOR,
+    thickness: WINDOW_GLASS_THICKNESS,
+    attenuationColor: WINDOW_GLASS_TINT,
+    attenuationDistance: 100,
+    transparent: true,
+  })
+}
+
 export function furnitureMesh(
   item: Furniture,
   elevation: number,
@@ -783,12 +825,15 @@ export function furnitureMesh(
   isSelected = false,
 ): THREE.Mesh {
   const geometry = new THREE.BoxGeometry(item.width, item.height, item.depth)
-  const material = new THREE.MeshStandardMaterial({
-    color: item.color ?? DEFAULT_FURNITURE_COLOR,
-    roughness: 0.7,
-    metalness: 0.0,
-  })
-  if (item.textureId) {
+  const isWindow = isWindowFurniture(item)
+  const material = isWindow
+    ? windowGlassMaterial()
+    : new THREE.MeshStandardMaterial({
+        color: item.color ?? DEFAULT_FURNITURE_COLOR,
+        roughness: 0.7,
+        metalness: 0.0,
+      })
+  if (!isWindow && item.textureId) {
     const entry = applyMaterialTextures(material, item.textureId)
     if (entry?.aoFile) addUv2(geometry)
   }
@@ -830,9 +875,13 @@ function addFurnitureMeshes(
     const candidates = group.items.filter((it) => !selectionSet.has(it.id))
     if (candidates.length < 2) continue
     const first = candidates[0]!
+    // Windows always render individually via furnitureMesh() so they get the
+    // real glass MeshPhysicalMaterial (Ticket 5a) instead of being batched
+    // into a shared, non-glass InstancedMesh.
     const canInstance = candidates.every(
       (it) =>
         !it.modelPath &&
+        !isWindowFurniture(it) &&
         it.width === first.width &&
         it.height === first.height &&
         it.depth === first.depth &&

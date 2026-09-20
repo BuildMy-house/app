@@ -7,6 +7,7 @@ import {
   remapExtrudeUvs,
   __seedModelCache,
   SELECTION_EMISSIVE_COLOR,
+  isWindowFurniture,
 } from './scene'
 import {
   applySceneUpdate,
@@ -493,6 +494,76 @@ describe('furniture mirror (M60)', () => {
     const mesh = meshes[0]!
     expect(mesh.scale.x).toBe(-1)
     expect(mesh.rotation.y).toBeCloseTo(Math.PI / 2, 10)
+  })
+})
+
+describe('window glass material (Ticket 5a)', () => {
+  function windowItem(id: string, overrides: Partial<Furniture> = {}): Furniture {
+    return {
+      id, name: 'Window',
+      x: 0, y: 0, angleDeg: 0,
+      width: 120, depth: 10, height: 100,
+      elevation: 90,
+      doorOrWindow: true,
+      ...overrides,
+    }
+  }
+
+  it('isWindowFurniture requires both doorOrWindow and a name match', () => {
+    expect(isWindowFurniture(windowItem('w1'))).toBe(true)
+    expect(isWindowFurniture(windowItem('w2', { name: 'Sliding Window' }))).toBe(true)
+    expect(isWindowFurniture(windowItem('w3', { doorOrWindow: false }))).toBe(false)
+    expect(isWindowFurniture(windowItem('w4', { name: 'Door' }))).toBe(false)
+    expect(
+      isWindowFurniture({
+        id: 'w5', name: 'Sofa', x: 0, y: 0, angleDeg: 0,
+        width: 100, depth: 50, height: 80, elevation: 0,
+      }),
+    ).toBe(false)
+  })
+
+  it('window furniture gets a transmissive MeshPhysicalMaterial, not the flat box material', () => {
+    const home = createEmptyHome()
+    home.furniture.push(windowItem('w1'))
+    const scene = buildScene(home)
+    const mesh = furnitureMeshes(scene)[0]!
+    expect(mesh.material).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    const mat = mesh.material as THREE.MeshPhysicalMaterial
+    expect(mat.transmission).toBeGreaterThan(0)
+  })
+
+  it('non-window furniture keeps the plain MeshStandardMaterial', () => {
+    const home = createEmptyHome()
+    home.furniture.push({
+      id: 'f1', name: 'Sofa',
+      x: 0, y: 0, angleDeg: 0,
+      width: 200, depth: 80, height: 90,
+      elevation: 0,
+    })
+    const scene = buildScene(home)
+    const mesh = furnitureMeshes(scene)[0]!
+    expect(mesh.material).toBeInstanceOf(THREE.MeshStandardMaterial)
+    expect(mesh.material).not.toBeInstanceOf(THREE.MeshPhysicalMaterial)
+  })
+
+  it('a door (doorOrWindow=true but name Door) is not treated as glass', () => {
+    const home = createEmptyHome()
+    home.furniture.push(windowItem('d1', { name: 'Door', doorOrWindow: true }))
+    const scene = buildScene(home)
+    const mesh = furnitureMeshes(scene)[0]!
+    expect(mesh.material).not.toBeInstanceOf(THREE.MeshPhysicalMaterial)
+  })
+
+  it('multiple identical windows are excluded from instancing and each render individually', () => {
+    const home = createEmptyHome()
+    for (let i = 0; i < 3; i++) home.furniture.push(windowItem(`w${i}`, { x: i * 150 }))
+    const scene = buildScene(home)
+    expect(instancedFurnitureMeshes(scene).length).toBe(0)
+    const meshes = furnitureMeshes(scene)
+    expect(meshes.length).toBe(3)
+    for (const mesh of meshes) {
+      expect(mesh.material).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    }
   })
 })
 
