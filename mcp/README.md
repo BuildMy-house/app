@@ -45,7 +45,7 @@ and point the connector at `http://127.0.0.1:8080/mcp`.
 | `scene_summary` / `validate_scene` | Semantic scene graph and structural checks |
 | `screenshot` | Standalone offscreen plan/3D PNG (no browser or human viewport) |
 | `render_photoreal` | Optional LuxCore image; defaults to the cheap thumbnail profile |
-| `screenshot_views` | Capture several named camera views in one call |
+| `screenshot_views` | Capture several named camera views in one call; empty input returns plan + perspective + top-down |
 | `list_furniture` | Catalog items |
 | `add_furniture` | Place a catalog item by id (cm coords) |
 | `draw_rectangular_room` | Closed 4-wall rectangle (one undo) |

@@ -516,10 +516,14 @@ async def render_photoreal(profile: str = "thumbnail") -> Image:
 
 
 @mcp.tool()
-async def screenshot_views(views: list[dict]):
-    """Capture named camera views in one call; each item can set preset, frame, camera, view, width, and height."""
+async def screenshot_views(views: list[dict] | None = None):
+    """Capture named views; with no list, return plan, framed perspective, and top-down views."""
     if not views:
-        raise ValueError("views must contain at least one view")
+        views = [
+            {"name": "plan", "view": "plan"},
+            {"name": "perspective", "view": "3d", "frame": "scene"},
+            {"name": "top-down", "view": "3d", "preset": "top", "frame": "scene"},
+        ]
     s = _session()
     content = []
     for index, spec in enumerate(views, start=1):
