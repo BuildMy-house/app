@@ -12,8 +12,8 @@ import { DEFAULT_WALL_HEIGHT_CM } from './home'
  * camera-only mutations are skipped so explicit moves are never fought.
  */
 
-export const AERIAL_MIN_BOX_CM = 100
-export const AERIAL_MIN_HEIGHT_CM = 20
+const AERIAL_MIN_BOX_CM = 100
+const AERIAL_MIN_HEIGHT_CM = 20
 
 /** Endpoints closer than this count as joined for wall mitering. */
 const JOIN_EPSILON = 1e-6
@@ -31,7 +31,7 @@ export interface Bounds3D {
 type Pt = [number, number]
 
 /** Everything but cameras — camera-only steps must not re-trigger placement. */
-export function contentFingerprint(home: NormalizedHomeState): string {
+function contentFingerprint(home: NormalizedHomeState): string {
   return JSON.stringify([
     home.walls,
     home.furniture,

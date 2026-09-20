@@ -63,7 +63,7 @@ const SAVE_FLUSH_MS = 500; // Coalesce saves within this window
 // 400 over 429: the request itself is valid but would exceed a persistent
 // resource quota — 429 implies a transient rate condition where retrying
 // later helps, which is false here (deleting homes is the only remedy).
-export const MAX_HOMES_PER_USER_DEFAULT = 500;
+const MAX_HOMES_PER_USER_DEFAULT = 500;
 
 function maxHomesPerUser(): number {
   const parsed = Number(process.env.MAX_HOMES_PER_USER);

@@ -251,15 +251,6 @@ export function addEvent(event: TransportEvent): number {
 }
 
 /**
- * Flush the global transport.
- */
-export async function flushTransport(): Promise<void> {
-  if (globalTransport) {
-    await globalTransport.flush();
-  }
-}
-
-/**
  * Reset the global transport (for testing).
  */
 export function _resetTransport(): void {

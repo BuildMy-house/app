@@ -1,6 +1,4 @@
-import type { NormalizedHomeState } from '../core/home'
-
-export const PROTOCOL_VERSION = 1
+const PROTOCOL_VERSION = 1
 
 export interface HelloMessage {
   type: 'hello'
@@ -9,7 +7,7 @@ export interface HelloMessage {
   mode: string
 }
 
-export interface AutomationRequest {
+interface AutomationRequest {
   id: string
   type: string
   params?: Record<string, unknown>
@@ -118,7 +116,7 @@ export class AutomationClient {
   }
 }
 
-export function hello(mode: string): HelloMessage {
+function hello(mode: string): HelloMessage {
   return { type: 'hello', app: 'homely', version: PROTOCOL_VERSION, mode }
 }
 
@@ -140,5 +138,3 @@ export function automationPortFromEnv(env: Record<string, string | undefined> = 
 export function automationPortFromSearch(search: string): number | null {
   return parsePort(new URLSearchParams(search).get('automationPort'))
 }
-
-export type { NormalizedHomeState }

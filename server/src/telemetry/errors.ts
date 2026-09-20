@@ -14,7 +14,7 @@ export interface ErrorContext {
   [key: string]: any;
 }
 
-export interface CapturedError {
+interface CapturedError {
   code: string;
   message: string;
   stack?: string;
@@ -26,7 +26,7 @@ export interface CapturedError {
   durationMs?: number;
 }
 
-export interface ErrorEvent extends CapturedError {
+interface ErrorEvent extends CapturedError {
   event: 'error_captured';
 }
 

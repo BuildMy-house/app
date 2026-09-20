@@ -36,7 +36,7 @@ export interface ConnectionMetrics {
   activeWebSocketConnections: number;
 }
 
-export interface GcMetrics {
+interface GcMetrics {
   kind: 'unknown' | 'scavenge' | 'mark-sweep' | 'incremental-mark-sweep';
   durationMs: number;
   flags: number;

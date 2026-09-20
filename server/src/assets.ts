@@ -10,7 +10,7 @@ import { AssetStorage, SAFE_TOKEN_PATTERN } from './storage.js';
 
 // GlTF binary magic number: ASCII "glTF", little-endian (glTF 2.0 spec).
 const GLB_MAGIC = 0x46546c67;
-export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
+const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
 
 interface UserModelRecord {
   id: string;
@@ -87,7 +87,7 @@ function toRecord(row: AssetRow): UserModelRecord {
   };
 }
 
-export const MAX_TOTAL_ASSET_BYTES_PER_USER_DEFAULT = 1024 * 1024 * 1024; // 1GB
+const MAX_TOTAL_ASSET_BYTES_PER_USER_DEFAULT = 1024 * 1024 * 1024; // 1GB
 
 function maxTotalAssetBytes(): number {
   const parsed = Number(process.env.MAX_TOTAL_ASSET_BYTES_PER_USER);

@@ -7,7 +7,7 @@
  * Events emitted via structured JSON to stdout for Axiom ingestion.
  */
 
-export interface JobEvent {
+interface JobEvent {
   event: string
   ts: string
   jobType: string
