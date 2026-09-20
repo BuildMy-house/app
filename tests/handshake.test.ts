@@ -152,6 +152,8 @@ describe('ws protocol v1 handshake', () => {
           'key',
           'set_magnetism',
           'screenshot',
+          'frame_scene',
+          'add_roof',
         ]),
       },
     })
@@ -210,6 +212,69 @@ describe('ws protocol v1 handshake', () => {
     const res = await orch.sendRequest('ping')
     expect(res.ok).toBe(true)
     expect(orch.unexpected).toEqual([])
+  })
+
+  it('frame_scene returns camera and center after content exists', async () => {
+    await awaitHello()
+    await orch.sendRequest('new_home')
+
+    // Add a room so fitToContent has something to frame.
+    await orch.sendRequest('add_room', {
+      points: [
+        [0, 0],
+        [100, 0],
+        [100, 100],
+        [0, 100],
+      ],
+    })
+
+    const res = await orch.sendRequest('frame_scene')
+    expect(res.ok).toBe(true)
+    const { camera, center } = res.data as {
+      camera: { x: number; y: number; z: number; yawDeg: number; pitchDeg: number; fovDeg: number }
+      center: { x: number; y: number; z: number }
+    }
+    expect(camera).toBeDefined()
+    expect(typeof camera.x).toBe('number')
+    expect(typeof camera.y).toBe('number')
+    expect(typeof camera.z).toBe('number')
+    expect(typeof center.x).toBe('number')
+    expect(typeof center.y).toBe('number')
+
+    await orch.sendRequest('new_home')
+  })
+
+  it('add_roof creates a roof with a generated id', async () => {
+    await awaitHello()
+    await orch.sendRequest('new_home')
+
+    const added = await orch.sendRequest('add_roof', {
+      points: [
+        [0, 0],
+        [200, 0],
+        [200, 100],
+        [0, 100],
+      ],
+      name: 'main roof',
+      color: 0x886644,
+      pitchDeg: 30,
+    })
+    expect(added.ok).toBe(true)
+    const { id } = added.data as { id: string }
+    expect(id).toMatch(/^roof-/)
+
+    const state = (await orch.sendRequest('get_state')).data as {
+      roofs: Array<{ id: string; name: string | null }>
+    }
+    expect(state.roofs).toHaveLength(1)
+    expect(state.roofs[0]).toMatchObject({ id, name: 'main roof' })
+
+    // Invalid params surface as INVALID_PARAMS.
+    const bad = await orch.sendRequest('add_roof', { points: [[0, 0]] })
+    expect(bad.ok).toBe(false)
+    expect(bad.code).toBe('INVALID_PARAMS')
+
+    await orch.sendRequest('new_home')
   })
 
   it('add_furniture + undo + redo round-trips with capability flags', async () => {
