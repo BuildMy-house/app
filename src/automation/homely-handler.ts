@@ -512,7 +512,7 @@ export class HomelyCommandHandler implements CommandHandler {
         return { ok: true, data: { view } }
       }
       case 'open': {
-        let loaded: NormalizedHomeState | null = null
+        let loaded: NormalizedHomeState | null
         if (params.json !== undefined) {
           assert(isNormalizedHome(params.json), 'param json is not a valid home state')
           loaded = params.json as NormalizedHomeState
