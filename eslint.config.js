@@ -35,4 +35,12 @@ export default tseslint.config(
       globals: { ...globals.node, ...globals.browser },
     },
   },
+  {
+    // Plain .js utility scripts (e.g. fetch-infisical-secrets.js) run
+    // directly under Node, outside the tsconfig'd app source.
+    files: ['scripts/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
 )

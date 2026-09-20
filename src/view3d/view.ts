@@ -265,11 +265,7 @@ export class View3D {
     if (this.controls) {
       this.cancelAnimation()
       const home = this.store.getHome()
-      const hasContent =
-        home.walls.length > 0 ||
-        home.rooms.length > 0 ||
-        home.furniture.length > 0 ||
-        home.dimensionLines.length > 0
+      const hasContent = this.hasSceneContent(home)
 
       this.controls.enableDamping = false
       if (hasContent) {
@@ -408,14 +404,29 @@ export class View3D {
     this.render()
   }
 
+  /** True once the home has any drawn wall, room, furniture, or dimension line. */
+  private hasSceneContent(home: NormalizedHomeState = this.store.getHome()): boolean {
+    return (
+      home.walls.length > 0 ||
+      home.rooms.length > 0 ||
+      home.furniture.length > 0 ||
+      home.dimensionLines.length > 0
+    )
+  }
+
   /**
    * Apply the current HDRI preset to the live scene. Cached presets apply
    * synchronously (no flash between rebuild and env); first load is async and
    * falls back to the flat sky color until the .hdr arrives.
+   *
+   * Skipped entirely on an empty home: a blurry, low-res HDRI backdrop behind
+   * nothing but the ground plane looks broken, so an empty scene keeps
+   * buildScene's flat sky-blue clear color instead.
    */
   private applyEnvironment(id: HdriPresetId = this._requestedEnvPreset): void {
     const renderer = this.renderer
     if (!renderer) return // headless: flat scene stays as buildScene made it
+    if (!this.hasSceneContent()) return
     if (!this.environment) this.environment = new HdriEnvironment(renderer)
     this.environment
       .applyTo(this._scene, id)
