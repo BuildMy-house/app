@@ -99,13 +99,28 @@ export function computeSceneUpdates(
   }
 
   // Detect furniture changes
+  let furnitureAddCount = 0
   for (const [id, newFurn] of newFurniture) {
     const oldFurn = oldFurniture.get(id)
     if (!oldFurn) {
       updates.push({ type: 'furniture-add', furnitureId: id, furniture: newFurn })
+      furnitureAddCount++
     } else if (!furnitureEqual(oldFurn, newFurn)) {
       updates.push({ type: 'furniture-update', furnitureId: id, furniture: newFurn })
     }
+  }
+
+  // applyFurnitureAdd renders each new item as a standalone mesh -- it never
+  // (re)groups items into an InstancedMesh (T1 instancing is a whole-scene
+  // decision made by addFurnitureMeshes/groupFurnitureForInstancing in
+  // buildScene). A single new item merely stays ungrouped until the next
+  // rebuild (accepted, documented above applyFurnitureAdd). But a *batch* of
+  // 2+ new items -- e.g. pasting/importing several identical chairs at once
+  // -- would otherwise render as N ungrouped meshes indefinitely, since
+  // nothing else triggers a rebuild afterward. Fall back to a full rebuild
+  // so batch adds get correctly grouped immediately.
+  if (furnitureAddCount >= 2) {
+    return [{ type: 'full-rebuild', reason: 'batch furniture add' }]
   }
 
   // Detect furniture deletions

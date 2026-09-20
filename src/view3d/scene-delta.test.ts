@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   applySceneUpdate,
+  computeSceneUpdates,
   recordSceneDelta,
   recordFullRebuild,
   snapshotDeltaMetrics,
@@ -87,6 +88,32 @@ function chair(id: string, overrides: Partial<Furniture> = {}): Furniture {
     ...overrides,
   }
 }
+
+describe('computeSceneUpdates furniture batch add', () => {
+  it('falls back to full-rebuild for 2+ new furniture items in one change', () => {
+    // Regression: applyFurnitureAdd renders each new item as a standalone
+    // mesh and never (re)groups into an InstancedMesh (that grouping is a
+    // whole-scene decision made by buildScene/addFurnitureMeshes). Adding 25
+    // identical chairs at once via the per-item furniture-add delta path
+    // left them as 25 ungrouped meshes forever, since nothing else ever
+    // triggered a rebuild afterward -- silently breaking T1 instancing for
+    // any bulk add (paste/import/scripted placement).
+    const old = createEmptyHome()
+    const next = createEmptyHome()
+    next.furniture.push(chair('c1'), chair('c2'))
+    const updates = computeSceneUpdates(old, next)
+    expect(updates).toEqual([{ type: 'full-rebuild', reason: 'batch furniture add' }])
+  })
+
+  it('still takes the per-item furniture-add delta path for a single new item', () => {
+    const old = createEmptyHome()
+    old.furniture.push(chair('c1'))
+    const next = createEmptyHome()
+    next.furniture.push(chair('c1'), chair('c2'))
+    const updates = computeSceneUpdates(old, next)
+    expect(updates).toEqual([{ type: 'furniture-add', furnitureId: 'c2', furniture: chair('c2') }])
+  })
+})
 
 describe('applySceneUpdate wall-delete', () => {
   it('removes the wall and re-meshes the joined neighbor', () => {
