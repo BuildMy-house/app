@@ -22,6 +22,7 @@ services:
       LUXCORE_WORKER_URL: http://bmh-renderer:8081
       LUXCORE_WORKER_TOKEN: "${LUXCORE_WORKER_TOKEN:?LUXCORE_WORKER_TOKEN must be set}"
       STATIC_DIR: /app/dist-static
+      HOMELY_AUTOMATION_PORT: "${HOMELY_AUTOMATION_PORT:-9529}"
       PORT: "3000"
     volumes:
       - bmh-data:/data

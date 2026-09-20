@@ -1431,6 +1431,7 @@ let pendingSnapWallOffset: number | null = null
 // awaits this so the shared catalog reaches the automation handler too.
 let sharedCatalog: FurnitureCatalog | null = null
 let userCatalog: import('./core/user-catalog').UserCatalog | null = null
+let catalogUnavailable = false
 
 const catalogLoadStart = performance.now()
 const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
@@ -1483,6 +1484,7 @@ const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
   telemetry.catalogLoad(performance.now() - catalogLoadStart, sharedCatalog.size)
 }).catch((err) => {
   console.error('[catalog] failed to load catalog:', err)
+  catalogUnavailable = true
   automationText = 'catalog unavailable'
   refreshStatus()
 })
@@ -1545,32 +1547,31 @@ function importModelFile(): void {
 
 // ── Automation ──────────────────────────────────────────────────────────────
 
+const DEFAULT_AUTOMATION_PORT = 9529
+
 async function connectAutomation(): Promise<void> {
+  if (import.meta.env.MODE === 'test') return
   const queryPort = automationPortFromSearch(window.location.search)
   let port = queryPort
   if (port === null && '__TAURI_INTERNALS__' in window) {
     const { invoke } = await import('@tauri-apps/api/core')
     const raw = await invoke<string | null>('automation_port')
-    port = raw === null ? null : Number(raw)
+    port = raw === null ? DEFAULT_AUTOMATION_PORT : Number(raw)
   }
-  if (port !== null) {
-    try {
-      await catalogReady // ensure the shared catalog reaches the handler
-    } catch {
-      // catalog load failed; proceed without catalog support
-    }
-    new AutomationClient(new HomelyCommandHandler(store, { planEngine: engine, catalog: sharedCatalog, clipboardManager }), {
-      port,
-      mode: 'gui',
-      onStatus: (status: ClientStatus) => {
-        automationText = status
-        refreshStatus()
-      },
-    })
-  } else {
-    automationText = 'idle (launch with ?automationPort=<port>)'
-    refreshStatus()
+  if (port === null) port = DEFAULT_AUTOMATION_PORT
+  try {
+    await catalogReady // ensure the shared catalog reaches the handler
+  } catch {
+    // catalog load failed; proceed without catalog support
   }
+  new AutomationClient(new HomelyCommandHandler(store, { planEngine: engine, catalog: sharedCatalog, clipboardManager }), {
+    port,
+    mode: 'gui',
+    onStatus: (status: ClientStatus) => {
+      if (!catalogUnavailable) automationText = status
+      refreshStatus()
+    },
+  })
 }
 void connectAutomation()
 

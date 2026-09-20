@@ -13,10 +13,10 @@ automation WebSocket protocol and forwards assistant tools to the live app.
 
    It prints the WS port on stderr, e.g. `ws://127.0.0.1:9529`.
 
-2. **Launch the app pointed at it** (separate terminal):
+2. **Launch the app** (separate terminal; it connects to port 9529 by default):
 
    ```bash
-   HOMELY_AUTOMATION_PORT=9529 npm run tauri dev
+   npm run tauri dev
    ```
 
 3. **Connect your assistant** — add the MCP config to Claude Desktop or a

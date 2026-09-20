@@ -44,6 +44,7 @@ RUN npm run build
 FROM node:22-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+ENV HOMELY_AUTOMATION_PORT=9529
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY --from=server-builder /app/server/package.json /app/server/package-lock.json ./
 RUN npm ci --omit=dev

@@ -57,8 +57,8 @@ orchestrator port instead of using an ephemeral one.
 ## Automation protocol (v1)
 
 The adapter connects **out** to the orchestrator, which is the WebSocket
-server. The port comes from the URL query parameter `?automationPort=` in dev,
-and will come from env var `HOMELY_AUTOMATION_PORT` once wired into Tauri
+server. The default port is `9529`; `?automationPort=` or
+`HOMELY_AUTOMATION_PORT` can override it.
 (later ticket). Frames are newline-delimited JSON.
 
 - First message after connect: `{"type":"hello","app":"homely","version":1,"mode":"..."}`

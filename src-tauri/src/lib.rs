@@ -14,7 +14,5 @@ pub fn run() {
 /// and PLAN.md C7/D2 launch recipe). The frontend asks for it at boot.
 #[tauri::command]
 fn automation_port() -> Option<String> {
-    std::env::var("HOMELY_AUTOMATION_PORT")
-        .ok()
-        .filter(|p| !p.is_empty())
+    Some(std::env::var("HOMELY_AUTOMATION_PORT").unwrap_or_else(|_| "9529".to_string()))
 }
