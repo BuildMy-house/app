@@ -41,14 +41,34 @@ architectural measurement.
    working MCP sequence of `reset_home`, `draw_rectangular_room`, `click`,
    `add_room`, `add_furniture`, `scene_summary`, `validate_scene`, and
    `screenshot`.
-   **Re-verified 2026-09-21 against `src/automation/homely-handler.ts`:**
-   `frame_scene` (line 279) and `add_roof` (line 426) are now implemented in
-   the handler's command switch. `build_house` is still absent from the
-   switch — it is not implemented, even though it's the tool the connected
-   `documents/plans/mcp-scene-builder` spec documents as the primary
-   declarative construction entry point. This is a spec/code mismatch, not
-   just a missing feature: the spec describes `build_house` as already
-   available today.
+   **Re-verified 2026-09-21 against `src/automation/homely-handler.ts` and
+   `mcp/server.py`:** `frame_scene` (handler line 279) and `add_roof`
+   (handler line 426) are implemented in the handler's command switch, and
+   the Python orchestrator (`mcp/automation_server.py`'s `Session.request`)
+   forwards every command name verbatim with no intermediate allowlist that
+   could silently drop one — so there is no separate routing bug to find
+   between the MCP tool layer and the handler. `build_house` (`mcp/server.py`
+   lines 422-580) is correctly implemented too, but not as a handler-side
+   `case 'build_house':` — it is an MCP-server-side orchestration function
+   that decomposes one declarative plan into the existing granular commands
+   (`add_level`, `add_wall`, `add_room`, `add_door`/`add_window`,
+   `add_furniture`/`catalog_add_furniture`, `add_roof`, `add_polyline`,
+   `add_label`, `add_dimension_line`, `set_camera`, `get_state`), all of
+   which the handler already supports. This is covered by
+   `mcp/test_build_house.py`'s `FakeSession`-based unit test. Regression
+   tests for `frame_scene`/`add_roof` succeeding end-to-end through the real
+   `HomelyCommandHandler` (not just a fake) were added to
+   `tests/handshake.test.ts` on 2026-09-21. Net result: none of `build_house`,
+   `frame_scene`, or `add_roof` are missing or broken today — the earlier
+   `UNKNOWN_COMMAND` reports predate `frame_scene`/`add_roof` landing in the
+   handler switch, and `build_house` was never meant to be a handler-side
+   command in the first place. The connected `documents/plans/mcp-scene-builder`
+   spec's characterization of `build_house` as "the primary declarative
+   construction entry point" is accurate; it was this doc's original
+   "still absent from the switch" framing that was the mismatch, since it
+   assumed `build_house` had to appear as its own switch case to be
+   "implemented" — flagged and corrected here rather than adding a
+   redundant/wrong handler case.
 2. The MCP screenshot tool returned image content for visual verification,
    but this session could not persist those MCP image blocks directly to
    project files. The local Playwright pass produced the checked-in PNG
@@ -65,10 +85,13 @@ architectural measurement.
 
 ### Missing features needed for closer matches
 
-- Reliable MCP `build_house` orchestration in the connected app.
-- MCP roof creation and scene framing wired through the current automation
-  protocol (`add_roof`/`frame_scene` handler support now exists — needs
-  end-to-end verification through the MCP tool layer, not just the handler).
+- ~~Reliable MCP `build_house` orchestration in the connected app.~~ Done —
+  confirmed working as a plan-decomposition function in `mcp/server.py`,
+  unit-tested in `mcp/test_build_house.py`.
+- ~~MCP roof creation and scene framing wired through the current automation
+  protocol.~~ Done — `add_roof`/`frame_scene` handler support exists and is
+  now covered by end-to-end regression tests in `tests/handshake.test.ts`
+  that exercise the real production `HomelyCommandHandler` (not a fake).
 - A roof cutaway / hide-roof / section-camera mode for interior renders.
 - Exterior site context: trees, snow, decks, patios, landscape, terrain, and
   background photography.
