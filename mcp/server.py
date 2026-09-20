@@ -17,12 +17,17 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import queue
 import sys
+import threading
 
+import anyio
 from automation_server import AutomationServer, Session
 from axiom_client import AxiomClient
 from scene_analysis import analyze_home, validate_home
 from mcp.server.fastmcp import Context, FastMCP, Image
+from mcp.shared.message import SessionMessage
+from mcp.types import JSONRPCMessage
 
 try:
     from pydantic import AnyHttpUrl
@@ -82,19 +87,11 @@ are centimeters, x-right/y-down. Furniture is normally placed by catalog id."""
 
 @contextlib.asynccontextmanager
 async def _lifespan(_app):
-    global _SERVER
-    _SERVER = AutomationServer(host=HOST, ws_port=PORT)
-    await _SERVER.start()
-    sys.stderr.write(
-        f"[buildmyhouse-mcp] listening on ws://{HOST}:{_SERVER.ws_port}\n"
-        f"[buildmyhouse-mcp] launch the app with HOMELY_AUTOMATION_PORT={_SERVER.ws_port}\n"
-    )
-    sys.stderr.flush()
+    await _ensure_server()
     try:
         yield {}
     finally:
-        await _SERVER.stop()
-        _SERVER = None
+        await _stop_server()
 
 
 _TOKENS = _token_users()
@@ -114,9 +111,85 @@ if HTTP_PORT and _TOKENS:
         ),
     }
 
-mcp = FastMCP("buildmyhouse", instructions=INSTRUCTIONS, lifespan=_lifespan, **_AUTH_KWARGS)
+mcp = FastMCP("buildmyhouse", instructions=INSTRUCTIONS, lifespan=_lifespan if HTTP_PORT else None, **_AUTH_KWARGS)
 
 _SERVER: AutomationServer | None = None
+
+
+async def _ensure_server() -> None:
+    global _SERVER
+    if _SERVER is not None:
+        return
+    _SERVER = AutomationServer(host=HOST, ws_port=PORT)
+    await _SERVER.start()
+    sys.stderr.write(
+        f"[buildmyhouse-mcp] listening on ws://{HOST}:{_SERVER.ws_port}\n"
+        f"[buildmyhouse-mcp] launch the app with HOMELY_AUTOMATION_PORT={_SERVER.ws_port}\n"
+    )
+    sys.stderr.flush()
+
+
+async def _stop_server() -> None:
+    global _SERVER
+    if _SERVER is not None:
+        await _SERVER.stop()
+        _SERVER = None
+
+
+@contextlib.asynccontextmanager
+async def _stdio_transport():
+    """Pipe transport compatible with Python clients that keep stdin open."""
+    read_writer, read_stream = anyio.create_memory_object_stream(0)
+    write_stream, write_reader = anyio.create_memory_object_stream(0)
+    incoming: queue.Queue[str | None] = queue.Queue()
+
+    def stdin_thread():
+        while True:
+            line = sys.stdin.buffer.readline()
+            incoming.put(line.decode("utf-8", errors="replace") if line else None)
+            if not line:
+                return
+
+    threading.Thread(target=stdin_thread, daemon=True).start()
+
+    async def read_stdin():
+        async with read_writer:
+            while True:
+                try:
+                    line = incoming.get_nowait()
+                except queue.Empty:
+                    await anyio.sleep(0.01)
+                    continue
+                if line is None:
+                    return
+                try:
+                    await read_writer.send(SessionMessage(JSONRPCMessage.model_validate_json(line)))
+                except Exception as exc:
+                    await read_writer.send(exc)
+
+    def write_stdout(payload: str) -> None:
+        sys.stdout.write(payload)
+        sys.stdout.flush()
+
+    async def write_stdout_loop():
+        async with write_reader:
+            async for message in write_reader:
+                payload = message.message.model_dump_json(by_alias=True, exclude_none=True) + "\n"
+                await anyio.to_thread.run_sync(write_stdout, payload)
+
+    async with anyio.create_task_group() as tasks:
+        tasks.start_soon(read_stdin)
+        tasks.start_soon(write_stdout_loop)
+        yield read_stream, write_stream
+
+
+async def _run_stdio() -> None:
+    async with _stdio_transport() as (read_stream, write_stream):
+        await mcp._mcp_server.run(
+            read_stream,
+            write_stream,
+            mcp._mcp_server.create_initialization_options(),
+        )
 
 
 def _session() -> Session:
@@ -135,6 +208,7 @@ def _session() -> Session:
 @mcp.tool()
 async def homely_status() -> dict:
     """Report the WS port and which app is connected."""
+    await _ensure_server()
     if _SERVER is None:
         return {"connected": [], "port": None}
     return {"connected": list(_SERVER.sessions.keys()), "port": _SERVER.ws_port}
@@ -552,7 +626,7 @@ def main() -> None:
         mcp.settings.port = HTTP_PORT
         mcp.run(transport="streamable-http")
     else:
-        mcp.run()
+        anyio.run(_run_stdio)
 
 
 if __name__ == "__main__":
