@@ -936,6 +936,8 @@ export function buildScene(
     onModelReady?: () => void
     activeLevel?: string | null
     isOutsideView?: boolean
+    /** Hide every roof mesh (roof cutaway / interior-view mode). Defaults to true (roofs shown). */
+    showRoof?: boolean
   },
 ): THREE.Scene {
   const previousResolver = activeModelUrlResolver
@@ -946,6 +948,7 @@ export function buildScene(
       options?.onModelReady,
       options?.activeLevel ?? null,
       options?.isOutsideView ?? false,
+      options?.showRoof ?? true,
     )
   } finally {
     activeModelUrlResolver = previousResolver
@@ -983,6 +986,7 @@ function buildSceneInner(
   onModelReady?: () => void,
   activeLevel: string | null = null,
   isOutsideView = false,
+  showRoof = true,
 ): THREE.Scene {
   const scene = new THREE.Scene()
   if (home.environment.skyColor !== null) {
@@ -1093,6 +1097,7 @@ function buildSceneInner(
     }
   }
   for (const roof of home.roofs) {
+    if (!showRoof) continue
     if (!matchesLevel(roof.levelRef, activeLevel) && !isOutsideView) continue
     const level = home.levels.find((item) => item.id === roof.levelRef)
     const mesh = roofMesh(

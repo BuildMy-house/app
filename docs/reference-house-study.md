@@ -73,10 +73,24 @@ architectural measurement.
    but this session could not persist those MCP image blocks directly to
    project files. The local Playwright pass produced the checked-in PNG
    comparison renders.
-3. The default 3D camera plus a solid roof hides the interior. The
+3. ~~The default 3D camera plus a solid roof hides the interior. The
    comparison captures omit the roof so the interiors remain visible; this
    is explicitly a presentation workaround, not a faithful roof
-   reconstruction.
+   reconstruction.~~ **Closed 2026-09-21:** a real roof cutaway / hide-roof
+   toggle now exists, following the existing `isOutsideView`/ceiling-
+   visibility pattern in `src/view3d/scene.ts` (`shouldShowCeiling`) rather
+   than a new mechanism. `buildScene`'s `showRoof` option (default `true`)
+   skips every roof mesh when `false`; `View3D.setRoofVisible()` /
+   `View3D.showRoof` drive it for the live viewport, wired to a "Roof"
+   checkbox in the toolbar (`src/main.ts`). The headless `CaptureService`
+   used by the automation `screenshot` command got the same flag
+   (`setRoofVisible`/`getRoofVisible`), exposed as the `set_roof_visible`
+   automation command (`src/automation/homely-handler.ts`) and MCP tool
+   (`mcp/server.py`) — so scripted comparison renders can hide the roof for
+   an interior shot without omitting it from the home state itself, closing
+   the presentation-workaround gap this issue described. Covered by tests in
+   `src/view3d/scene.test.ts`, `tests/capture.test.ts`, and
+   `tests/handshake.test.ts`.
 4. Furniture catalog items are mostly proxy geometry and vary from the
    reference furniture in scale, color, and silhouette.
 5. The first MCP study reported two unconnected divider-wall endpoints; the
@@ -92,7 +106,9 @@ architectural measurement.
   protocol.~~ Done — `add_roof`/`frame_scene` handler support exists and is
   now covered by end-to-end regression tests in `tests/handshake.test.ts`
   that exercise the real production `HomelyCommandHandler` (not a fake).
-- A roof cutaway / hide-roof / section-camera mode for interior renders.
+- ~~A roof cutaway / hide-roof / section-camera mode for interior renders.~~
+  Done — see issue #3 above (`showRoof` option on `buildScene`/`View3D`,
+  toolbar toggle, `set_roof_visible` automation command and MCP tool).
 - Exterior site context: trees, snow, decks, patios, landscape, terrain, and
   background photography.
 - Real glass, reflective materials, exterior cladding, furniture fabrics,

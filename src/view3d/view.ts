@@ -101,6 +101,7 @@ export class View3D {
   private _lastDeltaMs = 0
   private _activeLevel: string | null = null
   private _isOutsideView = false
+  private _showRoof = true
   // Only changes when the scene graph is rebuilt, never during camera orbit.
   private _instancedMeshCount = 0
 
@@ -118,6 +119,7 @@ export class View3D {
       onModelReady: () => this.startAnimationLoop(),
       activeLevel: this._activeLevel,
       isOutsideView: this._isOutsideView,
+      showRoof: this._showRoof,
     })
     this.countInstancedMeshes()
     this.perspectiveCamera = new THREE.PerspectiveCamera(63, 4 / 3, 1, 500_000)
@@ -250,6 +252,22 @@ export class View3D {
   setOutsideView(value: boolean): void {
     if (this._isOutsideView === value) return
     this._isOutsideView = value
+    this.rebuild()
+  }
+
+  get showRoof(): boolean {
+    return this._showRoof
+  }
+
+  /**
+   * Roof cutaway / hide-roof mode: hides every roof mesh so the interior is
+   * visible from perspective/observer cameras without a section-camera or
+   * exporter-side omission hack. Independent of isOutsideView/activeLevel —
+   * a full scene rebuild picks it up the same way those do.
+   */
+  setRoofVisible(value: boolean): void {
+    if (this._showRoof === value) return
+    this._showRoof = value
     this.rebuild()
   }
 
@@ -462,6 +480,7 @@ export class View3D {
       onModelReady: () => this.startAnimationLoop(),
       activeLevel: this._activeLevel,
       isOutsideView: this._isOutsideView,
+      showRoof: this._showRoof,
     })
     this.countInstancedMeshes()
     this.applyQualityToScene()

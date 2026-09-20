@@ -154,6 +154,7 @@ describe('ws protocol v1 handshake', () => {
           'screenshot',
           'frame_scene',
           'add_roof',
+          'set_roof_visible',
         ]),
       },
     })
@@ -275,6 +276,20 @@ describe('ws protocol v1 handshake', () => {
     expect(bad.code).toBe('INVALID_PARAMS')
 
     await orch.sendRequest('new_home')
+  })
+
+  it('set_roof_visible toggles the roof-cutaway flag used by scripted 3D captures', async () => {
+    await awaitHello()
+
+    const hidden = await orch.sendRequest('set_roof_visible', { visible: false })
+    expect(hidden).toMatchObject({ ok: true, data: { visible: false } })
+
+    const shown = await orch.sendRequest('set_roof_visible', { visible: true })
+    expect(shown).toMatchObject({ ok: true, data: { visible: true } })
+
+    const bad = await orch.sendRequest('set_roof_visible', { visible: 'nope' })
+    expect(bad.ok).toBe(false)
+    expect(bad.code).toBe('INVALID_PARAMS')
   })
 
   it('add_furniture + undo + redo round-trips with capability flags', async () => {

@@ -860,6 +860,14 @@ async def set_view(view: str) -> dict:
 
 
 @mcp.tool()
+async def set_roof_visible(visible: bool) -> dict:
+    """Roof cutaway / hide-roof mode for the 3D view and scripted screenshots:
+    visible=False hides every roof mesh so interiors are visible without
+    omitting the roof from the home state itself. Returns {visible}."""
+    return await _session().request("set_roof_visible", {"visible": visible})
+
+
+@mcp.tool()
 async def save_project(path: str | None = None) -> dict:
     """Save the home. Returns {json} (serialized home); if path given, also stored session-locally.
     Keep the returned json to restore later via open_project(json=...)."""

@@ -86,6 +86,56 @@ describe('roof 3D extrusion (X3)', () => {
   })
 })
 
+// ── Ticket 4: roof cutaway / hide-roof mode ─────────────────────────────────
+
+describe('showRoof option (roof cutaway / hide-roof mode)', () => {
+  function homeWithRoof(): ReturnType<typeof createEmptyHome> {
+    const home = createEmptyHome()
+    home.levels.push({
+      id: 'level-1', name: 'Ground', elevation: 0, floorThickness: 5,
+      height: 250, visible: true, viewable: true,
+    })
+    home.roofs.push({
+      id: 'roof-1', points: [[0, 0], [400, 0], [400, 200], [0, 200]],
+      levelRef: 'level-1', style: 'gable', pitchDeg: 30, overhangCm: 20,
+    })
+    return home
+  }
+
+  it('shows the roof by default (option omitted)', () => {
+    const scene = buildScene(homeWithRoof())
+    expect(roofMeshes(scene).length).toBe(1)
+  })
+
+  it('shows the roof when showRoof is explicitly true', () => {
+    const scene = buildScene(homeWithRoof(), { showRoof: true })
+    expect(roofMeshes(scene).length).toBe(1)
+  })
+
+  it('hides every roof mesh when showRoof is false', () => {
+    const scene = buildScene(homeWithRoof(), { showRoof: false })
+    expect(roofMeshes(scene).length).toBe(0)
+  })
+
+  it('showRoof=false hides roofs even in outside view (all-levels) mode', () => {
+    const scene = buildScene(homeWithRoof(), { showRoof: false, isOutsideView: true })
+    expect(roofMeshes(scene).length).toBe(0)
+  })
+
+  it('showRoof=false does not affect walls/rooms — only roofs are hidden', () => {
+    const home = homeWithRoof()
+    home.rooms.push({
+      id: 'r1', points: [[0, 0], [100, 0], [100, 100], [0, 100]],
+      levelRef: 'level-1',
+    })
+    const scene = buildScene(home, { showRoof: false })
+    expect(roofMeshes(scene).length).toBe(0)
+    expect(ceilingMeshes(scene).length).toBe(0) // interior view: ceilings stay hidden too
+    const rooms = scene.getObjectByName('home')
+    expect(rooms).toBeDefined()
+  })
+})
+
 // ── M53b: arc walls extrude as a curved 3D shape ────────────────────────────
 
 describe('arc wall 3D extrusion (M53b)', () => {

@@ -127,6 +127,7 @@ function canvasToPngBase64(canvas: HTMLCanvasElement): string {
 export class CaptureService {
   private backend: CaptureBackend | undefined
   private view: View3D | undefined
+  private roofVisible = true
 
   constructor(
     private readonly store: HomeStore,
@@ -134,6 +135,19 @@ export class CaptureService {
     backend?: CaptureBackend,
   ) {
     this.backend = backend
+  }
+
+  /**
+   * Roof cutaway / hide-roof mode for scripted 3D renders (mirrors
+   * View3D.setRoofVisible for the live viewport). Applied to the headless
+   * capture view on the next 3d screenshot.
+   */
+  setRoofVisible(visible: boolean): void {
+    this.roofVisible = visible
+  }
+
+  getRoofVisible(): boolean {
+    return this.roofVisible
   }
 
   screenshot(request: ScreenshotRequest): ScreenshotResult {
@@ -164,6 +178,7 @@ export class CaptureService {
 
   private capture3d(backend: CaptureBackend, width: number, height: number): string {
     const view = this.ensureView()
+    view.setRoofVisible(this.roofVisible)
     view.rebuild()
     this.syncActiveCamera(view)
     return backend.render3d(view.scene, view.camera, width, height)

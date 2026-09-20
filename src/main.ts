@@ -536,6 +536,7 @@ function buildToolbar(): void {
     <label><input id="grid-snap" type="checkbox" /> Grid</label>
     <label><input id="grid-3d" type="checkbox" checked /> 3D Grid</label>
     <label><input id="reference-overlay" type="checkbox" /> Ref</label>
+    <label><input id="show-roof" type="checkbox" checked title="Roof cutaway: hide roofs for interior 3D viewing" /> Roof</label>
     <div class="toolbar-spacer"></div>
     <button class="tool-btn" id="btn-fit" title="Zoom to fit (double-click middle)">Fit</button>
     <div class="tool-separator"></div>
@@ -586,6 +587,10 @@ function buildToolbar(): void {
     localStorage.setItem(REFERENCE_OVERLAY_KEY, String(enabled))
   })
 
+  toolbar.querySelector('#show-roof')!.addEventListener('change', (e) => {
+    view3d?.setRoofVisible((e.target as HTMLInputElement).checked)
+  })
+
   toolbar.querySelector('#btn-fit')!.addEventListener('click', () => {
     doFit()
   })
@@ -628,6 +633,8 @@ function refreshToolbar(): void {
   if (gridBox) gridBox.checked = engine.isGridSnapEnabled()
   const refBox = toolbar.querySelector<HTMLInputElement>('#reference-overlay')
   if (refBox) refBox.checked = engine.isReferenceOverlayEnabled()
+  const roofBox = toolbar.querySelector<HTMLInputElement>('#show-roof')
+  if (roofBox && view3d) roofBox.checked = view3d.showRoof
 
   const undoBtn = toolbar.querySelector<HTMLButtonElement>('#btn-undo')!
   const redoBtn = toolbar.querySelector<HTMLButtonElement>('#btn-redo')!

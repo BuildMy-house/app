@@ -82,6 +82,7 @@ interface CallRecord {
   height: number
   walls: number
   wallMeshes?: number
+  roofMeshes?: number
   camera?: { px: number; py: number; pz: number; rx: number; ry: number; fov: number }
 }
 
@@ -100,8 +101,10 @@ class RecordingBackend implements CaptureBackend {
     height: number,
   ): string {
     let wallMeshes = 0
+    let roofMeshes = 0
     scene.traverse((object) => {
       if (String(object.name).startsWith('wall:')) wallMeshes += 1
+      if (String(object.name).startsWith('roof:')) roofMeshes += 1
     })
     return this.record({
       view: '3d',
@@ -109,6 +112,7 @@ class RecordingBackend implements CaptureBackend {
       height,
       walls: -1,
       wallMeshes,
+      roofMeshes,
       camera: {
         px: camera.position.x,
         py: camera.position.y,
@@ -270,6 +274,37 @@ describe('CaptureService 3d pipeline', () => {
     const first = service.screenshot({ view: '3d', width: 64, height: 64 })
     const second = service.screenshot({ view: '3d', width: 64, height: 64 })
     expect(first).toEqual(second)
+  })
+
+  it('setRoofVisible(false) omits roof meshes from the next 3d capture (Ticket 4)', () => {
+    const store = makeStoreWithWalls()
+    store.apply((home: NormalizedHomeState) => {
+      home.levels.push({
+        id: 'level-1', name: 'Ground', elevation: 0, floorThickness: 5,
+        height: 250, visible: true, viewable: true,
+      })
+      home.roofs.push({
+        id: 'roof-1',
+        points: [[0, 0], [400, 0], [400, 300], [0, 300]],
+        levelRef: 'level-1', style: 'gable', pitchDeg: 30, overhangCm: 20,
+      })
+    })
+    const cameras = new CameraDirector(store, new HomeModel(store))
+    const backend = new RecordingBackend()
+    const service = new CaptureService(store, cameras, backend)
+
+    expect(service.getRoofVisible()).toBe(true)
+    service.screenshot({ view: '3d', width: 100, height: 100 })
+    expect(backend.calls[0]?.roofMeshes).toBe(1)
+
+    service.setRoofVisible(false)
+    expect(service.getRoofVisible()).toBe(false)
+    service.screenshot({ view: '3d', width: 100, height: 100 })
+    expect(backend.calls[1]?.roofMeshes).toBe(0)
+
+    service.setRoofVisible(true)
+    service.screenshot({ view: '3d', width: 100, height: 100 })
+    expect(backend.calls[2]?.roofMeshes).toBe(1)
   })
 })
 
