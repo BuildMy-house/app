@@ -150,7 +150,7 @@ export class PropertiesPanel {
     this.root.innerHTML = ''
 
     if (sel.length === 0) {
-      this.root.appendChild(this.placeholder('Nothing selected'))
+      this.root.appendChild(this.emptyState())
       return
     }
     if (sel.length > 1) {
@@ -161,7 +161,7 @@ export class PropertiesPanel {
     const id = sel[0]!
     const obj = this.findObject(home, id)
     if (!obj) {
-      this.root.appendChild(this.placeholder('Nothing selected'))
+      this.root.appendChild(this.emptyState())
       return
     }
 
@@ -186,6 +186,20 @@ export class PropertiesPanel {
     const el = document.createElement('div')
     el.className = 'prop-placeholder'
     el.textContent = text
+    return el
+  }
+
+  private emptyState(): HTMLDivElement {
+    const el = document.createElement('div')
+    el.className = 'prop-placeholder prop-empty-state'
+    const title = document.createElement('div')
+    title.className = 'prop-empty-title'
+    title.textContent = 'No selection'
+    const hint = document.createElement('div')
+    hint.className = 'prop-empty-hint'
+    hint.textContent = 'Click a wall, room, or furniture item to view and edit its properties here.'
+    el.appendChild(title)
+    el.appendChild(hint)
     return el
   }
 
