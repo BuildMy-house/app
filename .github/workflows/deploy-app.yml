@@ -43,6 +43,7 @@ jobs:
             git reset --hard origin/main
 
             docker build -t buildmyhouse-app:latest .
+            docker build -t buildmyhouse-mcp:latest -f mcp/Dockerfile .
             docker volume create buildmyhouse-app-data >/dev/null
 
             docker stop buildmyhouse-app || true
@@ -58,3 +59,17 @@ jobs:
               -e PORT=3000 \
               -v buildmyhouse-app-data:/data \
               buildmyhouse-app:latest
+
+            docker stop buildmyhouse-mcp || true
+            docker rm buildmyhouse-mcp || true
+            test -s /home/ubuntu/buildmyhouse-mcp.env
+
+            docker run -d --name buildmyhouse-mcp \
+              --network steward_acs_default \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              -e HOMELY_MCP_HOST=0.0.0.0 \
+              -e HOMELY_MCP_HTTP_PORT=8080 \
+              -e BUILDMYHOUSE_MCP_RESOURCE_URL=http://139.99.89.23:8080/mcp \
+              --env-file /home/ubuntu/buildmyhouse-mcp.env \
+              buildmyhouse-mcp:latest

@@ -115,6 +115,10 @@ names, for example `{"token-for-alice":"alice"}`. The server rejects HTTP
 startup without a token and validates `Authorization: Bearer ...` on every MCP
 request. Set `BUILDMYHOUSE_MCP_RESOURCE_URL` to the public `/mcp` URL in prod.
 
+The production image is built from `mcp/Dockerfile` and listens on port 8080.
+Set `APP_MCP_TOKEN` in deployment secrets to a JWT for the MCP test user; the
+deploy passes that same user-scoped token to MCP auth and the house API.
+
 The MCP does not infer architectural dimensions or identify furniture from
 pixels; those are assistant-side decisions and should be checked against the
 returned plan screenshot.
