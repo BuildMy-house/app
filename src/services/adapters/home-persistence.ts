@@ -41,7 +41,7 @@ export async function saveHomeFile(home: NormalizedHomeState): Promise<void> {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       telemetry.fileIo('save', performance.now() - start, false, path, msg)
-      throw new Error(`Failed to save home file to ${path}: ${msg}`)
+      throw new Error(`Failed to save home file to ${path}: ${msg}`, { cause: err })
     }
     return
   }
@@ -75,7 +75,7 @@ export async function loadHomeFile(): Promise<NormalizedHomeState | null> {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       telemetry.fileIo('open', performance.now() - start, false, path as string, msg)
-      throw new Error(`Failed to load home file from ${path}: ${msg}`)
+      throw new Error(`Failed to load home file from ${path}: ${msg}`, { cause: err })
     }
   }
   return await new Promise<NormalizedHomeState | null>((resolve, reject) => {
