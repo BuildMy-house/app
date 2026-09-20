@@ -15,6 +15,7 @@ set HOMELY_MCP_HTTP_PORT to expose a streamable-HTTP endpoint.
 from __future__ import annotations
 
 import contextlib
+import base64
 import json
 import os
 import queue
@@ -406,7 +407,7 @@ async def validate_scene() -> dict:
 async def screenshot(view: str, width: int = 800, height: int = 600) -> Image:
     """Render an OFFSCREEN image of the home. view='plan' or '3d'."""
     data = await _session().request("screenshot", {"view": view, "width": width, "height": height})
-    return Image(data=data["pngBase64"], format="png")
+    return Image(data=base64.b64decode(data["pngBase64"]), format="png")
 
 
 @mcp.tool()
