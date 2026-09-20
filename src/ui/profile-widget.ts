@@ -12,7 +12,7 @@ export interface ProfileWidgetActions {
 }
 
 /**
- * Always-visible top-left account control. Signed out: a "Sign Up to Save"
+ * Always-visible top-right account control. Signed out: a "Sign Up to Save"
  * nudge, since the local draft (local-draft.ts) already keeps the current
  * design across a refresh — the nudge is about the cloud library
  * (multi-project, cross-device), not about losing work. Signed in: an avatar

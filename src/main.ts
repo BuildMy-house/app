@@ -52,8 +52,8 @@ const root = document.querySelector<HTMLDivElement>('#root')!
 
 root.innerHTML = `
   <div id="menu-bar">
-    <div id="profile-widget-host"></div>
     <div id="menu-items"></div>
+    <div id="profile-widget-host"></div>
   </div>
   <div id="toolbar"></div>
   <div id="main-area">
