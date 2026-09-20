@@ -75,6 +75,14 @@ Minimal shape:
 }
 ```
 
+Give rooms, furniture, roofs, polylines, labels, and dimensions a `key` when
+you need to edit or inspect them later. `build_house` returns an ID map for
+each keyed collection (`levelIds`, `wallIds`, `roomIds`, `furnitureIds`,
+`roofIds`, `polylineIds`, `labelIds`, and `dimensionIds`). Room-only plans
+also get predictable generated wall keys such as `living-wall-1`, so doors
+and windows can target them without switching to explicit walls. Every
+`levelKey` is checked and rejected if it does not resolve to a declared level.
+
 The assistant remains the vision/planning layer; the MCP is the deterministic
 scene builder and renderer. A cloud deployment must put the streamable HTTP
 endpoint behind authentication and a trusted network boundary. The default

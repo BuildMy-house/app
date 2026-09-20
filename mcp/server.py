@@ -246,6 +246,20 @@ async def build_house(plan: dict, reset: bool = True) -> dict:
         await s.request("new_home")
     level_ids: dict[str, str] = {}
     wall_ids: dict[str, str] = {}
+    room_ids: dict[str, str] = {}
+    furniture_ids: dict[str, str] = {}
+    roof_ids: dict[str, str] = {}
+    polyline_ids: dict[str, str] = {}
+    label_ids: dict[str, str] = {}
+    dimension_ids: dict[str, str] = {}
+
+    def level_ref(item: dict) -> str | None:
+        key = item.get("levelKey")
+        if key is None:
+            return None
+        if key not in level_ids:
+            raise ValueError(f"unknown levelKey: {key}")
+        return level_ids[key]
 
     for level in plan.get("levels", []):
         result = await s.request("add_level", {
@@ -253,25 +267,30 @@ async def build_house(plan: dict, reset: bool = True) -> dict:
             "elevation": level["elevation"],
             "floorThickness": level.get("floorThickness", 20),
             "height": level.get("height", 250),
+            "visible": level.get("visible", True),
+            "viewable": level.get("viewable", True),
         })
         if level.get("key"):
             level_ids[level["key"]] = result["id"]
 
     walls = list(plan.get("walls", []))
     if not walls and plan.get("auto_walls", True):
-        for room in plan.get("rooms", []):
+        for room_index, room in enumerate(plan.get("rooms", [])):
             points = room["points"]
-            walls.extend({"xStart": a[0], "yStart": a[1], "xEnd": b[0], "yEnd": b[1],
+            room_key = room.get("key", f"room-{room_index + 1}")
+            walls.extend({"key": f"{room_key}-wall-{wall_index + 1}",
+                          "xStart": a[0], "yStart": a[1], "xEnd": b[0], "yEnd": b[1],
                           "levelKey": room.get("levelKey")}
-                         for a, b in zip(points, points[1:] + points[:1]))
+                         for wall_index, (a, b) in enumerate(zip(points, points[1:] + points[:1])))
     for wall in walls:
         params = {k: wall[k] for k in (
             "xStart", "yStart", "xEnd", "yEnd", "thickness", "height",
             "arcExtent", "heightAtEnd", "patternId", "leftSideColor",
             "rightSideColor", "leftSideTextureId", "rightSideTextureId"
         ) if k in wall}
-        if wall.get("levelKey") in level_ids:
-            params["levelRef"] = level_ids[wall["levelKey"]]
+        ref = level_ref(wall)
+        if ref is not None:
+            params["levelRef"] = ref
         result = await s.request("add_wall", params)
         if wall.get("key"):
             wall_ids[wall["key"]] = result["id"]
@@ -283,9 +302,12 @@ async def build_house(plan: dict, reset: bool = True) -> dict:
                                ("areaVisible", "areaVisible")):
             if source in room:
                 params[target] = room[source]
-        if room.get("levelKey") in level_ids:
-            params["levelRef"] = level_ids[room["levelKey"]]
-        await s.request("add_room", params)
+        ref = level_ref(room)
+        if ref is not None:
+            params["levelRef"] = ref
+        result = await s.request("add_room", params)
+        if room.get("key"):
+            room_ids[room["key"]] = result["id"]
 
     for opening, command in (("doors", "add_door"), ("windows", "add_window")):
         for item in plan.get(opening, []):
@@ -301,39 +323,65 @@ async def build_house(plan: dict, reset: bool = True) -> dict:
 
     for item in plan.get("furniture", []):
         params = {"x": item["x"], "y": item["y"], "angleDeg": item.get("angleDeg", 0)}
-        if item.get("levelKey") in level_ids:
-            params["levelRef"] = level_ids[item["levelKey"]]
+        ref = level_ref(item)
+        if ref is not None:
+            params["levelRef"] = ref
             params["elevation"] = item.get("elevation", 0)
         elif "elevation" in item:
             params["elevation"] = item["elevation"]
         if item.get("catalogId"):
             params["catalogId"] = item["catalogId"]
-            await s.request("catalog_add_furniture", params)
+            result = await s.request("catalog_add_furniture", params)
         else:
             params.update({k: item[k] for k in ("name", "width", "depth", "height") if k in item})
-            await s.request("add_furniture", params)
+            result = await s.request("add_furniture", params)
+        if item.get("key"):
+            furniture_ids[item["key"]] = result["id"]
 
     for item in plan.get("roofs", []):
         params = {k: item[k] for k in (
             "points", "name", "color", "style", "pitchDeg", "overhangCm", "ridgeAngleDeg"
         ) if k in item}
-        if item.get("levelKey") in level_ids:
-            params["levelRef"] = level_ids[item["levelKey"]]
-        await s.request("add_roof", params)
+        ref = level_ref(item)
+        if ref is not None:
+            params["levelRef"] = ref
+        result = await s.request("add_roof", params)
+        if item.get("key"):
+            roof_ids[item["key"]] = result["id"]
     for item in plan.get("polylines", []):
-        await s.request("add_polyline", {k: item[k] for k in (
+        params = {k: item[k] for k in (
             "points", "closed", "name", "color", "thickness"
-        ) if k in item})
+        ) if k in item}
+        ref = level_ref(item)
+        if ref is not None:
+            params["levelRef"] = ref
+        result = await s.request("add_polyline", params)
+        if item.get("key"):
+            polyline_ids[item["key"]] = result["id"]
     for item in plan.get("labels", []):
-        await s.request("add_label", {k: item[k] for k in ("x", "y", "text") if k in item})
+        params = {k: item[k] for k in ("x", "y", "text", "angleDeg", "elevation", "color") if k in item}
+        ref = level_ref(item)
+        if ref is not None:
+            params["levelRef"] = ref
+        result = await s.request("add_label", params)
+        if item.get("key"):
+            label_ids[item["key"]] = result["id"]
     for item in plan.get("dimensions", []):
-        await s.request("add_dimension_line", {k: item[k] for k in (
-            "xStart", "yStart", "xEnd", "yEnd", "offset"
-        ) if k in item})
+        params = {k: item[k] for k in (
+            "xStart", "yStart", "xEnd", "yEnd", "offset", "elevationStart", "elevationEnd"
+        ) if k in item}
+        ref = level_ref(item)
+        if ref is not None:
+            params["levelRef"] = ref
+        result = await s.request("add_dimension_line", params)
+        if item.get("key"):
+            dimension_ids[item["key"]] = result["id"]
     if isinstance(plan.get("camera"), dict):
         await s.request("set_camera", plan["camera"])
     state = await s.request("get_state")
-    return {"state": state, "levelIds": level_ids, "wallIds": wall_ids}
+    return {"state": state, "levelIds": level_ids, "wallIds": wall_ids,
+            "roomIds": room_ids, "furnitureIds": furniture_ids, "roofIds": roof_ids,
+            "polylineIds": polyline_ids, "labelIds": label_ids, "dimensionIds": dimension_ids}
 
 
 @mcp.tool()
