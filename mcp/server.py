@@ -24,6 +24,7 @@ import sys
 import threading
 import urllib.error
 import urllib.request
+from urllib.parse import urlparse
 from pathlib import Path
 
 import anyio
@@ -39,8 +40,9 @@ try:
     from mcp.server.auth.provider import AccessToken, TokenVerifier
     from mcp.server.auth.middleware.auth_context import get_access_token
     from mcp.server.auth.settings import AuthSettings
+    from mcp.server.transport_security import TransportSecuritySettings
 except ImportError:  # stdio-only installs can run without the HTTP auth extras.
-    AnyHttpUrl = AccessToken = TokenVerifier = AuthSettings = get_access_token = None
+    AnyHttpUrl = AccessToken = TokenVerifier = AuthSettings = get_access_token = TransportSecuritySettings = None
 
 # SECURITY (M17 audit): loopback-only by default, on purpose. The automation
 # protocol has no auth, so anything that can reach this port can register a
@@ -104,8 +106,12 @@ _AUTH_KWARGS = {}
 if HTTP_PORT and not _TOKENS:
     raise RuntimeError("HTTP MCP requires BUILDMYHOUSE_MCP_TOKEN or BUILDMYHOUSE_MCP_TOKENS_JSON")
 if HTTP_PORT and _TOKENS:
-    if not all((AnyHttpUrl, AuthSettings, TokenVerifier)):
+    if not all((AnyHttpUrl, AuthSettings, TokenVerifier, TransportSecuritySettings)):
         raise RuntimeError("HTTP token auth requires a current mcp[cli] package")
+    resource_host = urlparse(MCP_RESOURCE_URL).hostname
+    allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
+    if resource_host:
+        allowed_hosts.extend((resource_host, f"{resource_host}:*"))
     _AUTH_KWARGS = {
         "token_verifier": StaticTokenVerifier(_TOKENS, MCP_RESOURCE_URL),
         "auth": AuthSettings(
@@ -113,6 +119,10 @@ if HTTP_PORT and _TOKENS:
             resource_server_url=AnyHttpUrl(MCP_RESOURCE_URL),
             required_scopes=["design"],
             validate_token_resource=False,
+        ),
+        "transport_security": TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=allowed_hosts,
         ),
     }
 

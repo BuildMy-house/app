@@ -70,6 +70,6 @@ jobs:
               -p 8080:8080 \
               -e HOMELY_MCP_HOST=0.0.0.0 \
               -e HOMELY_MCP_HTTP_PORT=8080 \
-              -e BUILDMYHOUSE_MCP_RESOURCE_URL=http://139.99.89.23:8080/mcp \
+              -e BUILDMYHOUSE_MCP_RESOURCE_URL=https://app.buildmy.house/mcp \
               --env-file /home/ubuntu/buildmyhouse-mcp.env \
               buildmyhouse-mcp:latest
