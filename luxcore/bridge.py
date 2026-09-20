@@ -38,7 +38,7 @@ def home_to_scene(home: dict[str, Any], asset_root: str | None = None) -> dict[s
         asset_name = str(furn.get("catalogId", "")).split("#")[-1]
         source = _find_asset(source_root, asset_name)
         objects.append({"type": "asset" if source.exists() else "box", "name": furn["id"], "material": "furniture",
-                        "size": [furn["width"] / 100, furn["depth"] / 100, furn["height"] / 100],
+                        "size": _furniture_size(furn),
                         "position": [furn.get("x", 0) / 100, furn.get("y", 0) / 100,
                                      furn.get("elevation", 0) / 100],
                         # SH3D/Three rotate around +Y; after Y-up -> Z-up and
@@ -220,11 +220,17 @@ def _resolve_asset(item: dict) -> Path | None:
     return source if source.exists() else None
 
 
+def _furniture_size(item: dict) -> list[float]:
+    # ponytail: 1 m fallback keeps catalog-only production records renderable;
+    # add catalog dimension lookup when the API exposes it.
+    return [float(item.get(key, 100)) / 100 for key in ("width", "depth", "height")]
+
+
 def _furniture_to_asset(item: dict, material_id: str) -> dict:
     """Furniture -> real OBJ asset (mirrors home_to_scene furniture handling)."""
     source = _resolve_asset(item) or ""
     return {"type": "asset", "name": item["id"], "material": material_id,
-            "size": [item["width"] / 100, item["depth"] / 100, item["height"] / 100],
+            "size": _furniture_size(item),
             "position": [item.get("x", 0) / 100, item.get("y", 0) / 100,
                          item.get("elevation", 0) / 100],
             "rotation": -item.get("angleDeg", 0), "path": str(source)}
