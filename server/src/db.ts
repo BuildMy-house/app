@@ -364,6 +364,6 @@ export function openAdapter(path?: string): DbAdapter {
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     return new PgAdapter(pool);
   }
-  const dbPath = path ?? defaultDbPath();
+  const dbPath = path ?? process.env.DB_PATH ?? defaultDbPath();
   return new SqliteAdapter(openSqlite(dbPath));
 }
