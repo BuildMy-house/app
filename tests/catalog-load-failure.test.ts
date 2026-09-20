@@ -11,29 +11,33 @@ vi.mock('../src/core/catalog-service', () => ({
 }))
 
 vi.mock('../src/view3d', () => ({
-  View3D: vi.fn(() => ({
-    dispose: vi.fn(),
-    setCameraPreset: vi.fn(),
-    setLevelVisibility: vi.fn(),
-  })),
+  View3D: vi.fn(function () {
+    return {
+      dispose: vi.fn(),
+      setCameraPreset: vi.fn(),
+      setLevelVisibility: vi.fn(),
+    }
+  }),
 }))
 
 vi.mock('../src/ui/catalog-panel', () => ({
-  CatalogPanel: vi.fn(() => ({
-    element: document.createElement('div'),
-    setCatalog: vi.fn(),
-    isArmed: vi.fn(() => false),
-    disarm: vi.fn(),
-    renderStatusMessage: vi.fn(),
-    place: vi.fn(),
-    armedItem: null,
-  })),
+  CatalogPanel: vi.fn(function () {
+    return {
+      element: document.createElement('div'),
+      setCatalog: vi.fn(),
+      isArmed: vi.fn(() => false),
+      disarm: vi.fn(),
+      renderStatusMessage: vi.fn(),
+      place: vi.fn(),
+      armedItem: null,
+    }
+  }),
 }))
 
 vi.mock('../src/ui/properties-panel', () => ({
-  PropertiesPanel: vi.fn(() => ({
-    toggle: vi.fn(),
-  })),
+  PropertiesPanel: vi.fn(function () {
+    return { toggle: vi.fn() }
+  }),
 }))
 
 vi.mock('../src/ui/preferences', () => ({

@@ -136,7 +136,7 @@ describe('import validation', () => {
       }),
     ).rejects.toThrow(/not a GLB/)
     expect(user.userCount).toBe(0)
-    expect(store.list()).resolves.toHaveLength(0)
+    await expect(store.list()).resolves.toHaveLength(0)
   })
 })
 

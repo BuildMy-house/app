@@ -41,7 +41,7 @@
     "@tauri-apps/plugin-fs": "^2.5.2",
     "@types/node": "^24",
     "@types/ws": "^8",
-    "@vitest/coverage-v8": "^3",
+    "@vitest/coverage-v8": "^5",
     "ajv": "^8.20.0",
     "canvas": "^3.2.3",
     "eslint": "^10",
@@ -54,7 +54,7 @@
     "typescript": "^5",
     "typescript-eslint": "^8",
     "vite": "^6",
-    "vitest": "^3",
+    "vitest": "^5",
     "ws": "^8"
   },
   "allowScripts": {

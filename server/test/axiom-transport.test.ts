@@ -77,7 +77,7 @@ describe('EventBatcher', () => {
       await waitForAsync(100);
       expect(mockClient.sentBatches.length).toBe(1);
       expect(mockClient.sentBatches[0].length).toBe(50);
-    }, { timeout: 10000 });
+    }, 10000);
 
     it('should add timestamps to events', async () => {
       const before = Date.now();
@@ -119,7 +119,7 @@ describe('EventBatcher', () => {
       // Should have flushed
       expect(mockClient.sentBatches.length).toBe(1);
       expect(mockClient.sentBatches[0].length).toBe(2);
-    }, { timeout: 10000 });
+    }, 10000);
 
     it('should not restart timer after timeout', async () => {
       batcher = new EventBatcher({ batchTimeoutMs: 500 });
@@ -141,7 +141,7 @@ describe('EventBatcher', () => {
 
       // Now should flush
       expect(mockClient.sentBatches.length).toBe(2);
-    }, { timeout: 10000 });
+    }, 10000);
   });
 
   describe('error handling and retry', () => {
@@ -159,7 +159,7 @@ describe('EventBatcher', () => {
       // Should have retried and succeeded
       expect(mockClient.sentBatches.length).toBe(1);
       expect(mockClient.sentBatches[0].length).toBe(50);
-    }, { timeout: 15000 });
+    }, 15000);
 
     it('should queue events if Axiom is down', async () => {
       mockClient.failureMode = 'server';
@@ -176,7 +176,7 @@ describe('EventBatcher', () => {
       const stats = batcher.getStats();
       expect(stats.queueLength).toBe(50);
       expect(stats.batchLength).toBe(0);
-    }, { timeout: 10000 });
+    }, 10000);
 
     it('should eventually recover from Axiom failures', async () => {
       // This test verifies that the system can recover from Axiom being down
@@ -196,7 +196,7 @@ describe('EventBatcher', () => {
       expect(mockClient.sentBatches.length).toBeGreaterThanOrEqual(1);
       const totalSent = mockClient.sentBatches.reduce((sum, batch) => sum + batch.length, 0);
       expect(totalSent).toBe(50);
-    }, { timeout: 10000 });
+    }, 10000);
   });
 
   describe('memory pressure handling', () => {
@@ -217,7 +217,7 @@ describe('EventBatcher', () => {
 
       const stats = batcher2.getStats();
       expect(stats.queueLength).toBeLessThanOrEqual(maxQueueSize);
-    }, { timeout: 10000 });
+    }, 10000);
   });
 
   describe('performance', () => {
@@ -252,7 +252,7 @@ describe('EventBatcher', () => {
 
       expect(mockClient.sentBatches.length).toBe(1);
       expect(mockClient.sentBatches[0].length).toBe(2);
-    }, { timeout: 10000 });
+    }, 10000);
 
     it('should flush both batch and queue', async () => {
       mockClient.failureMode = 'server';
@@ -277,7 +277,7 @@ describe('EventBatcher', () => {
       expect(mockClient.sentBatches.length).toBeGreaterThan(0);
       const totalSent = mockClient.sentBatches.reduce((sum, batch) => sum + batch.length, 0);
       expect(totalSent).toBe(51);
-    }, { timeout: 10000 });
+    }, 10000);
   });
 
   describe('global transport singleton', () => {
@@ -303,7 +303,7 @@ describe('EventBatcher', () => {
       await waitForAsync(500);
 
       expect(mockClient.sentBatches.length).toBe(1);
-    }, { timeout: 10000 });
+    }, 10000);
 
     it('should allow config on first initialization', () => {
       _resetTransport();
@@ -337,6 +337,6 @@ describe('EventBatcher', () => {
       expect(stats.batchLength).toBe(0); // Batch was flushed and failed
       expect(stats.queueLength).toBe(50); // Events are now in queue
       expect(stats.totalPending).toBe(50);
-    }, { timeout: 10000 });
+    }, 10000);
   });
 });
