@@ -44,6 +44,7 @@ and point the connector at `http://127.0.0.1:8080/mcp`.
 | `get_home_state` | Full `NormalizedHomeState` JSON |
 | `scene_summary` / `validate_scene` | Semantic scene graph and structural checks |
 | `screenshot` | Standalone offscreen plan/3D PNG (no browser or human viewport) |
+| `render_photoreal` | Optional LuxCore image; defaults to the cheap thumbnail profile |
 | `screenshot_views` | Capture several named camera views in one call |
 | `list_furniture` | Catalog items |
 | `add_furniture` | Place a catalog item by id (cm coords) |
@@ -95,6 +96,11 @@ The assistant remains the vision/planning layer; the MCP is the deterministic
 scene builder and renderer. A cloud deployment must put the streamable HTTP
 endpoint behind authentication and a trusted network boundary. The default
 listener is loopback-only because the automation socket has no authentication.
+
+`screenshot` is the cheap iteration path. Configure
+`BUILDMYHOUSE_LUXCORE_URL`, `BUILDMYHOUSE_LUXCORE_TOKEN`, and optionally
+`BUILDMYHOUSE_LUXCORE_USER` to enable `render_photoreal`; start with
+`thumbnail`, then request `low` or `medium` only for a selected final view.
 
 ## Identity and HTTP deployment
 
