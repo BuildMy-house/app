@@ -19,8 +19,10 @@ import base64
 import json
 import os
 import queue
+import subprocess
 import sys
 import threading
+from pathlib import Path
 
 import anyio
 from automation_server import AutomationServer, Session
@@ -115,6 +117,8 @@ if HTTP_PORT and _TOKENS:
 mcp = FastMCP("buildmyhouse", instructions=INSTRUCTIONS, lifespan=_lifespan if HTTP_PORT else None, **_AUTH_KWARGS)
 
 _SERVER: AutomationServer | None = None
+_ACTIVE_CAMERA = "observer"
+_RENDERER = Path(__file__).with_name("render_scene.ts")
 
 
 async def _ensure_server() -> None:
@@ -204,6 +208,25 @@ def _session() -> Session:
         f"No app connected to ws://{HOST}:{port}. Launch the app with "
         f"HOMELY_AUTOMATION_PORT={port}."
     )
+
+
+async def _render(home: dict, view: str, width: int, height: int) -> Image:
+    command = ["npx", "tsx", str(_RENDERER)]
+    try:
+        result = await anyio.to_thread.run_sync(
+            lambda: subprocess.run(
+                command,
+                cwd=_RENDERER.parent.parent,
+                input=json.dumps({"home": home, "view": view, "width": width, "height": height, "camera": _ACTIVE_CAMERA}),
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+        )
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(exc.stderr.strip() or "scene renderer failed") from exc
+    data = json.loads(result.stdout)
+    return Image(data=base64.b64decode(data["pngBase64"]), format="png")
 
 
 @mcp.tool()
@@ -431,8 +454,9 @@ async def validate_scene() -> dict:
 @mcp.tool()
 async def screenshot(view: str, width: int = 800, height: int = 600) -> Image:
     """Render an OFFSCREEN image of the home. view='plan' or '3d'."""
-    data = await _session().request("screenshot", {"view": view, "width": width, "height": height})
-    return Image(data=base64.b64decode(data["pngBase64"]), format="png")
+    if view not in ("plan", "3d"):
+        raise ValueError("view must be 'plan' or '3d'")
+    return await _render(await _session().request("get_state"), view, width, height)
 
 
 @mcp.tool()
@@ -445,6 +469,8 @@ async def screenshot_views(views: list[dict]):
     for index, spec in enumerate(views, start=1):
         name = str(spec.get("name", f"view-{index}"))
         if "preset" in spec:
+            global _ACTIVE_CAMERA
+            _ACTIVE_CAMERA = spec["preset"]
             await s.request("camera_preset", {"preset": spec["preset"]})
         frame = spec.get("frame")
         if frame == "scene":
@@ -456,10 +482,11 @@ async def screenshot_views(views: list[dict]):
         view = spec.get("view", "3d")
         width = spec.get("width", 800)
         height = spec.get("height", 600)
-        data = await s.request("screenshot", {"view": view, "width": width, "height": height})
+        home = await s.request("get_state")
+        rendered = await _render(home, view, width, height)
         content.extend([
             TextContent(type="text", text=name),
-            Image(data=base64.b64decode(data["pngBase64"]), format="png"),
+            rendered,
         ])
     return content
 
@@ -690,6 +717,8 @@ async def set_camera(
 @mcp.tool()
 async def camera_preset(preset: str) -> dict:
     """Snap the camera to a preset: 'top' or 'observer'. Returns the resulting camera."""
+    global _ACTIVE_CAMERA
+    _ACTIVE_CAMERA = preset
     return await _session().request("camera_preset", {"preset": preset})
 
 

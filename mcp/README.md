@@ -43,7 +43,7 @@ and point the connector at `http://127.0.0.1:8080/mcp`.
 | `reset_home` | New empty home |
 | `get_home_state` | Full `NormalizedHomeState` JSON |
 | `scene_summary` / `validate_scene` | Semantic scene graph and structural checks |
-| `screenshot` | Offscreen plan/3D PNG (returned as an image) |
+| `screenshot` | Standalone offscreen plan/3D PNG (no browser or human viewport) |
 | `screenshot_views` | Capture several named camera views in one call |
 | `list_furniture` | Catalog items |
 | `add_furniture` | Place a catalog item by id (cm coords) |
