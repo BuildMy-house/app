@@ -102,6 +102,10 @@ listener is loopback-only because the automation socket has no authentication.
 `BUILDMYHOUSE_LUXCORE_USER` to enable `render_photoreal`; start with
 `thumbnail`, then request `low` or `medium` only for a selected final view.
 
+Production house tools use the authenticated API identity. Configure
+`BUILDMYHOUSE_API_URL` and a user-scoped `BUILDMYHOUSE_API_TOKEN`; use
+`list_plans`, `create_plan`, and `select_plan` before editing a house.
+
 ## Identity and HTTP deployment
 
 Stdio clients (Codex and Claude Desktop) launch `mcp/run.sh`; it loads the

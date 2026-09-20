@@ -123,6 +123,9 @@ _ACTIVE_CAMERA = "observer"
 _RENDERER = Path(__file__).with_name("render_scene.ts")
 _LUXCORE_URL = os.environ.get("BUILDMYHOUSE_LUXCORE_URL", "").rstrip("/")
 _LUXCORE_TOKEN = os.environ.get("BUILDMYHOUSE_LUXCORE_TOKEN", "")
+_API_URL = os.environ.get("BUILDMYHOUSE_API_URL", "").rstrip("/")
+_API_TOKEN = os.environ.get("BUILDMYHOUSE_API_TOKEN", "")
+_ACTIVE_HOUSES: dict[str, str] = {}
 
 
 async def _ensure_server() -> None:
@@ -256,6 +259,41 @@ async def _luxcore_request(path: str, method: str = "GET", body: dict | None = N
     return await anyio.to_thread.run_sync(send)
 
 
+def _empty_home() -> dict:
+    return {
+        "schemaVersion": 1, "name": "Untitled home", "levels": [], "walls": [], "rooms": [],
+        "polylines": [], "furniture": [], "dimensionLines": [], "labels": [], "roofs": [], "selection": [],
+        "cameras": {
+            "top": {"id": "camera-top-1", "x": 50, "y": 1050, "z": 1010, "yawDeg": 180, "pitchDeg": 45, "fovDeg": 63, "lens": "PINHOLE"},
+            "observer": {"id": "camera-observer-1", "x": 50, "y": 50, "z": 170, "yawDeg": 315, "pitchDeg": 11.25, "fovDeg": 63, "lens": "PINHOLE", "fixedSize": False},
+        },
+        "compass": {"x": -100, "y": 50, "diameter": 100, "northDirectionDeg": 0, "latitudeRad": 0, "longitudeRad": 0, "visible": True},
+        "environment": {"skyColor": 0xcce4fc, "groundColor": 0xa8a8a8, "lightColor": 0xd0d0d0, "wallsAlpha": 0},
+        "preferences": {"defaultFloorColor": 0xf0f0f0, "defaultFloorShininess": 0, "defaultCeilingColor": 0xffffff, "defaultCeilingVisibility": True},
+        "activeTool": None, "capabilities": {"canUndo": False, "canRedo": False},
+    }
+
+
+async def _api_request(path: str, method: str = "GET", body: dict | None = None) -> dict:
+    if not _API_URL or not _API_TOKEN:
+        raise RuntimeError("production plans are not configured; set BUILDMYHOUSE_API_URL and BUILDMYHOUSE_API_TOKEN")
+    payload = json.dumps(body).encode() if body is not None else None
+    request = urllib.request.Request(
+        f"{_API_URL}{path}", data=payload, method=method,
+        headers={"Authorization": f"Bearer {_API_TOKEN}", "Content-Type": "application/json"},
+    )
+
+    def send() -> dict:
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                data = response.read()
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(f"production plan request failed ({exc.code}): {exc.read().decode(errors='replace')}") from exc
+        return json.loads(data)
+
+    return await anyio.to_thread.run_sync(send)
+
+
 @mcp.tool()
 async def homely_status() -> dict:
     """Report the WS port and which app is connected."""
@@ -263,6 +301,97 @@ async def homely_status() -> dict:
     if _SERVER is None:
         return {"connected": [], "port": None}
     return {"connected": list(_SERVER.sessions.keys()), "port": _SERVER.ws_port}
+
+
+@mcp.tool()
+async def list_plans() -> dict:
+    """List the authenticated user's production houses."""
+    return await _api_request("/api/homes")
+
+
+@mcp.tool()
+async def create_plan(name: str = "Untitled home") -> dict:
+    """Create a persistent production house owned by the authenticated user."""
+    record = await _api_request("/api/homes", "POST", {"name": name, "json": json.dumps(_empty_home())})
+    _ACTIVE_HOUSES[_API_TOKEN] = str(record["id"])
+    await _api_request(f"/api/homes/{record['id']}/presence", "POST", {"role": "agent"})
+    return {"houseId": record["id"], "name": record["name"], "revision": record["updatedAt"], "json": json.loads(record["json"])}
+
+
+@mcp.tool()
+async def select_plan(house_id: str) -> dict:
+    """Select one of the authenticated user's houses for agent collaboration."""
+    record = await _api_request(f"/api/homes/{house_id}")
+    _ACTIVE_HOUSES[_API_TOKEN] = house_id
+    await _api_request(f"/api/homes/{house_id}/presence", "POST", {"role": "agent"})
+    return {"houseId": house_id, "name": record["name"], "revision": record["updatedAt"], "json": json.loads(record["json"])}
+
+
+@mcp.tool()
+async def get_plan_state(house_id: str | None = None) -> dict:
+    """Read the latest revision of a selected production house."""
+    house_id = house_id or _ACTIVE_HOUSES.get(_API_TOKEN)
+    if not house_id:
+        raise ValueError("select a house first")
+    record = await _api_request(f"/api/homes/{house_id}")
+    return {"houseId": house_id, "name": record["name"], "revision": record["updatedAt"], "json": json.loads(record["json"])}
+
+
+async def _production_build_house(house_id: str, plan: dict, reset: bool) -> dict:
+    record = await _api_request(f"/api/homes/{house_id}")
+    home = _empty_home() if reset else json.loads(record["json"])
+    counters = {key: len(home[key]) + 1 for key in ("levels", "walls", "rooms", "furniture", "roofs", "polylines", "labels", "dimensionLines")}
+    ids: dict[str, dict[str, str]] = {key: {} for key in counters}
+
+    def add(collection: str, item: dict, key: str | None = None) -> str:
+        item_id = f"{collection[:-1] if collection != 'dimensionLines' else 'dimension-line'}-{counters[collection]}"
+        counters[collection] += 1
+        item["id"] = item_id
+        home[collection].append(item)
+        if key: ids[collection][key] = item_id
+        return item_id
+
+    def level_ref(item: dict) -> str | None:
+        key = item.get("levelKey")
+        if key is None: return None
+        if key not in ids["levels"]: raise ValueError(f"unknown levelKey: {key}")
+        return ids["levels"][key]
+
+    for item in plan.get("levels", []):
+        add("levels", {"name": item.get("name", "Level"), "elevation": item["elevation"], "floorThickness": item.get("floorThickness", 20), "height": item.get("height", 250), "visible": item.get("visible", True), "viewable": item.get("viewable", True)}, item.get("key"))
+    walls = list(plan.get("walls", []))
+    if not walls and plan.get("auto_walls", True):
+        for index, room in enumerate(plan.get("rooms", [])):
+            points = room["points"]
+            room_key = room.get("key", f"room-{index + 1}")
+            walls.extend({"key": f"{room_key}-wall-{i + 1}", "xStart": a[0], "yStart": a[1], "xEnd": b[0], "yEnd": b[1], "levelKey": room.get("levelKey")} for i, (a, b) in enumerate(zip(points, points[1:] + points[:1])))
+    for item in walls:
+        wall = {key: item[key] for key in ("xStart", "yStart", "xEnd", "yEnd", "thickness", "height", "arcExtent", "heightAtEnd", "patternId", "leftSideColor", "rightSideColor", "leftSideTextureId", "rightSideTextureId") if key in item}
+        if level_ref(item): wall["levelRef"] = level_ref(item)
+        add("walls", wall, item.get("key"))
+    for item in plan.get("rooms", []):
+        room = {"points": item["points"], **{key: item[key] for key in ("name", "floorColor", "floorVisible", "ceilingVisible", "areaVisible") if key in item}}
+        if level_ref(item): room["levelRef"] = level_ref(item)
+        add("rooms", room, item.get("key"))
+    for opening_type in ("doors", "windows"):
+        for item in plan.get(opening_type, []):
+            wall_id = ids["walls"].get(item.get("wallKey"), item.get("wallId"))
+            if not wall_id: raise ValueError(f"{opening_type} item requires wallKey or wallId")
+            add("furniture", {"name": opening_type[:-1].title(), "x": item.get("x", 0), "y": item.get("y", 0), "angleDeg": 0, "width": item.get("width", 90), "depth": 10, "height": item.get("height", 210), "elevation": 0, "doorOrWindow": True, "wallRef": wall_id})
+    for item in plan.get("furniture", []):
+        furniture = {key: item[key] for key in ("name", "x", "y", "angleDeg", "width", "depth", "height", "elevation", "catalogId", "doorOrWindow", "modelPath", "color") if key in item}
+        furniture.setdefault("angleDeg", 0); furniture.setdefault("elevation", 0); furniture.setdefault("doorOrWindow", False)
+        if level_ref(item): furniture["levelRef"] = level_ref(item)
+        add("furniture", furniture, item.get("key"))
+    for collection, source, fields in (("roofs", "roofs", ("points", "name", "color", "style", "pitchDeg", "overhangCm", "ridgeAngleDeg")), ("polylines", "polylines", ("points", "closed", "name", "color", "thickness")), ("labels", "labels", ("x", "y", "text", "angleDeg", "elevation", "color")), ("dimensionLines", "dimensions", ("xStart", "yStart", "xEnd", "yEnd", "offset", "elevationStart", "elevationEnd"))):
+        for item in plan.get(source, []):
+            value = {key: item[key] for key in fields if key in item}
+            if level_ref(item): value["levelRef"] = level_ref(item)
+            add(collection, value, item.get("key"))
+    if isinstance(plan.get("camera"), dict):
+        home["cameras"]["observer"].update(plan["camera"])
+    updated = await _api_request(f"/api/homes/{house_id}", "PUT", {"name": home.get("name", "Untitled home"), "json": json.dumps(home), "baseUpdatedAt": record["updatedAt"], "actor": "agent"})
+    return {"houseId": house_id, "revision": updated["updatedAt"], "state": home, **{f"{key}Ids": value for key, value in ids.items()}}
 
 
 @mcp.tool()
@@ -280,7 +409,7 @@ async def reset_home() -> dict:
 
 
 @mcp.tool()
-async def build_house(plan: dict, reset: bool = True) -> dict:
+async def build_house(plan: dict, reset: bool = True, house_id: str | None = None) -> dict:
     """Build a complete house from one declarative plan and return its state.
 
     Plan shape: {name?, levels?, walls?, rooms?, furniture?, doors?, windows?,
@@ -292,6 +421,11 @@ async def build_house(plan: dict, reset: bool = True) -> dict:
     """
     if not isinstance(plan, dict):
         raise ValueError("plan must be an object")
+    if _API_URL:
+        selected = house_id or _ACTIVE_HOUSES.get(_API_TOKEN)
+        if not selected:
+            raise ValueError("select a production house first")
+        return await _production_build_house(selected, plan, reset)
     s = _session()
     if reset:
         await s.request("new_home")

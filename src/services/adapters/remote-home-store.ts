@@ -104,13 +104,14 @@ export class RemoteHomeStore {
   }
 
   private async readEvents(body: ReadableStream<Uint8Array>, onUpdate: (event: HomeUpdateEvent) => void, signal: AbortSignal): Promise<void> {
-    const reader = body.pipeThrough(new TextDecoderStream()).getReader()
+    const reader = body.getReader()
+    const decoder = new TextDecoder()
     let buffer = ''
     try {
       while (!signal.aborted) {
         const next = await reader.read()
         if (next.done) break
-        buffer += next.value
+        buffer += decoder.decode(next.value, { stream: true })
         const chunks = buffer.split('\n\n')
         buffer = chunks.pop() ?? ''
         for (const chunk of chunks) {
