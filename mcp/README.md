@@ -37,9 +37,11 @@ and point the connector at `http://127.0.0.1:8080/mcp`.
 | Tool | Purpose |
 |------|---------|
 | `homely_status` | Which app is connected + the WS port |
+| `mcp_identity` | Current test/user identity (never returns the token) |
 | `build_house` | Build a complete declarative house in one call |
 | `reset_home` | New empty home |
 | `get_home_state` | Full `NormalizedHomeState` JSON |
+| `scene_summary` / `validate_scene` | Semantic scene graph and structural checks |
 | `screenshot` | Offscreen plan/3D PNG (returned as an image) |
 | `list_furniture` | Catalog items |
 | `add_furniture` | Place a catalog item by id (cm coords) |
@@ -77,6 +79,15 @@ The assistant remains the vision/planning layer; the MCP is the deterministic
 scene builder and renderer. A cloud deployment must put the streamable HTTP
 endpoint behind authentication and a trusted network boundary. The default
 listener is loopback-only because the automation socket has no authentication.
+
+## Identity and HTTP deployment
+
+Stdio clients (Codex and Claude Desktop) launch `mcp/run.sh`; it loads the
+workspace `.env` and uses the local `test` identity. For streamable HTTP, set
+`BUILDMYHOUSE_MCP_TOKENS_JSON` to a JSON object mapping bearer tokens to user
+names, for example `{"token-for-alice":"alice"}`. The server rejects HTTP
+startup without a token and validates `Authorization: Bearer ...` on every MCP
+request. Set `BUILDMYHOUSE_MCP_RESOURCE_URL` to the public `/mcp` URL in prod.
 
 The MCP does not infer architectural dimensions or identify furniture from
 pixels; those are assistant-side decisions and should be checked against the

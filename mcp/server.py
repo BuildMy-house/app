@@ -15,12 +15,22 @@ set HOMELY_MCP_HTTP_PORT to expose a streamable-HTTP endpoint.
 from __future__ import annotations
 
 import contextlib
+import json
 import os
 import sys
 
 from automation_server import AutomationServer, Session
 from axiom_client import AxiomClient
-from mcp.server.fastmcp import FastMCP, Image
+from scene_analysis import analyze_home, validate_home
+from mcp.server.fastmcp import Context, FastMCP, Image
+
+try:
+    from pydantic import AnyHttpUrl
+    from mcp.server.auth.provider import AccessToken, TokenVerifier
+    from mcp.server.auth.middleware.auth_context import get_access_token
+    from mcp.server.auth.settings import AuthSettings
+except ImportError:  # stdio-only installs can run without the HTTP auth extras.
+    AnyHttpUrl = AccessToken = TokenVerifier = AuthSettings = get_access_token = None
 
 # SECURITY (M17 audit): loopback-only by default, on purpose. The automation
 # protocol has no auth, so anything that can reach this port can register a
@@ -30,14 +40,45 @@ from mcp.server.fastmcp import FastMCP, Image
 HOST = os.environ.get("HOMELY_MCP_HOST", "127.0.0.1")
 PORT = int(os.environ.get("HOMELY_MCP_PORT", "9529"))
 HTTP_PORT = int(os.environ["HOMELY_MCP_HTTP_PORT"]) if os.environ.get("HOMELY_MCP_HTTP_PORT") else None
+MCP_RESOURCE_URL = os.environ.get(
+    "BUILDMYHOUSE_MCP_RESOURCE_URL",
+    f"http://127.0.0.1:{HTTP_PORT}/mcp" if HTTP_PORT else "http://127.0.0.1:9529/mcp",
+)
+MCP_ISSUER_URL = os.environ.get("BUILDMYHOUSE_MCP_ISSUER_URL", MCP_RESOURCE_URL)
+
+
+def _token_users() -> dict[str, str]:
+    raw = os.environ.get("BUILDMYHOUSE_MCP_TOKENS_JSON", "")
+    users: dict[str, str] = {}
+    if raw:
+        parsed = json.loads(raw)
+        if not isinstance(parsed, dict):
+            raise ValueError("BUILDMYHOUSE_MCP_TOKENS_JSON must be a JSON object of token:user")
+        users.update({str(token): str(user) for token, user in parsed.items()})
+    token = os.environ.get("BUILDMYHOUSE_MCP_TOKEN")
+    if token:
+        users[token] = os.environ.get("BUILDMYHOUSE_MCP_USER", "test")
+    return users
+
+
+class StaticTokenVerifier(TokenVerifier if TokenVerifier is not None else object):
+    def __init__(self, users: dict[str, str], resource: str):
+        self.users = users
+        self.resource = resource
+
+    async def verify_token(self, token: str):
+        user = self.users.get(token)
+        if user is None or AccessToken is None:
+            return None
+        return AccessToken(token=token, client_id=user, scopes=["design"], resource=self.resource)
 
 INSTRUCTIONS = """\
 BuildMyHouse is a house-design app. Coordinates are centimeters in plan space (x right, y down).
 Angles are degrees. The connected app holds the live home; each tool mutates it. After drawing,
 call get_home_state or screenshot to verify.
-Walls are drawn with the wall tool: click each corner, then a final click with dbl=true to
-close the loop (one compound undo). Furniture is placed by catalog id. Use homely_status
-first to confirm the app is connected."""
+Use homely_status first. For fast construction use build_house; then call scene_summary or
+validate_scene for semantic verification and screenshot for visual verification. Coordinates
+are centimeters, x-right/y-down. Furniture is normally placed by catalog id."""
 
 @contextlib.asynccontextmanager
 async def _lifespan(_app):
@@ -56,7 +97,24 @@ async def _lifespan(_app):
         _SERVER = None
 
 
-mcp = FastMCP("buildmyhouse", instructions=INSTRUCTIONS, lifespan=_lifespan)
+_TOKENS = _token_users()
+_AUTH_KWARGS = {}
+if HTTP_PORT and not _TOKENS:
+    raise RuntimeError("HTTP MCP requires BUILDMYHOUSE_MCP_TOKEN or BUILDMYHOUSE_MCP_TOKENS_JSON")
+if HTTP_PORT and _TOKENS:
+    if not all((AnyHttpUrl, AuthSettings, TokenVerifier)):
+        raise RuntimeError("HTTP token auth requires a current mcp[cli] package")
+    _AUTH_KWARGS = {
+        "token_verifier": StaticTokenVerifier(_TOKENS, MCP_RESOURCE_URL),
+        "auth": AuthSettings(
+            issuer_url=AnyHttpUrl(MCP_ISSUER_URL),
+            resource_server_url=AnyHttpUrl(MCP_RESOURCE_URL),
+            required_scopes=["design"],
+            validate_token_resource=False,
+        ),
+    }
+
+mcp = FastMCP("buildmyhouse", instructions=INSTRUCTIONS, lifespan=_lifespan, **_AUTH_KWARGS)
 
 _SERVER: AutomationServer | None = None
 
@@ -80,6 +138,14 @@ async def homely_status() -> dict:
     if _SERVER is None:
         return {"connected": [], "port": None}
     return {"connected": list(_SERVER.sessions.keys()), "port": _SERVER.ws_port}
+
+
+@mcp.tool()
+async def mcp_identity(ctx: Context) -> dict:
+    """Return the configured MCP identity without revealing its token."""
+    access = get_access_token() if get_access_token is not None else None
+    return {"user": access.client_id if access else os.environ.get("BUILDMYHOUSE_MCP_USER", "test"),
+            "transport": "http" if HTTP_PORT else "stdio", "authenticated": access is not None or not HTTP_PORT}
 
 
 @mcp.tool()
@@ -200,6 +266,18 @@ async def build_house(plan: dict, reset: bool = True) -> dict:
 async def get_home_state() -> dict:
     """Return the full NormalizedHomeState JSON (walls, rooms, furniture, cameras)."""
     return await _session().request("get_state")
+
+
+@mcp.tool()
+async def scene_summary() -> dict:
+    """Return a compact semantic scene graph for reasoning without pixels."""
+    return analyze_home(await _session().request("get_state"))
+
+
+@mcp.tool()
+async def validate_scene() -> dict:
+    """Check the scene for structural problems and return warnings plus summary."""
+    return validate_home(await _session().request("get_state"))
 
 
 @mcp.tool()
