@@ -14,14 +14,6 @@ import type { CatalogItem } from '../core/catalog'
 import type { FurnitureCatalog } from '../core/catalog'
 import { CatalogLazyLoader } from './catalog-lazy-loader'
 
-export interface CatalogPlacement {
-  catalogId: string
-  name: string
-  x: number
-  y: number
-  angleDeg: number
-}
-
 export interface CatalogPanelOptions {
   /** Catalog registry backing the panel. */
   catalog: FurnitureCatalog

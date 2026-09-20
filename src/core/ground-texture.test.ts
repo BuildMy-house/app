@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { HomeStore } from './store'
 import { HomeModel } from './model'
-import { GROUND_TEXTURES } from './home'
 import { serializeForSave, parseHomeFile } from '../services/adapters/home-persistence'
 
 function makeStore() {
@@ -11,11 +10,6 @@ function makeStore() {
 }
 
 describe('ground texture schema', () => {
-  it('GROUND_TEXTURES reuses the wall texture catalog', () => {
-    expect(GROUND_TEXTURES).toHaveLength(6)
-    expect(GROUND_TEXTURES.map((t) => t.id)).toContain('wood-oak')
-  })
-
   it('setEnvironment accepts valid groundTextureId', () => {
     const { model } = makeStore()
     model.setEnvironment({ groundTextureId: 'carpet' })

@@ -17,7 +17,7 @@ declare global {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-export const MIN_PASSWORD_LENGTH = 8;
+const MIN_PASSWORD_LENGTH = 8;
 const TOKEN_TTL = '7d';
 
 // ponytail: in-memory per-email login lockout (per-process, lost on restart).
@@ -121,7 +121,7 @@ async function claimToken(db: DbAdapter, table: string, token: string): Promise<
 
 type Credentials = { email: string; password: string };
 
-export function validateCredentials(email: unknown, password: unknown): Credentials | string {
+function validateCredentials(email: unknown, password: unknown): Credentials | string {
   if (typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
     return 'email must be a valid email address';
   }

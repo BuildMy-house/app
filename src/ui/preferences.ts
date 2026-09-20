@@ -1,4 +1,4 @@
-import { DEFAULT_WALL_HEIGHT_CM, GROUND_TEXTURES } from '../core/home'
+import { DEFAULT_WALL_HEIGHT_CM, WALL_TEXTURES } from '../core/home'
 import { NEW_WALL_THICKNESS_CM } from '../core/model'
 import type { HomeStore } from '../core/store'
 import { telemetry } from '../telemetry/logger'
@@ -97,7 +97,7 @@ export class PreferencesDialog {
           <label for="prefs-ground-texture">Ground texture</label>
           <select id="prefs-ground-texture">
             <option value="">None</option>
-            ${GROUND_TEXTURES.map((t) => `<option value="${t.id}"${prefs.groundTextureId === t.id ? ' selected' : ''}>${t.label}</option>`).join('')}
+            ${WALL_TEXTURES.map((t) => `<option value="${t.id}"${prefs.groundTextureId === t.id ? ' selected' : ''}>${t.label}</option>`).join('')}
           </select>
         </div>
         <div class="prefs-row">

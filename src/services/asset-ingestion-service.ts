@@ -85,7 +85,7 @@ export interface LibraryItem {
   rotation: number[] | null
 }
 
-export interface CheckpointEntry {
+interface CheckpointEntry {
   converted: boolean
   uploaded: boolean
   verified: boolean
@@ -182,18 +182,18 @@ function mapCategory(item: { category: string; name: string }): string {
 }
 
 /** Externally-hosted model (e.g. Cloudflare R2) — mirrors scripts/assets.ts. */
-export function isExternalModel(modelPath: string): boolean {
+function isExternalModel(modelPath: string): boolean {
   return /^https?:\/\//i.test(modelPath)
 }
 
 /** R2 object key for an external model's thumbnail: .../models/x.glb -> thumbs/x.webp. */
-export function externalThumbKey(modelPath: string): string {
+function externalThumbKey(modelPath: string): string {
   const base = new URL(modelPath).pathname.split('/').pop() ?? ''
   return `thumbs/${base.replace(/\.[^.]+$/, '')}.webp`
 }
 
 /** Local thumbnail path for a modelPath, mirroring the CatalogPanel convention. */
-export function localThumbPath(modelPath: string): string {
+function localThumbPath(modelPath: string): string {
   return join(THUMBS_DIR, modelPath.replace(/\.[^.]+$/, '') + '.webp')
 }
 
@@ -215,7 +215,7 @@ class NodeFileReader {
 }
 
 /** Installs every global GLTFExporter/ImageLoader need; no-op in a real DOM. */
-export function installNodeGlbPolyfills(): void {
+function installNodeGlbPolyfills(): void {
   if (typeof globalThis.FileReader === 'undefined') {
     ;(globalThis as { FileReader?: unknown }).FileReader = NodeFileReader
   }

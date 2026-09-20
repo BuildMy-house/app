@@ -16,15 +16,15 @@ import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { jobTelemetry } from './jobs/telemetry.js'
 
-export interface NormalizedHomeState {
+interface NormalizedHomeState {
   // Minimal interface for render queue; full type defined in client
   [key: string]: unknown
 }
 
-export type RenderProfile = 'thumbnail' | 'low' | 'medium' | 'high'
-export type RenderJobStatus = 'pending' | 'processing' | 'complete' | 'failed'
+type RenderProfile = 'thumbnail' | 'low' | 'medium' | 'high'
+type RenderJobStatus = 'pending' | 'processing' | 'complete' | 'failed'
 
-export interface RenderJob {
+interface RenderJob {
   id: string
   userId: string
   homeId: string
@@ -43,7 +43,7 @@ export interface RenderJob {
  * In-memory render queue and job manager.
  * Processes jobs sequentially (1-2 concurrent renders max on small servers).
  */
-export class RenderQueue {
+class RenderQueue {
   private static readonly MAX_RETAINED_JOBS = 100
   private jobs = new Map<string, RenderJob>()
   private queue: string[] = [] // Job IDs in order

@@ -42,12 +42,3 @@ export function loadDraft(): NormalizedHomeState | null {
   }
 }
 
-export function clearDraft(): void {
-  const s = storage()
-  if (!s) return
-  try {
-    s.removeItem(DRAFT_KEY)
-  } catch {
-    /* ignore */
-  }
-}

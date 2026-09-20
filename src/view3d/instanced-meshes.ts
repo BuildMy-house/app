@@ -17,59 +17,6 @@ import * as THREE from 'three'
 import type { Furniture } from '../core/home'
 
 /**
- * Cached geometry keyed by model path.
- * Shared across all instances of the same model.
- */
-export class GeometryCache {
-  private geometries = new Map<string, THREE.BufferGeometry>()
-
-  /**
-   * Get or create a geometry for a model.
-   * Geometries are never disposed (shared), so cache them once created.
-   */
-  getOrCreate(modelPath: string, createGeometry: () => THREE.BufferGeometry): THREE.BufferGeometry {
-    let geom = this.geometries.get(modelPath)
-    if (!geom) {
-      geom = createGeometry()
-      this.geometries.set(modelPath, geom)
-    }
-    return geom
-  }
-
-  clear(): void {
-    this.geometries.forEach((g) => g.dispose())
-    this.geometries.clear()
-  }
-}
-
-/**
- * Cached materials keyed by color + texture.
- * Shared across all instances with the same appearance.
- */
-export class MaterialCache {
-  private materials = new Map<string, THREE.Material>()
-
-  /**
-   * Get or create a material for a color.
-   * Materials are never disposed (shared), so cache them once created.
-   */
-  getOrCreate(color: number, createMaterial: () => THREE.Material): THREE.Material {
-    const key = `mat_${color}`
-    let mat = this.materials.get(key)
-    if (!mat) {
-      mat = createMaterial()
-      this.materials.set(key, mat)
-    }
-    return mat
-  }
-
-  clear(): void {
-    this.materials.forEach((m) => m.dispose())
-    this.materials.clear()
-  }
-}
-
-/**
  * Group furniture by model + color to find instancing opportunities.
  */
 export interface FurnitureGroup {
@@ -148,37 +95,4 @@ export function createInstancedMesh(
   mesh.receiveShadow = true
 
   return mesh
-}
-
-/**
- * LOD (Level of Detail) system: render low-poly models for distant furniture.
- * Reduces GPU load for complex scenes with many items.
- */
-export class LODManager {
-  /**
-   * Create a LOD node for a furniture piece.
-   * Close range: high-poly, far range: simplified billboard or box.
-   */
-  static createLOD(
-    highPolyGeometry: THREE.BufferGeometry,
-    lowPolyGeometry: THREE.BufferGeometry,
-    material: THREE.Material,
-  ): THREE.LOD {
-    const lod = new THREE.LOD()
-
-    // Level 0: high-poly, visible when < 500 cm away
-    const highPolyMesh = new THREE.Mesh(highPolyGeometry, material)
-    lod.addLevel(highPolyMesh, 0)
-
-    // Level 1: low-poly, visible when 500-2000 cm away
-    const lowPolyMesh = new THREE.Mesh(lowPolyGeometry, material)
-    lod.addLevel(lowPolyMesh, 500)
-
-    // Level 2: bounding box only, visible when > 2000 cm away (rare)
-    const boxGeometry = new THREE.BoxGeometry(100, 100, 100)
-    const boxMesh = new THREE.Mesh(boxGeometry, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 }))
-    lod.addLevel(boxMesh, 2000)
-
-    return lod
-  }
 }

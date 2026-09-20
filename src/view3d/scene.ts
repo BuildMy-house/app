@@ -20,9 +20,9 @@ import { loadViewportQuality } from './viewport-quality'
 
 type Pt = [number, number]
 
-export const DEFAULT_WALL_COLOR = 0xd2d2d2
-export const DEFAULT_FLOOR_COLOR = 0xc8c8c8
-export const DEFAULT_FURNITURE_COLOR = 0x9e9e9e
+const DEFAULT_WALL_COLOR = 0xd2d2d2
+const DEFAULT_FLOOR_COLOR = 0xc8c8c8
+const DEFAULT_FURNITURE_COLOR = 0x9e9e9e
 const DEFAULT_CEILING_COLOR = 0xf0f0f0
 
 const GROUND_SIZE_CM = 100_000
@@ -288,7 +288,7 @@ export function roomMesh(room: Room, elevation: number, opts?: { opacity?: numbe
 export const BELOW_LEVEL_FLOOR_OPACITY = 0.4
 /** Transparency (SH3D-style: 0 = opaque) for walls of the level below the
  * active one — enough to read as context without blocking the active floor. */
-export const BELOW_LEVEL_WALL_TRANSPARENCY = 0.75
+const BELOW_LEVEL_WALL_TRANSPARENCY = 0.75
 
 export interface CeilingVisibilityContext {
   /** Viewing the whole model from outside (no single floor being edited). */
@@ -882,7 +882,7 @@ function addFurnitureMeshes(
 }
 
 export const SELECTION_EMISSIVE_COLOR = 0x1a66d6
-export const SELECTION_EMISSIVE_INTENSITY = 0.3
+const SELECTION_EMISSIVE_INTENSITY = 0.3
 
 export function tintEmissive(object: THREE.Object3D): void {
   object.traverse((child) => {
@@ -899,7 +899,7 @@ export function tintEmissive(object: THREE.Object3D): void {
   })
 }
 
-export function clearEmissive(object: THREE.Object3D): void {
+function clearEmissive(object: THREE.Object3D): void {
   object.traverse((child) => {
     if ('material' in child) {
       const mesh = child as THREE.Mesh

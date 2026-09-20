@@ -6,14 +6,14 @@
 
 import { compassRadiansForZone, resolveTimezone } from './compass-timezones'
 
-export const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 1
 
 /** Default wall height in cm (SH3D UserPreferences default). */
 export const DEFAULT_WALL_HEIGHT_CM = 250
 
 /** Stable export ids for the two SH3D cameras (driver IdAssigner parity). */
-export const TOP_CAMERA_ID = 'camera-top-1'
-export const OBSERVER_CAMERA_ID = 'camera-observer-1'
+const TOP_CAMERA_ID = 'camera-top-1'
+const OBSERVER_CAMERA_ID = 'camera-observer-1'
 
 export type LensName = 'PINHOLE' | 'NORMAL' | 'FISHEYE' | 'SPHERICAL'
 
@@ -89,8 +89,6 @@ export const WALL_TEXTURES: WallTextureEntry[] = [
   },
   { id: 'wood-pine', label: 'Wood Pine', file: 'wood-pine.png', roughness: 0.7, metalness: 0 },
 ]
-
-export type WallTextureId = (typeof WALL_TEXTURES)[number]['id']
 
 /** R2 key prefix + public base serving the texture files (see r2-client.ts). */
 const R2_MATERIALS_BASE = 'https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/materials'
@@ -222,7 +220,7 @@ export interface CameraState {
   lens: LensName
 }
 
-export interface ObserverCameraState extends CameraState {
+interface ObserverCameraState extends CameraState {
   fixedSize?: boolean
 }
 
@@ -250,7 +248,7 @@ export interface EnvironmentState {
   groundTextureId?: string | null
 }
 
-export interface HomePreferences {
+interface HomePreferences {
   defaultFloorColor: number
   defaultFloorShininess: number
   defaultCeilingColor: number
@@ -258,9 +256,7 @@ export interface HomePreferences {
 }
 
 /** Ground textures reuse the same PNG catalog as walls (SH3D parity). */
-export const GROUND_TEXTURES = WALL_TEXTURES
-
-export interface CapabilitiesState {
+interface CapabilitiesState {
   canUndo: boolean
   canRedo: boolean
 }

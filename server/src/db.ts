@@ -4,9 +4,9 @@ import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 import { Pool, type PoolClient } from 'pg';
 
-export type DeploymentMode = 'sqlite' | 'postgres';
+type DeploymentMode = 'sqlite' | 'postgres';
 
-export function getDeploymentMode(): DeploymentMode {
+function getDeploymentMode(): DeploymentMode {
   const url = process.env.DATABASE_URL;
   if (url && url.startsWith('postgresql://')) return 'postgres';
   return 'sqlite';
@@ -220,19 +220,7 @@ export class PgAdapter implements DbAdapter {
 }
 
 // ---------------------------------------------------------------------------
-// Factory
-// ---------------------------------------------------------------------------
-
-export function createAdapter(mode: DeploymentMode): DbAdapter {
-  if (mode === 'postgres') {
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    return new PgAdapter(pool);
-  }
-  return new SqliteAdapter(openSqlite(defaultDbPath()));
-}
-
-// ---------------------------------------------------------------------------
-// Legacy helpers (kept for backward compat — prefer createAdapter)
+// Legacy helpers
 // ---------------------------------------------------------------------------
 
 const SCHEMA = `
@@ -349,13 +337,9 @@ function openSqlite(path: string): Database.Database {
   return db;
 }
 
-export function defaultDbPath(): string {
+function defaultDbPath(): string {
   // src/db.ts (dev) and dist/db.js (compiled) both sit directly under homely/server/.
   return fileURLToPath(new URL('../data/homely.db', import.meta.url));
-}
-
-export function openDatabase(path: string): Database.Database {
-  return openSqlite(path);
 }
 
 export function openAdapter(path?: string): DbAdapter {

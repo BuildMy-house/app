@@ -6,7 +6,7 @@ import { drawPlan, fitToBounds, type PlanRenderingContext } from '../plan/render
 import { View3D } from '../view3d/view'
 import type { CameraDirector } from '../view3d/cameras'
 
-export type ScreenshotView = 'plan' | '3d'
+type ScreenshotView = 'plan' | '3d'
 
 export interface ScreenshotRequest {
   view: ScreenshotView

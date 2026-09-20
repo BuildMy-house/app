@@ -40,11 +40,3 @@ export function signedArea(points: Array<Point>): number {
   }
   return sum / 2
 }
-
-export function isClockwise(points: Array<Point>): boolean {
-  return signedArea(points) < 0
-}
-
-export function normalizeClockwise(points: Array<Point>): Array<Point> {
-  return isClockwise(points) ? points : [...points].reverse()
-}

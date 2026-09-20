@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/knip/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [
+        "index.html",
+        "tests/**/*.test.ts",
+        "src/**/*.test.ts",
+        "e2e/**/*.spec.ts"
+      ]
+    },
+    "server": {
+      "entry": ["test/**/*.test.ts"]
+    }
+  }
+}
