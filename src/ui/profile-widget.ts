@@ -3,6 +3,26 @@ import type { AuthAdapter } from '../services/auth'
 const escapeHtml = (s: string): string =>
   s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string)
 
+// Dismissing the nudge only hides it for the current tab session — it's a
+// low-stakes reminder, not a setting worth persisting across restarts.
+const SIGNUP_NUDGE_DISMISSED_KEY = 'homely-signup-nudge-dismissed'
+
+function isNudgeDismissed(): boolean {
+  try {
+    return sessionStorage.getItem(SIGNUP_NUDGE_DISMISSED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function dismissNudge(): void {
+  try {
+    sessionStorage.setItem(SIGNUP_NUDGE_DISMISSED_KEY, '1')
+  } catch {
+    // Storage unavailable: nudge just reappears next render, not fatal.
+  }
+}
+
 export interface ProfileWidgetActions {
   onSignUp: () => void
   onLogIn: () => void
@@ -12,7 +32,7 @@ export interface ProfileWidgetActions {
 }
 
 /**
- * Always-visible top-left account control. Signed out: a "Sign Up to Save"
+ * Always-visible top-right account control. Signed out: a "Sign Up to Save"
  * nudge, since the local draft (local-draft.ts) already keeps the current
  * design across a refresh — the nudge is about the cloud library
  * (multi-project, cross-device), not about losing work. Signed in: an avatar
@@ -23,6 +43,7 @@ export class ProfileWidget {
   private auth: AuthAdapter
   private actions: ProfileWidgetActions
   private open = false
+  private nudgeDismissed = isNudgeDismissed()
 
   constructor(host: HTMLElement, auth: AuthAdapter, actions: ProfileWidgetActions) {
     this.auth = auth
@@ -49,14 +70,27 @@ export class ProfileWidget {
     const user = this.auth.currentUser()
 
     if (!user) {
+      if (this.nudgeDismissed) {
+        this.el.innerHTML = `<button type="button" class="profile-login-link">Log In</button>`
+        this.el.querySelector('.profile-login-link')!.addEventListener('click', () => this.actions.onLogIn())
+        return
+      }
+
       this.el.innerHTML = `
         <button type="button" class="profile-signup-btn" title="Create an account to save your projects to the cloud">
           <span class="profile-avatar profile-avatar-guest">?</span>
           Sign Up to Save
         </button>
+        <button type="button" class="profile-signup-dismiss" title="Dismiss" aria-label="Dismiss">&times;</button>
         <button type="button" class="profile-login-link">Log In</button>
       `
       this.el.querySelector('.profile-signup-btn')!.addEventListener('click', () => this.actions.onSignUp())
+      this.el.querySelector('.profile-signup-dismiss')!.addEventListener('click', (e) => {
+        e.stopPropagation()
+        dismissNudge()
+        this.nudgeDismissed = true
+        this.render()
+      })
       this.el.querySelector('.profile-login-link')!.addEventListener('click', () => this.actions.onLogIn())
       return
     }

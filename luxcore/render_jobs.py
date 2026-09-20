@@ -22,12 +22,20 @@ class RenderJobStore:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 
-    def create(self, user_id: str, scene: dict[str, Any], settings: dict[str, Any] | None = None) -> dict[str, Any]:
+    def create(
+        self,
+        user_id: str,
+        scene: dict[str, Any],
+        settings: dict[str, Any] | None = None,
+        home: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         self._check(user_id)
         job_id = secrets.token_urlsafe(12)
         folder = self.root / user_id / job_id
         folder.mkdir(parents=True)
         self._write(folder / "scene.json", scene)
+        if home is not None:
+            self._write(folder / "home.json", home)
         record = {
             "id": job_id,
             "userId": user_id,
@@ -35,6 +43,7 @@ class RenderJobStore:
             "settings": settings or {},
             "createdAt": self._now(),
             "scenePath": "scene.json",
+            "homePath": "home.json" if home is not None else None,
         }
         self._write(folder / "job.json", record)
         return record
@@ -52,9 +61,10 @@ class RenderJobStore:
         self._write(folder / "job.json", record)
         try:
             scene = json.loads((folder / "scene.json").read_text())
+            home = json.loads((folder / "home.json").read_text()) if record.get("homePath") else None
             settings = RenderSettings(**record["settings"])
             output = folder / "render.png"
-            render(scene, settings, output)
+            render(scene, settings, output, home=home)
             record = self._status(record, "completed", artifactPath="render.png")
         except Exception as exc:  # noqa: BLE001
             (folder / "error.log").write_text(str(exc) + "\n")

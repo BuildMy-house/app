@@ -67,6 +67,7 @@ body {
 
 #root {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto 1fr auto;
   grid-template-areas:
     "menu"
@@ -86,19 +87,43 @@ body {
   border-bottom: 1px solid var(--border);
   padding: 0 4px;
   height: 28px;
+  min-width: 0;
+  overflow-x: auto;
   user-select: none;
 }
 
-/* ── Profile widget (top-left account control) ───────────────────────────── */
+#menu-items {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+/* ── Profile widget (top-right account control) ──────────────────────────── */
+
+/* Sticks to the visible right edge of #menu-bar even while the bar itself
+   scrolls horizontally on narrow screens, so the account control stays
+   reachable without requiring a scroll — matching its always-visible
+   behavior at every other width. */
+#profile-widget-host {
+  margin-left: auto;
+  display: flex;
+  flex: none;
+  position: sticky;
+  right: 0;
+  background: var(--menu-bg);
+  z-index: 5;
+}
 
 #profile-widget {
   position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-right: 10px;
-  padding-right: 10px;
-  border-right: 1px solid var(--border);
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+  min-width: 0;
 }
 
 .profile-avatar {
@@ -123,19 +148,37 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px 3px 4px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid var(--accent, #4d94ff);
+  padding: 2px 8px 2px 4px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border: 1px solid var(--border);
   border-radius: 999px;
   background: transparent;
-  color: var(--text);
+  color: var(--text-secondary);
   cursor: pointer;
   font-family: inherit;
 }
 
 .profile-signup-btn:hover {
   background: var(--menu-hover);
+  color: var(--text);
+}
+
+.profile-signup-dismiss {
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  margin-right: 4px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.profile-signup-dismiss:hover {
+  background: var(--menu-hover);
+  color: var(--text);
 }
 
 .profile-login-link {
@@ -181,7 +224,7 @@ body {
 .profile-dropdown {
   position: absolute;
   top: 100%;
-  left: 0;
+  right: 0;
   margin-top: 4px;
   min-width: 200px;
   background: var(--panel-bg);
@@ -544,10 +587,6 @@ body {
     max-width: 100vw;
   }
 
-  #menu-bar {
-    overflow-x: auto;
-  }
-
   #toolbar {
     height: 42px;
     flex-wrap: nowrap;
@@ -729,6 +768,23 @@ body {
   text-align: center;
   color: var(--text-secondary);
   font-size: 12px;
+}
+
+.prop-empty-state {
+  padding: 32px 16px;
+}
+
+.prop-empty-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.prop-empty-hint {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
 }
 
 #main-area:has(.properties-panel:not(.collapsed)) {

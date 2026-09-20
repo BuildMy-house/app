@@ -32,8 +32,13 @@ type Pt = [number, number]
 
 /** Everything but cameras — camera-only steps must not re-trigger placement. */
 export function contentFingerprint(home: NormalizedHomeState): string {
-  const { cameras: _cameras, ...content } = home
-  return JSON.stringify(content)
+  return JSON.stringify([
+    home.walls,
+    home.furniture,
+    home.rooms,
+    home.dimensionLines,
+    home.levels,
+  ])
 }
 
 function levelOf(home: NormalizedHomeState, levelRef?: string | null): Level | undefined {

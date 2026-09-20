@@ -10,8 +10,10 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { createWriteStream, mkdirSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
+import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 import { jobTelemetry } from './jobs/telemetry.js'
 
 export interface NormalizedHomeState {
@@ -42,6 +44,7 @@ export interface RenderJob {
  * Processes jobs sequentially (1-2 concurrent renders max on small servers).
  */
 export class RenderQueue {
+  private static readonly MAX_RETAINED_JOBS = 100
   private jobs = new Map<string, RenderJob>()
   private queue: string[] = [] // Job IDs in order
   private processing = false
@@ -121,6 +124,7 @@ export class RenderQueue {
         jobTelemetry.jobCompleted('render', jobId, job.completedAt - job.startedAt!, false, job.error)
         console.error(`[render-queue] job ${jobId} failed: ${job.error}`)
       }
+      this.pruneJobs()
     }
     this.processing = false
   }
@@ -131,12 +135,16 @@ export class RenderQueue {
   private async renderWithWorker(job: RenderJob): Promise<void> {
     const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.workerToken}` }
     const submitted = await fetch(`${this.workerUrl}/api/render/jobs/${job.userId}`, {
-      method: 'POST', headers, body: JSON.stringify({ scene: job.homeJson, profile: job.quality }),
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ scene: job.homeJson, home: job.homeJson, profile: job.quality }),
     })
     if (!submitted.ok) throw new Error(`LuxCore submit failed: ${submitted.status}`)
     const remote = (await submitted.json()) as { id: string }
+    let pollDelayMs = 1000
     for (;;) {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, pollDelayMs))
+      pollDelayMs = Math.min(pollDelayMs * 1.5, 5000)
       const response = await fetch(`${this.workerUrl}/api/render/jobs/${job.userId}/${remote.id}`, { headers })
       if (!response.ok) throw new Error(`LuxCore status failed: ${response.status}`)
       const status = (await response.json()) as { status: string; error?: string }
@@ -146,9 +154,24 @@ export class RenderQueue {
       if (!artifact.ok) throw new Error(`LuxCore artifact failed: ${artifact.status}`)
       mkdirSync(this.renderRoot, { recursive: true })
       const path = join(this.renderRoot, `${job.id}.png`)
-      writeFileSync(path, Buffer.from(await artifact.arrayBuffer()))
+      if (!artifact.body) throw new Error('LuxCore artifact had no body')
+      await pipeline(Readable.fromWeb(artifact.body as never), createWriteStream(path))
       job.resultPath = path
       return
+    }
+  }
+
+  private pruneJobs(): void {
+    if (this.jobs.size <= RenderQueue.MAX_RETAINED_JOBS) return
+    const removable = [...this.jobs.values()]
+      .filter((job) => job.status === 'complete' || job.status === 'failed')
+      .sort((a, b) => a.createdAt - b.createdAt)
+    while (this.jobs.size > RenderQueue.MAX_RETAINED_JOBS && removable.length > 0) {
+      const job = removable.shift()!
+      this.jobs.delete(job.id)
+      if (job.resultPath) {
+        try { unlinkSync(job.resultPath) } catch { /* already gone */ }
+      }
     }
   }
 
