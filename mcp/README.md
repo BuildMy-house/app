@@ -39,15 +39,18 @@ and point the connector at `http://127.0.0.1:8080/mcp`.
 | `homely_status` | Which app is connected + the WS port |
 | `mcp_identity` | Current test/user identity (never returns the token) |
 | `build_house` | Build a complete declarative house in one call |
+| `build_room` | Build one rectangular room, walls, and optional furniture in one call |
 | `reset_home` | New empty home |
 | `get_home_state` | Full `NormalizedHomeState` JSON |
 | `scene_summary` / `validate_scene` | Semantic scene graph and structural checks |
 | `screenshot` | Offscreen plan/3D PNG (returned as an image) |
+| `screenshot_views` | Capture several named camera views in one call |
 | `list_furniture` | Catalog items |
 | `add_furniture` | Place a catalog item by id (cm coords) |
 | `draw_rectangular_room` | Closed 4-wall rectangle (one undo) |
 | `select_tool` / `click` / `drag` / `key` / `set_magnetism` | Plan interaction |
 | `set_camera` / `camera_preset` | 3D view |
+| `look_at` / `frame_scene` / `frame_room` | Aim or automatically frame the active camera |
 | `undo` / `redo` | History |
 
 Units: centimeters for lengths, degrees for angles, plan coords x-right / y-down.
@@ -62,6 +65,11 @@ tool creates walls around each room automatically; use explicit walls when
 rooms share boundaries. Call `get_home_state` to check counts and IDs, then
 call `screenshot` for both `plan` and `3d` and iterate with the small edit
 tools.
+
+For a focused pass, call `frame_room` with a room state id, then use
+`look_at` or `screenshot_views` for the exact views you need. The shortest
+single-room path is `build_room`; use `reset=false` to add another room to an
+existing home.
 
 Minimal shape:
 

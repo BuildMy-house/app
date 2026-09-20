@@ -28,7 +28,7 @@ from axiom_client import AxiomClient
 from scene_analysis import analyze_home, validate_home
 from mcp.server.fastmcp import Context, FastMCP, Image
 from mcp.shared.message import SessionMessage
-from mcp.types import JSONRPCMessage
+from mcp.types import JSONRPCMessage, TextContent
 
 try:
     from pydantic import AnyHttpUrl
@@ -386,6 +386,31 @@ async def build_house(plan: dict, reset: bool = True) -> dict:
 
 
 @mcp.tool()
+async def build_room(
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    name: str = "Room",
+    reset: bool = True,
+    level_key: str | None = None,
+    furniture: list[dict] | None = None,
+) -> dict:
+    """Build one rectangular room, enclosing walls, and optional furniture in one call."""
+    if width <= 0 or height <= 0:
+        raise ValueError("width and height must be greater than zero")
+    return await build_house({
+        "rooms": [{
+            "key": "room",
+            "name": name,
+            "levelKey": level_key,
+            "points": [[x, y], [x + width, y], [x + width, y + height], [x, y + height]],
+        }],
+        "furniture": furniture or [],
+    }, reset=reset)
+
+
+@mcp.tool()
 async def get_home_state() -> dict:
     """Return the full NormalizedHomeState JSON (walls, rooms, furniture, cameras)."""
     return await _session().request("get_state")
@@ -408,6 +433,35 @@ async def screenshot(view: str, width: int = 800, height: int = 600) -> Image:
     """Render an OFFSCREEN image of the home. view='plan' or '3d'."""
     data = await _session().request("screenshot", {"view": view, "width": width, "height": height})
     return Image(data=base64.b64decode(data["pngBase64"]), format="png")
+
+
+@mcp.tool()
+async def screenshot_views(views: list[dict]):
+    """Capture named camera views in one call; each item can set preset, frame, camera, view, width, and height."""
+    if not views:
+        raise ValueError("views must contain at least one view")
+    s = _session()
+    content = []
+    for index, spec in enumerate(views, start=1):
+        name = str(spec.get("name", f"view-{index}"))
+        if "preset" in spec:
+            await s.request("camera_preset", {"preset": spec["preset"]})
+        frame = spec.get("frame")
+        if frame == "scene":
+            await s.request("frame_scene")
+        elif isinstance(frame, str) and frame:
+            await s.request("frame_room", {"roomId": frame})
+        if isinstance(spec.get("camera"), dict):
+            await s.request("set_camera", spec["camera"])
+        view = spec.get("view", "3d")
+        width = spec.get("width", 800)
+        height = spec.get("height", 600)
+        data = await s.request("screenshot", {"view": view, "width": width, "height": height})
+        content.extend([
+            TextContent(type="text", text=name),
+            Image(data=base64.b64decode(data["pngBase64"]), format="png"),
+        ])
+    return content
 
 
 @mcp.tool()
@@ -637,6 +691,24 @@ async def set_camera(
 async def camera_preset(preset: str) -> dict:
     """Snap the camera to a preset: 'top' or 'observer'. Returns the resulting camera."""
     return await _session().request("camera_preset", {"preset": preset})
+
+
+@mcp.tool()
+async def look_at(x: float, y: float, z: float) -> dict:
+    """Aim the active camera at a plan-space point without moving it."""
+    return await _session().request("look_at", {"x": x, "y": y, "z": z})
+
+
+@mcp.tool()
+async def frame_scene() -> dict:
+    """Automatically fit the active camera to the complete scene."""
+    return await _session().request("frame_scene")
+
+
+@mcp.tool()
+async def frame_room(room_id: str) -> dict:
+    """Automatically fit the active camera to one room by state id."""
+    return await _session().request("frame_room", {"roomId": room_id})
 
 
 @mcp.tool()

@@ -35,6 +35,9 @@ const COMMANDS = [
   'redo',
   'set_camera',
   'camera_preset',
+  'look_at',
+  'frame_scene',
+  'frame_room',
   'select_tool',
   'move_mouse',
   'click',
@@ -264,6 +267,24 @@ export class HomelyCommandHandler implements CommandHandler {
             },
           },
         }
+      }
+      case 'look_at': {
+        const camera = this.cameras.lookAt({
+          x: requireNumber(params, 'x'),
+          y: requireNumber(params, 'y'),
+          z: requireNumber(params, 'z'),
+        })
+        return { ok: true, data: { camera: this.cameraData(camera) } }
+      }
+      case 'frame_scene': {
+        const frame = this.cameras.fitToContent(this.store.getHome())
+        return { ok: true, data: { camera: this.cameraData(frame.state), center: frame.center } }
+      }
+      case 'frame_room': {
+        const roomId = params.roomId
+        assert(typeof roomId === 'string' && roomId.length > 0, 'param roomId must be a non-empty string')
+        const frame = this.cameras.fitToRoom(this.store.getHome(), roomId)
+        return { ok: true, data: { camera: this.cameraData(frame.state), center: frame.center } }
       }
       case 'select_tool': {
         const tool = params.tool
@@ -608,6 +629,17 @@ export class HomelyCommandHandler implements CommandHandler {
       }
       default:
         return { ok: false, error: `unknown command: ${type}`, code: 'UNKNOWN_COMMAND' }
+    }
+  }
+
+  private cameraData(camera: { x: number; y: number; z: number; yawDeg: number; pitchDeg: number; fovDeg: number }) {
+    return {
+      x: camera.x,
+      y: camera.y,
+      z: camera.z,
+      yawDeg: camera.yawDeg,
+      pitchDeg: camera.pitchDeg,
+      fovDeg: camera.fovDeg,
     }
   }
 

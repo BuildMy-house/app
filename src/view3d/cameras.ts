@@ -31,6 +31,12 @@ export interface CameraPatch {
   fovDeg?: number
 }
 
+export interface CameraTarget {
+  x: number
+  y: number
+  z: number
+}
+
 /**
  * Which SH3D camera ("top" | "observer") the 3D view currently shows.
  * Deliberately NOT part of home state — matches SH3D, where activeCamera is
@@ -81,7 +87,41 @@ export class CameraDirector {
    * validation and undo stay single-sourced in core.
    */
   fitToContent(home: NormalizedHomeState): FitFrame {
-    const bounds = computeHomeBounds(home)
+    return this.fitBounds(computeHomeBounds(home))
+  }
+
+  /** Frame one room footprint without disturbing the rest of the home. */
+  fitToRoom(home: NormalizedHomeState, roomId: string): FitFrame {
+    const room = home.rooms.find((item) => item.id === roomId)
+    if (!room) throw new ModelError(`unknown room id: ${roomId}`)
+    const scoped = {
+      ...home,
+      walls: [],
+      rooms: [room],
+      furniture: [],
+      polylines: [],
+      dimensionLines: [],
+      labels: [],
+      roofs: [],
+    }
+    return this.fitBounds(computeHomeBounds(scoped))
+  }
+
+  /** Aim the active camera at a plan-space point while preserving its position. */
+  lookAt(target: CameraTarget): CameraState {
+    const camera = this.getCamera()
+    const dx = target.x - camera.x
+    const dy = target.z - camera.z
+    const dz = target.y - camera.y
+    const groundDistance = Math.hypot(dx, dz)
+    this.setCamera({
+      yawDeg: (Math.atan2(-dx, dz) * 180) / Math.PI,
+      pitchDeg: (Math.atan2(-dy, groundDistance) * 180) / Math.PI,
+    })
+    return this.getCamera()
+  }
+
+  private fitBounds(bounds: ReturnType<typeof computeHomeBounds>): FitFrame {
     const centerX = (bounds.minX + bounds.maxX) / 2
     const centerY = (bounds.minY + bounds.maxY) / 2
     const centerZ = (bounds.minZ + bounds.maxZ) / 2

@@ -497,6 +497,35 @@ describe('camera conventions', () => {
     const director = new CameraDirector(store, new HomeModel(store))
     expect(() => director.usePreset('iso' as CameraPresetName)).toThrow(ModelError)
   })
+
+  it('aims the active camera at a plan-space target', () => {
+    const store = new HomeStore()
+    const director = new CameraDirector(store, new HomeModel(store))
+
+    director.lookAt({ x: 50, y: 500, z: 170 })
+
+    expect(director.getCamera().yawDeg).toBeCloseTo(0)
+    expect(director.getCamera().pitchDeg).toBeCloseTo(0)
+  })
+
+  it('frames a room and exposes camera commands', () => {
+    const store = new HomeStore()
+    addRoomFixture(store)
+    const director = new CameraDirector(store, new HomeModel(store))
+    const frame = director.fitToRoom(store.getHome(), 'r-1')
+
+    expect(frame.center).toEqual({ x: 200, y: 20, z: 150 })
+    expect(frame.state.x).not.toBe(50)
+    expect(() => director.fitToRoom(store.getHome(), 'missing')).toThrow(/unknown room id/)
+
+    const handler = new HomelyCommandHandler(store)
+    const result = handler.execute('get_capabilities', {})
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect((result.data as { commands: string[] }).commands).toEqual(
+      expect.arrayContaining(['look_at', 'frame_scene', 'frame_room']),
+    )
+  })
 })
 
 describe('store watch shim', () => {
@@ -556,6 +585,26 @@ describe('automation camera commands', () => {
     const commands = (result.data as { commands: string[] }).commands
     expect(commands).toContain('set_camera')
     expect(commands).toContain('camera_preset')
+    expect(commands).toContain('look_at')
+    expect(commands).toContain('frame_scene')
+    expect(commands).toContain('frame_room')
+  })
+
+  it('aims, frames the scene, and frames a room through automation', () => {
+    const store = new HomeStore()
+    addRoomFixture(store)
+    const handler = new HomelyCommandHandler(store)
+
+    expect(handler.execute('look_at', { x: 200, y: 150, z: 0 }).ok).toBe(true)
+    expect(handler.execute('frame_scene', {}).ok).toBe(true)
+    const room = handler.execute('frame_room', { roomId: 'r-1' })
+    expect(room.ok).toBe(true)
+    if (!room.ok) return
+    expect((room.data as { center: unknown }).center).toEqual({ x: 200, y: 20, z: 150 })
+    expect(handler.execute('frame_room', { roomId: 'missing' })).toMatchObject({
+      ok: false,
+      code: 'INVALID_PARAMS',
+    })
   })
 
   it('set_camera applies only supplied fields to the active camera', () => {
