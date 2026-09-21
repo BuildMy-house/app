@@ -537,6 +537,7 @@ function buildToolbar(): void {
     <label><input id="grid-3d" type="checkbox" checked /> 3D Grid</label>
     <label><input id="reference-overlay" type="checkbox" /> Ref</label>
     <label><input id="show-roof" type="checkbox" checked title="Roof cutaway: hide roofs for interior 3D viewing" /> Roof</label>
+    <label><input id="show-site-context" type="checkbox" checked title="Exterior site context: trees/deck placeholders + ground variation (outside view only)" /> Site</label>
     <label title="General lighting control: scales every 3D light's intensity">Light
       <input id="light-intensity" type="range" min="0.2" max="2" step="0.1" value="1" />
     </label>
@@ -594,6 +595,10 @@ function buildToolbar(): void {
     view3d?.setRoofVisible((e.target as HTMLInputElement).checked)
   })
 
+  toolbar.querySelector('#show-site-context')!.addEventListener('change', (e) => {
+    view3d?.setSiteContextVisible((e.target as HTMLInputElement).checked)
+  })
+
   toolbar.querySelector('#light-intensity')!.addEventListener('input', (e) => {
     view3d?.setLightIntensity(Number((e.target as HTMLInputElement).value))
   })
@@ -642,6 +647,8 @@ function refreshToolbar(): void {
   if (refBox) refBox.checked = engine.isReferenceOverlayEnabled()
   const roofBox = toolbar.querySelector<HTMLInputElement>('#show-roof')
   if (roofBox && view3d) roofBox.checked = view3d.showRoof
+  const siteContextBox = toolbar.querySelector<HTMLInputElement>('#show-site-context')
+  if (siteContextBox && view3d) siteContextBox.checked = view3d.showSiteContext
   const lightSlider = toolbar.querySelector<HTMLInputElement>('#light-intensity')
   if (lightSlider && view3d) lightSlider.value = String(view3d.lightIntensity)
 

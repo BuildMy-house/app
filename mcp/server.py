@@ -878,6 +878,15 @@ async def set_light_intensity(intensity: float) -> dict:
 
 
 @mcp.tool()
+async def set_site_context_visible(visible: bool) -> dict:
+    """Basic exterior site context (trees/deck placeholders + ground
+    variation) for the 3D view and scripted screenshots: visible=False
+    suppresses them even in the outside view, e.g. for a clean
+    architectural shot. Returns {visible}."""
+    return await _session().request("set_site_context_visible", {"visible": visible})
+
+
+@mcp.tool()
 async def save_project(path: str | None = None) -> dict:
     """Save the home. Returns {json} (serialized home); if path given, also stored session-locally.
     Keep the returned json to restore later via open_project(json=...)."""

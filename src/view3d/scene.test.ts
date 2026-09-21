@@ -6,6 +6,8 @@ import {
   buildScene,
   remapExtrudeUvs,
   __seedModelCache,
+  __seedTextureCache,
+  __clearTextureCache,
   SELECTION_EMISSIVE_COLOR,
   isWindowFurniture,
 } from './scene'
@@ -664,6 +666,103 @@ describe('exterior cladding material (Ticket 5c)', () => {
     const scene = buildScene(home)
     const mesh = wallMeshes(scene)[0]!
     expect((mesh.material as THREE.MeshPhysicalMaterial).color.getHex()).toBe(0x224466)
+  })
+})
+
+describe('exterior site context (Ticket 5d)', () => {
+  function siteContextMeshes(scene: THREE.Scene, prefix: 'site-context:tree' | 'site-context:deck'): THREE.Object3D[] {
+    const found: THREE.Object3D[] = []
+    scene.traverse((obj) => {
+      if (obj.name === prefix) found.push(obj)
+    })
+    return found
+  }
+
+  function houseWithWalls() {
+    const home = createEmptyHome()
+    home.walls.push(
+      { id: 'w1', xStart: 0, yStart: 0, xEnd: 500, yEnd: 0, thickness: 15 },
+      { id: 'w2', xStart: 500, yStart: 0, xEnd: 500, yEnd: 400, thickness: 15 },
+      { id: 'w3', xStart: 500, yStart: 400, xEnd: 0, yEnd: 400, thickness: 15 },
+      { id: 'w4', xStart: 0, yStart: 400, xEnd: 0, yEnd: 0, thickness: 15 },
+    )
+    return home
+  }
+
+  it('adds trees and a deck only in the outside view', () => {
+    const home = houseWithWalls()
+    const inside = buildScene(home, { isOutsideView: false })
+    expect(siteContextMeshes(inside, 'site-context:tree').length).toBe(0)
+    expect(siteContextMeshes(inside, 'site-context:deck').length).toBe(0)
+
+    const outside = buildScene(home, { isOutsideView: true })
+    expect(siteContextMeshes(outside, 'site-context:tree').length).toBeGreaterThan(0)
+    expect(siteContextMeshes(outside, 'site-context:deck').length).toBe(1)
+  })
+
+  it('showSiteContext: false suppresses props even in the outside view', () => {
+    const home = houseWithWalls()
+    const scene = buildScene(home, { isOutsideView: true, showSiteContext: false })
+    expect(siteContextMeshes(scene, 'site-context:tree').length).toBe(0)
+    expect(siteContextMeshes(scene, 'site-context:deck').length).toBe(0)
+  })
+
+  it('is a no-op with no walls (nothing to place props around)', () => {
+    const home = createEmptyHome()
+    const scene = buildScene(home, { isOutsideView: true })
+    expect(siteContextMeshes(scene, 'site-context:tree').length).toBe(0)
+    expect(siteContextMeshes(scene, 'site-context:deck').length).toBe(0)
+  })
+
+  it('trees sit outside the wall footprint bounding box', () => {
+    const home = houseWithWalls()
+    const scene = buildScene(home, { isOutsideView: true })
+    for (const tree of siteContextMeshes(scene, 'site-context:tree')) {
+      const outsideX = tree.position.x < 0 || tree.position.x > 500
+      const outsideZ = tree.position.z < 0 || tree.position.z > 400
+      expect(outsideX || outsideZ).toBe(true)
+    }
+  })
+
+  it('an untextured ground gets per-vertex color variation (grass/snow look), not a single flat color', () => {
+    const home = createEmptyHome()
+    const scene = buildScene(home)
+    let ground: THREE.Mesh | undefined
+    scene.traverse((obj) => {
+      if (obj.name === 'ground') ground = obj as THREE.Mesh
+    })
+    expect(ground).toBeDefined()
+    const material = ground!.material as THREE.MeshStandardMaterial
+    expect(material.vertexColors).toBe(true)
+    const colorAttr = ground!.geometry.getAttribute('color')
+    expect(colorAttr).toBeDefined()
+    // Not every vertex identical — real variation, not a uniform tint.
+    const first = [colorAttr.getX(0), colorAttr.getY(0), colorAttr.getZ(0)]
+    let sawDifference = false
+    for (let i = 1; i < colorAttr.count; i++) {
+      if (colorAttr.getX(i) !== first[0] || colorAttr.getY(i) !== first[1] || colorAttr.getZ(i) !== first[2]) {
+        sawDifference = true
+        break
+      }
+    }
+    expect(sawDifference).toBe(true)
+  })
+
+  it('a textured ground (groundTextureId set) does not get vertex-color variation', () => {
+    __seedTextureCache('concrete.png', new THREE.Texture())
+    try {
+      const home = createEmptyHome()
+      home.environment.groundTextureId = 'concrete'
+      const scene = buildScene(home)
+      let ground: THREE.Mesh | undefined
+      scene.traverse((obj) => {
+        if (obj.name === 'ground') ground = obj as THREE.Mesh
+      })
+      const material = ground!.material as THREE.MeshStandardMaterial
+      expect(material.vertexColors).toBe(false)
+    } finally {
+      __clearTextureCache()
+    }
   })
 })
 

@@ -109,8 +109,31 @@ architectural measurement.
 - ~~A roof cutaway / hide-roof / section-camera mode for interior renders.~~
   Done — see issue #3 above (`showRoof` option on `buildScene`/`View3D`,
   toolbar toggle, `set_roof_visible` automation command and MCP tool).
-- Exterior site context: trees, snow, decks, patios, landscape, terrain, and
-  background photography. **Tracked as Ticket 5d** (not yet done).
+- ~~Exterior site context~~: trees, snow, decks, patios, landscape, terrain,
+  and background photography. **Closed 2026-09-21 (Ticket 5d), partially:**
+  basic ground-plane variation and tree/deck placeholders now exist —
+  `addSiteContext()` (`src/view3d/scene.ts`) places three procedural trees
+  (`THREE.CylinderGeometry` trunk + `THREE.ConeGeometry` foliage) and one
+  procedural deck slab (`THREE.BoxGeometry`) around the wall footprint
+  bounding box (`wallFootprintBounds()`), and an untextured ground plane
+  gets deterministic per-vertex color variation (`applyGroundVariation()`,
+  using a stable 2D hash so it doesn't shimmer across rebuilds/renders)
+  instead of one flat color — a modest grass/snow-like look without a new
+  texture asset. No new binary assets were added: `WALL_TEXTURES` resolves
+  against a live R2 CDN bucket this session can't upload to, so both the
+  ground variation and the props are pure geometry/material, not new
+  images. Gated behind `showSiteContext` (default on), which only ever
+  renders in the outside/whole-model view (same `isOutsideView` gating as
+  ceilings/below-level rooms) — wired through `View3D.setSiteContextVisible()`
+  / a "Site" toolbar checkbox (`src/main.ts`), `CaptureService.setSiteContextVisible()`
+  / `getSiteContextVisible()`, and the `set_site_context_visible` automation
+  command and MCP tool, mirroring the `showRoof`/`lightIntensity` precedent.
+  Covered by tests in `src/view3d/scene.test.ts` (`describe('exterior site
+  context (Ticket 5d)')`), `tests/capture.test.ts`, and
+  `tests/handshake.test.ts`. **Explicitly still open:** patios, full
+  landscape/terrain modeling, and background photography were judged a
+  larger lift than "keep it modest" allows and remain backlog items, not
+  attempted this ticket.
 - ~~Real glass, reflective materials~~ for windows. **Closed 2026-09-21
   (Ticket 5a):** window furniture (`Furniture.doorOrWindow === true` and a
   `/window/i` name match — the same convention `add_door`/`add_window` in
@@ -155,7 +178,12 @@ architectural measurement.
 - Image-based reference overlay or camera matching for tracing proportions
   from a photo.
 - More architectural elements: large sliding-glass assemblies, skylights,
-  stairs, chimneys, and multi-level massing.
+  stairs, chimneys, and multi-level massing. **Ticket 5e — deferred
+  2026-09-21:** explicitly not attempted this wave per the original
+  instruction to only pick it up "if time remains" after 5a-5d; each of
+  these (skylights, sliding-glass, stairs, chimneys, multi-level massing)
+  is closer in scope to a new geometry/data-model feature than a materials
+  tweak, so it's left as a future-wave ticket rather than rushed.
 
 ## Source references
 

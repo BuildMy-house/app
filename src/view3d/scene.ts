@@ -69,6 +69,22 @@ const DEFAULT_LIGHT_INTENSITY = 1
 const CLADDING_CLEARCOAT = 0.15
 const CLADDING_CLEARCOAT_ROUGHNESS = 0.4
 
+// Ticket 5d: basic exterior site context. No new asset pipeline (there is
+// no tree/deck GLB asset shipped, and adding one is out of scope) — trees
+// and a deck are built from plain THREE.js primitive geometry, the same
+// spirit as roofMesh()'s procedural BufferGeometry. Ground plane variation
+// is done with a deterministic per-vertex color hash (no canvas/DOM, so it
+// works in the Node test environment) rather than a new snow/grass image
+// texture, since WALL_TEXTURES entries are resolved against a real R2 CDN
+// bucket this session has no way to upload new files to.
+const GROUND_SEGMENTS = 48
+const GROUND_VARIATION_STRENGTH = 0.12
+const SITE_CONTEXT_MARGIN_CM = 250
+const TREE_TRUNK_COLOR = 0x6b4a30
+const TREE_FOLIAGE_COLOR = 0x3f6b35
+const DECK_COLOR = 0x8a6440
+const DECK_THICKNESS_CM = 15
+
 const GROUND_SIZE_CM = 100_000
 const GRID_SIZE_CM = 20_000
 const GRID_DIVISIONS = 40
@@ -1034,6 +1050,140 @@ function applySelectionHighlight(scene: THREE.Scene, selectionSet: Set<string>):
   })
 }
 
+// ── Ticket 5d: basic exterior site context ─────────────────────────────────
+
+/**
+ * Deterministic pseudo-random hash in [0, 1) for a 2D position. Not a real
+ * RNG — a cheap, stable "noise" so ground variation and prop placement are
+ * identical every rebuild (no shimmering/jumping props between frames) and
+ * identical in tests (no seeding needed).
+ */
+function positionHash(x: number, z: number): number {
+  const s = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453
+  return s - Math.floor(s)
+}
+
+/**
+ * Paints per-vertex color noise onto a ground PlaneGeometry so a flat
+ * MeshStandardMaterial reads as natural grass/snow variation instead of a
+ * single flat color. Requires `material.vertexColors = true` and a neutral
+ * white `material.color` from the caller — the noise already encodes
+ * `baseColor` per vertex.
+ */
+function applyGroundVariation(geometry: THREE.PlaneGeometry, baseColor: THREE.Color): void {
+  const pos = geometry.getAttribute('position')
+  const colors = new Float32Array(pos.count * 3)
+  const c = new THREE.Color()
+  for (let i = 0; i < pos.count; i++) {
+    const noise = positionHash(pos.getX(i), pos.getY(i))
+    const factor = 1 + (noise - 0.5) * 2 * GROUND_VARIATION_STRENGTH
+    c.copy(baseColor).multiplyScalar(factor)
+    colors[i * 3] = c.r
+    colors[i * 3 + 1] = c.g
+    colors[i * 3 + 2] = c.b
+  }
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+}
+
+export interface FootprintBounds {
+  minX: number
+  maxX: number
+  minY: number
+  maxY: number
+}
+
+/** Bounding box (plan-space, cm) of every wall endpoint. Null when there are
+ * no walls — nothing to place site-context props around. */
+export function wallFootprintBounds(walls: ReadonlyArray<Wall>): FootprintBounds | null {
+  if (walls.length === 0) return null
+  let minX = Infinity
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+  for (const wall of walls) {
+    for (const [x, y] of [
+      [wall.xStart, wall.yStart],
+      [wall.xEnd, wall.yEnd],
+    ] as const) {
+      minX = Math.min(minX, x)
+      maxX = Math.max(maxX, x)
+      minY = Math.min(minY, y)
+      maxY = Math.max(maxY, y)
+    }
+  }
+  return { minX, maxX, minY, maxY }
+}
+
+/** Simple low-poly tree — trunk cylinder + conical foliage. No GLB asset
+ * ships for this yet (out of scope to add one this ticket), so it is built
+ * from primitive geometry, the same approach roofMesh() already uses. */
+function treeMesh(x: number, z: number, scale: number): THREE.Group {
+  const group = new THREE.Group()
+  const trunkHeight = 220 * scale
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(12 * scale, 16 * scale, trunkHeight, 8),
+    new THREE.MeshStandardMaterial({ color: TREE_TRUNK_COLOR, roughness: 0.9, metalness: 0 }),
+  )
+  trunk.position.y = trunkHeight / 2
+  trunk.castShadow = true
+  trunk.receiveShadow = true
+  group.add(trunk)
+
+  const foliageHeight = 320 * scale
+  const foliage = new THREE.Mesh(
+    new THREE.ConeGeometry(140 * scale, foliageHeight, 10),
+    new THREE.MeshStandardMaterial({ color: TREE_FOLIAGE_COLOR, roughness: 0.85, metalness: 0 }),
+  )
+  foliage.position.y = trunkHeight + foliageHeight / 2 - 20 * scale
+  foliage.castShadow = true
+  foliage.receiveShadow = true
+  group.add(foliage)
+
+  group.position.set(x, 0, z)
+  group.name = 'site-context:tree'
+  return group
+}
+
+/** Simple deck placeholder — a flat raised box along one side of the house.
+ * No GLB asset ships for this either; a slab is an honest, modest stand-in
+ * rather than a fabricated "realistic deck" model. */
+function deckMesh(x: number, z: number, width: number, depth: number): THREE.Mesh {
+  const deck = new THREE.Mesh(
+    new THREE.BoxGeometry(width, DECK_THICKNESS_CM, depth),
+    new THREE.MeshStandardMaterial({ color: DECK_COLOR, roughness: 0.75, metalness: 0 }),
+  )
+  deck.position.set(x, DECK_THICKNESS_CM / 2, z)
+  deck.castShadow = true
+  deck.receiveShadow = true
+  deck.name = 'site-context:deck'
+  return deck
+}
+
+/**
+ * Adds a handful of trees and one deck around the house footprint. Only
+ * meaningful in the outside/whole-model view (isOutsideView) — site context
+ * has no place cluttering the interior single-floor editing view, matching
+ * the existing isOutsideView gating used for ceilings/rooms elsewhere in
+ * this file. A no-op when there is no wall geometry to place props around.
+ */
+function addSiteContext(root: THREE.Group, walls: ReadonlyArray<Wall>): void {
+  const bounds = wallFootprintBounds(walls)
+  if (!bounds) return
+  const { minX, maxX, minY, maxY } = bounds
+  const margin = SITE_CONTEXT_MARGIN_CM
+  const corners: Array<[number, number, number]> = [
+    [minX - margin, minY - margin, 1],
+    [maxX + margin, minY - margin, 1.15],
+    [minX - margin, maxY + margin, 0.9],
+  ]
+  for (const [x, z, scale] of corners) {
+    root.add(treeMesh(x, z, scale))
+  }
+  const deckWidth = Math.max(200, (maxX - minX) * 0.4)
+  const deckDepth = 300
+  root.add(deckMesh(maxX + margin + deckDepth / 2, (minY + maxY) / 2, deckDepth, deckWidth))
+}
+
 /** Full scene rebuild from a normalized home snapshot. Deterministic. */
 export function buildScene(
   home: NormalizedHomeState,
@@ -1046,6 +1196,9 @@ export function buildScene(
     showRoof?: boolean
     /** Multiplier applied to every light's base intensity. Defaults to 1 (unchanged). */
     lightIntensity?: number
+    /** Trees/deck placeholders + ground variation (Ticket 5d). Defaults to true; only
+     * renders in the outside/whole-model view regardless of this flag. */
+    showSiteContext?: boolean
   },
 ): THREE.Scene {
   const previousResolver = activeModelUrlResolver
@@ -1058,6 +1211,7 @@ export function buildScene(
       options?.isOutsideView ?? false,
       options?.showRoof ?? true,
       options?.lightIntensity ?? DEFAULT_LIGHT_INTENSITY,
+      options?.showSiteContext ?? true,
     )
   } finally {
     activeModelUrlResolver = previousResolver
@@ -1097,6 +1251,7 @@ function buildSceneInner(
   isOutsideView = false,
   showRoof = true,
   lightIntensity = DEFAULT_LIGHT_INTENSITY,
+  showSiteContext = true,
 ): THREE.Scene {
   const scene = new THREE.Scene()
   if (home.environment.skyColor !== null) {
@@ -1135,7 +1290,17 @@ function buildSceneInner(
 
   if (home.environment.groundColor !== null) {
     const groundTexId = home.environment.groundTextureId
-    const groundGeometry = new THREE.PlaneGeometry(GROUND_SIZE_CM, GROUND_SIZE_CM)
+    // Ticket 5d: subdivide so per-vertex ground variation (grass/snow look)
+    // has somewhere to vary — a 1x1 plane only has 4 vertices.
+    const groundGeometry = new THREE.PlaneGeometry(GROUND_SIZE_CM, GROUND_SIZE_CM, GROUND_SEGMENTS, GROUND_SEGMENTS)
+    // Ticket 5d: an untextured ground gets deterministic per-vertex color
+    // noise for a natural (non-flat) grass/snow look, instead of a new
+    // snow/grass image texture — WALL_TEXTURES entries resolve against a
+    // real R2 CDN bucket this session cannot upload new files to.
+    const plainGroundMaterial = (): THREE.MeshStandardMaterial => {
+      applyGroundVariation(groundGeometry, new THREE.Color(home.environment.groundColor!))
+      return new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.95, metalness: 0 })
+    }
     const mat = groundTexId
       ? (() => {
           const tex = loadWallTexture(groundTexId)
@@ -1147,9 +1312,9 @@ function buildSceneInner(
             if (entry?.aoFile) addUv2(groundGeometry)
             return groundMaterial
           }
-          return new THREE.MeshStandardMaterial({ color: home.environment.groundColor })
+          return plainGroundMaterial()
         })()
-      : new THREE.MeshStandardMaterial({ color: home.environment.groundColor })
+      : plainGroundMaterial()
     const ground = new THREE.Mesh(groundGeometry, mat)
     ground.rotation.x = -Math.PI / 2
     ground.name = 'ground'
@@ -1179,6 +1344,13 @@ function buildSceneInner(
 
   const root = new THREE.Group()
   root.name = 'home'
+  // Ticket 5d: site context (trees/deck) only makes sense stepping outside
+  // to view the whole model — never while editing a single floor from
+  // inside, matching the isOutsideView gating already used for ceilings
+  // and below-level rooms above.
+  if (isOutsideView && showSiteContext) {
+    addSiteContext(root, home.walls)
+  }
   for (const wall of home.walls) {
     const isActive = matchesLevel(wall.levelRef, activeLevel)
     const isBelowActive = belowLevelId !== undefined && (wall.levelRef ?? null) === belowLevelId
