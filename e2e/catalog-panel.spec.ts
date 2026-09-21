@@ -3,11 +3,11 @@ import { test, expect } from '@playwright/test'
 const VIEWPORT_WIDTHS = [1280, 1600, 1920]
 
 const LONG_LABEL_SAMPLES = [
-  'Toilet paper dispenser',
-  'Shower head and faucet',
-  'Table with tablecloth',
-  'Television cabinet',
-  'Washbasin',
+  'Pinewood rack full height half width',
+  'Opened quadruple glass doors',
+  'Emergency glass double door',
+  'Frame Toronto Ontario Place',
+  'Book Sweet Home 3D kompakt',
 ]
 
 test.describe('catalog panel label clipping', () => {
