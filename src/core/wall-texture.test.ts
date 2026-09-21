@@ -11,26 +11,36 @@ function makeStore() {
 }
 
 describe('wall texture schema', () => {
-  it('addWall accepts valid leftSideTextureId', () => {
+  it('addWall defaults leftSideTextureId to plaster-white when omitted', () => {
     const { model } = makeStore()
     const wall = model.addWall({
       xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7,
-      leftSideTextureId: 'wood-oak',
     })
-    expect(wall.leftSideTextureId).toBe('wood-oak')
-    expect(wall.rightSideTextureId).toBeUndefined()
+    expect(wall.leftSideTextureId).toBe('plaster-white')
+    expect(wall.rightSideTextureId).toBe('plaster-white')
   })
 
-  it('addWall accepts valid rightSideTextureId', () => {
+  it('addWall defaults leftSideTextureId to plaster-white when omitted but keeps explicit rightSideTextureId', () => {
     const { model } = makeStore()
     const wall = model.addWall({
       xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7,
-      rightSideTextureId: 'concrete',
+      rightSideTextureId: 'wood-oak',
     })
-    expect(wall.rightSideTextureId).toBe('concrete')
+    expect(wall.leftSideTextureId).toBe('plaster-white')
+    expect(wall.rightSideTextureId).toBe('wood-oak')
   })
 
-  it('addWall accepts null texture ids', () => {
+  it('addWall defaults rightSideTextureId to plaster-white when omitted but keeps explicit leftSideTextureId', () => {
+    const { model } = makeStore()
+    const wall = model.addWall({
+      xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7,
+      leftSideTextureId: 'concrete',
+    })
+    expect(wall.leftSideTextureId).toBe('concrete')
+    expect(wall.rightSideTextureId).toBe('plaster-white')
+  })
+
+  it('addWall accepts null texture ids without applying default', () => {
     const { model } = makeStore()
     const wall = model.addWall({
       xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7,
@@ -39,6 +49,17 @@ describe('wall texture schema', () => {
     })
     expect(wall.leftSideTextureId).toBeNull()
     expect(wall.rightSideTextureId).toBeNull()
+  })
+
+  it('addWall preserves explicit valid texture id', () => {
+    const { model } = makeStore()
+    const wall = model.addWall({
+      xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7,
+      leftSideTextureId: 'wood-oak',
+      rightSideTextureId: 'concrete',
+    })
+    expect(wall.leftSideTextureId).toBe('wood-oak')
+    expect(wall.rightSideTextureId).toBe('concrete')
   })
 
   it('addWall rejects unknown texture id', () => {
