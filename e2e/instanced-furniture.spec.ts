@@ -48,6 +48,17 @@ async function probeScene(page: Page): Promise<SceneProbe> {
       if (o.isInstancedMesh) instanced.push({ name: o.name, count: o.count })
       else if (o.name.startsWith('furniture:')) individual++
     })
+    // Sample draw calls from a raw scene render, bypassing the post-processing
+    // composer (RenderPass/Bloom/SSAO/GTAO/OutputPass): each of those passes
+    // does its own internal renderer.render() call, and three.js's WebGLInfo
+    // resets `info.render.calls` at the START of every renderer.render() call
+    // -- so with the composer active, reading info.render.calls right after
+    // view.render() only reflects the LAST pass's (e.g. OutputPass's single
+    // fullscreen-quad) call count, not the actual scene complexity. A direct,
+    // composer-free render of the same scene/camera restores a draw-call
+    // count that's representative of instancing, independent of whatever
+    // post-processing pipeline happens to be active.
+    ;(view as any).renderer.render(view.scene, view.camera)
     return { instanced, individual, drawCalls: (view as any).renderer.info.render.calls }
   })
 }
