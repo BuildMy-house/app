@@ -102,6 +102,7 @@ export class View3D {
   private _activeLevel: string | null = null
   private _isOutsideView = false
   private _showRoof = true
+  private _lightIntensity = 1
   // Only changes when the scene graph is rebuilt, never during camera orbit.
   private _instancedMeshCount = 0
 
@@ -120,6 +121,7 @@ export class View3D {
       activeLevel: this._activeLevel,
       isOutsideView: this._isOutsideView,
       showRoof: this._showRoof,
+      lightIntensity: this._lightIntensity,
     })
     this.countInstancedMeshes()
     this.perspectiveCamera = new THREE.PerspectiveCamera(63, 4 / 3, 1, 500_000)
@@ -268,6 +270,22 @@ export class View3D {
   setRoofVisible(value: boolean): void {
     if (this._showRoof === value) return
     this._showRoof = value
+    this.rebuild()
+  }
+
+  get lightIntensity(): number {
+    return this._lightIntensity
+  }
+
+  /**
+   * General lighting control (Ticket 5b): a multiplier on every light's base
+   * intensity (hemisphere/ambient/directional/fill), for exposure adjustment
+   * without editing the persisted home environment. Independent of
+   * home.environment.lightColor, which controls color/tint, not brightness.
+   */
+  setLightIntensity(value: number): void {
+    if (this._lightIntensity === value) return
+    this._lightIntensity = value
     this.rebuild()
   }
 
@@ -481,6 +499,7 @@ export class View3D {
       activeLevel: this._activeLevel,
       isOutsideView: this._isOutsideView,
       showRoof: this._showRoof,
+      lightIntensity: this._lightIntensity,
     })
     this.countInstancedMeshes()
     this.applyQualityToScene()

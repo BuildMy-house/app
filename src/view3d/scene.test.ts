@@ -532,7 +532,7 @@ describe('window glass material (Ticket 5a)', () => {
     expect(mat.transmission).toBeGreaterThan(0)
   })
 
-  it('non-window furniture keeps the plain MeshStandardMaterial', () => {
+  it('non-window furniture gets the fabric material (Ticket 5b), not transmissive glass', () => {
     const home = createEmptyHome()
     home.furniture.push({
       id: 'f1', name: 'Sofa',
@@ -542,16 +542,16 @@ describe('window glass material (Ticket 5a)', () => {
     })
     const scene = buildScene(home)
     const mesh = furnitureMeshes(scene)[0]!
-    expect(mesh.material).toBeInstanceOf(THREE.MeshStandardMaterial)
-    expect(mesh.material).not.toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    expect(mesh.material).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    expect((mesh.material as THREE.MeshPhysicalMaterial).transmission).toBe(0)
   })
 
-  it('a door (doorOrWindow=true but name Door) is not treated as glass', () => {
+  it('a door (doorOrWindow=true but name Door) is not treated as glass (no transmission)', () => {
     const home = createEmptyHome()
     home.furniture.push(windowItem('d1', { name: 'Door', doorOrWindow: true }))
     const scene = buildScene(home)
     const mesh = furnitureMeshes(scene)[0]!
-    expect(mesh.material).not.toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    expect((mesh.material as THREE.MeshPhysicalMaterial).transmission).toBe(0)
   })
 
   it('multiple identical windows are excluded from instancing and each render individually', () => {
@@ -564,6 +564,77 @@ describe('window glass material (Ticket 5a)', () => {
     for (const mesh of meshes) {
       expect(mesh.material).toBeInstanceOf(THREE.MeshPhysicalMaterial)
     }
+  })
+})
+
+describe('furniture fabric material (Ticket 5b)', () => {
+  it('box furniture without a GLB model gets a sheen fabric material', () => {
+    const home = createEmptyHome()
+    home.furniture.push({
+      id: 'f1', name: 'Armchair',
+      x: 0, y: 0, angleDeg: 0,
+      width: 90, depth: 90, height: 80,
+      elevation: 0, color: 0x336699,
+    })
+    const scene = buildScene(home)
+    const mesh = furnitureMeshes(scene)[0]!
+    const mat = mesh.material as THREE.MeshPhysicalMaterial
+    expect(mat).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    expect(mat.sheen).toBeGreaterThan(0)
+    expect(mat.color.getHex()).toBe(0x336699)
+  })
+
+  it('instanced fabric furniture also gets the sheen material', () => {
+    const home = createEmptyHome()
+    for (let i = 0; i < 3; i++) {
+      home.furniture.push({
+        id: `c${i}`, name: 'Chair', catalogId: 'chair-a',
+        x: i * 60, y: 0, angleDeg: 0,
+        width: 40, depth: 40, height: 80,
+        elevation: 0, color: 0xff0000,
+      })
+    }
+    const scene = buildScene(home)
+    const instanced = instancedFurnitureMeshes(scene)[0]!
+    const mat = instanced.material as THREE.MeshPhysicalMaterial
+    expect(mat).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    expect(mat.sheen).toBeGreaterThan(0)
+  })
+})
+
+describe('lightIntensity option (Ticket 5b: general lighting controls)', () => {
+  function lightsOf(scene: THREE.Scene): THREE.Light[] {
+    const lights: THREE.Light[] = []
+    scene.traverse((obj) => {
+      if (obj instanceof THREE.Light) lights.push(obj)
+    })
+    return lights
+  }
+
+  it('defaults to unchanged (multiplier 1) intensities', () => {
+    const home = createEmptyHome()
+    const scene = buildScene(home)
+    const defaultIntensities = lightsOf(scene).map((l) => l.intensity)
+    const scene2 = buildScene(home, { lightIntensity: 1 })
+    const explicit = lightsOf(scene2).map((l) => l.intensity)
+    expect(defaultIntensities).toEqual(explicit)
+  })
+
+  it('scales every light intensity by the given multiplier', () => {
+    const home = createEmptyHome()
+    const base = lightsOf(buildScene(home)).map((l) => l.intensity)
+    const doubled = lightsOf(buildScene(home, { lightIntensity: 2 })).map((l) => l.intensity)
+    expect(doubled.length).toBe(base.length)
+    for (let i = 0; i < base.length; i++) {
+      expect(doubled[i]).toBeCloseTo(base[i]! * 2, 6)
+    }
+  })
+
+  it('zero multiplier zeroes out every light', () => {
+    const home = createEmptyHome()
+    const lights = lightsOf(buildScene(home, { lightIntensity: 0 }))
+    expect(lights.length).toBeGreaterThan(0)
+    for (const l of lights) expect(l.intensity).toBe(0)
   })
 })
 

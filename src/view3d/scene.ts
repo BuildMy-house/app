@@ -38,6 +38,23 @@ const WINDOW_GLASS_IOR = 1.5
 const WINDOW_GLASS_THICKNESS = 2
 const WINDOW_GLASS_TINT = 0x1a2a33
 
+// Ticket 5b: furniture fabric materials. Soft-furnishing box fallbacks (the
+// vast majority of catalog/manual furniture, which has no GLB model) render
+// as a flat hard-surface MeshStandardMaterial today; a subtle sheen lobe
+// (MeshPhysicalMaterial's sheen/sheenRoughness) gives them a matte, fabric-
+// like look without needing per-item fabric selection UI or new schema
+// fields — kept intentionally modest per the ticket's scope (materials only,
+// not furniture-model fidelity).
+const FABRIC_ROUGHNESS = 0.85
+const FABRIC_SHEEN = 0.6
+const FABRIC_SHEEN_ROUGHNESS = 0.7
+const FABRIC_SHEEN_COLOR = 0xffffff
+
+// Ticket 5b: general lighting controls. A single runtime multiplier applied
+// to every light's base intensity — a presentation/viewing control (like
+// showRoof), not persisted home state, so it needs no schema/export changes.
+const DEFAULT_LIGHT_INTENSITY = 1
+
 const GROUND_SIZE_CM = 100_000
 const GRID_SIZE_CM = 20_000
 const GRID_DIVISIONS = 40
@@ -818,6 +835,22 @@ function windowGlassMaterial(): THREE.MeshPhysicalMaterial {
   })
 }
 
+/**
+ * Fabric-like material (Ticket 5b) for soft-furnishing box fallbacks: a
+ * sheen lobe on top of a matte base gives a woven/upholstered look instead
+ * of the previous flat hard-surface MeshStandardMaterial.
+ */
+function fabricMaterial(color: number): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: FABRIC_ROUGHNESS,
+    metalness: 0,
+    sheen: FABRIC_SHEEN,
+    sheenRoughness: FABRIC_SHEEN_ROUGHNESS,
+    sheenColor: new THREE.Color(FABRIC_SHEEN_COLOR),
+  })
+}
+
 export function furnitureMesh(
   item: Furniture,
   elevation: number,
@@ -828,11 +861,7 @@ export function furnitureMesh(
   const isWindow = isWindowFurniture(item)
   const material = isWindow
     ? windowGlassMaterial()
-    : new THREE.MeshStandardMaterial({
-        color: item.color ?? DEFAULT_FURNITURE_COLOR,
-        roughness: 0.7,
-        metalness: 0.0,
-      })
+    : fabricMaterial(item.color ?? DEFAULT_FURNITURE_COLOR)
   if (!isWindow && item.textureId) {
     const entry = applyMaterialTextures(material, item.textureId)
     if (entry?.aoFile) addUv2(geometry)
@@ -894,11 +923,7 @@ function addFurnitureMeshes(
     // geometry so instances occupy the same volume as furnitureMesh boxes.
     const geometry = new THREE.BoxGeometry(first.width, first.height, first.depth)
     geometry.translate(0, first.height / 2, 0)
-    const material = new THREE.MeshStandardMaterial({
-      color: effectiveColor(first),
-      roughness: 0.7,
-      metalness: 0.0,
-    })
+    const material = fabricMaterial(effectiveColor(first))
     if (first.textureId) {
       const entry = applyMaterialTextures(material, first.textureId)
       if (entry?.aoFile) addUv2(geometry)
@@ -987,6 +1012,8 @@ export function buildScene(
     isOutsideView?: boolean
     /** Hide every roof mesh (roof cutaway / interior-view mode). Defaults to true (roofs shown). */
     showRoof?: boolean
+    /** Multiplier applied to every light's base intensity. Defaults to 1 (unchanged). */
+    lightIntensity?: number
   },
 ): THREE.Scene {
   const previousResolver = activeModelUrlResolver
@@ -998,6 +1025,7 @@ export function buildScene(
       options?.activeLevel ?? null,
       options?.isOutsideView ?? false,
       options?.showRoof ?? true,
+      options?.lightIntensity ?? DEFAULT_LIGHT_INTENSITY,
     )
   } finally {
     activeModelUrlResolver = previousResolver
@@ -1036,6 +1064,7 @@ function buildSceneInner(
   activeLevel: string | null = null,
   isOutsideView = false,
   showRoof = true,
+  lightIntensity = DEFAULT_LIGHT_INTENSITY,
 ): THREE.Scene {
   const scene = new THREE.Scene()
   if (home.environment.skyColor !== null) {
@@ -1046,11 +1075,11 @@ function buildSceneInner(
   // + soft fill DirectionalLight (opposite side, no shadows) to lift shadowed faces
   const skyColor = new THREE.Color(home.environment.skyColor ?? 0xcce4fc)
   const groundColor = new THREE.Color(home.environment.groundColor ?? 0x808080)
-  scene.add(new THREE.HemisphereLight(skyColor, groundColor, 1.0))
-  scene.add(new THREE.AmbientLight(home.environment.lightColor ?? 0xffffff, 0.5))
+  scene.add(new THREE.HemisphereLight(skyColor, groundColor, 1.0 * lightIntensity))
+  scene.add(new THREE.AmbientLight(home.environment.lightColor ?? 0xffffff, 0.5 * lightIntensity))
 
   const dirLightColor = new THREE.Color(home.environment.lightColor ?? 0xffffff)
-  const directional = new THREE.DirectionalLight(dirLightColor, 0.8)
+  const directional = new THREE.DirectionalLight(dirLightColor, 0.8 * lightIntensity)
   directional.position.set(200, 400, 300)
   directional.castShadow = true
   directional.shadow.mapSize.set(2048, 2048)
@@ -1068,7 +1097,7 @@ function buildSceneInner(
 
   // Soft fill light from roughly opposite direction — lifts shadowed faces
   // without flattening the main directional shadow contrast.
-  const fillLight = new THREE.DirectionalLight(dirLightColor, 0.25)
+  const fillLight = new THREE.DirectionalLight(dirLightColor, 0.25 * lightIntensity)
   fillLight.position.set(-300, 300, -200)
   scene.add(fillLight)
 

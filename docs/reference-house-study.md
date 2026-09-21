@@ -122,9 +122,19 @@ architectural measurement.
   are also excluded from `addFurnitureMeshes()`'s instancing path so each
   one keeps its own glass material rather than being batched into a shared
   opaque `InstancedMesh`. Covered by tests in `src/view3d/scene.test.ts`
-  (`describe('window glass material (Ticket 5a)')`). Exterior cladding,
-  furniture fabrics, and lighting controls remain open — **tracked as
-  Tickets 5b (fabrics/lighting) and 5c (cladding)**.
+  (`describe('window glass material (Ticket 5a)')`). **Closed 2026-09-21
+  (Ticket 5b):** furniture fabric materials and general lighting controls
+  also landed — non-window box furniture (including instanced groups) now
+  gets a `MeshPhysicalMaterial` with a sheen lobe (`fabricMaterial()` in
+  `src/view3d/scene.ts`) for a matte, upholstered look instead of the old
+  flat hard-surface material, and a `lightIntensity` multiplier (default 1)
+  scales every scene light for exposure adjustment — wired to a "Light"
+  slider in the toolbar (`src/main.ts`), `View3D.setLightIntensity()` for
+  the live viewport, and `CaptureService.setLightIntensity()` /
+  `set_light_intensity` automation command and MCP tool for scripted
+  renders. Covered by tests in `src/view3d/scene.test.ts`,
+  `tests/capture.test.ts`, and `tests/handshake.test.ts`. Exterior cladding
+  remains open — **tracked as Ticket 5c**.
 - Image-based reference overlay or camera matching for tracing proportions
   from a photo.
 - More architectural elements: large sliding-glass assemblies, skylights,

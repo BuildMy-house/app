@@ -155,6 +155,7 @@ describe('ws protocol v1 handshake', () => {
           'frame_scene',
           'add_roof',
           'set_roof_visible',
+          'set_light_intensity',
         ]),
       },
     })
@@ -290,6 +291,24 @@ describe('ws protocol v1 handshake', () => {
     const bad = await orch.sendRequest('set_roof_visible', { visible: 'nope' })
     expect(bad.ok).toBe(false)
     expect(bad.code).toBe('INVALID_PARAMS')
+  })
+
+  it('set_light_intensity scales lighting for the live view and scripted captures', async () => {
+    await awaitHello()
+
+    const dimmed = await orch.sendRequest('set_light_intensity', { intensity: 0.5 })
+    expect(dimmed).toMatchObject({ ok: true, data: { intensity: 0.5 } })
+
+    const reset = await orch.sendRequest('set_light_intensity', { intensity: 1 })
+    expect(reset).toMatchObject({ ok: true, data: { intensity: 1 } })
+
+    const badType = await orch.sendRequest('set_light_intensity', { intensity: 'bright' })
+    expect(badType.ok).toBe(false)
+    expect(badType.code).toBe('INVALID_PARAMS')
+
+    const negative = await orch.sendRequest('set_light_intensity', { intensity: -1 })
+    expect(negative.ok).toBe(false)
+    expect(negative.code).toBe('INVALID_PARAMS')
   })
 
   it('add_furniture + undo + redo round-trips with capability flags', async () => {

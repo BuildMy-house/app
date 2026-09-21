@@ -868,6 +868,16 @@ async def set_roof_visible(visible: bool) -> dict:
 
 
 @mcp.tool()
+async def set_light_intensity(intensity: float) -> dict:
+    """General lighting control for the 3D view and scripted screenshots:
+    a non-negative multiplier applied to every light's base intensity
+    (1.0 = default/unchanged). Does not alter the persisted home
+    environment's light color, only rendered brightness. Returns
+    {intensity}."""
+    return await _session().request("set_light_intensity", {"intensity": intensity})
+
+
+@mcp.tool()
 async def save_project(path: str | None = None) -> dict:
     """Save the home. Returns {json} (serialized home); if path given, also stored session-locally.
     Keep the returned json to restore later via open_project(json=...)."""

@@ -537,6 +537,9 @@ function buildToolbar(): void {
     <label><input id="grid-3d" type="checkbox" checked /> 3D Grid</label>
     <label><input id="reference-overlay" type="checkbox" /> Ref</label>
     <label><input id="show-roof" type="checkbox" checked title="Roof cutaway: hide roofs for interior 3D viewing" /> Roof</label>
+    <label title="General lighting control: scales every 3D light's intensity">Light
+      <input id="light-intensity" type="range" min="0.2" max="2" step="0.1" value="1" />
+    </label>
     <div class="toolbar-spacer"></div>
     <button class="tool-btn" id="btn-fit" title="Zoom to fit (double-click middle)">Fit</button>
     <div class="tool-separator"></div>
@@ -591,6 +594,10 @@ function buildToolbar(): void {
     view3d?.setRoofVisible((e.target as HTMLInputElement).checked)
   })
 
+  toolbar.querySelector('#light-intensity')!.addEventListener('input', (e) => {
+    view3d?.setLightIntensity(Number((e.target as HTMLInputElement).value))
+  })
+
   toolbar.querySelector('#btn-fit')!.addEventListener('click', () => {
     doFit()
   })
@@ -635,6 +642,8 @@ function refreshToolbar(): void {
   if (refBox) refBox.checked = engine.isReferenceOverlayEnabled()
   const roofBox = toolbar.querySelector<HTMLInputElement>('#show-roof')
   if (roofBox && view3d) roofBox.checked = view3d.showRoof
+  const lightSlider = toolbar.querySelector<HTMLInputElement>('#light-intensity')
+  if (lightSlider && view3d) lightSlider.value = String(view3d.lightIntensity)
 
   const undoBtn = toolbar.querySelector<HTMLButtonElement>('#btn-undo')!
   const redoBtn = toolbar.querySelector<HTMLButtonElement>('#btn-redo')!

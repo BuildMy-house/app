@@ -128,6 +128,7 @@ export class CaptureService {
   private backend: CaptureBackend | undefined
   private view: View3D | undefined
   private roofVisible = true
+  private lightIntensity = 1
 
   constructor(
     private readonly store: HomeStore,
@@ -148,6 +149,19 @@ export class CaptureService {
 
   getRoofVisible(): boolean {
     return this.roofVisible
+  }
+
+  /**
+   * General lighting control (Ticket 5b) for scripted 3D renders (mirrors
+   * View3D.setLightIntensity). Applied to the headless capture view on the
+   * next 3d screenshot.
+   */
+  setLightIntensity(value: number): void {
+    this.lightIntensity = value
+  }
+
+  getLightIntensity(): number {
+    return this.lightIntensity
   }
 
   screenshot(request: ScreenshotRequest): ScreenshotResult {
@@ -179,6 +193,7 @@ export class CaptureService {
   private capture3d(backend: CaptureBackend, width: number, height: number): string {
     const view = this.ensureView()
     view.setRoofVisible(this.roofVisible)
+    view.setLightIntensity(this.lightIntensity)
     view.rebuild()
     this.syncActiveCamera(view)
     return backend.render3d(view.scene, view.camera, width, height)

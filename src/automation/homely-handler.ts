@@ -64,6 +64,7 @@ const COMMANDS = [
   'zoom',
   'set_view',
   'set_roof_visible',
+  'set_light_intensity',
   'screenshot',
   'add_door',
   'add_window',
@@ -521,6 +522,17 @@ export class HomelyCommandHandler implements CommandHandler {
         assert(typeof visible === 'boolean', 'param visible must be a boolean')
         this.capture.setRoofVisible(visible)
         return { ok: true, data: { visible } }
+      }
+      case 'set_light_intensity': {
+        // General lighting control (Ticket 5b) for scripted 3D renders:
+        // multiplies every light's base intensity for exposure adjustment
+        // without touching the persisted home environment. See
+        // docs/reference-house-study.md's "Real glass, reflective
+        // materials... and lighting controls" backlog item.
+        const intensity = params.intensity
+        assert(typeof intensity === 'number' && intensity >= 0, 'param intensity must be a non-negative number')
+        this.capture.setLightIntensity(intensity)
+        return { ok: true, data: { intensity } }
       }
       case 'open': {
         let loaded: NormalizedHomeState | null

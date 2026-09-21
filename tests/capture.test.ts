@@ -83,6 +83,7 @@ interface CallRecord {
   walls: number
   wallMeshes?: number
   roofMeshes?: number
+  ambientIntensity?: number
   camera?: { px: number; py: number; pz: number; rx: number; ry: number; fov: number }
 }
 
@@ -102,9 +103,13 @@ class RecordingBackend implements CaptureBackend {
   ): string {
     let wallMeshes = 0
     let roofMeshes = 0
+    let ambientIntensity: number | undefined
     scene.traverse((object) => {
       if (String(object.name).startsWith('wall:')) wallMeshes += 1
       if (String(object.name).startsWith('roof:')) roofMeshes += 1
+      if (object.type === 'AmbientLight') {
+        ambientIntensity = (object as unknown as { intensity: number }).intensity
+      }
     })
     return this.record({
       view: '3d',
@@ -113,6 +118,7 @@ class RecordingBackend implements CaptureBackend {
       walls: -1,
       wallMeshes,
       roofMeshes,
+      ambientIntensity,
       camera: {
         px: camera.position.x,
         py: camera.position.y,
@@ -305,6 +311,23 @@ describe('CaptureService 3d pipeline', () => {
     service.setRoofVisible(true)
     service.screenshot({ view: '3d', width: 100, height: 100 })
     expect(backend.calls[2]?.roofMeshes).toBe(1)
+  })
+
+  it('setLightIntensity(0.5) halves ambient light intensity in the next 3d capture (Ticket 5b)', () => {
+    const store = makeStoreWithWalls()
+    const cameras = new CameraDirector(store, new HomeModel(store))
+    const backend = new RecordingBackend()
+    const service = new CaptureService(store, cameras, backend)
+
+    expect(service.getLightIntensity()).toBe(1)
+    service.screenshot({ view: '3d', width: 100, height: 100 })
+    const base = backend.calls[0]?.ambientIntensity
+    expect(base).toBeGreaterThan(0)
+
+    service.setLightIntensity(0.5)
+    expect(service.getLightIntensity()).toBe(0.5)
+    service.screenshot({ view: '3d', width: 100, height: 100 })
+    expect(backend.calls[1]?.ambientIntensity).toBeCloseTo(base! * 0.5, 6)
   })
 })
 
