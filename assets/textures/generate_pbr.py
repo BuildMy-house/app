@@ -16,10 +16,15 @@ import os
 
 OUT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# id -> (normal strength, roughness base spread). Only wood-oak ships maps
-# for now; the loader supports any entry that lists the files.
+# id -> (normal strength, roughness base spread, ao_lo). Every catalog entry
+# that lists PBR files in WALL_TEXTURES should have a matching spec here.
 PBR_SPECS = {
-    'wood-oak': {'normal_strength': 14.0, 'rough_lo': 0.70, 'rough_hi': 1.0, 'ao_lo': 0.25},
+    'carpet':        {'normal_strength': 10.0, 'rough_lo': 0.85, 'rough_hi': 1.0, 'ao_lo': 0.30},
+    'concrete':      {'normal_strength': 12.0, 'rough_lo': 0.80, 'rough_hi': 1.0, 'ao_lo': 0.25},
+    'plaster-white': {'normal_strength':  8.0, 'rough_lo': 0.80, 'rough_hi': 1.0, 'ao_lo': 0.15},
+    'tile-floor':    {'normal_strength':  6.0, 'rough_lo': 0.20, 'rough_hi': 0.50, 'ao_lo': 0.10},
+    'wood-oak':      {'normal_strength': 14.0, 'rough_lo': 0.70, 'rough_hi': 1.0, 'ao_lo': 0.25},
+    'wood-pine':     {'normal_strength': 12.0, 'rough_lo': 0.60, 'rough_hi': 0.85, 'ao_lo': 0.20},
 }
 
 

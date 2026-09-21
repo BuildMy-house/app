@@ -73,10 +73,46 @@ export interface WallTextureEntry {
  * - wood-pine 0.70 — raw-ish softwood, slightly duller than oak
  */
 export const WALL_TEXTURES: WallTextureEntry[] = [
-  { id: 'carpet', label: 'Carpet', file: 'carpet.png', roughness: 0.95, metalness: 0 },
-  { id: 'concrete', label: 'Concrete', file: 'concrete.png', roughness: 0.9, metalness: 0 },
-  { id: 'plaster-white', label: 'Plaster White', file: 'plaster-white.png', roughness: 0.9, metalness: 0 },
-  { id: 'tile-floor', label: 'Tile Floor', file: 'tile-floor.png', roughness: 0.35, metalness: 0 },
+  {
+    id: 'carpet',
+    label: 'Carpet',
+    file: 'carpet.png',
+    normalFile: 'carpet_normal.png',
+    roughnessFile: 'carpet_roughness.png',
+    aoFile: 'carpet_ao.png',
+    roughness: 0.95,
+    metalness: 0,
+  },
+  {
+    id: 'concrete',
+    label: 'Concrete',
+    file: 'concrete.png',
+    normalFile: 'concrete_normal.png',
+    roughnessFile: 'concrete_roughness.png',
+    aoFile: 'concrete_ao.png',
+    roughness: 0.9,
+    metalness: 0,
+  },
+  {
+    id: 'plaster-white',
+    label: 'Plaster White',
+    file: 'plaster-white.png',
+    normalFile: 'plaster-white_normal.png',
+    roughnessFile: 'plaster-white_roughness.png',
+    aoFile: 'plaster-white_ao.png',
+    roughness: 0.9,
+    metalness: 0,
+  },
+  {
+    id: 'tile-floor',
+    label: 'Tile Floor',
+    file: 'tile-floor.png',
+    normalFile: 'tile-floor_normal.png',
+    roughnessFile: 'tile-floor_roughness.png',
+    aoFile: 'tile-floor_ao.png',
+    roughness: 0.35,
+    metalness: 0,
+  },
   {
     id: 'wood-oak',
     label: 'Wood Oak',
@@ -87,7 +123,16 @@ export const WALL_TEXTURES: WallTextureEntry[] = [
     roughness: 0.65,
     metalness: 0,
   },
-  { id: 'wood-pine', label: 'Wood Pine', file: 'wood-pine.png', roughness: 0.7, metalness: 0 },
+  {
+    id: 'wood-pine',
+    label: 'Wood Pine',
+    file: 'wood-pine.png',
+    normalFile: 'wood-pine_normal.png',
+    roughnessFile: 'wood-pine_roughness.png',
+    aoFile: 'wood-pine_ao.png',
+    roughness: 0.7,
+    metalness: 0,
+  },
 ]
 
 /** R2 key prefix + public base serving the texture files (see r2-client.ts). */
