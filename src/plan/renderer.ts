@@ -126,6 +126,7 @@ function resolveTextureImage(
   const cached = imageCache.get(url)
   if (cached) return cached
   const img = new Image()
+  img.crossOrigin = 'anonymous'
   img.src = url
   imageCache.set(url, img)
   return img
