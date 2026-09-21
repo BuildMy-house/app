@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir \
 
 COPY luxcore ./luxcore
 COPY public/assets/models/sh3d ./homely/assets/models/sh3d
+COPY assets/hdri ./assets/hdri
 
 RUN python -m py_compile luxcore/*.py
 

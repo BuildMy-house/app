@@ -23,7 +23,6 @@ def _asset_root(asset_root: str | None = None) -> Path:
 
 
 def home_to_scene(home: dict[str, Any], asset_root: str | None = None) -> dict[str, Any]:
-    source_root = _asset_root(asset_root)
     objects = []
     for wall in home.get("walls", []):
         dx = wall["xEnd"] - wall["xStart"]
@@ -39,7 +38,7 @@ def home_to_scene(home: dict[str, Any], asset_root: str | None = None) -> dict[s
         objects.append({"type": "polygon", "name": room["id"], "material": "floor",
                         "vertices": [[x / 100, y / 100] for x, y in room["points"]], "z": 0, "height": 0})
     for furn in home.get("furniture", []):
-        source = _resolve_asset(furn)
+        source = _resolve_asset(furn, asset_root)
         objects.append({"type": "asset" if source else "box", "name": furn["id"], "material": "furniture",
                         "size": _furniture_size(furn),
                         "position": [furn.get("x", 0) / 100, furn.get("y", 0) / 100,
@@ -53,10 +52,7 @@ def home_to_scene(home: dict[str, Any], asset_root: str | None = None) -> dict[s
         return {"materials": {"wall": {"type": "matte", "kd": [0.7, 0.7, 0.7]},
                                "floor": {"type": "matte", "kd": [0.9, 0.9, 0.88]},
                                "furniture": {"type": "matte", "kd": [0.6, 0.6, 0.75]}},
-                "objects": objects, "lights": [{"type": "constantinfinite", "name": "env",
-                                                  "color": [1, 1, 1], "gain": [1, 1, 1]},
-                                                 {"type": "directional", "name": "sun",
-                                                  "direction": [0, 0, -1], "gain": [3, 3, 3]}],
+                "objects": objects, "lights": _home_lights(home),
                 "camera": {"lookat": lookat, "fov": explicit_camera.get("fov", 60)}}
     cam = home.get("cameras", {}).get("observer") or home.get("cameras", {}).get("top", {})
     yaw = math.radians(cam.get("yawDeg", 0))
@@ -69,10 +65,7 @@ def home_to_scene(home: dict[str, Any], asset_root: str | None = None) -> dict[s
     return {"materials": {"wall": {"type": "matte", "kd": [0.7, 0.7, 0.7]},
                            "floor": {"type": "matte", "kd": [0.9, 0.9, 0.88]},
                            "furniture": {"type": "matte", "kd": [0.6, 0.6, 0.75]}},
-            "objects": objects, "lights": [{"type": "constantinfinite", "name": "env",
-                                              "color": [1, 1, 1], "gain": [1, 1, 1]},
-                                             {"type": "directional", "name": "sun",
-                                              "direction": [0, 0, -1], "gain": [3, 3, 3]}],
+            "objects": objects, "lights": _home_lights(home),
             "camera": {"lookat": [[cam.get("x", 200) / 100, cam.get("y", 150) / 100, cam.get("z", 900) / 100],
                        target, [0, 0, 1]],
                        "fov": cam.get("fovDeg", 60)}}
@@ -216,11 +209,11 @@ def _polygon_to_bridge(name: str, prim: dict) -> dict:
             "z": prim.get("y", 0) / 100, "height": prim.get("height", 0) / 100}
 
 
-def _resolve_asset(item: dict) -> Path | None:
+def _resolve_asset(item: dict, asset_root: str | None = None) -> Path | None:
     model_url = _r2_model_url(item)
     if model_url:
         return _cached_r2_obj(model_url)
-    asset_root = _asset_root()
+    asset_root = _asset_root(asset_root)
     asset_name = str(item.get("catalogId", "")).split("#")[-1]
     source = _find_asset(asset_root, asset_name)
     return source if source.exists() else None
@@ -263,6 +256,7 @@ def _cached_r2_obj(model_url: str) -> Path | None:
             check=True,
             capture_output=True,
             text=True,
+            cwd=cache,
         )
     return obj if obj.is_file() else None
 
@@ -325,12 +319,41 @@ _PORTAL_GAIN = [1500.0, 1500.0, 1500.0]
 _INTERIOR_GAIN = [2500.0, 2500.0, 2500.0]
 
 
-def _environment_light(bg_color: int) -> dict:
+_HDRI_FILES = {
+    "studio": "photo_studio_01_1k.hdr",
+    "daylight": "kloofendal_48d_partly_cloudy_puresky_1k.hdr",
+    "overcast": "overcast_soil_puresky_1k.hdr",
+}
+
+
+def _hdri_path(home: dict) -> str | None:
+    configured = os.environ.get("LUXCORE_HDRI_PATH")
+    preset = str((home.get("environment") or {}).get("hdriPreset", "studio")).casefold()
+    filename = _HDRI_FILES.get(preset, _HDRI_FILES["studio"])
+    candidates = [Path(configured)] if configured else []
+    candidates.extend((Path(__file__).parents[1] / "assets" / "hdri" / filename,
+                       Path("/app/assets/hdri") / filename))
+    return next((str(path) for path in candidates if path.is_file()), None)
+
+
+def _environment_light(bg_color: int, hdri_path: str | None = None) -> dict:
     """Sky/environment light: constant-infinite radiance from the scene's
     background (sky) colour. `constantinfinite` is the verified LuxCore 2.11
     constant-colour environment light (`color` + `gain` float3)."""
+    if hdri_path:
+        return {"type": "infinite", "name": "env", "file": hdri_path,
+                "gamma": 1.0, "gain": list(_ENV_GAIN)}
     return {"type": "constantinfinite", "name": "env",
             "color": _rs_rgb(bg_color), "gain": list(_ENV_GAIN)}
+
+
+def _home_lights(home: dict) -> list[dict]:
+    environment = home.get("environment") or {}
+    lights = [_environment_light(environment.get("skyColor", 0xFFFFFF), _hdri_path(home)),
+              {"type": "directional", "name": "sun", "direction": [0, 0, -1], "gain": [3, 3, 3]}]
+    lights.extend(_portal_lights(home))
+    lights.extend(_interior_lights(home))
+    return lights
 
 
 def _portal_lights(home: dict) -> list[dict]:
@@ -431,6 +454,8 @@ def build_scene(scene_data: dict, luxcore_module: Any | None = None) -> Any:
         light_type = light.get("type")
         if light_type == "directional":
             props.SetFromString(f"{prefix}type = sharpdistant\n{prefix}direction = {' '.join(map(str, light.get('direction', [0, 0, -1])))}\n{prefix}gain = {' '.join(map(str, light.get('gain', [1, 1, 1])))}")
+        elif light_type == "infinite":
+            props.SetFromString(f"{prefix}type = infinite\n{prefix}file = {light['file']}\n{prefix}gamma = {light.get('gamma', 1.0)}\n{prefix}gain = {' '.join(map(str, light.get('gain', [1, 1, 1])))}")
         elif light_type == "constantinfinite":
             props.SetFromString(f"{prefix}type = constantinfinite\n{prefix}color = {' '.join(map(str, light.get('color', [1, 1, 1])))}\n{prefix}gain = {' '.join(map(str, light.get('gain', [1, 1, 1])))}")
         else:
