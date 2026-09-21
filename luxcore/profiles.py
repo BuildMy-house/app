@@ -11,17 +11,17 @@ PROFILES: dict[str, dict[str, Any]] = {
     },
     "low": {
         "width": 1280, "height": 720, "samples_per_pixel": 256,
-        "seconds": 300, "denoise": "oidn", "adaptive": True,
+        "seconds": 300, "denoise": "none", "adaptive": True,
         "noise_threshold": 0.35,
     },
     "medium": {
         "width": 1920, "height": 1080, "samples_per_pixel": 512,
-        "seconds": 600, "denoise": "oidn", "adaptive": True,
+        "seconds": 600, "denoise": "none", "adaptive": True,
         "noise_threshold": 0.25,
     },
     "high": {
         "width": 4096, "height": 4096, "samples_per_pixel": 4096,
-        "seconds": 1800, "denoise": "oidn", "adaptive": True,
+        "seconds": 1800, "denoise": "none", "adaptive": True,
         "noise_threshold": 0.2,
     },
 }

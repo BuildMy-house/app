@@ -82,6 +82,9 @@ interface CallRecord {
   height: number
   walls: number
   wallMeshes?: number
+  roofMeshes?: number
+  siteContextMeshes?: number
+  ambientIntensity?: number
   camera?: { px: number; py: number; pz: number; rx: number; ry: number; fov: number }
 }
 
@@ -100,8 +103,16 @@ class RecordingBackend implements CaptureBackend {
     height: number,
   ): string {
     let wallMeshes = 0
+    let roofMeshes = 0
+    let siteContextMeshes = 0
+    let ambientIntensity: number | undefined
     scene.traverse((object) => {
       if (String(object.name).startsWith('wall:')) wallMeshes += 1
+      if (String(object.name).startsWith('roof:')) roofMeshes += 1
+      if (String(object.name).startsWith('site-context:')) siteContextMeshes += 1
+      if (object.type === 'AmbientLight') {
+        ambientIntensity = (object as unknown as { intensity: number }).intensity
+      }
     })
     return this.record({
       view: '3d',
@@ -109,6 +120,9 @@ class RecordingBackend implements CaptureBackend {
       height,
       walls: -1,
       wallMeshes,
+      roofMeshes,
+      siteContextMeshes,
+      ambientIntensity,
       camera: {
         px: camera.position.x,
         py: camera.position.y,
@@ -270,6 +284,76 @@ describe('CaptureService 3d pipeline', () => {
     const first = service.screenshot({ view: '3d', width: 64, height: 64 })
     const second = service.screenshot({ view: '3d', width: 64, height: 64 })
     expect(first).toEqual(second)
+  })
+
+  it('setRoofVisible(false) omits roof meshes from the next 3d capture (Ticket 4)', () => {
+    const store = makeStoreWithWalls()
+    store.apply((home: NormalizedHomeState) => {
+      home.levels.push({
+        id: 'level-1', name: 'Ground', elevation: 0, floorThickness: 5,
+        height: 250, visible: true, viewable: true,
+      })
+      home.roofs.push({
+        id: 'roof-1',
+        points: [[0, 0], [400, 0], [400, 300], [0, 300]],
+        levelRef: 'level-1', style: 'gable', pitchDeg: 30, overhangCm: 20,
+      })
+    })
+    const cameras = new CameraDirector(store, new HomeModel(store))
+    const backend = new RecordingBackend()
+    const service = new CaptureService(store, cameras, backend)
+
+    expect(service.getRoofVisible()).toBe(true)
+    service.screenshot({ view: '3d', width: 100, height: 100 })
+    expect(backend.calls[0]?.roofMeshes).toBe(1)
+
+    service.setRoofVisible(false)
+    expect(service.getRoofVisible()).toBe(false)
+    service.screenshot({ view: '3d', width: 100, height: 100 })
+    expect(backend.calls[1]?.roofMeshes).toBe(0)
+
+    service.setRoofVisible(true)
+    service.screenshot({ view: '3d', width: 100, height: 100 })
+    expect(backend.calls[2]?.roofMeshes).toBe(1)
+  })
+
+  it('setLightIntensity(0.5) halves ambient light intensity in the next 3d capture (Ticket 5b)', () => {
+    const store = makeStoreWithWalls()
+    const cameras = new CameraDirector(store, new HomeModel(store))
+    const backend = new RecordingBackend()
+    const service = new CaptureService(store, cameras, backend)
+
+    expect(service.getLightIntensity()).toBe(1)
+    service.screenshot({ view: '3d', width: 100, height: 100 })
+    const base = backend.calls[0]?.ambientIntensity
+    expect(base).toBeGreaterThan(0)
+
+    service.setLightIntensity(0.5)
+    expect(service.getLightIntensity()).toBe(0.5)
+    service.screenshot({ view: '3d', width: 100, height: 100 })
+    expect(backend.calls[1]?.ambientIntensity).toBeCloseTo(base! * 0.5, 6)
+  })
+
+  it('setSiteContextVisible round-trips; headless captures stay in the inside view so props never render regardless (Ticket 5d)', () => {
+    // Site-context props (trees/deck) only render in the outside/whole-model
+    // view (see scene.ts's isOutsideView && showSiteContext gating) — the
+    // headless capture view used for scripted screenshots has no automation
+    // command to switch to the outside view, so toggling this flag alone
+    // is correctly a no-op for capture3d output today. This test documents
+    // that real behavior rather than assuming the flag alone controls it.
+    const store = makeStoreWithWalls()
+    const cameras = new CameraDirector(store, new HomeModel(store))
+    const backend = new RecordingBackend()
+    const service = new CaptureService(store, cameras, backend)
+
+    expect(service.getSiteContextVisible()).toBe(true)
+    service.screenshot({ view: '3d', width: 100, height: 100 })
+    expect(backend.calls[0]?.siteContextMeshes).toBe(0)
+
+    service.setSiteContextVisible(false)
+    expect(service.getSiteContextVisible()).toBe(false)
+    service.screenshot({ view: '3d', width: 100, height: 100 })
+    expect(backend.calls[1]?.siteContextMeshes).toBe(0)
   })
 })
 

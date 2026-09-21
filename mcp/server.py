@@ -435,6 +435,7 @@ async def build_house(plan: dict, reset: bool = True, house_id: str | None = Non
         selected = house_id or _ACTIVE_HOUSES.get(_API_TOKEN)
         if not selected:
             raise ValueError("select a production house first")
+        _ACTIVE_HOUSES[_API_TOKEN] = selected
         return await _production_build_house(selected, plan, reset)
     s = _session()
     if reset:
@@ -631,15 +632,23 @@ async def screenshot(view: str, width: int = 800, height: int = 600) -> Image:
 
 
 @mcp.tool()
-async def render_photoreal(profile: str = "thumbnail") -> Image:
+async def render_photoreal(profile: str = "thumbnail", house_id: str | None = None) -> Image:
     """Render a photorealistic LuxCore image; use screenshot for cheap iteration."""
     if profile not in {"thumbnail", "low", "medium", "high"}:
         raise ValueError("profile must be thumbnail, low, medium, or high")
+    if _API_URL:
+        selected = house_id or _ACTIVE_HOUSES.get(_API_TOKEN)
+        if not selected:
+            raise ValueError("select a production house first")
+        record = await _api_request(f"/api/homes/{selected}")
+        scene = json.loads(record["json"])
+    else:
+        scene = await _session().request("get_state")
     user = os.environ.get("BUILDMYHOUSE_LUXCORE_USER", "test")
     job = await _luxcore_request(
         f"/api/render/jobs/{user}",
         "POST",
-        {"scene": await _session().request("get_state"), "profile": profile},
+        {"scene": scene, "profile": profile},
     )
     if not isinstance(job, dict) or not job.get("id"):
         raise RuntimeError("LuxCore did not return a render job")
@@ -848,6 +857,33 @@ async def zoom(factor: float) -> dict:
 async def set_view(view: str) -> dict:
     """Switch the view: 'plan' or '3d'."""
     return await _session().request("set_view", {"view": view})
+
+
+@mcp.tool()
+async def set_roof_visible(visible: bool) -> dict:
+    """Roof cutaway / hide-roof mode for the 3D view and scripted screenshots:
+    visible=False hides every roof mesh so interiors are visible without
+    omitting the roof from the home state itself. Returns {visible}."""
+    return await _session().request("set_roof_visible", {"visible": visible})
+
+
+@mcp.tool()
+async def set_light_intensity(intensity: float) -> dict:
+    """General lighting control for the 3D view and scripted screenshots:
+    a non-negative multiplier applied to every light's base intensity
+    (1.0 = default/unchanged). Does not alter the persisted home
+    environment's light color, only rendered brightness. Returns
+    {intensity}."""
+    return await _session().request("set_light_intensity", {"intensity": intensity})
+
+
+@mcp.tool()
+async def set_site_context_visible(visible: bool) -> dict:
+    """Basic exterior site context (trees/deck placeholders + ground
+    variation) for the 3D view and scripted screenshots: visible=False
+    suppresses them even in the outside view, e.g. for a clean
+    architectural shot. Returns {visible}."""
+    return await _session().request("set_site_context_visible", {"visible": visible})
 
 
 @mcp.tool()

@@ -63,6 +63,9 @@ const COMMANDS = [
   'add_label',
   'zoom',
   'set_view',
+  'set_roof_visible',
+  'set_light_intensity',
+  'set_site_context_visible',
   'screenshot',
   'add_door',
   'add_window',
@@ -510,6 +513,38 @@ export class HomelyCommandHandler implements CommandHandler {
         this.activeView = view
         this.cameras.usePreset(view === 'plan' ? 'top' : 'observer')
         return { ok: true, data: { view } }
+      }
+      case 'set_roof_visible': {
+        // Roof cutaway / hide-roof mode for scripted 3D renders: mirrors the
+        // viewport's "Roof" toggle so interior comparison captures no longer
+        // need to omit roofs from the home state itself (see
+        // docs/reference-house-study.md issue #3).
+        const visible = params.visible
+        assert(typeof visible === 'boolean', 'param visible must be a boolean')
+        this.capture.setRoofVisible(visible)
+        return { ok: true, data: { visible } }
+      }
+      case 'set_light_intensity': {
+        // General lighting control (Ticket 5b) for scripted 3D renders:
+        // multiplies every light's base intensity for exposure adjustment
+        // without touching the persisted home environment. See
+        // docs/reference-house-study.md's "Real glass, reflective
+        // materials... and lighting controls" backlog item.
+        const intensity = params.intensity
+        assert(typeof intensity === 'number' && intensity >= 0, 'param intensity must be a non-negative number')
+        this.capture.setLightIntensity(intensity)
+        return { ok: true, data: { intensity } }
+      }
+      case 'set_site_context_visible': {
+        // Basic exterior site context (Ticket 5d) for scripted 3D renders:
+        // toggles the trees/deck placeholders + ground variation so scripted
+        // comparison captures can suppress them for a clean architectural
+        // shot. See docs/reference-house-study.md's "Exterior site context"
+        // backlog item.
+        const visible = params.visible
+        assert(typeof visible === 'boolean', 'param visible must be a boolean')
+        this.capture.setSiteContextVisible(visible)
+        return { ok: true, data: { visible } }
       }
       case 'open': {
         let loaded: NormalizedHomeState | null

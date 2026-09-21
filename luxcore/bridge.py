@@ -1,5 +1,10 @@
 import math
 import os
+import re
+import subprocess
+import urllib.error
+import urllib.request
+from hashlib import sha256
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -19,7 +24,6 @@ def _asset_root(asset_root: str | None = None) -> Path:
 
 
 def home_to_scene(home: dict[str, Any], asset_root: str | None = None) -> dict[str, Any]:
-    source_root = _asset_root(asset_root)
     objects = []
     for wall in home.get("walls", []):
         dx = wall["xEnd"] - wall["xStart"]
@@ -35,25 +39,19 @@ def home_to_scene(home: dict[str, Any], asset_root: str | None = None) -> dict[s
         objects.append({"type": "polygon", "name": room["id"], "material": "floor",
                         "vertices": [[x / 100, y / 100] for x, y in room["points"]], "z": 0, "height": 0})
     for furn in home.get("furniture", []):
-        asset_name = str(furn.get("catalogId", "")).split("#")[-1]
-        source = _find_asset(source_root, asset_name)
-        objects.append({"type": "asset" if source.exists() else "box", "name": furn["id"], "material": "furniture",
-                        "size": [furn["width"] / 100, furn["depth"] / 100, furn["height"] / 100],
+        source = _resolve_asset(furn, asset_root)
+        objects.append({"type": "asset" if source else "box", "name": furn["id"], "material": "furniture",
+                        "size": _furniture_size(furn),
                         "position": [furn.get("x", 0) / 100, furn.get("y", 0) / 100,
                                      furn.get("elevation", 0) / 100],
                         # SH3D/Three rotate around +Y; after Y-up -> Z-up and
                         # plan-Y -> LuxCore-Y, the equivalent Z rotation is reversed.
-                        "rotation": -furn.get("angleDeg", 0), "path": str(source)})
+                        "rotation": -furn.get("angleDeg", 0), "path": str(source or "")})
     explicit_camera = home.get("renderCamera")
     if explicit_camera:
         lookat = [explicit_camera["orig"], explicit_camera["target"], explicit_camera.get("up", [0, 0, 1])]
-        return {"materials": {"wall": {"type": "matte", "kd": [0.7, 0.7, 0.7]},
-                               "floor": {"type": "matte", "kd": [0.9, 0.9, 0.88]},
-                               "furniture": {"type": "matte", "kd": [0.6, 0.6, 0.75]}},
-                "objects": objects, "lights": [{"type": "constantinfinite", "name": "env",
-                                                  "color": [1, 1, 1], "gain": [1, 1, 1]},
-                                                 {"type": "directional", "name": "sun",
-                                                  "direction": [0, 0, -1], "gain": [3, 3, 3]}],
+        return {"materials": _home_materials(home),
+                "objects": objects, "lights": _home_lights(home),
                 "camera": {"lookat": lookat, "fov": explicit_camera.get("fov", 60)}}
     cam = home.get("cameras", {}).get("observer") or home.get("cameras", {}).get("top", {})
     yaw = math.radians(cam.get("yawDeg", 0))
@@ -63,13 +61,8 @@ def home_to_scene(home: dict[str, Any], asset_root: str | None = None) -> dict[s
     target = [cam.get("x", 200) / 100 + direction[0] * distance,
               cam.get("y", 150) / 100 + direction[1] * distance,
               max(cam.get("z", 900) / 100 + direction[2] * distance, 0)]
-    return {"materials": {"wall": {"type": "matte", "kd": [0.7, 0.7, 0.7]},
-                           "floor": {"type": "matte", "kd": [0.9, 0.9, 0.88]},
-                           "furniture": {"type": "matte", "kd": [0.6, 0.6, 0.75]}},
-            "objects": objects, "lights": [{"type": "constantinfinite", "name": "env",
-                                              "color": [1, 1, 1], "gain": [1, 1, 1]},
-                                             {"type": "directional", "name": "sun",
-                                              "direction": [0, 0, -1], "gain": [3, 3, 3]}],
+    return {"materials": _home_materials(home),
+            "objects": objects, "lights": _home_lights(home),
             "camera": {"lookat": [[cam.get("x", 200) / 100, cam.get("y", 150) / 100, cam.get("z", 900) / 100],
                        target, [0, 0, 1]],
                        "fov": cam.get("fovDeg", 60)}}
@@ -213,18 +206,69 @@ def _polygon_to_bridge(name: str, prim: dict) -> dict:
             "z": prim.get("y", 0) / 100, "height": prim.get("height", 0) / 100}
 
 
-def _resolve_asset(item: dict) -> Path | None:
-    asset_root = _asset_root()
+def _resolve_asset(item: dict, asset_root: str | None = None) -> Path | None:
+    model_url = _r2_model_url(item)
+    if model_url:
+        return _cached_r2_obj(model_url)
+    asset_root = _asset_root(asset_root)
     asset_name = str(item.get("catalogId", "")).split("#")[-1]
     source = _find_asset(asset_root, asset_name)
     return source if source.exists() else None
+
+
+def _r2_model_url(item: dict) -> str | None:
+    base = os.environ.get(
+        "LUXCORE_MODEL_BASE_URL",
+        "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models",
+    ).rstrip("/")
+    model_path = item.get("modelPath")
+    if isinstance(model_path, str) and model_path.startswith(f"{base}/") and model_path.endswith(".glb"):
+        return model_path
+    parts = str(item.get("catalogId", "")).split("#")
+    if len(parts) < 3 or parts[1].casefold() != "blend swap cc-0":
+        return None
+    slug = re.sub(r"[^a-z0-9]+", "-", parts[-1].casefold()).strip("-")
+    return f"{base}/blend-swap-cc-0-{slug}.glb"
+
+
+@lru_cache(maxsize=256)
+def _cached_r2_obj(model_url: str) -> Path | None:
+    cache = Path(os.environ.get("LUXCORE_ASSET_CACHE", "/app/var/r2-assets"))
+    stem = sha256(model_url.encode()).hexdigest()[:24]
+    glb = cache / f"{stem}.glb"
+    obj = cache / f"{stem}.obj"
+    if not obj.is_file():
+        cache.mkdir(parents=True, exist_ok=True)
+        if not glb.is_file():
+            request = urllib.request.Request(model_url, headers={"User-Agent": "buildmy.house-luxcore/1"})
+            with urllib.request.urlopen(request, timeout=30) as response:
+                if int(response.headers.get("Content-Length", 0)) > 100 * 1024 * 1024:
+                    raise ValueError("R2 furniture model exceeds 100 MB")
+                data = response.read(100 * 1024 * 1024 + 1)
+                if len(data) > 100 * 1024 * 1024:
+                    raise ValueError("R2 furniture model exceeds 100 MB")
+                glb.write_bytes(data)
+        subprocess.run(
+            ["assimp", "export", str(glb), str(obj)],
+            check=True,
+            capture_output=True,
+            text=True,
+            cwd=cache,
+        )
+    return obj if obj.is_file() else None
+
+
+def _furniture_size(item: dict) -> list[float]:
+    # ponytail: 1 m fallback keeps catalog-only production records renderable;
+    # add catalog dimension lookup when the API exposes it.
+    return [float(item.get(key, 100)) / 100 for key in ("width", "depth", "height")]
 
 
 def _furniture_to_asset(item: dict, material_id: str) -> dict:
     """Furniture -> real OBJ asset (mirrors home_to_scene furniture handling)."""
     source = _resolve_asset(item) or ""
     return {"type": "asset", "name": item["id"], "material": material_id,
-            "size": [item["width"] / 100, item["depth"] / 100, item["height"] / 100],
+            "size": _furniture_size(item),
             "position": [item.get("x", 0) / 100, item.get("y", 0) / 100,
                          item.get("elevation", 0) / 100],
             "rotation": -item.get("angleDeg", 0), "path": str(source)}
@@ -272,12 +316,90 @@ _PORTAL_GAIN = [1500.0, 1500.0, 1500.0]
 _INTERIOR_GAIN = [2500.0, 2500.0, 2500.0]
 
 
-def _environment_light(bg_color: int) -> dict:
+_HDRI_FILES = {
+    "studio": "photo_studio_01_1k.hdr",
+    "daylight": "kloofendal_48d_partly_cloudy_puresky_1k.hdr",
+    "overcast": "overcast_soil_puresky_1k.hdr",
+}
+_MATERIAL_FILES = {
+    "carpet": "carpet.png", "concrete": "concrete.png", "plaster-white": "plaster-white.png",
+    "tile-floor": "tile-floor.png", "wood-oak": "wood-oak.png", "wood-pine": "wood-pine.png",
+}
+
+
+def _hdri_path(home: dict) -> str | None:
+    configured = os.environ.get("LUXCORE_HDRI_PATH")
+    preset = str((home.get("environment") or {}).get("hdriPreset", "studio")).casefold()
+    filename = _HDRI_FILES.get(preset, _HDRI_FILES["studio"])
+    candidates = [Path(configured)] if configured else []
+    candidates.extend((Path(__file__).parents[1] / "assets" / "hdri" / filename,
+                       Path("/app/assets/hdri") / filename))
+    return next((str(path) for path in candidates if path.is_file()), None)
+
+
+def _environment_light(bg_color: int, hdri_path: str | None = None) -> dict:
     """Sky/environment light: constant-infinite radiance from the scene's
     background (sky) colour. `constantinfinite` is the verified LuxCore 2.11
     constant-colour environment light (`color` + `gain` float3)."""
+    if hdri_path:
+        return {"type": "infinite", "name": "env", "file": hdri_path,
+                "gamma": 1.0, "gain": list(_ENV_GAIN)}
     return {"type": "constantinfinite", "name": "env",
             "color": _rs_rgb(bg_color), "gain": list(_ENV_GAIN)}
+
+
+def _home_lights(home: dict) -> list[dict]:
+    environment = home.get("environment") or {}
+    lights = [_environment_light(environment.get("skyColor", 0xFFFFFF), _hdri_path(home)),
+              {"type": "directional", "name": "sun", "direction": [0, 0, -1], "gain": [3, 3, 3]}]
+    lights.extend(_portal_lights(home))
+    lights.extend(_interior_lights(home))
+    return lights
+
+
+@lru_cache(maxsize=32)
+def _cached_material_texture(texture_id: str) -> str | None:
+    filename = _MATERIAL_FILES.get(texture_id)
+    if not filename:
+        return None
+    cache = Path(os.environ.get("LUXCORE_ASSET_CACHE", "/app/var/r2-assets")) / "textures"
+    target = cache / filename
+    if not target.is_file():
+        try:
+            cache.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            local = Path(__file__).parents[1] / "assets" / "textures" / filename
+            return str(local) if local.is_file() else None
+        base = os.environ.get(
+            "LUXCORE_MATERIAL_BASE_URL",
+            "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/materials",
+        ).rstrip("/")
+        request = urllib.request.Request(f"{base}/{filename}", headers={"User-Agent": "buildmy.house-luxcore/1"})
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                data = response.read(20 * 1024 * 1024 + 1)
+            if len(data) > 20 * 1024 * 1024:
+                raise ValueError("R2 material exceeds 20 MB")
+            target.write_bytes(data)
+        except (OSError, urllib.error.URLError):
+            local = Path(__file__).parents[1] / "assets" / "textures" / filename
+            return str(local) if local.is_file() else None
+    return str(target)
+
+
+def _home_materials(home: dict) -> dict:
+    wall_id = next((w.get("textureId") for w in home.get("walls", []) if w.get("textureId")), "plaster-white")
+    floor_id = (home.get("environment") or {}).get("groundTextureId") or "wood-oak"
+    materials = {
+        "wall": {"type": "matte", "kd": [0.7, 0.7, 0.7]},
+        "floor": {"type": "matte", "kd": [0.9, 0.9, 0.88]},
+        "furniture": {"type": "matte", "kd": [0.6, 0.6, 0.75]},
+    }
+    if path := _cached_material_texture(str(wall_id)):
+        materials["wall"]["map_kd"] = path
+    if path := _cached_material_texture(str(floor_id)):
+        materials["floor"]["map_kd"] = path
+    return materials
 
 
 def _portal_lights(home: dict) -> list[dict]:
@@ -317,7 +439,7 @@ def _interior_lights(home: dict) -> list[dict]:
     return lights
 
 
-def _material_props(prefix: str, mat: dict) -> str:
+def _material_props(prefix: str, mat: dict, name: str) -> str:
     """Render a bridge material dict as fully-prefixed LuxCore property lines.
 
     Emits `type` + `kd`, then any optional glossy2 fields (`ks`, `uroughness`,
@@ -329,10 +451,14 @@ def _material_props(prefix: str, mat: dict) -> str:
             return " ".join(map(str, value))
         return str(value)
 
-    lines = [
-        f"{prefix}type = {mat.get('type', 'matte')}",
-        f"{prefix}kd = {fmt(mat.get('kd', [0.5, 0.5, 0.5]))}",
-    ]
+    lines = [f"{prefix}type = {mat.get('type', 'matte')}" ]
+    if mat.get("map_kd"):
+        texture = f"tex_{_sanitize(name)}"
+        lines.extend((f"scene.textures.{texture}.type = imagemap",
+                      f"scene.textures.{texture}.file = {mat['map_kd']}",
+                      f"{prefix}kd = {texture}"))
+    else:
+        lines.append(f"{prefix}kd = {fmt(mat.get('kd', [0.5, 0.5, 0.5]))}")
     for key in ("ks", "uroughness", "vroughness", "index"):
         value = mat.get(key)
         if value is not None:
@@ -347,7 +473,7 @@ def build_scene(scene_data: dict, luxcore_module: Any | None = None) -> Any:
     props = luxcore_module.Properties()
     for name, mat in scene_data.get("materials", {}).items():
         prefix = f"scene.materials.{name}."
-        props.SetFromString(_material_props(prefix, mat))
+        props.SetFromString(_material_props(prefix, mat, name))
     for obj in scene_data.get("objects", []):
         obj_type = obj.get("type", "mesh")
         if obj_type == "asset":
@@ -372,12 +498,18 @@ def build_scene(scene_data: dict, luxcore_module: Any | None = None) -> Any:
             vertices, faces = obj.get("vertices", []), obj.get("triangles", [])
         if vertices and faces:
             prefix = f"scene.objects.{obj.get('name', 'object')}."
-            props.SetFromString(f"{prefix}material = {obj.get('material', '')}\n{prefix}vertices = {' '.join(map(str, vertices))}\n{prefix}faces = {' '.join(map(str, faces))}")
+            mesh_name = f"mesh_{obj.get('name', 'object')}"
+            points = list(zip(vertices[0::3], vertices[1::3], vertices[2::3]))
+            triangles = list(zip(faces[0::3], faces[1::3], faces[2::3]))
+            scene.DefineMesh(mesh_name, points, triangles, None, _primitive_uvs(vertices), None, None, None)
+            props.SetFromString(f"{prefix}material = {obj.get('material', '')}\n{prefix}shape = {mesh_name}")
     for light in scene_data.get("lights", []):
         prefix = f"scene.lights.{light.get('name', 'light')}."
         light_type = light.get("type")
         if light_type == "directional":
             props.SetFromString(f"{prefix}type = sharpdistant\n{prefix}direction = {' '.join(map(str, light.get('direction', [0, 0, -1])))}\n{prefix}gain = {' '.join(map(str, light.get('gain', [1, 1, 1])))}")
+        elif light_type == "infinite":
+            props.SetFromString(f"{prefix}type = infinite\n{prefix}file = {light['file']}\n{prefix}gamma = {light.get('gamma', 1.0)}\n{prefix}gain = {' '.join(map(str, light.get('gain', [1, 1, 1])))}")
         elif light_type == "constantinfinite":
             props.SetFromString(f"{prefix}type = constantinfinite\n{prefix}color = {' '.join(map(str, light.get('color', [1, 1, 1])))}\n{prefix}gain = {' '.join(map(str, light.get('gain', [1, 1, 1])))}")
         else:
@@ -412,6 +544,13 @@ def _box_to_mesh(size: list, position: list | None = None, rotation: float = 0):
         vertices += [vx * cos_a - vy * sin_a + px, vx * sin_a + vy * cos_a + py, vz + pz]
     faces = [0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1, 2, 6, 7, 2, 7, 3, 0, 3, 7, 0, 7, 4, 1, 5, 6, 1, 6, 2]
     return vertices, faces
+
+
+def _primitive_uvs(vertices: list[float]) -> list[tuple[float, float]]:
+    points = list(zip(vertices[0::3], vertices[1::3], vertices[2::3]))
+    min_x = min((p[0] for p in points), default=0)
+    min_y = min((p[1] for p in points), default=0)
+    return [((x - min_x) * 0.5, (y - min_y) * 0.5) for x, y, _ in points]
 
 
 def _polygon_to_mesh(vertices: list, z: float, height: float):

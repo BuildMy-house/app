@@ -25,6 +25,66 @@ const DEFAULT_FLOOR_COLOR = 0xc8c8c8
 const DEFAULT_FURNITURE_COLOR = 0x9e9e9e
 const DEFAULT_CEILING_COLOR = 0xf0f0f0
 
+// Ticket 5a: real glass/reflective window materials. Windows have no
+// dedicated data-model discriminator (Furniture.doorOrWindow?: boolean is
+// shared with doors) — reuse the same name-regex convention already used by
+// src/automation/homely-handler.ts's add_door/add_window case to tell them
+// apart, rather than inventing a second mechanism.
+const WINDOW_GLASS_COLOR = 0xbfe3f0
+const WINDOW_GLASS_ROUGHNESS = 0.05
+const WINDOW_GLASS_METALNESS = 0
+const WINDOW_GLASS_TRANSMISSION = 0.9
+const WINDOW_GLASS_IOR = 1.5
+const WINDOW_GLASS_THICKNESS = 2
+const WINDOW_GLASS_TINT = 0x1a2a33
+
+// Ticket 5b: furniture fabric materials. Soft-furnishing box fallbacks (the
+// vast majority of catalog/manual furniture, which has no GLB model) render
+// as a flat hard-surface MeshStandardMaterial today; a subtle sheen lobe
+// (MeshPhysicalMaterial's sheen/sheenRoughness) gives them a matte, fabric-
+// like look without needing per-item fabric selection UI or new schema
+// fields — kept intentionally modest per the ticket's scope (materials only,
+// not furniture-model fidelity).
+const FABRIC_ROUGHNESS = 0.85
+const FABRIC_SHEEN = 0.6
+const FABRIC_SHEEN_ROUGHNESS = 0.7
+const FABRIC_SHEEN_COLOR = 0xffffff
+
+// Ticket 5b: general lighting controls. A single runtime multiplier applied
+// to every light's base intensity — a presentation/viewing control (like
+// showRoof), not persisted home state, so it needs no schema/export changes.
+const DEFAULT_LIGHT_INTENSITY = 1
+
+// Ticket 5c: exterior cladding material fidelity for walls (distinct from
+// window glass). There is no interior/exterior wall discriminator in the
+// data model (Wall has no room-adjacency reference, and Room has no wall
+// reference — walls and rooms are independent geometry, SweetHome3D-style),
+// so per-wall exterior detection would require real polygon adjacency
+// analysis — a materially bigger lift than this ticket's siblings. Kept
+// modest instead: every wall's material becomes a MeshPhysicalMaterial with
+// a subtle clearcoat lobe (weather-sealed paint/siding sheen) layered on top
+// of the existing diffuse/roughness/PBR-map pipeline, which keeps working
+// unmodified since MeshPhysicalMaterial is a strict superset of the
+// MeshStandardMaterial properties applyMaterialTextures() already sets.
+const CLADDING_CLEARCOAT = 0.15
+const CLADDING_CLEARCOAT_ROUGHNESS = 0.4
+
+// Ticket 5d: basic exterior site context. No new asset pipeline (there is
+// no tree/deck GLB asset shipped, and adding one is out of scope) — trees
+// and a deck are built from plain THREE.js primitive geometry, the same
+// spirit as roofMesh()'s procedural BufferGeometry. Ground plane variation
+// is done with a deterministic per-vertex color hash (no canvas/DOM, so it
+// works in the Node test environment) rather than a new snow/grass image
+// texture, since WALL_TEXTURES entries are resolved against a real R2 CDN
+// bucket this session has no way to upload new files to.
+const GROUND_SEGMENTS = 48
+const GROUND_VARIATION_STRENGTH = 0.12
+const SITE_CONTEXT_MARGIN_CM = 250
+const TREE_TRUNK_COLOR = 0x6b4a30
+const TREE_FOLIAGE_COLOR = 0x3f6b35
+const DECK_COLOR = 0x8a6440
+const DECK_THICKNESS_CM = 15
+
 const GROUND_SIZE_CM = 100_000
 const GRID_SIZE_CM = 20_000
 const GRID_DIVISIONS = 40
@@ -122,11 +182,9 @@ export function wallMesh(
   const dy = wall.yEnd - wall.yStart
   const length = Math.hypot(dx, dy)
   const height = wall.height ?? DEFAULT_WALL_HEIGHT_CM
-  const material = new THREE.MeshStandardMaterial({
-    color: wall.leftSideColor ?? DEFAULT_WALL_COLOR,
-    roughness: 0.7,
-    metalness: 0.0,
-  })
+  // Ticket 5c: exterior cladding material — MeshPhysicalMaterial + clearcoat
+  // instead of a flat MeshStandardMaterial (see claddingMaterial() above).
+  const material = claddingMaterial(wall.leftSideColor ?? DEFAULT_WALL_COLOR, 0.7, 0.0)
   // SH3D Wall3D.java:1522 — wallsAlpha is a TRANSPARENCY (0 = opaque).
   if (wallsTransparency > 0) {
     material.transparent = true
@@ -776,6 +834,71 @@ function swapInModel(
   }
 }
 
+/**
+ * Windows have no dedicated data-model discriminator: Furniture.doorOrWindow
+ * is shared with doors, so this mirrors the exact convention already used by
+ * src/automation/homely-handler.ts's add_door/add_window case (a name regex
+ * combined with the doorOrWindow flag) instead of inventing a new one.
+ */
+export function isWindowFurniture(item: Furniture): boolean {
+  return item.doorOrWindow === true && /window/i.test(item.name)
+}
+
+/**
+ * Real glass material (Ticket 5a) replacing the flat blue-box "glazing
+ * placeholder": MeshPhysicalMaterial with transmission gives actual
+ * refraction/see-through behavior instead of an opaque colored box.
+ */
+function windowGlassMaterial(): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
+    color: WINDOW_GLASS_COLOR,
+    roughness: WINDOW_GLASS_ROUGHNESS,
+    metalness: WINDOW_GLASS_METALNESS,
+    transmission: WINDOW_GLASS_TRANSMISSION,
+    ior: WINDOW_GLASS_IOR,
+    thickness: WINDOW_GLASS_THICKNESS,
+    attenuationColor: WINDOW_GLASS_TINT,
+    attenuationDistance: 100,
+    transparent: true,
+  })
+}
+
+/**
+ * Fabric-like material (Ticket 5b) for soft-furnishing box fallbacks: a
+ * sheen lobe on top of a matte base gives a woven/upholstered look instead
+ * of the previous flat hard-surface MeshStandardMaterial.
+ */
+function fabricMaterial(color: number): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: FABRIC_ROUGHNESS,
+    metalness: 0,
+    sheen: FABRIC_SHEEN,
+    sheenRoughness: FABRIC_SHEEN_ROUGHNESS,
+    sheenColor: new THREE.Color(FABRIC_SHEEN_COLOR),
+  })
+}
+
+/**
+ * Exterior cladding material (Ticket 5c) for walls: a MeshPhysicalMaterial
+ * with a subtle clearcoat lobe on top of the same color/roughness/metalness
+ * inputs the old MeshStandardMaterial used, giving painted siding/stucco a
+ * believable weather-sealed sheen instead of a completely flat diffuse
+ * surface. Deliberately colour/roughness-parametrized (not hardcoded) so
+ * applyMaterialTextures()'s existing per-wall texture/PBR-map pipeline keeps
+ * working unmodified — this only changes the material class and adds the
+ * clearcoat lobe, not the diffuse/texturing behavior.
+ */
+function claddingMaterial(color: number, roughness: number, metalness: number): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
+    color,
+    roughness,
+    metalness,
+    clearcoat: CLADDING_CLEARCOAT,
+    clearcoatRoughness: CLADDING_CLEARCOAT_ROUGHNESS,
+  })
+}
+
 export function furnitureMesh(
   item: Furniture,
   elevation: number,
@@ -783,12 +906,11 @@ export function furnitureMesh(
   isSelected = false,
 ): THREE.Mesh {
   const geometry = new THREE.BoxGeometry(item.width, item.height, item.depth)
-  const material = new THREE.MeshStandardMaterial({
-    color: item.color ?? DEFAULT_FURNITURE_COLOR,
-    roughness: 0.7,
-    metalness: 0.0,
-  })
-  if (item.textureId) {
+  const isWindow = isWindowFurniture(item)
+  const material = isWindow
+    ? windowGlassMaterial()
+    : fabricMaterial(item.color ?? DEFAULT_FURNITURE_COLOR)
+  if (!isWindow && item.textureId) {
     const entry = applyMaterialTextures(material, item.textureId)
     if (entry?.aoFile) addUv2(geometry)
   }
@@ -830,9 +952,13 @@ function addFurnitureMeshes(
     const candidates = group.items.filter((it) => !selectionSet.has(it.id))
     if (candidates.length < 2) continue
     const first = candidates[0]!
+    // Windows always render individually via furnitureMesh() so they get the
+    // real glass MeshPhysicalMaterial (Ticket 5a) instead of being batched
+    // into a shared, non-glass InstancedMesh.
     const canInstance = candidates.every(
       (it) =>
         !it.modelPath &&
+        !isWindowFurniture(it) &&
         it.width === first.width &&
         it.height === first.height &&
         it.depth === first.depth &&
@@ -845,11 +971,7 @@ function addFurnitureMeshes(
     // geometry so instances occupy the same volume as furnitureMesh boxes.
     const geometry = new THREE.BoxGeometry(first.width, first.height, first.depth)
     geometry.translate(0, first.height / 2, 0)
-    const material = new THREE.MeshStandardMaterial({
-      color: effectiveColor(first),
-      roughness: 0.7,
-      metalness: 0.0,
-    })
+    const material = fabricMaterial(effectiveColor(first))
     if (first.textureId) {
       const entry = applyMaterialTextures(material, first.textureId)
       if (entry?.aoFile) addUv2(geometry)
@@ -928,6 +1050,140 @@ function applySelectionHighlight(scene: THREE.Scene, selectionSet: Set<string>):
   })
 }
 
+// ── Ticket 5d: basic exterior site context ─────────────────────────────────
+
+/**
+ * Deterministic pseudo-random hash in [0, 1) for a 2D position. Not a real
+ * RNG — a cheap, stable "noise" so ground variation and prop placement are
+ * identical every rebuild (no shimmering/jumping props between frames) and
+ * identical in tests (no seeding needed).
+ */
+function positionHash(x: number, z: number): number {
+  const s = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453
+  return s - Math.floor(s)
+}
+
+/**
+ * Paints per-vertex color noise onto a ground PlaneGeometry so a flat
+ * MeshStandardMaterial reads as natural grass/snow variation instead of a
+ * single flat color. Requires `material.vertexColors = true` and a neutral
+ * white `material.color` from the caller — the noise already encodes
+ * `baseColor` per vertex.
+ */
+function applyGroundVariation(geometry: THREE.PlaneGeometry, baseColor: THREE.Color): void {
+  const pos = geometry.getAttribute('position')
+  const colors = new Float32Array(pos.count * 3)
+  const c = new THREE.Color()
+  for (let i = 0; i < pos.count; i++) {
+    const noise = positionHash(pos.getX(i), pos.getY(i))
+    const factor = 1 + (noise - 0.5) * 2 * GROUND_VARIATION_STRENGTH
+    c.copy(baseColor).multiplyScalar(factor)
+    colors[i * 3] = c.r
+    colors[i * 3 + 1] = c.g
+    colors[i * 3 + 2] = c.b
+  }
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+}
+
+export interface FootprintBounds {
+  minX: number
+  maxX: number
+  minY: number
+  maxY: number
+}
+
+/** Bounding box (plan-space, cm) of every wall endpoint. Null when there are
+ * no walls — nothing to place site-context props around. */
+export function wallFootprintBounds(walls: ReadonlyArray<Wall>): FootprintBounds | null {
+  if (walls.length === 0) return null
+  let minX = Infinity
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+  for (const wall of walls) {
+    for (const [x, y] of [
+      [wall.xStart, wall.yStart],
+      [wall.xEnd, wall.yEnd],
+    ] as const) {
+      minX = Math.min(minX, x)
+      maxX = Math.max(maxX, x)
+      minY = Math.min(minY, y)
+      maxY = Math.max(maxY, y)
+    }
+  }
+  return { minX, maxX, minY, maxY }
+}
+
+/** Simple low-poly tree — trunk cylinder + conical foliage. No GLB asset
+ * ships for this yet (out of scope to add one this ticket), so it is built
+ * from primitive geometry, the same approach roofMesh() already uses. */
+function treeMesh(x: number, z: number, scale: number): THREE.Group {
+  const group = new THREE.Group()
+  const trunkHeight = 220 * scale
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(12 * scale, 16 * scale, trunkHeight, 8),
+    new THREE.MeshStandardMaterial({ color: TREE_TRUNK_COLOR, roughness: 0.9, metalness: 0 }),
+  )
+  trunk.position.y = trunkHeight / 2
+  trunk.castShadow = true
+  trunk.receiveShadow = true
+  group.add(trunk)
+
+  const foliageHeight = 320 * scale
+  const foliage = new THREE.Mesh(
+    new THREE.ConeGeometry(140 * scale, foliageHeight, 10),
+    new THREE.MeshStandardMaterial({ color: TREE_FOLIAGE_COLOR, roughness: 0.85, metalness: 0 }),
+  )
+  foliage.position.y = trunkHeight + foliageHeight / 2 - 20 * scale
+  foliage.castShadow = true
+  foliage.receiveShadow = true
+  group.add(foliage)
+
+  group.position.set(x, 0, z)
+  group.name = 'site-context:tree'
+  return group
+}
+
+/** Simple deck placeholder — a flat raised box along one side of the house.
+ * No GLB asset ships for this either; a slab is an honest, modest stand-in
+ * rather than a fabricated "realistic deck" model. */
+function deckMesh(x: number, z: number, width: number, depth: number): THREE.Mesh {
+  const deck = new THREE.Mesh(
+    new THREE.BoxGeometry(width, DECK_THICKNESS_CM, depth),
+    new THREE.MeshStandardMaterial({ color: DECK_COLOR, roughness: 0.75, metalness: 0 }),
+  )
+  deck.position.set(x, DECK_THICKNESS_CM / 2, z)
+  deck.castShadow = true
+  deck.receiveShadow = true
+  deck.name = 'site-context:deck'
+  return deck
+}
+
+/**
+ * Adds a handful of trees and one deck around the house footprint. Only
+ * meaningful in the outside/whole-model view (isOutsideView) — site context
+ * has no place cluttering the interior single-floor editing view, matching
+ * the existing isOutsideView gating used for ceilings/rooms elsewhere in
+ * this file. A no-op when there is no wall geometry to place props around.
+ */
+function addSiteContext(root: THREE.Group, walls: ReadonlyArray<Wall>): void {
+  const bounds = wallFootprintBounds(walls)
+  if (!bounds) return
+  const { minX, maxX, minY, maxY } = bounds
+  const margin = SITE_CONTEXT_MARGIN_CM
+  const corners: Array<[number, number, number]> = [
+    [minX - margin, minY - margin, 1],
+    [maxX + margin, minY - margin, 1.15],
+    [minX - margin, maxY + margin, 0.9],
+  ]
+  for (const [x, z, scale] of corners) {
+    root.add(treeMesh(x, z, scale))
+  }
+  const deckWidth = Math.max(200, (maxX - minX) * 0.4)
+  const deckDepth = 300
+  root.add(deckMesh(maxX + margin + deckDepth / 2, (minY + maxY) / 2, deckDepth, deckWidth))
+}
+
 /** Full scene rebuild from a normalized home snapshot. Deterministic. */
 export function buildScene(
   home: NormalizedHomeState,
@@ -936,6 +1192,13 @@ export function buildScene(
     onModelReady?: () => void
     activeLevel?: string | null
     isOutsideView?: boolean
+    /** Hide every roof mesh (roof cutaway / interior-view mode). Defaults to true (roofs shown). */
+    showRoof?: boolean
+    /** Multiplier applied to every light's base intensity. Defaults to 1 (unchanged). */
+    lightIntensity?: number
+    /** Trees/deck placeholders + ground variation (Ticket 5d). Defaults to true; only
+     * renders in the outside/whole-model view regardless of this flag. */
+    showSiteContext?: boolean
   },
 ): THREE.Scene {
   const previousResolver = activeModelUrlResolver
@@ -946,6 +1209,9 @@ export function buildScene(
       options?.onModelReady,
       options?.activeLevel ?? null,
       options?.isOutsideView ?? false,
+      options?.showRoof ?? true,
+      options?.lightIntensity ?? DEFAULT_LIGHT_INTENSITY,
+      options?.showSiteContext ?? true,
     )
   } finally {
     activeModelUrlResolver = previousResolver
@@ -983,6 +1249,9 @@ function buildSceneInner(
   onModelReady?: () => void,
   activeLevel: string | null = null,
   isOutsideView = false,
+  showRoof = true,
+  lightIntensity = DEFAULT_LIGHT_INTENSITY,
+  showSiteContext = true,
 ): THREE.Scene {
   const scene = new THREE.Scene()
   if (home.environment.skyColor !== null) {
@@ -993,11 +1262,11 @@ function buildSceneInner(
   // + soft fill DirectionalLight (opposite side, no shadows) to lift shadowed faces
   const skyColor = new THREE.Color(home.environment.skyColor ?? 0xcce4fc)
   const groundColor = new THREE.Color(home.environment.groundColor ?? 0x808080)
-  scene.add(new THREE.HemisphereLight(skyColor, groundColor, 1.0))
-  scene.add(new THREE.AmbientLight(home.environment.lightColor ?? 0xffffff, 0.5))
+  scene.add(new THREE.HemisphereLight(skyColor, groundColor, 1.0 * lightIntensity))
+  scene.add(new THREE.AmbientLight(home.environment.lightColor ?? 0xffffff, 0.5 * lightIntensity))
 
   const dirLightColor = new THREE.Color(home.environment.lightColor ?? 0xffffff)
-  const directional = new THREE.DirectionalLight(dirLightColor, 0.8)
+  const directional = new THREE.DirectionalLight(dirLightColor, 0.8 * lightIntensity)
   directional.position.set(200, 400, 300)
   directional.castShadow = true
   directional.shadow.mapSize.set(2048, 2048)
@@ -1015,13 +1284,23 @@ function buildSceneInner(
 
   // Soft fill light from roughly opposite direction — lifts shadowed faces
   // without flattening the main directional shadow contrast.
-  const fillLight = new THREE.DirectionalLight(dirLightColor, 0.25)
+  const fillLight = new THREE.DirectionalLight(dirLightColor, 0.25 * lightIntensity)
   fillLight.position.set(-300, 300, -200)
   scene.add(fillLight)
 
   if (home.environment.groundColor !== null) {
     const groundTexId = home.environment.groundTextureId
-    const groundGeometry = new THREE.PlaneGeometry(GROUND_SIZE_CM, GROUND_SIZE_CM)
+    // Ticket 5d: subdivide so per-vertex ground variation (grass/snow look)
+    // has somewhere to vary — a 1x1 plane only has 4 vertices.
+    const groundGeometry = new THREE.PlaneGeometry(GROUND_SIZE_CM, GROUND_SIZE_CM, GROUND_SEGMENTS, GROUND_SEGMENTS)
+    // Ticket 5d: an untextured ground gets deterministic per-vertex color
+    // noise for a natural (non-flat) grass/snow look, instead of a new
+    // snow/grass image texture — WALL_TEXTURES entries resolve against a
+    // real R2 CDN bucket this session cannot upload new files to.
+    const plainGroundMaterial = (): THREE.MeshStandardMaterial => {
+      applyGroundVariation(groundGeometry, new THREE.Color(home.environment.groundColor!))
+      return new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.95, metalness: 0 })
+    }
     const mat = groundTexId
       ? (() => {
           const tex = loadWallTexture(groundTexId)
@@ -1033,9 +1312,9 @@ function buildSceneInner(
             if (entry?.aoFile) addUv2(groundGeometry)
             return groundMaterial
           }
-          return new THREE.MeshStandardMaterial({ color: home.environment.groundColor })
+          return plainGroundMaterial()
         })()
-      : new THREE.MeshStandardMaterial({ color: home.environment.groundColor })
+      : plainGroundMaterial()
     const ground = new THREE.Mesh(groundGeometry, mat)
     ground.rotation.x = -Math.PI / 2
     ground.name = 'ground'
@@ -1065,6 +1344,13 @@ function buildSceneInner(
 
   const root = new THREE.Group()
   root.name = 'home'
+  // Ticket 5d: site context (trees/deck) only makes sense stepping outside
+  // to view the whole model — never while editing a single floor from
+  // inside, matching the isOutsideView gating already used for ceilings
+  // and below-level rooms above.
+  if (isOutsideView && showSiteContext) {
+    addSiteContext(root, home.walls)
+  }
   for (const wall of home.walls) {
     const isActive = matchesLevel(wall.levelRef, activeLevel)
     const isBelowActive = belowLevelId !== undefined && (wall.levelRef ?? null) === belowLevelId
@@ -1093,6 +1379,7 @@ function buildSceneInner(
     }
   }
   for (const roof of home.roofs) {
+    if (!showRoof) continue
     if (!matchesLevel(roof.levelRef, activeLevel) && !isOutsideView) continue
     const level = home.levels.find((item) => item.id === roof.levelRef)
     const mesh = roofMesh(

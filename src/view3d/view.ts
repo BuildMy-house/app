@@ -107,6 +107,9 @@ export class View3D {
   private _lastDeltaMs = 0
   private _activeLevel: string | null = null
   private _isOutsideView = false
+  private _showRoof = true
+  private _lightIntensity = 1
+  private _showSiteContext = true
   // Only changes when the scene graph is rebuilt, never during camera orbit.
   private _instancedMeshCount = 0
   private _composer: EffectComposer | undefined
@@ -126,6 +129,9 @@ export class View3D {
       onModelReady: () => this.startAnimationLoop(),
       activeLevel: this._activeLevel,
       isOutsideView: this._isOutsideView,
+      showRoof: this._showRoof,
+      lightIntensity: this._lightIntensity,
+      showSiteContext: this._showSiteContext,
     })
     this.countInstancedMeshes()
     this.perspectiveCamera = new THREE.PerspectiveCamera(63, 4 / 3, 1, 500_000)
@@ -259,6 +265,55 @@ export class View3D {
   setOutsideView(value: boolean): void {
     if (this._isOutsideView === value) return
     this._isOutsideView = value
+    this.rebuild()
+  }
+
+  get showRoof(): boolean {
+    return this._showRoof
+  }
+
+  /**
+   * Roof cutaway / hide-roof mode: hides every roof mesh so the interior is
+   * visible from perspective/observer cameras without a section-camera or
+   * exporter-side omission hack. Independent of isOutsideView/activeLevel —
+   * a full scene rebuild picks it up the same way those do.
+   */
+  setRoofVisible(value: boolean): void {
+    if (this._showRoof === value) return
+    this._showRoof = value
+    this.rebuild()
+  }
+
+  get lightIntensity(): number {
+    return this._lightIntensity
+  }
+
+  /**
+   * General lighting control (Ticket 5b): a multiplier on every light's base
+   * intensity (hemisphere/ambient/directional/fill), for exposure adjustment
+   * without editing the persisted home environment. Independent of
+   * home.environment.lightColor, which controls color/tint, not brightness.
+   */
+  setLightIntensity(value: number): void {
+    if (this._lightIntensity === value) return
+    this._lightIntensity = value
+    this.rebuild()
+  }
+
+  get showSiteContext(): boolean {
+    return this._showSiteContext
+  }
+
+  /**
+   * Basic exterior site context (Ticket 5d): trees/deck placeholders + ground
+   * variation. Only renders in the outside/whole-model view regardless of
+   * this flag (see buildScene's isOutsideView gating) — this flag lets the
+   * caller suppress it even while outside, e.g. for a clean architectural
+   * screenshot.
+   */
+  setSiteContextVisible(value: boolean): void {
+    if (this._showSiteContext === value) return
+    this._showSiteContext = value
     this.rebuild()
   }
 
@@ -525,6 +580,9 @@ export class View3D {
       onModelReady: () => this.startAnimationLoop(),
       activeLevel: this._activeLevel,
       isOutsideView: this._isOutsideView,
+      showRoof: this._showRoof,
+      lightIntensity: this._lightIntensity,
+      showSiteContext: this._showSiteContext,
     })
     this.countInstancedMeshes()
     this.applyQualityToScene()

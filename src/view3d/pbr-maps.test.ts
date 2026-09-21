@@ -81,7 +81,7 @@ describe('PBR map wiring (MAT-T2)', () => {
     expect(furniture.geometry.getAttribute('uv2')).toBeDefined()
   })
 
-  it('texture-free materials keep the 0.7/0.0 baseline and get no PBR maps', () => {
+  it('texture-free materials keep their baseline roughness and get no PBR maps', () => {
     const home = createEmptyHome()
     home.walls.push({ id: 'w1', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 15 })
     home.furniture.push({
@@ -89,13 +89,18 @@ describe('PBR map wiring (MAT-T2)', () => {
       width: 100, depth: 50, height: 75, elevation: 0,
     })
     const scene = buildScene(home)
-    for (const mesh of [findMesh(scene, 'wall:w1')!, findMesh(scene, 'furniture:f1')!]) {
+    // Walls keep the plain 0.7 baseline; furniture uses the fabric material's
+    // 0.85 baseline (Ticket 5b: furniture fabric materials) — both still get
+    // no PBR maps when texture-free.
+    const expectedRoughness: Record<string, number> = { 'wall:w1': 0.7, 'furniture:f1': 0.85 }
+    for (const name of Object.keys(expectedRoughness)) {
+      const mesh = findMesh(scene, name)!
       const mat = mesh.material as THREE.MeshStandardMaterial
       expect(mat.map).toBeNull()
       expect(mat.normalMap).toBeNull()
       expect(mat.roughnessMap).toBeNull()
       expect(mat.aoMap).toBeNull()
-      expect(mat.roughness).toBe(0.7)
+      expect(mat.roughness).toBe(expectedRoughness[name])
       expect(mat.metalness).toBe(0)
     }
   })

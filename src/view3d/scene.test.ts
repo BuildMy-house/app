@@ -6,7 +6,10 @@ import {
   buildScene,
   remapExtrudeUvs,
   __seedModelCache,
+  __seedTextureCache,
+  __clearTextureCache,
   SELECTION_EMISSIVE_COLOR,
+  isWindowFurniture,
 } from './scene'
 import {
   applySceneUpdate,
@@ -83,6 +86,56 @@ describe('roof 3D extrusion (X3)', () => {
     mesh.geometry.computeBoundingBox()
     expect(mesh.geometry.boundingBox!.min.x).toBe(-20)
     expect(mesh.geometry.boundingBox!.max.x).toBe(420)
+  })
+})
+
+// ── Ticket 4: roof cutaway / hide-roof mode ─────────────────────────────────
+
+describe('showRoof option (roof cutaway / hide-roof mode)', () => {
+  function homeWithRoof(): ReturnType<typeof createEmptyHome> {
+    const home = createEmptyHome()
+    home.levels.push({
+      id: 'level-1', name: 'Ground', elevation: 0, floorThickness: 5,
+      height: 250, visible: true, viewable: true,
+    })
+    home.roofs.push({
+      id: 'roof-1', points: [[0, 0], [400, 0], [400, 200], [0, 200]],
+      levelRef: 'level-1', style: 'gable', pitchDeg: 30, overhangCm: 20,
+    })
+    return home
+  }
+
+  it('shows the roof by default (option omitted)', () => {
+    const scene = buildScene(homeWithRoof())
+    expect(roofMeshes(scene).length).toBe(1)
+  })
+
+  it('shows the roof when showRoof is explicitly true', () => {
+    const scene = buildScene(homeWithRoof(), { showRoof: true })
+    expect(roofMeshes(scene).length).toBe(1)
+  })
+
+  it('hides every roof mesh when showRoof is false', () => {
+    const scene = buildScene(homeWithRoof(), { showRoof: false })
+    expect(roofMeshes(scene).length).toBe(0)
+  })
+
+  it('showRoof=false hides roofs even in outside view (all-levels) mode', () => {
+    const scene = buildScene(homeWithRoof(), { showRoof: false, isOutsideView: true })
+    expect(roofMeshes(scene).length).toBe(0)
+  })
+
+  it('showRoof=false does not affect walls/rooms — only roofs are hidden', () => {
+    const home = homeWithRoof()
+    home.rooms.push({
+      id: 'r1', points: [[0, 0], [100, 0], [100, 100], [0, 100]],
+      levelRef: 'level-1',
+    })
+    const scene = buildScene(home, { showRoof: false })
+    expect(roofMeshes(scene).length).toBe(0)
+    expect(ceilingMeshes(scene).length).toBe(0) // interior view: ceilings stay hidden too
+    const rooms = scene.getObjectByName('home')
+    expect(rooms).toBeDefined()
   })
 })
 
@@ -443,6 +496,273 @@ describe('furniture mirror (M60)', () => {
     const mesh = meshes[0]!
     expect(mesh.scale.x).toBe(-1)
     expect(mesh.rotation.y).toBeCloseTo(Math.PI / 2, 10)
+  })
+})
+
+describe('window glass material (Ticket 5a)', () => {
+  function windowItem(id: string, overrides: Partial<Furniture> = {}): Furniture {
+    return {
+      id, name: 'Window',
+      x: 0, y: 0, angleDeg: 0,
+      width: 120, depth: 10, height: 100,
+      elevation: 90,
+      doorOrWindow: true,
+      ...overrides,
+    }
+  }
+
+  it('isWindowFurniture requires both doorOrWindow and a name match', () => {
+    expect(isWindowFurniture(windowItem('w1'))).toBe(true)
+    expect(isWindowFurniture(windowItem('w2', { name: 'Sliding Window' }))).toBe(true)
+    expect(isWindowFurniture(windowItem('w3', { doorOrWindow: false }))).toBe(false)
+    expect(isWindowFurniture(windowItem('w4', { name: 'Door' }))).toBe(false)
+    expect(
+      isWindowFurniture({
+        id: 'w5', name: 'Sofa', x: 0, y: 0, angleDeg: 0,
+        width: 100, depth: 50, height: 80, elevation: 0,
+      }),
+    ).toBe(false)
+  })
+
+  it('window furniture gets a transmissive MeshPhysicalMaterial, not the flat box material', () => {
+    const home = createEmptyHome()
+    home.furniture.push(windowItem('w1'))
+    const scene = buildScene(home)
+    const mesh = furnitureMeshes(scene)[0]!
+    expect(mesh.material).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    const mat = mesh.material as THREE.MeshPhysicalMaterial
+    expect(mat.transmission).toBeGreaterThan(0)
+  })
+
+  it('non-window furniture gets the fabric material (Ticket 5b), not transmissive glass', () => {
+    const home = createEmptyHome()
+    home.furniture.push({
+      id: 'f1', name: 'Sofa',
+      x: 0, y: 0, angleDeg: 0,
+      width: 200, depth: 80, height: 90,
+      elevation: 0,
+    })
+    const scene = buildScene(home)
+    const mesh = furnitureMeshes(scene)[0]!
+    expect(mesh.material).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    expect((mesh.material as THREE.MeshPhysicalMaterial).transmission).toBe(0)
+  })
+
+  it('a door (doorOrWindow=true but name Door) is not treated as glass (no transmission)', () => {
+    const home = createEmptyHome()
+    home.furniture.push(windowItem('d1', { name: 'Door', doorOrWindow: true }))
+    const scene = buildScene(home)
+    const mesh = furnitureMeshes(scene)[0]!
+    expect((mesh.material as THREE.MeshPhysicalMaterial).transmission).toBe(0)
+  })
+
+  it('multiple identical windows are excluded from instancing and each render individually', () => {
+    const home = createEmptyHome()
+    for (let i = 0; i < 3; i++) home.furniture.push(windowItem(`w${i}`, { x: i * 150 }))
+    const scene = buildScene(home)
+    expect(instancedFurnitureMeshes(scene).length).toBe(0)
+    const meshes = furnitureMeshes(scene)
+    expect(meshes.length).toBe(3)
+    for (const mesh of meshes) {
+      expect(mesh.material).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    }
+  })
+})
+
+describe('furniture fabric material (Ticket 5b)', () => {
+  it('box furniture without a GLB model gets a sheen fabric material', () => {
+    const home = createEmptyHome()
+    home.furniture.push({
+      id: 'f1', name: 'Armchair',
+      x: 0, y: 0, angleDeg: 0,
+      width: 90, depth: 90, height: 80,
+      elevation: 0, color: 0x336699,
+    })
+    const scene = buildScene(home)
+    const mesh = furnitureMeshes(scene)[0]!
+    const mat = mesh.material as THREE.MeshPhysicalMaterial
+    expect(mat).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    expect(mat.sheen).toBeGreaterThan(0)
+    expect(mat.color.getHex()).toBe(0x336699)
+  })
+
+  it('instanced fabric furniture also gets the sheen material', () => {
+    const home = createEmptyHome()
+    for (let i = 0; i < 3; i++) {
+      home.furniture.push({
+        id: `c${i}`, name: 'Chair', catalogId: 'chair-a',
+        x: i * 60, y: 0, angleDeg: 0,
+        width: 40, depth: 40, height: 80,
+        elevation: 0, color: 0xff0000,
+      })
+    }
+    const scene = buildScene(home)
+    const instanced = instancedFurnitureMeshes(scene)[0]!
+    const mat = instanced.material as THREE.MeshPhysicalMaterial
+    expect(mat).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    expect(mat.sheen).toBeGreaterThan(0)
+  })
+})
+
+describe('lightIntensity option (Ticket 5b: general lighting controls)', () => {
+  function lightsOf(scene: THREE.Scene): THREE.Light[] {
+    const lights: THREE.Light[] = []
+    scene.traverse((obj) => {
+      if (obj instanceof THREE.Light) lights.push(obj)
+    })
+    return lights
+  }
+
+  it('defaults to unchanged (multiplier 1) intensities', () => {
+    const home = createEmptyHome()
+    const scene = buildScene(home)
+    const defaultIntensities = lightsOf(scene).map((l) => l.intensity)
+    const scene2 = buildScene(home, { lightIntensity: 1 })
+    const explicit = lightsOf(scene2).map((l) => l.intensity)
+    expect(defaultIntensities).toEqual(explicit)
+  })
+
+  it('scales every light intensity by the given multiplier', () => {
+    const home = createEmptyHome()
+    const base = lightsOf(buildScene(home)).map((l) => l.intensity)
+    const doubled = lightsOf(buildScene(home, { lightIntensity: 2 })).map((l) => l.intensity)
+    expect(doubled.length).toBe(base.length)
+    for (let i = 0; i < base.length; i++) {
+      expect(doubled[i]).toBeCloseTo(base[i]! * 2, 6)
+    }
+  })
+
+  it('zero multiplier zeroes out every light', () => {
+    const home = createEmptyHome()
+    const lights = lightsOf(buildScene(home, { lightIntensity: 0 }))
+    expect(lights.length).toBeGreaterThan(0)
+    for (const l of lights) expect(l.intensity).toBe(0)
+  })
+})
+
+describe('exterior cladding material (Ticket 5c)', () => {
+  it('wall meshes get a MeshPhysicalMaterial with a clearcoat lobe, not the old flat MeshStandardMaterial', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 300, yEnd: 0,
+      thickness: 15, leftSideColor: 0xd2d2d2,
+    })
+    const scene = buildScene(home)
+    const mesh = wallMeshes(scene)[0]!
+    expect(mesh.material).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    const mat = mesh.material as THREE.MeshPhysicalMaterial
+    expect(mat.clearcoat).toBeGreaterThan(0)
+    expect(mat.color.getHex()).toBe(0xd2d2d2)
+    expect(mat.roughness).toBeCloseTo(0.7, 6)
+    expect(mat.metalness).toBe(0)
+  })
+
+  it('a custom leftSideColor still comes through the cladding material unchanged', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 300, yEnd: 0,
+      thickness: 15, leftSideColor: 0x224466,
+    })
+    const scene = buildScene(home)
+    const mesh = wallMeshes(scene)[0]!
+    expect((mesh.material as THREE.MeshPhysicalMaterial).color.getHex()).toBe(0x224466)
+  })
+})
+
+describe('exterior site context (Ticket 5d)', () => {
+  function siteContextMeshes(scene: THREE.Scene, prefix: 'site-context:tree' | 'site-context:deck'): THREE.Object3D[] {
+    const found: THREE.Object3D[] = []
+    scene.traverse((obj) => {
+      if (obj.name === prefix) found.push(obj)
+    })
+    return found
+  }
+
+  function houseWithWalls() {
+    const home = createEmptyHome()
+    home.walls.push(
+      { id: 'w1', xStart: 0, yStart: 0, xEnd: 500, yEnd: 0, thickness: 15 },
+      { id: 'w2', xStart: 500, yStart: 0, xEnd: 500, yEnd: 400, thickness: 15 },
+      { id: 'w3', xStart: 500, yStart: 400, xEnd: 0, yEnd: 400, thickness: 15 },
+      { id: 'w4', xStart: 0, yStart: 400, xEnd: 0, yEnd: 0, thickness: 15 },
+    )
+    return home
+  }
+
+  it('adds trees and a deck only in the outside view', () => {
+    const home = houseWithWalls()
+    const inside = buildScene(home, { isOutsideView: false })
+    expect(siteContextMeshes(inside, 'site-context:tree').length).toBe(0)
+    expect(siteContextMeshes(inside, 'site-context:deck').length).toBe(0)
+
+    const outside = buildScene(home, { isOutsideView: true })
+    expect(siteContextMeshes(outside, 'site-context:tree').length).toBeGreaterThan(0)
+    expect(siteContextMeshes(outside, 'site-context:deck').length).toBe(1)
+  })
+
+  it('showSiteContext: false suppresses props even in the outside view', () => {
+    const home = houseWithWalls()
+    const scene = buildScene(home, { isOutsideView: true, showSiteContext: false })
+    expect(siteContextMeshes(scene, 'site-context:tree').length).toBe(0)
+    expect(siteContextMeshes(scene, 'site-context:deck').length).toBe(0)
+  })
+
+  it('is a no-op with no walls (nothing to place props around)', () => {
+    const home = createEmptyHome()
+    const scene = buildScene(home, { isOutsideView: true })
+    expect(siteContextMeshes(scene, 'site-context:tree').length).toBe(0)
+    expect(siteContextMeshes(scene, 'site-context:deck').length).toBe(0)
+  })
+
+  it('trees sit outside the wall footprint bounding box', () => {
+    const home = houseWithWalls()
+    const scene = buildScene(home, { isOutsideView: true })
+    for (const tree of siteContextMeshes(scene, 'site-context:tree')) {
+      const outsideX = tree.position.x < 0 || tree.position.x > 500
+      const outsideZ = tree.position.z < 0 || tree.position.z > 400
+      expect(outsideX || outsideZ).toBe(true)
+    }
+  })
+
+  it('an untextured ground gets per-vertex color variation (grass/snow look), not a single flat color', () => {
+    const home = createEmptyHome()
+    const scene = buildScene(home)
+    let ground: THREE.Mesh | undefined
+    scene.traverse((obj) => {
+      if (obj.name === 'ground') ground = obj as THREE.Mesh
+    })
+    expect(ground).toBeDefined()
+    const material = ground!.material as THREE.MeshStandardMaterial
+    expect(material.vertexColors).toBe(true)
+    const colorAttr = ground!.geometry.getAttribute('color')
+    expect(colorAttr).toBeDefined()
+    // Not every vertex identical — real variation, not a uniform tint.
+    const first = [colorAttr.getX(0), colorAttr.getY(0), colorAttr.getZ(0)]
+    let sawDifference = false
+    for (let i = 1; i < colorAttr.count; i++) {
+      if (colorAttr.getX(i) !== first[0] || colorAttr.getY(i) !== first[1] || colorAttr.getZ(i) !== first[2]) {
+        sawDifference = true
+        break
+      }
+    }
+    expect(sawDifference).toBe(true)
+  })
+
+  it('a textured ground (groundTextureId set) does not get vertex-color variation', () => {
+    __seedTextureCache('concrete.png', new THREE.Texture())
+    try {
+      const home = createEmptyHome()
+      home.environment.groundTextureId = 'concrete'
+      const scene = buildScene(home)
+      let ground: THREE.Mesh | undefined
+      scene.traverse((obj) => {
+        if (obj.name === 'ground') ground = obj as THREE.Mesh
+      })
+      const material = ground!.material as THREE.MeshStandardMaterial
+      expect(material.vertexColors).toBe(false)
+    } finally {
+      __clearTextureCache()
+    }
   })
 })
 
