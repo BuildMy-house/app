@@ -26,6 +26,9 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run build
 
+      - name: Warn about deployment cutover
+        run: echo "::warning::Production uses a blue/green app cutover; the current app remains live until the candidate passes its runtime smoke test."
+
       - name: Deploy via SSH (build + run on host, joins steward_acs_default)
         uses: appleboy/ssh-action@v1
         with:
@@ -45,15 +48,15 @@ jobs:
             docker build -t buildmyhouse-app:latest .
             docker build -t buildmyhouse-mcp:latest -f mcp/Dockerfile .
             docker build -t buildmyhouse-luxcore:latest -f luxcore/Dockerfile .
+            docker run --rm --entrypoint node buildmyhouse-app:latest \
+              --input-type=module -e "import('/app/dist/server/src/render-queue.js')"
             docker volume create buildmyhouse-app-data >/dev/null
             docker volume create buildmyhouse-luxcore-assets >/dev/null
 
-            docker stop buildmyhouse-app || true
-            docker rm buildmyhouse-app || true
-
-            docker run -d --name buildmyhouse-app \
+            CANDIDATE=buildmyhouse-app-candidate
+            docker rm -f "$CANDIDATE" >/dev/null 2>&1 || true
+            docker run -d --name "$CANDIDATE" \
               --network steward_acs_default \
-              --restart unless-stopped \
               -e JWT_SECRET="${{ secrets.APP_JWT_SECRET }}" \
               -e DB_PATH=/data/homely.db \
               -e ASSET_DIR=/data/assets \
@@ -61,6 +64,40 @@ jobs:
               -e PORT=3000 \
               -v buildmyhouse-app-data:/data \
               buildmyhouse-app:latest
+
+            echo "Waiting for candidate app health..."
+            healthy=0
+            for attempt in $(seq 1 30); do
+              if docker exec "$CANDIDATE" node --input-type=module -e "const r=await fetch('http://127.0.0.1:3000/healthz'); if (!r.ok) process.exit(1)"; then
+                healthy=1
+                break
+              fi
+              sleep 2
+            done
+            if [ "$healthy" -ne 1 ]; then
+              echo "::error::Candidate app failed health check; preserving the current production container."
+              docker logs "$CANDIDATE" || true
+              docker rm -f "$CANDIDATE" || true
+              exit 1
+            fi
+
+            if docker inspect buildmyhouse-app >/dev/null 2>&1; then
+              docker rename buildmyhouse-app buildmyhouse-app-previous
+            fi
+            docker rename "$CANDIDATE" buildmyhouse-app
+            docker update --restart unless-stopped buildmyhouse-app >/dev/null
+
+            echo "Checking the public app after blue/green cutover..."
+            if ! curl --fail --silent --show-error --retry 10 --retry-delay 2 https://app.buildmy.house/healthz >/dev/null; then
+              echo "::error::Public health check failed after cutover; rolling back the app container."
+              docker rm -f buildmyhouse-app || true
+              if docker inspect buildmyhouse-app-previous >/dev/null 2>&1; then
+                docker rename buildmyhouse-app-previous buildmyhouse-app
+                docker update --restart unless-stopped buildmyhouse-app >/dev/null
+              fi
+              exit 1
+            fi
+            docker rm -f buildmyhouse-app-previous >/dev/null 2>&1 || true
 
             docker stop buildmyhouse-luxcore || true
             docker rm buildmyhouse-luxcore || true
