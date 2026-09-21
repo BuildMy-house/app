@@ -215,6 +215,8 @@ export interface Furniture {
    * box for this loaded model. Absent/empty => colored box (backward compat).
    */
   modelPath?: string | null
+  /** Native OBJ bundle URL used by LuxCore; GLB modelPath is web-only. */
+  renderModelPath?: string | null
   levelRef?: string | null
   modelMirrored?: boolean
 }

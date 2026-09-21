@@ -110,6 +110,7 @@ export interface CatalogEntry {
   doorOrWindow: boolean
   tags: string[]
   modelPath: string
+  renderModelPath: string
 }
 
 export interface CatalogManifest {
@@ -922,6 +923,7 @@ function buildEntry(item: LibraryItem): CatalogEntry {
     doorOrWindow: item.doorOrWindow,
     tags: item.tags,
     modelPath: `${r2PublicUrl()}/${R2_KEY_PREFIX}/${item.slug}.glb`,
+    renderModelPath: `${r2PublicUrl()}/${R2_KEY_PREFIX}/${item.slug}/model.obj`,
   }
 }
 

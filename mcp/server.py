@@ -389,7 +389,7 @@ async def _production_build_house(house_id: str, plan: dict, reset: bool) -> dic
             if not wall_id: raise ValueError(f"{opening_type} item requires wallKey or wallId")
             add("furniture", {"name": opening_type[:-1].title(), "x": item.get("x", 0), "y": item.get("y", 0), "angleDeg": 0, "width": item.get("width", 90), "depth": 10, "height": item.get("height", 210), "elevation": 0, "doorOrWindow": True, "wallRef": wall_id})
     for item in plan.get("furniture", []):
-        furniture = {key: item[key] for key in ("name", "x", "y", "angleDeg", "width", "depth", "height", "elevation", "catalogId", "doorOrWindow", "modelPath", "color") if key in item}
+        furniture = {key: item[key] for key in ("name", "x", "y", "angleDeg", "width", "depth", "height", "elevation", "catalogId", "doorOrWindow", "modelPath", "renderModelPath", "color") if key in item}
         furniture.setdefault("angleDeg", 0); furniture.setdefault("elevation", 0); furniture.setdefault("doorOrWindow", False)
         if level_ref(item): furniture["levelRef"] = level_ref(item)
         add("furniture", furniture, item.get("key"))

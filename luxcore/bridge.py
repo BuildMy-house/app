@@ -1,9 +1,6 @@
 import math
 import json
 import os
-import re
-import struct
-import subprocess
 import urllib.error
 import urllib.request
 from urllib.parse import urljoin
@@ -215,9 +212,10 @@ def _resolve_asset(item: dict, asset_root: str | None = None) -> Path | None:
         source = _cached_r2_bundle_obj(render_url)
         if source:
             return source
-    model_url = _r2_model_url(item)
-    if model_url:
-        return _cached_r2_obj(model_url)
+        raise RuntimeError(f"native render bundle unavailable: {render_url}")
+    model_path = item.get("modelPath")
+    if isinstance(model_path, str) and model_path.startswith(("http://", "https://")):
+        raise RuntimeError(f"furniture {item.get('id', item.get('name', 'item'))} is missing renderModelPath")
     asset_root = _asset_root(asset_root)
     asset_name = str(item.get("catalogId", "")).split("#")[-1]
     source = _find_asset(asset_root, asset_name)
@@ -225,74 +223,18 @@ def _resolve_asset(item: dict, asset_root: str | None = None) -> Path | None:
 
 
 def _r2_render_obj_url(item: dict) -> str | None:
-    model_url = item.get("modelPath")
-    if not isinstance(model_url, str) or not model_url.endswith(".glb"):
+    render_url = item.get("renderModelPath")
+    if not isinstance(render_url, str) or not render_url.startswith(("http://", "https://")) or not render_url.endswith(".obj"):
         return None
-    stem = Path(model_url.rsplit("/", 1)[-1]).stem
-    return f"{model_url.rsplit('/', 1)[0]}/{stem}/model.obj"
-
-
-def _r2_model_url(item: dict) -> str | None:
-    base = os.environ.get(
-        "LUXCORE_MODEL_BASE_URL",
-        "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models",
-    ).rstrip("/")
-    model_path = item.get("modelPath")
-    if isinstance(model_path, str) and model_path.startswith(f"{base}/") and model_path.endswith(".glb"):
-        return model_path
-    parts = str(item.get("catalogId", "")).split("#")
-    if len(parts) < 3 or parts[1].casefold() != "blend swap cc-0":
-        return None
-    slug = re.sub(r"[^a-z0-9]+", "-", parts[-1].casefold()).strip("-")
-    return f"{base}/blend-swap-cc-0-{slug}.glb"
-
-
-@lru_cache(maxsize=256)
-def _cached_r2_obj(model_url: str) -> Path | None:
-    cache = Path(os.environ.get("LUXCORE_ASSET_CACHE", "/app/var/r2-assets"))
-    stem = sha256(model_url.encode()).hexdigest()[:24]
-    glb = cache / f"{stem}.glb"
-    obj = cache / f"{stem}.obj"
-    metadata = cache / f"{stem}.materials.json"
-    if not obj.is_file():
-        cache.mkdir(parents=True, exist_ok=True)
-        if not glb.is_file():
-            request = urllib.request.Request(model_url, headers={"User-Agent": "buildmy.house-luxcore/1"})
-            with urllib.request.urlopen(request, timeout=30) as response:
-                if int(response.headers.get("Content-Length", 0)) > 100 * 1024 * 1024:
-                    raise ValueError("R2 furniture model exceeds 100 MB")
-                data = response.read(100 * 1024 * 1024 + 1)
-                if len(data) > 100 * 1024 * 1024:
-                    raise ValueError("R2 furniture model exceeds 100 MB")
-                glb.write_bytes(data)
-        subprocess.run(
-            ["assimp", "export", str(glb), str(obj)],
-            check=True,
-            capture_output=True,
-            text=True,
-            cwd=cache,
-        )
-    if glb.is_file() and not metadata.is_file():
-        _extract_glb_materials(glb, metadata)
-    return obj if obj.is_file() else None
-
-
-def _extract_glb_materials(glb: Path, metadata: Path) -> None:
-    """Keep GLTF PBR slot definitions that OBJ/MTL conversion drops."""
-    try:
-        data = glb.read_bytes()
-        json_length = struct.unpack_from("<I", data, 12)[0]
-        document = json.loads(data[20:20 + json_length].decode("utf-8"))
-        metadata.write_text(json.dumps({"materials": document.get("materials", [])}), encoding="utf-8")
-    except (OSError, ValueError, UnicodeDecodeError, json.JSONDecodeError, struct.error):
-        return
+    return render_url
 
 
 @lru_cache(maxsize=256)
 def _cached_r2_bundle_obj(model_url: str) -> Path | None:
     cache = Path(os.environ.get("LUXCORE_ASSET_CACHE", "/app/var/r2-assets")) / "bundles" / sha256(model_url.encode()).hexdigest()[:24]
     obj = cache / "model.obj"
-    if obj.is_file():
+    metadata = cache / "model.materials.json"
+    if obj.is_file() and metadata.is_file():
         return obj
     try:
         cache.mkdir(parents=True, exist_ok=True)
@@ -314,15 +256,13 @@ def _cached_r2_bundle_obj(model_url: str) -> Path | None:
                 request = urllib.request.Request(urljoin(model_url, filename), headers={"User-Agent": "buildmy.house-luxcore/1"})
                 with urllib.request.urlopen(request, timeout=30) as response:
                     target.write_bytes(response.read(20 * 1024 * 1024 + 1))
-        metadata = cache / "model.materials.json"
-        try:
-            request = urllib.request.Request(urljoin(model_url, "model.materials.json"), headers={"User-Agent": "buildmy.house-luxcore/1"})
-            with urllib.request.urlopen(request, timeout=30) as response:
-                metadata.write_bytes(response.read(10 * 1024 * 1024 + 1))
-        except urllib.error.HTTPError:
-            pass
+        request = urllib.request.Request(urljoin(model_url, "model.materials.json"), headers={"User-Agent": "buildmy.house-luxcore/1"})
+        with urllib.request.urlopen(request, timeout=30) as response:
+            metadata.write_bytes(response.read(10 * 1024 * 1024 + 1))
+        if not metadata.is_file():
+            raise RuntimeError(f"native render bundle is missing material metadata: {model_url}")
         return obj
-    except (OSError, urllib.error.HTTPError, urllib.error.URLError):
+    except (OSError, urllib.error.HTTPError, urllib.error.URLError, RuntimeError):
         return None
 
 

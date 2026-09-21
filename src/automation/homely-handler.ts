@@ -152,6 +152,7 @@ export class HomelyCommandHandler implements CommandHandler {
         let color: number | null = null
         let doorOrWindow = false
         let modelPath: string | null = null
+        let renderModelPath: string | null = null
 
         if (catalogId !== null && this.catalog) {
           const resolved = resolvePlacement(this.catalog, catalogId)
@@ -163,6 +164,7 @@ export class HomelyCommandHandler implements CommandHandler {
           color = resolved.color ?? null
           doorOrWindow = resolved.doorOrWindow ?? false
           modelPath = resolved.modelPath ?? null
+          renderModelPath = resolved.renderModelPath ?? null
         } else {
           const nameParam = params.name
           assert(
@@ -188,6 +190,7 @@ export class HomelyCommandHandler implements CommandHandler {
           color,
           doorOrWindow,
           modelPath,
+          renderModelPath,
           levelRef: (params.levelRef as string | null) ?? null,
         })
         return { ok: true, data: { id: furniture.id } }
@@ -218,6 +221,7 @@ export class HomelyCommandHandler implements CommandHandler {
           color: resolved.color ?? null,
           doorOrWindow: resolved.doorOrWindow ?? false,
           modelPath: resolved.modelPath ?? null,
+          renderModelPath: resolved.renderModelPath ?? null,
           levelRef: (params.levelRef as string | null) ?? null,
         })
         return { ok: true, data: { id: furniture.id } }
@@ -614,6 +618,7 @@ export class HomelyCommandHandler implements CommandHandler {
         let elevation = 0
         let color: number | null = null
         let modelPath: string | null = null
+        let renderModelPath: string | null = null
 
         if (catalogId && this.catalog) {
           const resolved = resolvePlacement(this.catalog, catalogId)
@@ -624,6 +629,7 @@ export class HomelyCommandHandler implements CommandHandler {
           elevation = resolved.elevation ?? 0
           color = resolved.color ?? null
           modelPath = resolved.modelPath ?? null
+          renderModelPath = resolved.renderModelPath ?? null
         } else {
           name = type === 'add_door' ? 'Door' : 'Window'
           width = params.width === undefined ? 90 : requireNumber(params, 'width')
@@ -657,6 +663,7 @@ export class HomelyCommandHandler implements CommandHandler {
           color,
           doorOrWindow: true,
           modelPath,
+          renderModelPath,
           wallRef: wallId,
           wallOffset: t,
         })

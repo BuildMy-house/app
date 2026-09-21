@@ -35,6 +35,8 @@ export interface CatalogItem {
    * exists for future model authors. Never fetched over the network.
    */
   modelPath?: string | null
+  /** Native OBJ bundle URL used by LuxCore; never derived from modelPath. */
+  renderModelPath?: string | null
   /** Free-text search tags (local only). */
   tags?: string[]
 }
