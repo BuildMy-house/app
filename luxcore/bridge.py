@@ -250,7 +250,8 @@ def _cached_r2_obj(model_url: str) -> Path | None:
     if not obj.is_file():
         cache.mkdir(parents=True, exist_ok=True)
         if not glb.is_file():
-            with urllib.request.urlopen(model_url, timeout=30) as response:
+            request = urllib.request.Request(model_url, headers={"User-Agent": "buildmy.house-luxcore/1"})
+            with urllib.request.urlopen(request, timeout=30) as response:
                 if int(response.headers.get("Content-Length", 0)) > 100 * 1024 * 1024:
                     raise ValueError("R2 furniture model exceeds 100 MB")
                 data = response.read(100 * 1024 * 1024 + 1)
