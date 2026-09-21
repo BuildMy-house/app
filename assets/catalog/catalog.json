@@ -2,1571 +2,1643 @@
   "schemaVersion": 1,
   "items": [
     {
-      "catalogId": "sh3d-full#Snduc#meubleSalleDeBain",
-      "name": "Washbasin with cabinet",
-      "category": "Bathroom",
-      "width": 60,
-      "depth": 59.2,
-      "height": 91.9,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/snduc-meublesalledebain.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-meublesalledebain/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Snduc#bidon",
-      "name": "Bottle",
-      "category": "Bathroom",
-      "width": 6.5,
-      "depth": 6.5,
-      "height": 16.7,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/snduc-bidon.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-bidon/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Snduc#robinet",
-      "name": "Faucet",
-      "category": "Bathroom",
-      "width": 5.1,
-      "depth": 14.4,
-      "height": 12,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "water"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/snduc-robinet.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-robinet/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Snduc#boiteMetal",
-      "name": "Metal box",
-      "category": "Kitchen",
-      "width": 6.7,
-      "depth": 6.7,
-      "height": 11.2,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "food",
-        "drink",
-        "soda",
-        "can"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/snduc-boitemetal.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-boitemetal/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Snduc#parfumAmbiance",
-      "name": "Perfume",
-      "category": "Bathroom",
-      "width": 8.7,
-      "depth": 4.6,
-      "height": 8.3,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/snduc-parfumambiance.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-parfumambiance/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Snduc#radiateur",
-      "name": "Radiator",
-      "category": "Bathroom",
-      "width": 50.2,
-      "depth": 6,
-      "height": 164.4,
-      "elevation": 45,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "heating",
-        "towel"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/snduc-radiateur.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-radiateur/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Snduc#rasoir",
-      "name": "Razor",
-      "category": "Bathroom",
-      "width": 12.5,
-      "depth": 5,
-      "height": 2,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/snduc-rasoir.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-rasoir/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Snduc#shampoo",
-      "name": "Shampoo",
-      "category": "Bathroom",
-      "width": 7.4,
-      "depth": 3.4,
-      "height": 16.7,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/snduc-shampoo.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-shampoo/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Snduc#gelDouche",
-      "name": "Soap bottle",
-      "category": "Bathroom",
-      "width": 8,
-      "depth": 4.2,
-      "height": 15.3,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/snduc-geldouche.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-geldouche/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Snduc#boiteDeMouchoirs",
-      "name": "Tissue box",
-      "category": "Bathroom",
-      "width": 22.5,
-      "depth": 11.5,
-      "height": 13.6,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "makeup"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/snduc-boitedemouchoirs.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-boitedemouchoirs/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Snduc#derouleurWC",
-      "name": "Toilet paper dispenser",
-      "category": "Bathroom",
-      "width": 16,
-      "depth": 13.5,
-      "height": 19.5,
-      "elevation": 60,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/snduc-derouleurwc.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-derouleurwc/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Snduc#tube",
-      "name": "Tube",
-      "category": "Bathroom",
-      "width": 2,
-      "depth": 2,
-      "height": 6.8,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "makeup"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/snduc-tube.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-tube/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Snduc#petitReveil",
-      "name": "Alarm clock",
-      "category": "Bedroom",
-      "width": 9,
-      "depth": 4.6,
-      "height": 5,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "electronics",
-        "decoration"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/snduc-petitreveil.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-petitreveil/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sheep#crib",
-      "name": "Crib",
-      "category": "Bedroom",
-      "width": 66,
-      "depth": 124,
-      "height": 80,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "baby",
-        "bed"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sheep-crib.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sheep-crib/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Infernal-quack#litMezzanine",
-      "name": "Loft bed",
-      "category": "Bedroom",
-      "width": 200.5,
-      "depth": 216.8,
-      "height": 200.4,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "double"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/infernal-quack-litmezzanine.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/infernal-quack-litmezzanine/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#p40",
-      "name": "P40",
-      "category": "Bedroom",
-      "width": 18,
-      "depth": 15.2,
-      "height": 5.1,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "toy",
-        "decoration"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-p40.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-p40/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Snduc#petiteCommode",
-      "name": "Small chest",
-      "category": "Bedroom",
-      "width": 82,
-      "depth": 46.4,
-      "height": 83,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/snduc-petitecommode.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/snduc-petitecommode/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Artist373#fivePanesWindowWithWallPart",
-      "name": "Five panes window",
+      "catalogId": "sh3d-full#Pencilart#DianaWindow",
+      "name": "Triple window",
       "category": "Windows",
-      "width": 213.2,
-      "depth": 11.6,
-      "height": 174,
-      "elevation": 47,
-      "color": 12632256,
-      "doorOrWindow": true,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/artist373-fivepaneswindowwithwallpart.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-fivepaneswindowwithwallpart/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Artist373#rectangularFivePanesWindow",
-      "name": "Five panes window",
-      "category": "Windows",
-      "width": 213.2,
-      "depth": 12,
-      "height": 133.19992,
-      "elevation": 47,
-      "color": 12632256,
-      "doorOrWindow": true,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/artist373-rectangularfivepaneswindow.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-rectangularfivepaneswindow/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Artist373#frontDoorDark",
-      "name": "Front door",
-      "category": "Doors",
-      "width": 112.8,
-      "depth": 40,
-      "height": 205,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": true,
-      "tags": [
-        "entrance"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/artist373-frontdoordark.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-frontdoordark/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#garageDoor",
-      "name": "Garage door",
-      "category": "Doors",
-      "width": 420,
-      "depth": 25,
+      "width": 389.6,
+      "depth": 25.6,
       "height": 210,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": true,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/geantick-garagedoor.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-garagedoor/model.obj"
+      "tags": [
+        "3",
+        "three"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-dianawindow.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-dianawindow/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Artist373#patioGlassDoorUnit",
-      "name": "Patio glass door unit",
+      "catalogId": "sh3d-full#Siath#emergencyGlassDoubleDoor",
+      "name": "Emergency glass double door",
       "category": "Doors",
-      "width": 161,
-      "depth": 18.4,
-      "height": 200,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": true,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/artist373-patioglassdoorunit.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-patioglassdoorunit/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Artist373#pictureWindow",
-      "name": "Picture window",
-      "category": "Windows",
-      "width": 213.2,
-      "depth": 54.3,
-      "height": 135.8,
-      "elevation": 47,
-      "color": 12632256,
-      "doorOrWindow": true,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/artist373-picturewindow.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-picturewindow/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Artist373#simpleShutter",
-      "name": "Simple shutter",
-      "category": "Doors",
-      "width": 61,
-      "depth": 5,
-      "height": 124,
-      "elevation": 92,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/artist373-simpleshutter.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-simpleshutter/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Siath#sixDoorFrenchStyle",
-      "name": "Six door French style",
-      "category": "Doors",
-      "width": 595,
-      "depth": 101.3,
-      "height": 210,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": true,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/siath-sixdoorfrenchstyle.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/siath-sixdoorfrenchstyle/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Artist373#frenchDoors",
-      "name": "Sliding French doors",
-      "category": "Doors",
-      "width": 239.2,
+      "width": 219.1,
       "depth": 28.4,
       "height": 210,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": true,
       "tags": [
-        "slide"
+        "entrance",
+        "shop"
       ],
-      "modelPath": "https://assets.buildmy.house/models/artist373-frenchdoors.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-frenchdoors/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/siath-emergencyglassdoubledoor.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/siath-emergencyglassdoubledoor/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Artist373#traditionalShutter",
-      "name": "Traditional shutter",
+      "catalogId": "sh3d-full#Pencilart#accordionFoldDoors",
+      "name": "Accordion fold doors",
       "category": "Doors",
-      "width": 61,
-      "depth": 5,
-      "height": 124,
-      "elevation": 92,
+      "width": 284,
+      "depth": 126.5,
+      "height": 220,
+      "elevation": 0,
       "color": 12632256,
-      "doorOrWindow": false,
+      "doorOrWindow": true,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/artist373-traditionalshutter.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-traditionalshutter/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/pencilart-accordionfolddoors.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-accordionfolddoors/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Artist373#twoPartsShutter",
-      "name": "Two parts shutter",
+      "catalogId": "sh3d-full#Pencilart#garageDoor2",
+      "name": "Garage door",
       "category": "Doors",
-      "width": 61,
-      "depth": 5,
-      "height": 124,
-      "elevation": 92,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/artist373-twopartsshutter.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-twopartsshutter/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#GdB#transat",
-      "name": "Deck chair",
-      "category": "Outdoor",
-      "width": 60,
-      "depth": 104.6,
-      "height": 97.7,
+      "width": 210,
+      "depth": 15,
+      "height": 220,
       "elevation": 0,
       "color": 12632256,
-      "doorOrWindow": false,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-garagedoor2.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-garagedoor2/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#doorGlassPanels",
+      "name": "Glass door",
+      "category": "Doors",
+      "width": 77.1,
+      "depth": 11.2,
+      "height": 205.7,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-doorglasspanels.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-doorglasspanels/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#door1",
+      "name": "Door",
+      "category": "Doors",
+      "width": 91.44,
+      "depth": 18.23,
+      "height": 213.7,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-door1.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-door1/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#fancyWindow",
+      "name": "Fancy window",
+      "category": "Windows",
+      "width": 60.9,
+      "depth": 5.6,
+      "height": 128,
+      "elevation": 91,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-fancywindow.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-fancywindow/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#newWindowDk",
+      "name": "Window",
+      "category": "Windows",
+      "width": 60.9,
+      "depth": 3.4,
+      "height": 94.9,
+      "elevation": 126,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-newwindowdk.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-newwindowdk/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#windowFrostedGlass",
+      "name": "Window frosted glass",
+      "category": "Windows",
+      "width": 60.9,
+      "depth": 2.8,
+      "height": 94.9,
+      "elevation": 126,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-windowfrostedglass.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-windowfrostedglass/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#glassDoorsOpened",
+      "name": "Opened quadruple glass doors",
+      "category": "Doors",
+      "width": 336,
+      "depth": 86.66,
+      "height": 203,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
       "tags": [
-        "outdoor",
-        "garden",
-        "swimming",
-        "pool",
-        "seat"
+        "4",
+        "four"
       ],
-      "modelPath": "https://assets.buildmy.house/models/gdb-transat.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/gdb-transat/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/pencilart-glassdoorsopened.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-glassdoorsopened/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Infernal-quack#chaiseCuisine",
-      "name": "Chair",
-      "category": "Kitchen",
-      "width": 36.6,
-      "depth": 54.2,
-      "height": 80.6,
+      "catalogId": "sh3d-full#Pencilart#patioDoorOpened",
+      "name": "Opened patio door",
+      "category": "Doors",
+      "width": 168.3,
+      "depth": 82.7,
+      "height": 203,
       "elevation": 0,
       "color": 12632256,
-      "doorOrWindow": false,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-patiodooropened.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-patiodooropened/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#patioDoor",
+      "name": "Patio door",
+      "category": "Doors",
+      "width": 99.4,
+      "depth": 18.4,
+      "height": 200,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-patiodoor.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-patiodoor/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#patioSideDoor",
+      "name": "Patio side door",
+      "category": "Doors",
+      "width": 60.7,
+      "depth": 6.2,
+      "height": 200,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-patiosidedoor.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-patiosidedoor/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PencilArt#fancyFrontDoor",
+      "name": "Fancy front door",
+      "category": "Doors",
+      "width": 99.8,
+      "depth": 24,
+      "height": 200,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
       "tags": [
-        "seat"
+        "entrance"
       ],
-      "modelPath": "https://assets.buildmy.house/models/infernal-quack-chaisecuisine.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/infernal-quack-chaisecuisine/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/pencilart-fancyfrontdoor.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-fancyfrontdoor/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Geantick#verreFlute",
-      "name": "Flute",
-      "category": "Kitchen",
-      "width": 4.2,
-      "depth": 4.2,
-      "height": 17,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "glass"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-verreflute.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-verreflute/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Artist373#glassDoorKitchenCabinet",
-      "name": "Glass door cabinet",
-      "category": "Kitchen",
-      "width": 132.6,
-      "depth": 36,
-      "height": 121,
-      "elevation": 145,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "cupboard"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/artist373-glassdoorkitchencabinet.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-glassdoorkitchencabinet/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#verreLongDrink",
-      "name": "Long drink glass",
-      "category": "Kitchen",
-      "width": 5.5,
-      "depth": 5.5,
-      "height": 17.8,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/geantick-verrelongdrink.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-verrelongdrink/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Infernal-quack#microOnde",
-      "name": "Microwave",
-      "category": "Kitchen",
-      "width": 49,
-      "depth": 35.3,
-      "height": 27.4,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "oven",
-        "appliance",
-        "cooker"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/infernal-quack-microonde.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/infernal-quack-microonde/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Infernal-quack#meubleMicroOnde",
-      "name": "Microwave cabinet",
-      "category": "Kitchen",
-      "width": 62.6,
-      "depth": 44,
-      "height": 118.3,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "cupboard"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/infernal-quack-meublemicroonde.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/infernal-quack-meublemicroonde/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#mug",
-      "name": "Mug",
-      "category": "Kitchen",
-      "width": 8,
-      "depth": 10.8,
-      "height": 9.7,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/geantick-mug.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-mug/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sleipnir1#assietteVerresCouverts",
-      "name": "Plate, glasses and cutlery",
-      "category": "Kitchen",
-      "width": 37,
-      "depth": 36.2,
-      "height": 10.9,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "fork",
-        "knife",
-        "spoon"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sleipnir1-assietteverrescouverts.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sleipnir1-assietteverrescouverts/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Artist373#smallGlass",
-      "name": "Small glass",
-      "category": "Kitchen",
-      "width": 10,
-      "depth": 10,
-      "height": 7.9,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/artist373-smallglass.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-smallglass/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Infernal-quack#tableCuisine",
-      "name": "Table",
-      "category": "Kitchen",
-      "width": 120,
-      "depth": 40,
-      "height": 88,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/infernal-quack-tablecuisine.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/infernal-quack-tablecuisine/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sleipnir1#carafeEau",
-      "name": "Water carafe",
-      "category": "Kitchen",
-      "width": 31.1,
-      "depth": 31.1,
-      "height": 30,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/sleipnir1-carafeeau.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sleipnir1-carafeeau/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#verreEau",
-      "name": "Water glass",
-      "category": "Kitchen",
-      "width": 7,
-      "depth": 7,
-      "height": 7.2,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/geantick-verreeau.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-verreeau/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sleipnir1#carafeVin",
-      "name": "Wine carafe",
-      "category": "Kitchen",
-      "width": 31.1,
-      "depth": 31.1,
-      "height": 30,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/sleipnir1-carafevin.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sleipnir1-carafevin/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#verreVin",
-      "name": "Wine glass",
-      "category": "Kitchen",
-      "width": 7.3,
-      "depth": 7.3,
-      "height": 10.1,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/geantick-verrevin.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-verrevin/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sleipnir1#bougeoir",
-      "name": "Candlestick",
+      "catalogId": "sh3d-full#OlaKristianHoff#bathroom_fan",
+      "name": "Fan",
       "category": "Other",
-      "width": 12.7,
-      "depth": 11.7,
-      "height": 25.7,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "decoration"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sleipnir1-bougeoir.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sleipnir1-bougeoir/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#GdB#lampeHalogene",
-      "name": "Floor lamp",
-      "category": "Other",
-      "width": 31.3,
-      "depth": 68.9,
-      "height": 180,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/gdb-lampehalogene.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/gdb-lampehalogene/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Artist373#lamp",
-      "name": "Lamp",
-      "category": "Other",
-      "width": 30,
-      "depth": 30,
-      "height": 38.7,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/artist373-lamp.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-lamp/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sheep#lustreBoule",
-      "name": "Pendant light",
-      "category": "Other",
-      "width": 30,
-      "depth": 30,
-      "height": 67.6,
-      "elevation": 182.4,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "hanging",
-        "pendant",
-        "ceiling"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sheep-lustreboule.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sheep-lustreboule/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sheep#aquarium",
-      "name": "Aquarium",
-      "category": "Living",
-      "width": 124.5,
-      "depth": 34,
-      "height": 129,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "fish",
-        "animal",
-        "decoration"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sheep-aquarium.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sheep-aquarium/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#GdB#armchair2",
-      "name": "Armchair",
-      "category": "Living",
-      "width": 68,
-      "depth": 83,
-      "height": 100,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "seat"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/gdb-armchair2.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/gdb-armchair2/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#barStool",
-      "name": "Bar stool",
-      "category": "Living",
-      "width": 33,
+      "width": 20,
       "depth": 33,
-      "height": 74,
+      "height": 20,
+      "elevation": 201,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [
+        "okh",
+        "vent"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-bathroom-fan.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-bathroom-fan/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Mchnz#craftsmanDoorClosed",
+      "name": "Craftsman door",
+      "category": "Doors",
+      "width": 100.9,
+      "depth": 18.7,
+      "height": 209.6,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/mchnz-craftsmandoorclosed.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/mchnz-craftsmandoorclosed/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#OlaKristianHoff#sliderPocketDoor",
+      "name": "Slider pocket door",
+      "category": "Doors",
+      "width": 94.8,
+      "depth": 12.2,
+      "height": 212.5,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [
+        "okh",
+        "sliding"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-sliderpocketdoor.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-sliderpocketdoor/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#OlaKristianHoff#vent_round",
+      "name": "Round vent",
+      "category": "Other",
+      "width": 22,
+      "depth": 30,
+      "height": 24,
+      "elevation": 198,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [
+        "okh",
+        "fan"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-vent-round.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-vent-round/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#OlaKristianHoff#window_2x3_frame_sill",
+      "name": "Window 2x3",
+      "category": "Windows",
+      "width": 56,
+      "depth": 35,
+      "height": 110,
+      "elevation": 111,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [
+        "okh"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-window-2x3-frame-sill.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-window-2x3-frame-sill/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#OlaKristianHoff#window_deep",
+      "name": "Deep window",
+      "category": "Windows",
+      "width": 105,
+      "depth": 60,
+      "height": 150,
+      "elevation": 80,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [
+        "okh"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-window-deep.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-window-deep/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#AntelopeCanyonFrame",
+      "name": "Frame Antelope Canyon",
+      "category": "Other",
+      "width": 50.1,
+      "depth": 1.6,
+      "height": 88,
+      "elevation": 130,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-antelopecanyonframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-antelopecanyonframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#EiffelTowerFrame",
+      "name": "Frame Eiffel Tower",
+      "category": "Other",
+      "width": 67,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-eiffeltowerframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-eiffeltowerframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#HaiVanPassFrame",
+      "name": "Frame Hai Van Pass",
+      "category": "Other",
+      "width": 77.2,
+      "depth": 1.5,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-haivanpassframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-haivanpassframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#InariFrame",
+      "name": "Frame Inari",
+      "category": "Other",
+      "width": 48,
+      "depth": 1.6,
+      "height": 67.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-inariframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-inariframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#MontBlancFrame",
+      "name": "Frame Mont Blanc",
+      "category": "Other",
+      "width": 94.5,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-montblancframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-montblancframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#mirror",
+      "name": "Mirror",
+      "category": "Other",
+      "width": 40,
+      "depth": 0.5,
+      "height": 40,
+      "elevation": 100,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-mirror.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-mirror/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#ovalMirror",
+      "name": "Oval mirror",
+      "category": "Other",
+      "width": 55,
+      "depth": 1,
+      "height": 105,
+      "elevation": 80,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-ovalmirror.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-ovalmirror/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#rectangularMirror",
+      "name": "Rectangular mirror",
+      "category": "Other",
+      "width": 50,
+      "depth": 1,
+      "height": 70,
+      "elevation": 100,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-rectangularmirror.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-rectangularmirror/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#carpet",
+      "name": "Carpet",
+      "category": "Living",
+      "width": 160,
+      "depth": 225,
+      "height": 1,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "chair",
-        "seat"
+        "rug",
+        "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-barstool.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-barstool/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/puybaret-carpet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-carpet/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Geantick#bookcase2",
-      "name": "Bookcase",
-      "category": "Living",
-      "width": 82,
-      "depth": 44,
+      "catalogId": "sh3d-full#Puybaret#ButterflyFrame",
+      "name": "Frame Butterfly",
+      "category": "Other",
+      "width": 48.7,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-butterflyframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-butterflyframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#TorontoOntarioPlaceFrame",
+      "name": "Frame Toronto Ontario Place",
+      "category": "Other",
+      "width": 61.1,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-torontoontarioplaceframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-torontoontarioplaceframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#TigerFrame",
+      "name": "Frame Tiger",
+      "category": "Other",
+      "width": 62.8,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-tigerframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-tigerframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#NiagaraFallsFrame",
+      "name": "Frame Niagara Falls",
+      "category": "Other",
+      "width": 80.9,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-niagarafallsframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-niagarafallsframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#VeniceFrame",
+      "name": "Frame Venice",
+      "category": "Other",
+      "width": 73.5,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-veniceframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-veniceframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#ceramicHob",
+      "name": "Ceramic hob",
+      "category": "Kitchen",
+      "width": 60,
+      "depth": 52,
+      "height": 0.9,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cooker",
+        "appliance"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-ceramichob.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-ceramichob/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#secretarysDesk",
+      "name": "Secretary's desk",
+      "category": "Office",
+      "width": 106.7,
+      "depth": 79.8,
       "height": 150,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "table"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-secretarysdesk.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-secretarysdesk/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackFullHeightHalfWidth",
+      "name": "Pinewood rack full height half width",
+      "category": "Living",
+      "width": 48.8,
+      "depth": 30.2,
+      "height": 227,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
         "shelves",
-        "bookshelf"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-bookcase2.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-bookcase2/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sleipnir1#chair2",
-      "name": "Chair",
-      "category": "Living",
-      "width": 38,
-      "depth": 52,
-      "height": 98,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "seat"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sleipnir1-chair2.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sleipnir1-chair2/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#GdB#computerWorkstation",
-      "name": "Computer desk",
-      "category": "Living",
-      "width": 124,
-      "depth": 138.5,
-      "height": 182,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "table"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/gdb-computerworkstation.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/gdb-computerworkstation/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#cornerWorkstation",
-      "name": "Computer desk",
-      "category": "Living",
-      "width": 109,
-      "depth": 108,
-      "height": 171,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "table"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-cornerworkstation.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-cornerworkstation/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sheep#desk",
-      "name": "Desk",
-      "category": "Living",
-      "width": 141,
-      "depth": 70.5,
-      "height": 74,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "table"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sheep-desk.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sheep-desk/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#dresser",
-      "name": "Dresser",
-      "category": "Living",
-      "width": 138.5,
-      "depth": 45.5,
-      "height": 62,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/geantick-dresser.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-dresser/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#fireplace",
-      "name": "Fireplace",
-      "category": "Living",
-      "width": 154,
-      "depth": 76,
-      "height": 250,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "heating",
-        "fire"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-fireplace.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-fireplace/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#bocalPoisson",
-      "name": "Fish bowl",
-      "category": "Living",
-      "width": 33.5,
-      "depth": 33.5,
-      "height": 28.4,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "animal",
-        "decoration"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-bocalpoisson.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-bocalpoisson/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#glassDoorCabinet",
-      "name": "Glass-door cabinet",
-      "category": "Living",
-      "width": 74.5,
-      "depth": 45.5,
-      "height": 150,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "shelf",
-        "shelves"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-glassdoorcabinet.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-glassdoorcabinet/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sleipnir1#tableGnome",
-      "name": "Gnome table",
-      "category": "Living",
-      "width": 103.4,
-      "depth": 66.2,
-      "height": 44,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/sleipnir1-tablegnome.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sleipnir1-tablegnome/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#GdB#tabouretPiano",
-      "name": "Piano stool",
-      "category": "Living",
-      "width": 35.6,
-      "depth": 37.6,
-      "height": 48,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "chair",
-        "music",
-        "seat"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/gdb-tabouretpiano.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/gdb-tabouretpiano/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sleipnir1#rectangularTable",
-      "name": "Rectangular table",
-      "category": "Living",
-      "width": 175,
-      "depth": 100.5,
-      "height": 74,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "dining",
-        "dinner"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sleipnir1-rectangulartable.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sleipnir1-rectangulartable/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Artist373#roundTable",
-      "name": "Round table",
-      "category": "Living",
-      "width": 94.5,
-      "depth": 94.5,
-      "height": 74,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/artist373-roundtable.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-roundtable/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Artist373#shelves",
-      "name": "Shelves",
-      "category": "Living",
-      "width": 217.7,
-      "depth": 79,
-      "height": 150,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
         "shelf",
         "bookcase"
       ],
-      "modelPath": "https://assets.buildmy.house/models/artist373-shelves.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-shelves/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheighthalfwidth.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheighthalfwidth/model.obj"
     },
     {
-      "catalogId": "sh3d-full#GdB#squareCoffeeTable",
-      "name": "Square coffee table",
+      "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackFullHeight",
+      "name": "Pinewood rack full height",
       "category": "Living",
-      "width": 67.1,
-      "depth": 67.1,
-      "height": 44,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/gdb-squarecoffeetable.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/gdb-squarecoffeetable/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#table",
-      "name": "Table",
-      "category": "Living",
-      "width": 171,
-      "depth": 70.5,
-      "height": 74,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/geantick-table.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-table/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sheep#coffeeTable",
-      "name": "Coffee table",
-      "category": "Living",
-      "width": 117,
-      "depth": 49,
-      "height": 44,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/sheep-coffeetable.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sheep-coffeetable/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#ecran16_9",
-      "name": "TV 16:9",
-      "category": "Living",
-      "width": 86.7,
-      "depth": 28.1,
-      "height": 58,
+      "width": 89.8,
+      "depth": 30.2,
+      "height": 227,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "electronics",
-        "appliance",
-        "television",
-        "flat",
-        "plasma",
-        "lcd",
-        "led"
+        "shelves",
+        "shelf",
+        "bookcase"
       ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-ecran16-9.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-ecran16-9/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheight.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheight/model.obj"
     },
     {
-      "catalogId": "sh3d-full#GdB#pianoDroit",
-      "name": "Upright piano",
+      "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackLowHeight",
+      "name": "Pinewood rack low height",
       "category": "Living",
-      "width": 128,
-      "depth": 55.4,
-      "height": 121,
+      "width": 89.8,
+      "depth": 30.2,
+      "height": 56.5,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "music"
+        "shelves",
+        "shelf",
+        "bookcase"
       ],
-      "modelPath": "https://assets.buildmy.house/models/gdb-pianodroit.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/gdb-pianodroit/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodracklowheight.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodracklowheight/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Infernal-quack#tableBasseBois",
-      "name": "Wooden coffee table",
+      "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackMediumHeight",
+      "name": "Pinewood rack medium height",
       "category": "Living",
-      "width": 95,
-      "depth": 50,
-      "height": 37.8,
+      "width": 89.8,
+      "depth": 30.2,
+      "height": 143,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/infernal-quack-tablebassebois.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/infernal-quack-tablebassebois/model.obj"
+      "tags": [
+        "shelves",
+        "shelf",
+        "bookcase"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackmediumheight.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackmediumheight/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Artist373#woodTable",
-      "name": "Wood table",
+      "catalogId": "sh3d-full#Pencilart#latticeChair",
+      "name": "Lattice chair",
       "category": "Living",
-      "width": 171,
-      "depth": 106,
-      "height": 74,
+      "width": 43,
+      "depth": 42.3,
+      "height": 87.3,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/artist373-woodtable.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-woodtable/model.obj"
+      "tags": [
+        "seat"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-latticechair.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-latticechair/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Geantick#fut",
-      "name": "Beer barrel",
+      "catalogId": "sh3d-full#Pencilart#stove1",
+      "name": "Stove",
+      "category": "Kitchen",
+      "width": 83.3,
+      "depth": 93.6,
+      "height": 104,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cooker",
+        "appliance"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-stove1.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-stove1/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#cornerCabinet",
+      "name": "Wood corner cabinet",
+      "category": "Kitchen",
+      "width": 79,
+      "depth": 78,
+      "height": 86,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-cornercabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-cornercabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#3DrawerCabinet",
+      "name": "Wood drawer cabinet",
+      "category": "Kitchen",
+      "width": 52.66595,
+      "depth": 64,
+      "height": 86,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-3drawercabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-3drawercabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#2GlassDoorCabinet",
+      "name": "Wood glass door cabinet",
+      "category": "Kitchen",
+      "width": 96,
+      "depth": 39.2,
+      "height": 70,
+      "elevation": 160,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-2glassdoorcabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-2glassdoorcabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#2DoorUpperCabinet",
+      "name": "Wood upper cabinet",
+      "category": "Kitchen",
+      "width": 96,
+      "depth": 39.2,
+      "height": 70.9,
+      "elevation": 160,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-2dooruppercabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-2dooruppercabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#2DoorLowerCabinet",
+      "name": "Wood lower cabinet",
+      "category": "Kitchen",
+      "width": 96,
+      "depth": 64,
+      "height": 86,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-2doorlowercabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-2doorlowercabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#1GlassDoorCabinet",
+      "name": "Wood glass door cabinet",
+      "category": "Kitchen",
+      "width": 45.2,
+      "depth": 39.2,
+      "height": 70,
+      "elevation": 160,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-1glassdoorcabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-1glassdoorcabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#1DoorUpperCabinet",
+      "name": "Wood upper cabinet",
+      "category": "Kitchen",
+      "width": 45.2,
+      "depth": 39.2,
+      "height": 70.9,
+      "elevation": 160,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-1dooruppercabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-1dooruppercabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#1DoorLowerCabinet",
+      "name": "Wood lower cabinet",
+      "category": "Kitchen",
+      "width": 51.9,
+      "depth": 64,
+      "height": 86,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-1doorlowercabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-1doorlowercabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#pantry",
+      "name": "Wood pantry",
+      "category": "Kitchen",
+      "width": 98.3,
+      "depth": 64,
+      "height": 184.6,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard",
+        "closet"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-pantry.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-pantry/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#kitchenSinkWithMarble",
+      "name": "Wood cabinet with sink",
+      "category": "Kitchen",
+      "width": 90.9,
+      "depth": 64,
+      "height": 111.35,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "basin",
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-kitchensinkwithmarble.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-kitchensinkwithmarble/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#kitchenIsland",
+      "name": "Wood island",
+      "category": "Kitchen",
+      "width": 225,
+      "depth": 96,
+      "height": 86,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cabinet",
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-kitchenisland.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-kitchenisland/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#cornerChina",
+      "name": "Wood corner China",
+      "category": "Kitchen",
+      "width": 77,
+      "depth": 77,
+      "height": 171.5,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cabinet",
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-cornerchina.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-cornerchina/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#grillNgauge",
+      "name": "Grill",
+      "category": "Outdoor",
+      "width": 92,
+      "depth": 49.5,
+      "height": 89,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "barbecue",
+        "bbq",
+        "outdoor",
+        "deck",
+        "garden"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-grillngauge.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-grillngauge/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#candleOrnament",
+      "name": "Candle ornament",
       "category": "Other",
-      "width": 45,
-      "depth": 45,
-      "height": 64.1,
+      "width": 8,
+      "depth": 12.5,
+      "height": 31.9,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-candleornament.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-candleornament/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#CDrack",
+      "name": "CD rack",
+      "category": "Living",
+      "width": 65.7,
+      "depth": 20.3,
+      "height": 122.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "shelves",
+        "shelf"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-cdrack.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-cdrack/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#chair2",
+      "name": "Chair",
+      "category": "Office",
+      "width": 57.9,
+      "depth": 60.9,
+      "height": 90.2,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "seat"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-chair2.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-chair2/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#futon",
+      "name": "Futon",
+      "category": "Bedroom",
+      "width": 162,
+      "depth": 207,
+      "height": 32.1,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "bed"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-futon.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-futon/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#hallTable",
+      "name": "Dresser",
+      "category": "Living",
+      "width": 117.42,
+      "depth": 62.9,
+      "height": 87.62,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/geantick-fut.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-fut/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-halltable.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-halltable/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Geantick#pompeBiere",
-      "name": "Beer pump",
+      "catalogId": "sh3d-full#PeterSmolik#officeChair",
+      "name": "Office chair",
+      "category": "Office",
+      "width": 62.62,
+      "depth": 59.67,
+      "height": 87.34,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "seat"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-officechair.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-officechair/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#picture",
+      "name": "Picture",
       "category": "Other",
-      "width": 58.9,
-      "depth": 25.2,
-      "height": 30,
+      "width": 133.97,
+      "depth": 9.49,
+      "height": 81.46,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-picture.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-picture/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#potplant2",
+      "name": "Plant",
+      "category": "Living",
+      "width": 96.68,
+      "depth": 96.19,
+      "height": 85.35,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/geantick-pompebiere.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-pompebiere/model.obj"
+      "tags": [
+        "patio"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-potplant2.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-potplant2/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Rlocatelli#container",
-      "name": "Container",
+      "catalogId": "sh3d-full#PeterSmolik#sofa1",
+      "name": "Sofa",
+      "category": "Living",
+      "width": 234,
+      "depth": 79.37,
+      "height": 79.23,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "couch",
+        "seat"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-sofa1.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-sofa1/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#sofa4",
+      "name": "Sofa",
+      "category": "Living",
+      "width": 185,
+      "depth": 74,
+      "height": 83.54,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "couch",
+        "seat"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-sofa4.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-sofa4/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#couchPoofyPillows",
+      "name": "Couch",
+      "category": "Living",
+      "width": 156.1,
+      "depth": 70.6,
+      "height": 75,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "sofa",
+        "seat",
+        "cushion"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-couchpoofypillows.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-couchpoofypillows/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#largeCouch",
+      "name": "Large couch",
+      "category": "Living",
+      "width": 236.7,
+      "depth": 76.7,
+      "height": 75,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "sofa",
+        "seat"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-largecouch.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-largecouch/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#singleChair",
+      "name": "Armchair",
+      "category": "Living",
+      "width": 101.2,
+      "depth": 77.1,
+      "height": 75,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "seat"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-singlechair.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-singlechair/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#throwPillow",
+      "name": "Pillow",
+      "category": "Living",
+      "width": 35,
+      "depth": 17,
+      "height": 32.1,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cushion"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-throwpillow.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-throwpillow/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#privacyFence2",
+      "name": "Fence",
+      "category": "Outdoor",
+      "width": 73.9,
+      "depth": 7.4,
+      "height": 100.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "outdoor"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-privacyfence2.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-privacyfence2/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#NMi#stainlessSteelShelf",
+      "name": "Stainless steel shelf",
+      "category": "Living",
+      "width": 48,
+      "depth": 18,
+      "height": 10,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/nmi-stainlesssteelshelf.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/nmi-stainlesssteelshelf/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#LakeMoraineFrame",
+      "name": "Frame Lake Moraine",
       "category": "Other",
-      "width": 13.3,
-      "depth": 9.1,
-      "height": 31,
-      "elevation": 0,
+      "width": 73.5,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
       "color": 12632256,
       "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/rlocatelli-container.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/rlocatelli-container/model.obj"
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-lakemoraineframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-lakemoraineframe/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Geantick#curtain",
-      "name": "Curtain",
+      "catalogId": "sh3d-full#Puybaret#SquirrelFrame",
+      "name": "Frame Squirrel",
+      "category": "Other",
+      "width": 48.7,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-squirrelframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-squirrelframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#StatueOfLibertyFrame",
+      "name": "Frame Statue Of Liberty",
+      "category": "Other",
+      "width": 50.1,
+      "depth": 1.6,
+      "height": 88,
+      "elevation": 130,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-statueoflibertyframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-statueoflibertyframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#VaticanMuseumFrame",
+      "name": "Frame Vatican Museum",
+      "category": "Other",
+      "width": 61.2,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-vaticanmuseumframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-vaticanmuseumframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#EtretatFrame",
+      "name": "Frame Etretat",
       "category": "Other",
       "width": 67,
-      "depth": 23,
-      "height": 225,
-      "elevation": 8,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "window"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-curtain.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-curtain/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#curtainRod",
-      "name": "Curtain rod",
-      "category": "Other",
-      "width": 150,
-      "depth": 16.5,
-      "height": 7.7,
-      "elevation": 225,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "window"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-curtainrod.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-curtainrod/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sheep#priseTelephonique",
-      "name": "French telephone plug",
-      "category": "Other",
-      "width": 8,
-      "depth": 1,
-      "height": 8,
-      "elevation": 22,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "socket",
-        "outlet"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sheep-prisetelephonique.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sheep-prisetelephonique/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Artist373#grandStaircaseDark",
-      "name": "Grand staircase",
-      "category": "Other",
-      "width": 507.6,
-      "depth": 288.1,
-      "height": 400,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/artist373-grandstaircasedark.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-grandstaircasedark/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#marteau",
-      "name": "Hammer",
-      "category": "Other",
-      "width": 9.2,
-      "depth": 25,
-      "height": 2.6,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "tool"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-marteau.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-marteau/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Geantick#rampe",
-      "name": "Handrail",
-      "category": "Other",
-      "width": 200,
-      "depth": 11.7,
-      "height": 85.2,
-      "elevation": 10,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "railing"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-rampe.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-rampe/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sleipnir1#tableauMulet",
-      "name": "Picture mule",
-      "category": "Other",
-      "width": 32,
-      "depth": 0.4,
-      "height": 21.2,
-      "elevation": 150,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "frame",
-        "decoration"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sleipnir1-tableaumulet.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sleipnir1-tableaumulet/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sleipnir1#tableauVisage",
-      "name": "Picture portrait",
-      "category": "Other",
-      "width": 21.3,
-      "depth": 0.6,
-      "height": 30,
-      "elevation": 150,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "frame",
-        "decoration"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sleipnir1-tableauvisage.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sleipnir1-tableauvisage/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sleipnir1#tableauVisage2",
-      "name": "Picture portrait",
-      "category": "Other",
-      "width": 33.2,
-      "depth": 0.2,
-      "height": 33.1,
-      "elevation": 150,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "frame",
-        "decoration"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sleipnir1-tableauvisage2.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sleipnir1-tableauvisage2/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sleipnir1#tableauVisage3",
-      "name": "Picture portrait",
-      "category": "Other",
-      "width": 26.6,
-      "depth": 0.4,
-      "height": 35,
-      "elevation": 150,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "frame",
-        "decoration"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sleipnir1-tableauvisage3.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sleipnir1-tableauvisage3/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sleipnir1#tableauYing",
-      "name": "Picture Ying",
-      "category": "Other",
-      "width": 37,
-      "depth": 0.5,
-      "height": 42.9,
-      "elevation": 150,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "frame",
-        "decoration"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sleipnir1-tableauying.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sleipnir1-tableauying/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sheep#prise",
-      "name": "Plug",
-      "category": "Other",
-      "width": 8,
       "depth": 1.6,
-      "height": 8,
-      "elevation": 22,
+      "height": 47.9,
+      "elevation": 150,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "socket",
-        "outlet",
-        "electrical",
-        "electricity"
+        "photo",
+        "picture",
+        "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/sheep-prise.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sheep-prise/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/puybaret-etretatframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-etretatframe/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Artist373#railing1",
-      "name": "Railing",
+      "catalogId": "sh3d-full#Puybaret#ColoredFountainFrame",
+      "name": "Frame Colored Fountain",
       "category": "Other",
-      "width": 162.7,
-      "depth": 11.3,
-      "height": 62,
-      "elevation": 20,
+      "width": 73.5,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "balcony"
+        "photo",
+        "picture",
+        "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/artist373-railing1.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-railing1/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/puybaret-coloredfountainframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-coloredfountainframe/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Artist373#roundedEdgesRailing",
-      "name": "Rounded edges railing",
+      "catalogId": "sh3d-full#Puybaret#HorseShoeBendFrame",
+      "name": "Frame Horse Shoe Bend",
       "category": "Other",
-      "width": 80,
-      "depth": 9.3,
-      "height": 62,
-      "elevation": 20,
+      "width": 61.2,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "balcony"
+        "photo",
+        "picture",
+        "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/artist373-roundededgesrailing.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-roundededgesrailing/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/puybaret-horseshoebendframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-horseshoebendframe/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Artist373#roundedEdgesRailing1",
-      "name": "Rounded edges railing",
+      "catalogId": "sh3d-full#Puybaret#TucanFrame",
+      "name": "Frame Tucan",
       "category": "Other",
-      "width": 83.7,
-      "depth": 9.7,
-      "height": 62,
-      "elevation": 20,
+      "width": 48.7,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "balcony"
+        "photo",
+        "picture",
+        "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/artist373-roundededgesrailing1.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-roundededgesrailing1/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/puybaret-tucanframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-tucanframe/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Geantick#scie",
-      "name": "Saw",
+      "catalogId": "sh3d-full#Puybaret#YosemiteFrame",
+      "name": "Frame Yosemite",
       "category": "Other",
-      "width": 11.9,
-      "depth": 45,
-      "height": 1.8,
+      "width": 73.5,
+      "depth": 1.6,
+      "height": 47.8,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-yosemiteframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-yosemiteframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#WaterLilyFrame",
+      "name": "Frame Water Lily",
+      "category": "Other",
+      "width": 67,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-waterlilyframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-waterlilyframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#FabriceDelobe#bureauEcolier",
+      "name": "School desk",
+      "category": "Office",
+      "width": 88.5,
+      "depth": 56.1,
+      "height": 90,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "tool"
+        "table",
+        "class"
       ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-scie.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-scie/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/fabricedelobe-bureauecolier.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/fabricedelobe-bureauecolier/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Geantick#tournevis",
-      "name": "Screwdriver",
-      "category": "Other",
-      "width": 2.5,
-      "depth": 20,
-      "height": 2.5,
+      "catalogId": "sh3d-full#Puybaret#baguettePain",
+      "name": "Bread",
+      "category": "Kitchen",
+      "width": 54.7,
+      "depth": 7.5,
+      "height": 4.1,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "tool"
+        "food"
       ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-tournevis.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-tournevis/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/puybaret-baguettepain.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-baguettepain/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Geantick#rampeArcCercle",
-      "name": "Semicircle handrail",
+      "catalogId": "sh3d-full#Toomy#bd",
+      "name": "Comics book",
       "category": "Other",
-      "width": 176.3,
-      "depth": 101.1,
-      "height": 85.2,
-      "elevation": 10,
+      "width": 21.44196,
+      "depth": 29.8,
+      "height": 0.7,
+      "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "railing"
+        "book",
+        "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-rampearccercle.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-rampearccercle/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/toomy-bd.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-bd/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Artist373#railing",
-      "name": "Smaller railing",
+      "catalogId": "sh3d-full#Toomy#bdOuverte",
+      "name": "Opened comics book",
       "category": "Other",
-      "width": 126,
-      "depth": 11.3,
-      "height": 62,
-      "elevation": 20,
+      "width": 42.4,
+      "depth": 29.8,
+      "height": 2.55,
+      "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "balcony"
+        "book",
+        "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/artist373-railing.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/artist373-railing/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/toomy-bdouverte.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-bdouverte/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Sheep#spiralStaircase",
-      "name": "Spiral staircase",
-      "category": "Other",
-      "width": 148.4,
-      "depth": 133.1,
-      "height": 271,
+      "catalogId": "sh3d-full#Toomy#bolDeRiz",
+      "name": "Rice bowl",
+      "category": "Kitchen",
+      "width": 11,
+      "depth": 11,
+      "height": 6,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "food"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-bolderiz.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-bolderiz/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#eponge",
+      "name": "Sponge",
+      "category": "Kitchen",
+      "width": 10,
+      "depth": 6,
+      "height": 1.4,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/sheep-spiralstaircase.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sheep-spiralstaircase/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/toomy-eponge.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-eponge/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Geantick#escalierColimacon2",
-      "name": "Spiral staircase",
-      "category": "Other",
-      "width": 201.3,
-      "depth": 216.4,
-      "height": 356.5,
+      "catalogId": "sh3d-full#Toomy#fer",
+      "name": "Iron",
+      "category": "Kitchen",
+      "width": 13.7,
+      "depth": 13.2,
+      "height": 30.6,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "appliance"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-fer.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-fer/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#invoice",
+      "name": "Invoice",
+      "category": "Office",
+      "width": 21,
+      "depth": 29.7,
+      "height": 0.49,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/geantick-escaliercolimacon2.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-escaliercolimacon2/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/puybaret-invoice.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-invoice/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Sheep#interrupteur",
-      "name": "Switch",
+      "catalogId": "sh3d-full#Puybaret#livreJava",
+      "name": "Book Java 7",
       "category": "Other",
-      "width": 8,
-      "depth": 1.4,
-      "height": 8,
-      "elevation": 115,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "electrical",
-        "electricity"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sheep-interrupteur.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sheep-interrupteur/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sheep#tableauElectrique",
-      "name": "Switchboard",
-      "category": "Other",
-      "width": 25,
-      "depth": 10.6,
-      "height": 25,
+      "width": 21,
+      "depth": 23.9,
+      "height": 2.55,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "electrical",
-        "electricity"
+        "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/sheep-tableauelectrique.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sheep-tableauelectrique/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/puybaret-livrejava.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-livrejava/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Sheep#priseTV",
-      "name": "TV plug",
-      "category": "Living",
-      "width": 8,
-      "depth": 1.1,
-      "height": 8,
-      "elevation": 22,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "socket",
-        "outlet",
-        "electrical",
-        "electricity"
-      ],
-      "modelPath": "https://assets.buildmy.house/models/sheep-prisetv.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sheep-prisetv/model.obj"
-    },
-    {
-      "catalogId": "sh3d-full#Sleipnir1#horlogeUbuntu",
-      "name": "Ubuntu clock",
-      "category": "Other",
-      "width": 38.3,
-      "depth": 7.7,
-      "height": 38.5,
+      "catalogId": "sh3d-full#Toomy#percolateur",
+      "name": "Coffee machine",
+      "category": "Kitchen",
+      "width": 20.5,
+      "depth": 30.4,
+      "height": 27.9,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
         "appliance",
-        "decoration"
+        "espresso"
       ],
-      "modelPath": "https://assets.buildmy.house/models/sleipnir1-horlogeubuntu.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/sleipnir1-horlogeubuntu/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/toomy-percolateur.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-percolateur/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Geantick#venetianBlind",
-      "name": "Venetian blind",
+      "catalogId": "sh3d-full#Toomy#pileMagazines",
+      "name": "Magazines pile",
       "category": "Other",
-      "width": 90,
-      "depth": 9,
-      "height": 60,
-      "elevation": 170,
+      "width": 27.25374,
+      "depth": 33.7254,
+      "height": 1.2,
+      "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "window"
+        "book",
+        "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/geantick-venetianblind.glb",
-      "renderModelPath": "https://assets.buildmy.house/models/geantick-venetianblind/model.obj"
+      "modelPath": "https://assets.buildmy.house/models/toomy-pilemagazines.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-pilemagazines/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#pizza",
+      "name": "Pizza",
+      "category": "Kitchen",
+      "width": 29.7,
+      "depth": 30,
+      "height": 0.9,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "food"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-pizza.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-pizza/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#plancheADecouper",
+      "name": "Chopping board",
+      "category": "Kitchen",
+      "width": 35,
+      "depth": 23.8,
+      "height": 1.7,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/toomy-plancheadecouper.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-plancheadecouper/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#secheCheveux",
+      "name": "Hair dryer",
+      "category": "Bathroom",
+      "width": 15.796,
+      "depth": 15.285,
+      "height": 7.16,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "appliance"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-sechecheveux.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-sechecheveux/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#sh3dMag",
+      "name": "Magazine",
+      "category": "Other",
+      "width": 21,
+      "depth": 29.7,
+      "height": 0.3,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "book",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-sh3dmag.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-sh3dmag/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#SweetHome3DKompakt",
+      "name": "Book Sweet Home 3D kompakt",
+      "category": "Other",
+      "width": 14.5,
+      "depth": 20.6,
+      "height": 1.3,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-sweethome3dkompakt.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-sweethome3dkompakt/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#toast",
+      "name": "Toast",
+      "category": "Kitchen",
+      "width": 10.1,
+      "depth": 9.9,
+      "height": 0.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "food",
+        "bread"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-toast.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-toast/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Bettinelli#armoireLotus",
+      "name": "Wardrobe",
+      "category": "Bedroom",
+      "width": 179.5,
+      "depth": 67.5,
+      "height": 221.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "closet"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/bettinelli-armoirelotus.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/bettinelli-armoirelotus/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Bettinelli#barCusisine",
+      "name": "Bar table",
+      "category": "Kitchen",
+      "width": 121.1,
+      "depth": 45,
+      "height": 108.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/bettinelli-barcusisine.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/bettinelli-barcusisine/model.obj"
     }
   ]
 }
