@@ -38,6 +38,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 make g+
 COPY server/package.json server/package-lock.json ./
 RUN npm ci
 COPY server/ ./
+# The server render queue reuses the shared scene builder; keep that source in
+# the server build stage so TypeScript and the compiled runtime see the same code.
+COPY src/ /app/src/
 RUN npm run build
 
 # ---- Stage 3: slim runtime ----
