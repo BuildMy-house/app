@@ -1578,6 +1578,7 @@ function importModelFile(): void {
           fileName: `${result.name}.glb`,
           name: result.name,
           category: result.category,
+          renderModelPath: result.renderModelPath ?? null,
           data,
         })
 

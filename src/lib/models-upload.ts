@@ -12,7 +12,7 @@
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-export type ModelFormat = 'glb' | 'gltf' | 'obj';
+export type ModelFormat = 'glb' | 'gltf' | 'obj' | 'zip';
 
 export interface ModelUploadMetadata {
   name: string;
@@ -60,7 +60,7 @@ export interface ValidationError {
 
 const MAX_BYTES = 50 * 1024 * 1024;
 const MIN_BYTES = 1024;
-const ALLOWED_EXTS: ModelFormat[] = ['glb', 'gltf', 'obj'];
+const ALLOWED_EXTS: ModelFormat[] = ['glb', 'gltf', 'obj', 'zip'];
 
 export function getFileExtension(filename: string): ModelFormat | null {
   const ext = filename.split('.').pop()?.toLowerCase() ?? '';
@@ -76,7 +76,7 @@ export function validateBeforeUpload(file: File, metadata: ModelUploadMetadata):
 
   const ext = getFileExtension(file.name);
   if (!ext) {
-    errors.push({ field: 'file', message: 'Only GLB, GLTF, and OBJ formats are supported' });
+    errors.push({ field: 'file', message: 'Only GLB, GLTF, OBJ, or ZIP model bundles are supported' });
   }
 
   if (file.size > MAX_BYTES) {

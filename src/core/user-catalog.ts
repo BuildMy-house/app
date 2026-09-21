@@ -53,6 +53,7 @@ export interface UserModelInput {
   depth?: number
   height?: number
   color?: number | null
+  renderModelPath?: string | null
   /** GLB bytes. */
   data: ArrayBuffer
 }
@@ -78,6 +79,7 @@ export interface UserModelRecord {
   /** Storage key for the binary blob (object URL in memory, file path in fs). */
   blobKey: string
   createdAt: number
+  renderModelPath?: string | null
 }
 
 /** In-memory store — deterministic, testable; no persistence across reloads. */
@@ -141,6 +143,7 @@ export function toCatalogItem(input: UserModelInput, id: string): { item: Catalo
     color: input.color ?? 0x9e9e9e,
     blobKey: `blob:${id}`,
     createdAt: Date.now(),
+    renderModelPath: input.renderModelPath ?? null,
   }
   const item: CatalogItem = {
     catalogId: record.catalogId,
@@ -151,6 +154,7 @@ export function toCatalogItem(input: UserModelInput, id: string): { item: Catalo
     height: record.height,
     color: record.color,
     modelPath: record.blobKey,
+    renderModelPath: record.renderModelPath ?? null,
   }
   return { item, record }
 }
@@ -199,6 +203,7 @@ export class UserCatalog {
       height: record.height,
       color: record.color,
       modelPath: record.blobKey,
+      renderModelPath: record.renderModelPath ?? null,
     }))
     this._user = new FurnitureCatalog(this.userItems)
   }

@@ -2,1712 +2,1643 @@
   "schemaVersion": 1,
   "items": [
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#armchair",
-      "name": "Armchair",
-      "category": "Office",
-      "width": 59.4,
-      "depth": 62.7,
-      "height": 105,
+      "catalogId": "sh3d-full#Pencilart#DianaWindow",
+      "name": "Triple window",
+      "category": "Windows",
+      "width": 389.6,
+      "depth": 25.6,
+      "height": 210,
       "elevation": 0,
       "color": 12632256,
-      "doorOrWindow": false,
+      "doorOrWindow": true,
       "tags": [
-        "blend swap",
-        "seat"
+        "3",
+        "three"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-armchair.glb"
+      "modelPath": "https://assets.buildmy.house/models/pencilart-dianawindow.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-dianawindow/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#bed1",
-      "name": "Bed",
-      "category": "Bedroom",
-      "width": 140.7,
-      "depth": 208,
-      "height": 95.5,
+      "catalogId": "sh3d-full#Siath#emergencyGlassDoubleDoor",
+      "name": "Emergency glass double door",
+      "category": "Doors",
+      "width": 219.1,
+      "depth": 28.4,
+      "height": 210,
       "elevation": 0,
       "color": 12632256,
-      "doorOrWindow": false,
+      "doorOrWindow": true,
       "tags": [
-        "blend swap"
+        "entrance",
+        "shop"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bed1.glb"
+      "modelPath": "https://assets.buildmy.house/models/siath-emergencyglassdoubledoor.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/siath-emergencyglassdoubledoor/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#bed2",
-      "name": "Bed",
-      "category": "Bedroom",
-      "width": 144.7,
-      "depth": 213.7,
-      "height": 107.7,
+      "catalogId": "sh3d-full#Pencilart#accordionFoldDoors",
+      "name": "Accordion fold doors",
+      "category": "Doors",
+      "width": 284,
+      "depth": 126.5,
+      "height": 220,
       "elevation": 0,
       "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bed2.glb"
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-accordionfolddoors.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-accordionfolddoors/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#bedsideTable2",
-      "name": "Bedside table",
-      "category": "Bedroom",
-      "width": 48.55,
-      "depth": 48.1,
-      "height": 45.4,
+      "catalogId": "sh3d-full#Pencilart#garageDoor2",
+      "name": "Garage door",
+      "category": "Doors",
+      "width": 210,
+      "depth": 15,
+      "height": 220,
       "elevation": 0,
       "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "nightstand"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bedsidetable2.glb"
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-garagedoor2.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-garagedoor2/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#bedWithTexture",
-      "name": "Bed",
-      "category": "Bedroom",
-      "width": 198,
-      "depth": 226.36,
-      "height": 76.5,
+      "catalogId": "sh3d-full#PeterSmolik#doorGlassPanels",
+      "name": "Glass door",
+      "category": "Doors",
+      "width": 77.1,
+      "depth": 11.2,
+      "height": 205.7,
       "elevation": 0,
       "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bedwithtexture.glb"
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-doorglasspanels.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-doorglasspanels/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#bookcase",
-      "name": "Bookcase",
-      "category": "Living",
-      "width": 91.9,
-      "depth": 36.5,
-      "height": 147.2,
+      "catalogId": "sh3d-full#PeterSmolik#door1",
+      "name": "Door",
+      "category": "Doors",
+      "width": 91.44,
+      "depth": 18.23,
+      "height": 213.7,
       "elevation": 0,
       "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "shelves",
-        "bookshelf"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bookcase.glb"
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-door1.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-door1/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#butter",
-      "name": "Butter",
-      "category": "Kitchen",
-      "width": 16,
-      "depth": 7.5,
-      "height": 3.4,
-      "elevation": 0,
+      "catalogId": "sh3d-full#Pencilart#fancyWindow",
+      "name": "Fancy window",
+      "category": "Windows",
+      "width": 60.9,
+      "depth": 5.6,
+      "height": 128,
+      "elevation": 91,
       "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "food"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-butter.glb"
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-fancywindow.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-fancywindow/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#caballito",
-      "name": "Rocking horse",
-      "category": "Bedroom",
-      "width": 67.65,
-      "depth": 29.1,
-      "height": 49.8,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "toy",
-        "game",
-        "decoration"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-caballito.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#caffe_final",
-      "name": "Coffee cup",
-      "category": "Kitchen",
-      "width": 10,
-      "depth": 10,
-      "height": 4.3,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "food",
-        "drink",
-        "espresso"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-caffe-final.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#cartoon_biplane",
-      "name": "Biplane",
-      "category": "Bedroom",
-      "width": 13.8,
-      "depth": 12.4,
-      "height": 5.7,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "toy",
-        "decoration"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-cartoon-biplane.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#cissors_swap",
-      "name": "Scissors",
-      "category": "Office",
-      "width": 13.7,
-      "depth": 6.9,
-      "height": 1.5,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-cissors-swap.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#comb",
-      "name": "Comb",
-      "category": "Bathroom",
-      "width": 12.5,
-      "depth": 3.6,
-      "height": 0.4,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-comb.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#cosmeticsPot",
-      "name": "Cosmetics pot",
-      "category": "Bathroom",
-      "width": 7.7,
-      "depth": 7.8,
-      "height": 7.1,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "makeup"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-cosmeticspot.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#deer",
-      "name": "Deer",
-      "category": "Living",
-      "width": 4.6,
-      "depth": 10,
-      "height": 20,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "decoration"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-deer.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#desklamp",
-      "name": "Desk lamp",
-      "category": "Other",
-      "width": 24.4,
-      "depth": 24.4,
-      "height": 40,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-desklamp.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#doubleOven",
-      "name": "Double oven",
-      "category": "Kitchen",
-      "width": 60,
-      "depth": 51.5,
-      "height": 108.9,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "appliance",
-        "cooker"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-doubleoven.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#flowerBox",
-      "name": "Flower box",
-      "category": "Outdoor",
-      "width": 55,
-      "depth": 16.75,
-      "height": 19.4,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "outdoor",
-        "flowers",
-        "plant",
-        "decoration"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-flowerbox.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#housePuzzle",
-      "name": "Puzzle",
-      "category": "Bedroom",
-      "width": 15.5,
-      "depth": 15.6,
-      "height": 1.3,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "toy",
-        "game",
-        "decoration"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-housepuzzle.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#kitchenaid",
-      "name": "Mixer",
-      "category": "Kitchen",
-      "width": 21.4,
-      "depth": 36,
-      "height": 35.3,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "appliance"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-kitchenaid.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#knifeStandSwap",
-      "name": "Knife stand",
-      "category": "Kitchen",
-      "width": 39.15,
-      "depth": 3.5,
-      "height": 35.6,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-knifestandswap.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#L_shaped_sofa",
-      "name": "Corner sofa",
-      "category": "Living",
-      "width": 233.7,
-      "depth": 143.6,
-      "height": 80,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "couch",
-        "seat"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-l-shaped-sofa.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#led_tv",
-      "name": "TV",
-      "category": "Living",
-      "width": 77.5,
-      "depth": 14.2,
-      "height": 50.8,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "appliance",
-        "television",
-        "flat",
-        "plasma",
-        "lcd",
-        "led"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-led-tv.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#mamadeira",
-      "name": "Baby bottle",
-      "category": "Kitchen",
-      "width": 5,
-      "depth": 5,
-      "height": 14.7,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-mamadeira.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#mano_cooktop",
-      "name": "Cooktop",
-      "category": "Kitchen",
-      "width": 58,
-      "depth": 50,
-      "height": 3.8,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "cooker",
-        "hob",
-        "appliance"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-mano-cooktop.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#mofx_mailbox",
-      "name": "Mailbox",
-      "category": "Outdoor",
-      "width": 15.9,
-      "depth": 46.5,
-      "height": 81.55,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "outdoor"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-mofx-mailbox.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#oakChair",
-      "name": "Oak chair",
-      "category": "Living",
-      "width": 49.1,
-      "depth": 61.2,
-      "height": 117.8,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "seat"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-oakchair.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#oakTable",
-      "name": "Oak table",
-      "category": "Living",
-      "width": 124,
-      "depth": 124,
-      "height": 74.1,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "dining",
-        "dinner"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-oaktable.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#oven",
-      "name": "Oven",
-      "category": "Kitchen",
-      "width": 60,
-      "depth": 51.5,
-      "height": 57.8,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "appliance",
-        "cooker"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-oven.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#pallet",
-      "name": "Pallet",
-      "category": "Other",
-      "width": 120,
-      "depth": 120.4,
-      "height": 12,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-pallet.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#pianoAQueue",
-      "name": "Grand piano",
-      "category": "Living",
-      "width": 132,
-      "depth": 170,
-      "height": 178,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "music"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-pianoaqueue.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#plasticChair",
-      "name": "Chair",
-      "category": "Living",
-      "width": 44.4,
-      "depth": 58.4,
-      "height": 82,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "seat"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-plasticchair.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#plasticCup",
-      "name": "Plastic cup",
-      "category": "Kitchen",
-      "width": 7.9,
-      "depth": 7.9,
-      "height": 10,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-plasticcup.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#poolTable",
-      "name": "Pool table",
-      "category": "Other",
-      "width": 256,
-      "depth": 139.2,
-      "height": 82.3,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "billiard",
-        "game"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-pooltable.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#radiator1",
-      "name": "Radiator",
-      "category": "Other",
-      "width": 216.3,
-      "depth": 14.3,
-      "height": 83.4,
-      "elevation": 10,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "heating"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-radiator1.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#radiator2",
-      "name": "Radiator",
-      "category": "Other",
-      "width": 132.6,
-      "depth": 41.4,
-      "height": 45.66,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "heating"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-radiator2.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#radiator",
-      "name": "Radiator",
-      "category": "Other",
-      "width": 140.3,
-      "depth": 24.7,
-      "height": 73.1,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "heating"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-radiator.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#relaxChair",
-      "name": "Relax chair",
-      "category": "Outdoor",
-      "width": 66,
-      "depth": 190,
-      "height": 84.7,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "outdoor",
-        "deck",
-        "garden",
-        "seat"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-relaxchair.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#ruler",
-      "name": "Ruler",
-      "category": "Office",
-      "width": 31.2,
+      "catalogId": "sh3d-full#Pencilart#newWindowDk",
+      "name": "Window",
+      "category": "Windows",
+      "width": 60.9,
       "depth": 3.4,
-      "height": 0.17,
+      "height": 94.9,
+      "elevation": 126,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-newwindowdk.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-newwindowdk/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#windowFrostedGlass",
+      "name": "Window frosted glass",
+      "category": "Windows",
+      "width": 60.9,
+      "depth": 2.8,
+      "height": 94.9,
+      "elevation": 126,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-windowfrostedglass.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-windowfrostedglass/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#glassDoorsOpened",
+      "name": "Opened quadruple glass doors",
+      "category": "Doors",
+      "width": 336,
+      "depth": 86.66,
+      "height": 203,
       "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [
+        "4",
+        "four"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-glassdoorsopened.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-glassdoorsopened/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#patioDoorOpened",
+      "name": "Opened patio door",
+      "category": "Doors",
+      "width": 168.3,
+      "depth": 82.7,
+      "height": 203,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-patiodooropened.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-patiodooropened/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#patioDoor",
+      "name": "Patio door",
+      "category": "Doors",
+      "width": 99.4,
+      "depth": 18.4,
+      "height": 200,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-patiodoor.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-patiodoor/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#patioSideDoor",
+      "name": "Patio side door",
+      "category": "Doors",
+      "width": 60.7,
+      "depth": 6.2,
+      "height": 200,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-patiosidedoor.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-patiosidedoor/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PencilArt#fancyFrontDoor",
+      "name": "Fancy front door",
+      "category": "Doors",
+      "width": 99.8,
+      "depth": 24,
+      "height": 200,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [
+        "entrance"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-fancyfrontdoor.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-fancyfrontdoor/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#OlaKristianHoff#bathroom_fan",
+      "name": "Fan",
+      "category": "Other",
+      "width": 20,
+      "depth": 33,
+      "height": 20,
+      "elevation": 201,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [
+        "okh",
+        "vent"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-bathroom-fan.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-bathroom-fan/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Mchnz#craftsmanDoorClosed",
+      "name": "Craftsman door",
+      "category": "Doors",
+      "width": 100.9,
+      "depth": 18.7,
+      "height": 209.6,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/mchnz-craftsmandoorclosed.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/mchnz-craftsmandoorclosed/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#OlaKristianHoff#sliderPocketDoor",
+      "name": "Slider pocket door",
+      "category": "Doors",
+      "width": 94.8,
+      "depth": 12.2,
+      "height": 212.5,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [
+        "okh",
+        "sliding"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-sliderpocketdoor.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-sliderpocketdoor/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#OlaKristianHoff#vent_round",
+      "name": "Round vent",
+      "category": "Other",
+      "width": 22,
+      "depth": 30,
+      "height": 24,
+      "elevation": 198,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [
+        "okh",
+        "fan"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-vent-round.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-vent-round/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#OlaKristianHoff#window_2x3_frame_sill",
+      "name": "Window 2x3",
+      "category": "Windows",
+      "width": 56,
+      "depth": 35,
+      "height": 110,
+      "elevation": 111,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [
+        "okh"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-window-2x3-frame-sill.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-window-2x3-frame-sill/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#OlaKristianHoff#window_deep",
+      "name": "Deep window",
+      "category": "Windows",
+      "width": 105,
+      "depth": 60,
+      "height": 150,
+      "elevation": 80,
+      "color": 12632256,
+      "doorOrWindow": true,
+      "tags": [
+        "okh"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-window-deep.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-window-deep/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#AntelopeCanyonFrame",
+      "name": "Frame Antelope Canyon",
+      "category": "Other",
+      "width": 50.1,
+      "depth": 1.6,
+      "height": 88,
+      "elevation": 130,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap"
+        "photo",
+        "picture",
+        "decoration"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-ruler.glb"
+      "modelPath": "https://assets.buildmy.house/models/puybaret-antelopecanyonframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-antelopecanyonframe/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#shelves",
-      "name": "Shelves",
+      "catalogId": "sh3d-full#Puybaret#EiffelTowerFrame",
+      "name": "Frame Eiffel Tower",
+      "category": "Other",
+      "width": 67,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-eiffeltowerframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-eiffeltowerframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#HaiVanPassFrame",
+      "name": "Frame Hai Van Pass",
+      "category": "Other",
+      "width": 77.2,
+      "depth": 1.5,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-haivanpassframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-haivanpassframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#InariFrame",
+      "name": "Frame Inari",
+      "category": "Other",
+      "width": 48,
+      "depth": 1.6,
+      "height": 67.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-inariframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-inariframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#MontBlancFrame",
+      "name": "Frame Mont Blanc",
+      "category": "Other",
+      "width": 94.5,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-montblancframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-montblancframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#mirror",
+      "name": "Mirror",
+      "category": "Other",
+      "width": 40,
+      "depth": 0.5,
+      "height": 40,
+      "elevation": 100,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-mirror.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-mirror/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#ovalMirror",
+      "name": "Oval mirror",
+      "category": "Other",
+      "width": 55,
+      "depth": 1,
+      "height": 105,
+      "elevation": 80,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-ovalmirror.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-ovalmirror/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#rectangularMirror",
+      "name": "Rectangular mirror",
+      "category": "Other",
+      "width": 50,
+      "depth": 1,
+      "height": 70,
+      "elevation": 100,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-rectangularmirror.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-rectangularmirror/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#carpet",
+      "name": "Carpet",
       "category": "Living",
-      "width": 79,
-      "depth": 39.4,
-      "height": 79,
+      "width": 160,
+      "depth": 225,
+      "height": 1,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap",
-        "shelf",
-        "bookcase"
+        "rug",
+        "decoration"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-shelves.glb"
+      "modelPath": "https://assets.buildmy.house/models/puybaret-carpet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-carpet/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#shower",
-      "name": "Shower head and faucet",
-      "category": "Bathroom",
-      "width": 20.8,
-      "depth": 53.8,
-      "height": 114.3,
-      "elevation": 115,
+      "catalogId": "sh3d-full#Puybaret#ButterflyFrame",
+      "name": "Frame Butterfly",
+      "category": "Other",
+      "width": 48.7,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap"
+        "photo",
+        "picture",
+        "decoration"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-shower.glb"
+      "modelPath": "https://assets.buildmy.house/models/puybaret-butterflyframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-butterflyframe/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#showerDoor",
-      "name": "Shower door",
-      "category": "Bathroom",
-      "width": 90.5,
-      "depth": 22.5,
-      "height": 229.9,
-      "elevation": 0,
+      "catalogId": "sh3d-full#Puybaret#TorontoOntarioPlaceFrame",
+      "name": "Frame Toronto Ontario Place",
+      "category": "Other",
+      "width": 61.1,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap"
+        "photo",
+        "picture",
+        "decoration"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-showerdoor.glb"
+      "modelPath": "https://assets.buildmy.house/models/puybaret-torontoontarioplaceframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-torontoontarioplaceframe/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#silla2",
-      "name": "Stool",
+      "catalogId": "sh3d-full#Puybaret#TigerFrame",
+      "name": "Frame Tiger",
+      "category": "Other",
+      "width": 62.8,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-tigerframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-tigerframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#NiagaraFallsFrame",
+      "name": "Frame Niagara Falls",
+      "category": "Other",
+      "width": 80.9,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-niagarafallsframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-niagarafallsframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#VeniceFrame",
+      "name": "Frame Venice",
+      "category": "Other",
+      "width": 73.5,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-veniceframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-veniceframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#ceramicHob",
+      "name": "Ceramic hob",
       "category": "Kitchen",
-      "width": 32.6,
-      "depth": 31.1,
-      "height": 78.8,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "chair",
-        "seat"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-silla2.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#speaker2",
-      "name": "Speaker",
-      "category": "Other",
-      "width": 22.1,
-      "depth": 25.4,
-      "height": 35.4,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "music",
-        "stereo",
-        "hifi"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-speaker2.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#speaker3",
-      "name": "Speaker",
-      "category": "Other",
-      "width": 22.1,
-      "depth": 25.4,
-      "height": 55.1,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "music",
-        "stereo",
-        "hifi"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-speaker3.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#stool",
-      "name": "Stool",
-      "category": "Kitchen",
-      "width": 53,
-      "depth": 52.1,
-      "height": 98,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "chair"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-stool.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#table_football",
-      "name": "Football table",
-      "category": "Other",
-      "width": 150.3,
-      "depth": 124.6,
-      "height": 100.9,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "game"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-table-football.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#tableFan",
-      "name": "Table fan",
-      "category": "Other",
-      "width": 27.1,
-      "depth": 21.8,
-      "height": 40.1,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "appliance"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-tablefan.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#tableWithTablecloth",
-      "name": "Table with tablecloth",
-      "category": "Living",
-      "width": 80.3,
-      "depth": 81.2,
-      "height": 75,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-tablewithtablecloth.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#technicalTable1",
-      "name": "Technical table",
-      "category": "Office",
-      "width": 214.7,
-      "depth": 118.8,
-      "height": 95,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-technicaltable1.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#technicalTable2",
-      "name": "Technical table",
-      "category": "Office",
-      "width": 136.6,
-      "depth": 171.4,
-      "height": 101.3,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-technicaltable2.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#teddyBear",
-      "name": "Teddy bear",
-      "category": "Bedroom",
-      "width": 33.1,
-      "depth": 21.8,
-      "height": 32.2,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "toy",
-        "baby"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-teddybear.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#televisionCabinet",
-      "name": "Television cabinet",
-      "category": "Living",
-      "width": 135.4,
-      "depth": 69.3,
-      "height": 160,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "tv"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-televisioncabinet.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#tetrapak",
-      "name": "Milk",
-      "category": "Kitchen",
-      "width": 9.55,
-      "depth": 9.5,
-      "height": 26.5,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "bottle",
-        "food",
-        "drink"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-tetrapak.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#textMarker",
-      "name": "Text marker",
-      "category": "Office",
-      "width": 3.1,
-      "depth": 10.3,
-      "height": 1.7,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-textmarker.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#toiletBrush",
-      "name": "Toilet brush",
-      "category": "Bathroom",
-      "width": 9.6,
-      "depth": 12.9,
-      "height": 38.6,
-      "elevation": 20,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-toiletbrush.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#toiletPaperDispenser",
-      "name": "Toilet paper dispenser",
-      "category": "Bathroom",
-      "width": 15.6,
-      "depth": 10.4,
-      "height": 18.45,
-      "elevation": 60,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-toiletpaperdispenser.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#toiletsUnit",
-      "name": "Toilet unit",
-      "category": "Bathroom",
-      "width": 35.3,
-      "depth": 69.2,
-      "height": 77.2,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-toiletsunit.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#towel2",
-      "name": "Towel",
-      "category": "Bathroom",
-      "width": 21.8,
-      "depth": 13.7,
-      "height": 66.85,
-      "elevation": 22,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-towel2.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#towel3",
-      "name": "Towel rack",
-      "category": "Bathroom",
-      "width": 59.6,
-      "depth": 8.1,
-      "height": 47.8,
-      "elevation": 40,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-towel3.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#umbrella",
-      "name": "Umbrella",
-      "category": "Outdoor",
-      "width": 223.1,
-      "depth": 222.7,
-      "height": 199.8,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "outdoor",
-        "deck",
-        "garden",
-        "sun"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-umbrella.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#verticalShelves",
-      "name": "Vertical shelves",
-      "category": "Living",
-      "width": 44,
-      "depth": 39,
-      "height": 185,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "shelf",
-        "bookcase"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-verticalshelves.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#washbasin",
-      "name": "Washbasin",
-      "category": "Bathroom",
-      "width": 56.4,
-      "depth": 45.7,
-      "height": 93.1,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-washbasin.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#whiteBoard",
-      "name": "White board",
-      "category": "Office",
-      "width": 124.65,
-      "depth": 55.108,
-      "height": 129,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "school",
-        "class"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-whiteboard.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#yogurtBottle",
-      "name": "Yogurt bottle",
-      "category": "Kitchen",
-      "width": 6.85,
-      "depth": 6.85,
-      "height": 21.2,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "food",
-        "drink"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-yogurtbottle.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#deckChair",
-      "name": "Deck chair",
-      "category": "Outdoor",
-      "width": 71.4,
-      "depth": 125.5,
-      "height": 82.2,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "seat",
-        "outdoor",
-        "garden",
-        "swimming",
-        "pool"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-deckchair.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#flacon",
-      "name": "Flacon",
-      "category": "Bathroom",
-      "width": 3.7,
-      "depth": 2.1,
-      "height": 13,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "bottle",
-        "makeup"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-flacon.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#sofa",
-      "name": "Corner sofa",
-      "category": "Living",
-      "width": 248.8,
-      "depth": 189.6,
-      "height": 78,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "couch",
-        "seat"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-sofa.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#wardrobeWithSlidingDoors",
-      "name": "Wardrobe",
-      "category": "Bedroom",
-      "width": 200,
-      "depth": 66,
-      "height": 236.4,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "closet"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-wardrobewithslidingdoors.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#headphones",
-      "name": "Headphones",
-      "category": "Other",
-      "width": 18.9,
-      "depth": 20,
-      "height": 8.2,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "electronics",
-        "music",
-        "stereo",
-        "hifi"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-headphones.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#iphone",
-      "name": "Apple iPhone",
-      "category": "Other",
-      "width": 5.8,
-      "depth": 11.5,
+      "width": 60,
+      "depth": 52,
       "height": 0.9,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap",
-        "electronics",
-        "telephone",
-        "smartphone",
-        "mobile",
-        "music"
+        "cooker",
+        "appliance"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-iphone.glb"
+      "modelPath": "https://assets.buildmy.house/models/puybaret-ceramichob.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-ceramichob/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#ammoBox",
-      "name": "Box",
-      "category": "Other",
-      "width": 100,
-      "depth": 52.1,
-      "height": 30.6,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "storage"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-ammobox.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#barrel",
-      "name": "Barrel",
-      "category": "Other",
-      "width": 81.5,
-      "depth": 81.5,
-      "height": 89.7,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "storage"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-barrel.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#crate",
-      "name": "Crate",
-      "category": "Other",
-      "width": 60,
-      "depth": 58.9,
-      "height": 59.4,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "storage",
-        "box"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-crate.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#cupboard",
-      "name": "Cupboard",
-      "category": "Bedroom",
-      "width": 100.5,
-      "depth": 39,
+      "catalogId": "sh3d-full#Pencilart#secretarysDesk",
+      "name": "Secretary's desk",
+      "category": "Office",
+      "width": 106.7,
+      "depth": 79.8,
       "height": 150,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap",
-        "wardrobe"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-cupboard.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#desk",
-      "name": "Desk",
-      "category": "Office",
-      "width": 139.3,
-      "depth": 54.3,
-      "height": 105.4,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
         "table"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-desk.glb"
+      "modelPath": "https://assets.buildmy.house/models/pencilart-secretarysdesk.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-secretarysdesk/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#electricGuitar",
-      "name": "Electric guitar",
+      "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackFullHeightHalfWidth",
+      "name": "Pinewood rack full height half width",
       "category": "Living",
-      "width": 34.5,
-      "depth": 32.1,
-      "height": 110,
+      "width": 48.8,
+      "depth": 30.2,
+      "height": 227,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap",
-        "music"
+        "shelves",
+        "shelf",
+        "bookcase"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-electricguitar.glb"
+      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheighthalfwidth.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheighthalfwidth/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#littlePlant",
-      "name": "Little plant",
+      "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackFullHeight",
+      "name": "Pinewood rack full height",
       "category": "Living",
-      "width": 26.6,
-      "depth": 26.6,
-      "height": 23.2,
+      "width": 89.8,
+      "depth": 30.2,
+      "height": 227,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap",
-        "patio",
-        "decoration"
+        "shelves",
+        "shelf",
+        "bookcase"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-littleplant.glb"
+      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheight.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheight/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#basketball",
-      "name": "Basketball",
-      "category": "Other",
-      "width": 23.8,
-      "depth": 23.8,
-      "height": 23.8,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "game",
-        "sport"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-basketball.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#sillaBlanca",
-      "name": "Chair",
+      "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackLowHeight",
+      "name": "Pinewood rack low height",
       "category": "Living",
-      "width": 50.5,
-      "depth": 58.4,
-      "height": 85,
+      "width": 89.8,
+      "depth": 30.2,
+      "height": 56.5,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap",
+        "shelves",
+        "shelf",
+        "bookcase"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodracklowheight.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodracklowheight/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackMediumHeight",
+      "name": "Pinewood rack medium height",
+      "category": "Living",
+      "width": 89.8,
+      "depth": 30.2,
+      "height": 143,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "shelves",
+        "shelf",
+        "bookcase"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackmediumheight.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackmediumheight/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#latticeChair",
+      "name": "Lattice chair",
+      "category": "Living",
+      "width": 43,
+      "depth": 42.3,
+      "height": 87.3,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
         "seat"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-sillablanca.glb"
+      "modelPath": "https://assets.buildmy.house/models/pencilart-latticechair.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-latticechair/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#umbrellaFolded",
-      "name": "Umbrella",
-      "category": "Other",
-      "width": 35.8,
-      "depth": 35.7,
-      "height": 80,
+      "catalogId": "sh3d-full#Pencilart#stove1",
+      "name": "Stove",
+      "category": "Kitchen",
+      "width": 83.3,
+      "depth": 93.6,
+      "height": 104,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap"
+        "cooker",
+        "appliance"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-umbrellafolded.glb"
+      "modelPath": "https://assets.buildmy.house/models/pencilart-stove1.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-stove1/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#kalender",
-      "name": "Calendar",
+      "catalogId": "sh3d-full#Pencilart#cornerCabinet",
+      "name": "Wood corner cabinet",
+      "category": "Kitchen",
+      "width": 79,
+      "depth": 78,
+      "height": 86,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-cornercabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-cornercabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#3DrawerCabinet",
+      "name": "Wood drawer cabinet",
+      "category": "Kitchen",
+      "width": 52.66595,
+      "depth": 64,
+      "height": 86,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-3drawercabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-3drawercabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#2GlassDoorCabinet",
+      "name": "Wood glass door cabinet",
+      "category": "Kitchen",
+      "width": 96,
+      "depth": 39.2,
+      "height": 70,
+      "elevation": 160,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-2glassdoorcabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-2glassdoorcabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#2DoorUpperCabinet",
+      "name": "Wood upper cabinet",
+      "category": "Kitchen",
+      "width": 96,
+      "depth": 39.2,
+      "height": 70.9,
+      "elevation": 160,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-2dooruppercabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-2dooruppercabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#2DoorLowerCabinet",
+      "name": "Wood lower cabinet",
+      "category": "Kitchen",
+      "width": 96,
+      "depth": 64,
+      "height": 86,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-2doorlowercabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-2doorlowercabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#1GlassDoorCabinet",
+      "name": "Wood glass door cabinet",
+      "category": "Kitchen",
+      "width": 45.2,
+      "depth": 39.2,
+      "height": 70,
+      "elevation": 160,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-1glassdoorcabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-1glassdoorcabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#1DoorUpperCabinet",
+      "name": "Wood upper cabinet",
+      "category": "Kitchen",
+      "width": 45.2,
+      "depth": 39.2,
+      "height": 70.9,
+      "elevation": 160,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-1dooruppercabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-1dooruppercabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#1DoorLowerCabinet",
+      "name": "Wood lower cabinet",
+      "category": "Kitchen",
+      "width": 51.9,
+      "depth": 64,
+      "height": 86,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-1doorlowercabinet.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-1doorlowercabinet/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#pantry",
+      "name": "Wood pantry",
+      "category": "Kitchen",
+      "width": 98.3,
+      "depth": 64,
+      "height": 184.6,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cupboard",
+        "closet"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-pantry.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-pantry/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#kitchenSinkWithMarble",
+      "name": "Wood cabinet with sink",
+      "category": "Kitchen",
+      "width": 90.9,
+      "depth": 64,
+      "height": 111.35,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "basin",
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-kitchensinkwithmarble.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-kitchensinkwithmarble/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#kitchenIsland",
+      "name": "Wood island",
+      "category": "Kitchen",
+      "width": 225,
+      "depth": 96,
+      "height": 86,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cabinet",
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-kitchenisland.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-kitchenisland/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#cornerChina",
+      "name": "Wood corner China",
+      "category": "Kitchen",
+      "width": 77,
+      "depth": 77,
+      "height": 171.5,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cabinet",
+        "cupboard"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-cornerchina.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-cornerchina/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#grillNgauge",
+      "name": "Grill",
+      "category": "Outdoor",
+      "width": 92,
+      "depth": 49.5,
+      "height": 89,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "barbecue",
+        "bbq",
+        "outdoor",
+        "deck",
+        "garden"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-grillngauge.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-grillngauge/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#candleOrnament",
+      "name": "Candle ornament",
+      "category": "Other",
+      "width": 8,
+      "depth": 12.5,
+      "height": 31.9,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-candleornament.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-candleornament/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#CDrack",
+      "name": "CD rack",
+      "category": "Living",
+      "width": 65.7,
+      "depth": 20.3,
+      "height": 122.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "shelves",
+        "shelf"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-cdrack.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-cdrack/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#chair2",
+      "name": "Chair",
       "category": "Office",
-      "width": 12,
-      "depth": 7.9,
-      "height": 10.8,
+      "width": 57.9,
+      "depth": 60.9,
+      "height": 90.2,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-kalender.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#fireExtinguisher",
-      "name": "Extinguisher",
-      "category": "Other",
-      "width": 31.1,
-      "depth": 18,
-      "height": 62.3,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "fire"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-fireextinguisher.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#numberLock",
-      "name": "Number lock",
-      "category": "Other",
-      "width": 10,
-      "depth": 0.45,
-      "height": 10.2,
-      "elevation": 140,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "security"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-numberlock.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#potty",
-      "name": "Potty",
-      "category": "Bathroom",
-      "width": 30.3,
-      "depth": 30.3,
-      "height": 18.4,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "baby"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-potty.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#slippersSeparated",
-      "name": "Slippers",
-      "category": "Bedroom",
-      "width": 23.7,
-      "depth": 28.1,
-      "height": 6.1,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "shoes",
-        "clothes"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-slippersseparated.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#armchair2",
-      "name": "Armchair",
-      "category": "Living",
-      "width": 95.3,
-      "depth": 83.3,
-      "height": 78.3,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
         "seat"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-armchair2.glb"
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-chair2.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-chair2/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#babyRockingBed",
-      "name": "Baby bed",
+      "catalogId": "sh3d-full#PeterSmolik#futon",
+      "name": "Futon",
       "category": "Bedroom",
-      "width": 59.7,
-      "depth": 82.5,
-      "height": 76.2,
+      "width": 162,
+      "depth": 207,
+      "height": 32.1,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap",
-        "crib"
+        "bed"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-babyrockingbed.glb"
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-futon.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-futon/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#bed3",
-      "name": "Bed",
-      "category": "Bedroom",
-      "width": 202.2,
-      "depth": 228.2,
-      "height": 114.2,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bed3.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#beerGlass",
-      "name": "Beer glass",
-      "category": "Kitchen",
-      "width": 15.4,
-      "depth": 10.2,
-      "height": 16.5,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "drink"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-beerglass.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#bread",
-      "name": "Bread",
-      "category": "Kitchen",
-      "width": 21.6,
-      "depth": 14.7,
-      "height": 7.6,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "food"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bread.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#cardGame",
-      "name": "Card game",
-      "category": "Bedroom",
-      "width": 21.1,
-      "depth": 11.3,
-      "height": 0.38,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-cardgame.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#ceilingFan",
-      "name": "Ceiling fan",
-      "category": "Other",
-      "width": 91.3,
-      "depth": 79.8,
-      "height": 39.2,
-      "elevation": 210.8,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-ceilingfan.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#chair",
-      "name": "Chair",
+      "catalogId": "sh3d-full#PeterSmolik#hallTable",
+      "name": "Dresser",
       "category": "Living",
-      "width": 51.3,
-      "depth": 53.1,
-      "height": 80,
+      "width": 117.42,
+      "depth": 62.9,
+      "height": 87.62,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-halltable.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-halltable/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#officeChair",
+      "name": "Office chair",
+      "category": "Office",
+      "width": 62.62,
+      "depth": 59.67,
+      "height": 87.34,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap",
         "seat"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-chair.glb"
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-officechair.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-officechair/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#chicken",
-      "name": "Chicken",
+      "catalogId": "sh3d-full#PeterSmolik#picture",
+      "name": "Picture",
       "category": "Other",
-      "width": 24.2,
-      "depth": 32.8,
-      "height": 45.6,
-      "elevation": 0,
+      "width": 133.97,
+      "depth": 9.49,
+      "height": 81.46,
+      "elevation": 150,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap",
-        "animal"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-chicken.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#couch",
-      "name": "Couch",
-      "category": "Living",
-      "width": 207.4,
-      "depth": 87.6,
-      "height": 85.6,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "sofa"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-couch.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#cuckooClock",
-      "name": "Cuckoo clock",
-      "category": "Other",
-      "width": 26.6,
-      "depth": 17.7,
-      "height": 73.8,
-      "elevation": 100,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
+        "photo",
         "decoration"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-cuckooclock.glb"
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-picture.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-picture/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#horse2",
-      "name": "Horse",
-      "category": "Other",
-      "width": 58.3,
-      "depth": 261.6,
-      "height": 200,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "animal",
-        "stable"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-horse2.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#lockedLocker",
-      "name": "Locked locker",
-      "category": "Other",
-      "width": 20,
-      "depth": 22,
-      "height": 40,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-lockedlocker.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#modernArmchair",
-      "name": "Armchair",
-      "category": "Living",
-      "width": 77.3,
-      "depth": 84.9,
-      "height": 86.5,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "seat"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-modernarmchair.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#riggedFan",
-      "name": "Rigged fan",
-      "category": "Other",
-      "width": 32.7,
-      "depth": 20.7,
-      "height": 32.2,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-riggedfan.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#antiqueChair",
-      "name": "Chair",
-      "category": "Living",
-      "width": 49.8,
-      "depth": 63.2,
-      "height": 98.2,
-      "elevation": 0,
-      "color": 12632256,
-      "doorOrWindow": false,
-      "tags": [
-        "blend swap",
-        "seat"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-antiquechair.glb"
-    },
-    {
-      "catalogId": "sh3d-full#Blend Swap CC-0#augalas",
+      "catalogId": "sh3d-full#PeterSmolik#potplant2",
       "name": "Plant",
       "category": "Living",
-      "width": 60.9,
-      "depth": 34.9,
-      "height": 31.5,
+      "width": 96.68,
+      "depth": 96.19,
+      "height": 85.35,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap",
-        "patio",
-        "decoration"
+        "patio"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-augalas.glb"
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-potplant2.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-potplant2/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#bench",
-      "name": "Bench",
-      "category": "Outdoor",
-      "width": 170.1,
-      "depth": 45.9,
-      "height": 50.8,
+      "catalogId": "sh3d-full#PeterSmolik#sofa1",
+      "name": "Sofa",
+      "category": "Living",
+      "width": 234,
+      "depth": 79.37,
+      "height": 79.23,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap",
+        "couch",
+        "seat"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-sofa1.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-sofa1/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#PeterSmolik#sofa4",
+      "name": "Sofa",
+      "category": "Living",
+      "width": 185,
+      "depth": 74,
+      "height": 83.54,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "couch",
+        "seat"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-sofa4.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/petersmolik-sofa4/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#couchPoofyPillows",
+      "name": "Couch",
+      "category": "Living",
+      "width": 156.1,
+      "depth": 70.6,
+      "height": 75,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "sofa",
+        "seat",
+        "cushion"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-couchpoofypillows.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-couchpoofypillows/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#largeCouch",
+      "name": "Large couch",
+      "category": "Living",
+      "width": 236.7,
+      "depth": 76.7,
+      "height": 75,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "sofa",
+        "seat"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-largecouch.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-largecouch/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#singleChair",
+      "name": "Armchair",
+      "category": "Living",
+      "width": 101.2,
+      "depth": 77.1,
+      "height": 75,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "seat"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-singlechair.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-singlechair/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#throwPillow",
+      "name": "Pillow",
+      "category": "Living",
+      "width": 35,
+      "depth": 17,
+      "height": 32.1,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "cushion"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/pencilart-throwpillow.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-throwpillow/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Pencilart#privacyFence2",
+      "name": "Fence",
+      "category": "Outdoor",
+      "width": 73.9,
+      "depth": 7.4,
+      "height": 100.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
         "outdoor"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bench.glb"
+      "modelPath": "https://assets.buildmy.house/models/pencilart-privacyfence2.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/pencilart-privacyfence2/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#bidet",
-      "name": "Bidet",
-      "category": "Bathroom",
-      "width": 39.9,
-      "depth": 53.6,
-      "height": 51.3,
-      "elevation": 0,
+      "catalogId": "sh3d-full#NMi#stainlessSteelShelf",
+      "name": "Stainless steel shelf",
+      "category": "Living",
+      "width": 48,
+      "depth": 18,
+      "height": 10,
+      "elevation": 150,
       "color": 12632256,
       "doorOrWindow": false,
-      "tags": [
-        "blend swap"
-      ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-bidet.glb"
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/nmi-stainlesssteelshelf.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/nmi-stainlesssteelshelf/model.obj"
     },
     {
-      "catalogId": "sh3d-full#Blend Swap CC-0#box",
-      "name": "Box",
+      "catalogId": "sh3d-full#Puybaret#LakeMoraineFrame",
+      "name": "Frame Lake Moraine",
       "category": "Other",
-      "width": 89.9,
-      "depth": 65.7,
-      "height": 31.4,
+      "width": 73.5,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-lakemoraineframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-lakemoraineframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#SquirrelFrame",
+      "name": "Frame Squirrel",
+      "category": "Other",
+      "width": 48.7,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-squirrelframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-squirrelframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#StatueOfLibertyFrame",
+      "name": "Frame Statue Of Liberty",
+      "category": "Other",
+      "width": 50.1,
+      "depth": 1.6,
+      "height": 88,
+      "elevation": 130,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-statueoflibertyframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-statueoflibertyframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#VaticanMuseumFrame",
+      "name": "Frame Vatican Museum",
+      "category": "Other",
+      "width": 61.2,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-vaticanmuseumframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-vaticanmuseumframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#EtretatFrame",
+      "name": "Frame Etretat",
+      "category": "Other",
+      "width": 67,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-etretatframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-etretatframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#ColoredFountainFrame",
+      "name": "Frame Colored Fountain",
+      "category": "Other",
+      "width": 73.5,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-coloredfountainframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-coloredfountainframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#HorseShoeBendFrame",
+      "name": "Frame Horse Shoe Bend",
+      "category": "Other",
+      "width": 61.2,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-horseshoebendframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-horseshoebendframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#TucanFrame",
+      "name": "Frame Tucan",
+      "category": "Other",
+      "width": 48.7,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-tucanframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-tucanframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#YosemiteFrame",
+      "name": "Frame Yosemite",
+      "category": "Other",
+      "width": 73.5,
+      "depth": 1.6,
+      "height": 47.8,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-yosemiteframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-yosemiteframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#WaterLilyFrame",
+      "name": "Frame Water Lily",
+      "category": "Other",
+      "width": 67,
+      "depth": 1.6,
+      "height": 47.9,
+      "elevation": 150,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "photo",
+        "picture",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-waterlilyframe.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-waterlilyframe/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#FabriceDelobe#bureauEcolier",
+      "name": "School desk",
+      "category": "Office",
+      "width": 88.5,
+      "depth": 56.1,
+      "height": 90,
       "elevation": 0,
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [
-        "blend swap"
+        "table",
+        "class"
       ],
-      "modelPath": "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models/blend-swap-cc-0-box.glb"
+      "modelPath": "https://assets.buildmy.house/models/fabricedelobe-bureauecolier.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/fabricedelobe-bureauecolier/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#baguettePain",
+      "name": "Bread",
+      "category": "Kitchen",
+      "width": 54.7,
+      "depth": 7.5,
+      "height": 4.1,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "food"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-baguettepain.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-baguettepain/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#bd",
+      "name": "Comics book",
+      "category": "Other",
+      "width": 21.44196,
+      "depth": 29.8,
+      "height": 0.7,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "book",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-bd.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-bd/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#bdOuverte",
+      "name": "Opened comics book",
+      "category": "Other",
+      "width": 42.4,
+      "depth": 29.8,
+      "height": 2.55,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "book",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-bdouverte.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-bdouverte/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#bolDeRiz",
+      "name": "Rice bowl",
+      "category": "Kitchen",
+      "width": 11,
+      "depth": 11,
+      "height": 6,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "food"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-bolderiz.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-bolderiz/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#eponge",
+      "name": "Sponge",
+      "category": "Kitchen",
+      "width": 10,
+      "depth": 6,
+      "height": 1.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/toomy-eponge.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-eponge/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#fer",
+      "name": "Iron",
+      "category": "Kitchen",
+      "width": 13.7,
+      "depth": 13.2,
+      "height": 30.6,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "appliance"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-fer.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-fer/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#invoice",
+      "name": "Invoice",
+      "category": "Office",
+      "width": 21,
+      "depth": 29.7,
+      "height": 0.49,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-invoice.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-invoice/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#livreJava",
+      "name": "Book Java 7",
+      "category": "Other",
+      "width": 21,
+      "depth": 23.9,
+      "height": 2.55,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-livrejava.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-livrejava/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#percolateur",
+      "name": "Coffee machine",
+      "category": "Kitchen",
+      "width": 20.5,
+      "depth": 30.4,
+      "height": 27.9,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "appliance",
+        "espresso"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-percolateur.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-percolateur/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#pileMagazines",
+      "name": "Magazines pile",
+      "category": "Other",
+      "width": 27.25374,
+      "depth": 33.7254,
+      "height": 1.2,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "book",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-pilemagazines.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-pilemagazines/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#pizza",
+      "name": "Pizza",
+      "category": "Kitchen",
+      "width": 29.7,
+      "depth": 30,
+      "height": 0.9,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "food"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-pizza.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-pizza/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#plancheADecouper",
+      "name": "Chopping board",
+      "category": "Kitchen",
+      "width": 35,
+      "depth": 23.8,
+      "height": 1.7,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/toomy-plancheadecouper.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-plancheadecouper/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#secheCheveux",
+      "name": "Hair dryer",
+      "category": "Bathroom",
+      "width": 15.796,
+      "depth": 15.285,
+      "height": 7.16,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "appliance"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-sechecheveux.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-sechecheveux/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#sh3dMag",
+      "name": "Magazine",
+      "category": "Other",
+      "width": 21,
+      "depth": 29.7,
+      "height": 0.3,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "book",
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-sh3dmag.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-sh3dmag/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Puybaret#SweetHome3DKompakt",
+      "name": "Book Sweet Home 3D kompakt",
+      "category": "Other",
+      "width": 14.5,
+      "depth": 20.6,
+      "height": 1.3,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "decoration"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/puybaret-sweethome3dkompakt.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/puybaret-sweethome3dkompakt/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Toomy#toast",
+      "name": "Toast",
+      "category": "Kitchen",
+      "width": 10.1,
+      "depth": 9.9,
+      "height": 0.8,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "food",
+        "bread"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/toomy-toast.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/toomy-toast/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Bettinelli#armoireLotus",
+      "name": "Wardrobe",
+      "category": "Bedroom",
+      "width": 179.5,
+      "depth": 67.5,
+      "height": 221.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [
+        "closet"
+      ],
+      "modelPath": "https://assets.buildmy.house/models/bettinelli-armoirelotus.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/bettinelli-armoirelotus/model.obj"
+    },
+    {
+      "catalogId": "sh3d-full#Bettinelli#barCusisine",
+      "name": "Bar table",
+      "category": "Kitchen",
+      "width": 121.1,
+      "depth": 45,
+      "height": 108.4,
+      "elevation": 0,
+      "color": 12632256,
+      "doorOrWindow": false,
+      "tags": [],
+      "modelPath": "https://assets.buildmy.house/models/bettinelli-barcusisine.glb",
+      "renderModelPath": "https://assets.buildmy.house/models/bettinelli-barcusisine/model.obj"
     }
   ]
 }

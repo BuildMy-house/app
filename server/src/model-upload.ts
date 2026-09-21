@@ -4,6 +4,7 @@ import type { Request, Response } from 'express';
 import Busboy from 'busboy';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
+import { unzipSync } from 'fflate';
 import { asyncHandler } from './asyncHandler.js';
 import { requireAuth } from './auth.js';
 import type { DbAdapter } from './db.js';
@@ -18,7 +19,7 @@ const VALID_CATEGORIES = [
   'Doors', 'Windows', 'Office', 'Outdoor', 'Other',
 ] as const;
 
-const VALID_EXTENSIONS = ['.glb', '.gltf', '.obj'];
+const VALID_EXTENSIONS = ['.glb', '.gltf', '.obj', '.zip'];
 
 /* ------------------------------------------------------------------ */
 /*  R2 client                                                          */
@@ -77,7 +78,61 @@ function validateModelFormat(buffer: Buffer, ext: string): string | null {
     return null;
   }
 
+  if (ext === '.zip') {
+    try {
+      const files = unzipSync(buffer);
+      if (!Object.keys(files).some((name) => /\.(glb|gltf|obj)$/i.test(name))) {
+        return 'ZIP must contain a GLB, GLTF, or OBJ model';
+      }
+    } catch {
+      return 'not a valid ZIP model bundle';
+    }
+    return null;
+  }
+
   return `unsupported format ${ext}`;
+}
+
+type BundleFile = { name: string; data: Buffer };
+
+/** Flatten a model bundle into safe sibling files for the public R2 bundle. */
+function unpackModelBundle(buffer: Buffer): BundleFile[] {
+  const files = unzipSync(buffer);
+  const result: BundleFile[] = [];
+  let total = 0;
+  for (const [name, bytes] of Object.entries(files)) {
+    if (name.endsWith('/') || bytes.byteLength === 0) continue;
+    const base = name.split(/[\\/]/).pop() ?? '';
+    if (!base || !/\.(glb|gltf|obj|mtl|png|jpe?g|webp|bmp|tga)$/i.test(base)) continue;
+    total += bytes.byteLength;
+    if (total > MAX_IMPORT_BYTES) throw new Error('model bundle exceeds the 50 MB limit');
+    result.push({ name: base, data: Buffer.from(bytes) });
+  }
+  if (!result.some((file) => /\.(glb|gltf|obj)$/i.test(file.name))) {
+    throw new Error('ZIP must contain a GLB, GLTF, or OBJ model');
+  }
+  return result;
+}
+
+function findBundleModel(files: BundleFile[]): BundleFile {
+  return files.find((file) => /\.glb$/i.test(file.name))
+    ?? files.find((file) => /\.gltf$/i.test(file.name))
+    ?? files.find((file) => /\.obj$/i.test(file.name))!;
+}
+
+function rewriteObjBundle(files: BundleFile[], model: BundleFile): { obj: Buffer; files: BundleFile[] } {
+  const mtl = files.find((file) => /\.mtl$/i.test(file.name));
+  if (!mtl) return { obj: model.data, files };
+  const mtlName = 'model.mtl';
+  const obj = model.data.toString('utf8').replace(/^mtllib\s+.*$/gim, `mtllib ${mtlName}`);
+  const rewrittenMtl = mtl.data.toString('utf8').replace(
+    /^(map_Kd|map_Ks|map_Ns|map_d|map_Bump|bump|disp)\s+(.+)$/gim,
+    (_line, key: string, value: string) => `${key} ${value.trim().split(/[\\/]/).pop()}`,
+  );
+  return {
+    obj: Buffer.from(obj),
+    files: files.map((file) => file === model ? { ...file, data: Buffer.from(obj), name: 'model.obj' } : file === mtl ? { ...file, data: Buffer.from(rewrittenMtl), name: mtlName } : file),
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -286,20 +341,35 @@ export function modelUploadRouter(db: DbAdapter): Router {
       }
 
       // --- Metadata extraction ---
-      const name = metadata.name?.trim() || filename.replace(/\.[^.]+$/, '');
+      const name = metadata.name?.trim() || filename.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
       const category = VALID_CATEGORIES.includes(metadata.category as any) ? metadata.category : 'Other';
       const width = Math.min(500, Math.max(0, Number(metadata.width) || 0));
       const depth = Math.min(500, Math.max(0, Number(metadata.depth) || 0));
       const height = Math.min(500, Math.max(0, Number(metadata.height) || 0));
       const color = metadata.color ? Number(metadata.color) : null;
 
-      // --- Geometry normalization: OBJ → GLB ---
-      let uploadBuffer: Buffer;
-      let uploadExt = ext;
-
-      if (ext === '.obj') {
+      // --- Normalize one input into web GLB plus optional native bundle ---
+      let bundleFiles: BundleFile[] | null = null;
+      let sourceModel = fileBuffer;
+      let sourceExt = ext;
+      if (ext === '.zip') {
         try {
-          uploadBuffer = await convertObjToGlb(fileBuffer);
+          bundleFiles = unpackModelBundle(fileBuffer);
+          const model = findBundleModel(bundleFiles);
+          sourceModel = model.data;
+          sourceExt = `.${(model.name.match(/\.([^.]+)$/)?.[1] ?? '').toLowerCase()}`;
+        } catch (err) {
+          res.status(422).json({ error: err instanceof Error ? err.message : String(err) });
+          return;
+        }
+      }
+
+      let uploadBuffer: Buffer;
+      let uploadExt = sourceExt;
+
+      if (sourceExt === '.obj') {
+        try {
+          uploadBuffer = await convertObjToGlb(sourceModel);
           uploadExt = '.glb';
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -307,7 +377,7 @@ export function modelUploadRouter(db: DbAdapter): Router {
           return;
         }
       } else {
-        uploadBuffer = fileBuffer;
+        uploadBuffer = sourceModel;
       }
 
       // --- IDs & paths ---
@@ -325,6 +395,24 @@ export function modelUploadRouter(db: DbAdapter): Router {
         Body: uploadBuffer,
         ContentType: uploadExt === '.glb' ? 'model/gltf-binary' : 'application/octet-stream',
       }));
+
+      let renderModelPath: string | null = null;
+      if (bundleFiles && sourceExt === '.obj') {
+        const model = findBundleModel(bundleFiles);
+        const rewritten = rewriteObjBundle(bundleFiles, model).files;
+        const renderPrefix = `models/${id}-${slug}`;
+        for (const file of rewritten) {
+          const key = `${renderPrefix}/${file.name}`;
+          const contentType = /\.mtl$/i.test(file.name) ? 'text/plain' : 'application/octet-stream';
+          await s3.send(new PutObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME!,
+            Key: key,
+            Body: file.data,
+            ContentType: contentType,
+          }));
+        }
+        renderModelPath = `${publicUrl}/${renderPrefix}/model.obj`;
+      }
 
       // --- Thumbnail generation & upload ---
       let thumbnailUrl: string | null = null;
@@ -348,7 +436,7 @@ export function modelUploadRouter(db: DbAdapter): Router {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         id, userId, catalogId, name, category,
         width, depth, height, color,
-        `blob:${id}`, r2Key, null,
+        `blob:${id}`, r2Key, renderModelPath,
         uploadBuffer.byteLength, Date.now(),
       );
 
@@ -359,6 +447,7 @@ export function modelUploadRouter(db: DbAdapter): Router {
         category,
         modelPath: r2Key,
         modelUrl,
+        renderModelPath,
         thumbnailPath: thumbnailUrl,
         thumbnailUrl,
         width,

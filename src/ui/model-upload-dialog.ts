@@ -13,6 +13,7 @@ export interface UploadResult {
   category: string
   modelPath: string
   modelUrl?: string
+  renderModelPath?: string | null
   thumbnailPath: string | null
 }
 
@@ -85,10 +86,10 @@ export class ModelUploadDialog {
         <h3>Upload Model</h3>
 
         <div class="upload-drop-zone">
-          <p class="upload-drop-text">Drag & drop GLB/OBJ/GLTF file here</p>
+          <p class="upload-drop-text">Drag & drop a GLB, OBJ, GLTF, or ZIP model bundle here</p>
           <p class="upload-or-text">or</p>
           <label class="upload-browse-btn">
-            <input type="file" accept=".glb,.obj,.gltf" />
+            <input type="file" accept=".glb,.obj,.gltf,.zip" />
             Browse Files
           </label>
         </div>
@@ -203,8 +204,8 @@ export class ModelUploadDialog {
 
   private setFile(file: File): void {
     const ext = file.name.split('.').pop()?.toLowerCase()
-    if (!ext || !['glb', 'obj', 'gltf'].includes(ext)) {
-      this.error = 'Please upload a GLB, OBJ, or GLTF file'
+    if (!ext || !['glb', 'obj', 'gltf', 'zip'].includes(ext)) {
+      this.error = 'Please upload a GLB, OBJ, GLTF, or ZIP model bundle'
       this.render()
       return
     }
@@ -255,6 +256,7 @@ export class ModelUploadDialog {
           category: this.categorySelect.value,
           modelPath: result.modelPath ?? `models/user-${this.file.name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9-]/g, '-')}.glb`,
           modelUrl: result.modelUrl,
+          renderModelPath: result.renderModelPath ?? null,
           thumbnailPath: result.thumbnailPath ?? null,
         })
         setTimeout(() => this.close(), 500)
