@@ -25,7 +25,7 @@
  */
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import * as THREE from 'three'
@@ -669,7 +669,7 @@ export class AssetIngestionService {
         }
         if (s3 && !state.verified) {
           report('upload', done, queue.length, item.catalogId)
-          state.uploaded = await uploadGlb(s3, item.slug, buffer)
+          state.uploaded = await uploadGlb(s3, item, buffer)
           state.verified = state.uploaded
           if (!state.uploaded) state.error = 'upload/verify failed'
           else uploaded++
@@ -925,11 +925,48 @@ function buildEntry(item: LibraryItem): CatalogEntry {
   }
 }
 
-async function uploadGlb(s3: S3Client, slug: string, buffer: Buffer): Promise<boolean> {
-  const key = `${R2_KEY_PREFIX}/${slug}.glb`
+async function uploadGlb(s3: S3Client, item: LibraryItem, buffer: Buffer): Promise<boolean> {
+  const key = `${R2_KEY_PREFIX}/${item.slug}.glb`
   await uploadR2Object(s3, key, buffer, 'model/gltf-binary')
   const publicUrl = `${r2PublicUrl()}/${key}`
-  return verifyUpload(publicUrl)
+  if (!await verifyUpload(publicUrl)) return false
+  const materials = extractGlbMaterials(buffer)
+  if (materials) await uploadR2Object(s3, `models/${item.slug}/model.materials.json`, Buffer.from(JSON.stringify(materials)), 'application/json')
+  return uploadRenderBundle(s3, item)
+}
+
+function extractGlbMaterials(buffer: Buffer): { materials: unknown[] } | null {
+  if (buffer.toString('ascii', 0, 4) !== 'glTF') return null
+  const jsonLength = buffer.readUInt32LE(12)
+  try {
+    const json = JSON.parse(buffer.subarray(20, 20 + jsonLength).toString('utf8'))
+    return { materials: json.materials ?? [] }
+  } catch {
+    return null
+  }
+}
+
+async function uploadRenderBundle(s3: S3Client, item: LibraryItem): Promise<boolean> {
+  const prefix = `${R2_KEY_PREFIX}/${item.slug}`
+  const objKey = `${prefix}/model.obj`
+  let obj = readFileSync(item.objPath, 'utf8')
+  let mtl: string | null = null
+  if (item.mtlPath) {
+    mtl = readFileSync(item.mtlPath, 'utf8')
+    obj = obj.replace(/^mtllib\s+.*$/m, 'mtllib model.mtl')
+    mtl = mtl.replace(/^(map_Kd|map_Ks|map_Ns|map_d|map_Bump|bump|disp)\s+(.+)$/gm, (_, key, value) => `${key} ${basename(value.trim())}`)
+  }
+  await uploadR2Object(s3, objKey, Buffer.from(obj), 'text/plain')
+  if (mtl && item.mtlPath) {
+    await uploadR2Object(s3, `${prefix}/model.mtl`, Buffer.from(mtl), 'text/plain')
+    for (const line of mtl.split('\n')) {
+      const match = /^(?:map_Kd|map_Ks|map_Ns|map_d|map_Bump|bump|disp)\s+(.+)$/i.exec(line.trim())
+      if (!match) continue
+      const source = join(dirname(item.mtlPath), basename(match[1]!.trim()))
+      if (existsSync(source)) await uploadR2Object(s3, `${prefix}/${basename(source)}`, readFileSync(source), 'application/octet-stream')
+    }
+  }
+  return verifyUpload(`${r2PublicUrl()}/${objKey}`)
 }
 
 async function verifyUpload(publicUrl: string): Promise<boolean> {

@@ -1,9 +1,12 @@
 import math
+import json
 import os
 import re
+import struct
 import subprocess
 import urllib.error
 import urllib.request
+from urllib.parse import urljoin
 from hashlib import sha256
 from functools import lru_cache
 from pathlib import Path
@@ -207,6 +210,11 @@ def _polygon_to_bridge(name: str, prim: dict) -> dict:
 
 
 def _resolve_asset(item: dict, asset_root: str | None = None) -> Path | None:
+    render_url = _r2_render_obj_url(item)
+    if render_url:
+        source = _cached_r2_bundle_obj(render_url)
+        if source:
+            return source
     model_url = _r2_model_url(item)
     if model_url:
         return _cached_r2_obj(model_url)
@@ -214,6 +222,14 @@ def _resolve_asset(item: dict, asset_root: str | None = None) -> Path | None:
     asset_name = str(item.get("catalogId", "")).split("#")[-1]
     source = _find_asset(asset_root, asset_name)
     return source if source.exists() else None
+
+
+def _r2_render_obj_url(item: dict) -> str | None:
+    model_url = item.get("modelPath")
+    if not isinstance(model_url, str) or not model_url.endswith(".glb"):
+        return None
+    stem = Path(model_url.rsplit("/", 1)[-1]).stem
+    return f"{model_url.rsplit('/', 1)[0]}/{stem}/model.obj"
 
 
 def _r2_model_url(item: dict) -> str | None:
@@ -237,6 +253,7 @@ def _cached_r2_obj(model_url: str) -> Path | None:
     stem = sha256(model_url.encode()).hexdigest()[:24]
     glb = cache / f"{stem}.glb"
     obj = cache / f"{stem}.obj"
+    metadata = cache / f"{stem}.materials.json"
     if not obj.is_file():
         cache.mkdir(parents=True, exist_ok=True)
         if not glb.is_file():
@@ -255,7 +272,58 @@ def _cached_r2_obj(model_url: str) -> Path | None:
             text=True,
             cwd=cache,
         )
+    if glb.is_file() and not metadata.is_file():
+        _extract_glb_materials(glb, metadata)
     return obj if obj.is_file() else None
+
+
+def _extract_glb_materials(glb: Path, metadata: Path) -> None:
+    """Keep GLTF PBR slot definitions that OBJ/MTL conversion drops."""
+    try:
+        data = glb.read_bytes()
+        json_length = struct.unpack_from("<I", data, 12)[0]
+        document = json.loads(data[20:20 + json_length].decode("utf-8"))
+        metadata.write_text(json.dumps({"materials": document.get("materials", [])}), encoding="utf-8")
+    except (OSError, ValueError, UnicodeDecodeError, json.JSONDecodeError, struct.error):
+        return
+
+
+@lru_cache(maxsize=256)
+def _cached_r2_bundle_obj(model_url: str) -> Path | None:
+    cache = Path(os.environ.get("LUXCORE_ASSET_CACHE", "/app/var/r2-assets")) / "bundles" / sha256(model_url.encode()).hexdigest()[:24]
+    obj = cache / "model.obj"
+    if obj.is_file():
+        return obj
+    try:
+        cache.mkdir(parents=True, exist_ok=True)
+        request = urllib.request.Request(model_url, headers={"User-Agent": "buildmy.house-luxcore/1"})
+        with urllib.request.urlopen(request, timeout=30) as response:
+            obj.write_bytes(response.read(50 * 1024 * 1024 + 1))
+        mtllib = next((line.split(None, 1)[1].strip() for line in obj.read_text(errors="ignore").splitlines()
+                       if line.startswith("mtllib ")), None)
+        if mtllib:
+            mtl = cache / "model.mtl"
+            request = urllib.request.Request(urljoin(model_url, mtllib), headers={"User-Agent": "buildmy.house-luxcore/1"})
+            with urllib.request.urlopen(request, timeout=30) as response:
+                mtl.write_bytes(response.read(20 * 1024 * 1024 + 1))
+            for line in mtl.read_text(errors="ignore").splitlines():
+                if not line.startswith(("map_", "bump ", "disp ")):
+                    continue
+                filename = line.split()[-1]
+                target = cache / Path(filename).name
+                request = urllib.request.Request(urljoin(model_url, filename), headers={"User-Agent": "buildmy.house-luxcore/1"})
+                with urllib.request.urlopen(request, timeout=30) as response:
+                    target.write_bytes(response.read(20 * 1024 * 1024 + 1))
+        metadata = cache / "model.materials.json"
+        try:
+            request = urllib.request.Request(urljoin(model_url, "model.materials.json"), headers={"User-Agent": "buildmy.house-luxcore/1"})
+            with urllib.request.urlopen(request, timeout=30) as response:
+                metadata.write_bytes(response.read(10 * 1024 * 1024 + 1))
+        except urllib.error.HTTPError:
+            pass
+        return obj
+    except (OSError, urllib.error.HTTPError, urllib.error.URLError):
+        return None
 
 
 def _furniture_size(item: dict) -> list[float]:
@@ -598,6 +666,16 @@ def _load_mtl(mtl_path: Path) -> dict[str, dict]:
 
 
 @lru_cache(maxsize=256)
+def _load_glb_materials(metadata_path: Path) -> list[dict]:
+    if not metadata_path.is_file():
+        return []
+    try:
+        return json.loads(metadata_path.read_text(encoding="utf-8")).get("materials", [])
+    except (OSError, ValueError, json.JSONDecodeError):
+        return []
+
+
+@lru_cache(maxsize=256)
 def _parse_obj_raw(source: Path) -> dict | None:
     """Single-pass OBJ parse: v/vt/f (corners keep vidx+uvidx+material), mtllib.
 
@@ -673,6 +751,7 @@ def _load_obj_full(path: str, size: list, position: list, rotation: float) -> di
     n_vert = len(raw["vertices"])
     n_uv = len(raw["uvs"])
     mtl_materials = _load_mtl(source.parent / raw["mtllib"]) if raw["mtllib"] else {}
+    glb_materials = _load_glb_materials(source.with_suffix(".materials.json"))
 
     def v_idx(i: int) -> int:
         return i - 1 if i > 0 else n_vert + i
@@ -697,12 +776,20 @@ def _load_obj_full(path: str, size: list, position: list, rotation: float) -> di
                 "face_materials": None, "coverage": coverage}
 
     materials = {}
-    for name, mtl in mtl_materials.items():
+    for index, (name, mtl) in enumerate(mtl_materials.items()):
         map_kd = mtl.get("map_kd")
         map_kd_path = (source.parent / map_kd).resolve() if map_kd else None
         textured = bool(map_kd_path and map_kd_path.is_file()) and use_uvs
-        materials[name] = {"kd": mtl.get("kd"), "map_kd": str(map_kd_path) if textured else None,
-                           "textured": textured}
+        glb = next((item for item in glb_materials if _sanitize(str(item.get("name", ""))) == name), None)
+        glb = glb or (glb_materials[index] if index < len(glb_materials) else {})
+        pbr = glb.get("pbrMetallicRoughness", {})
+        materials[name] = {
+            "kd": mtl.get("kd"), "map_kd": str(map_kd_path) if textured else None,
+            "textured": textured, "base_color": pbr.get("baseColorFactor", [1, 1, 1, 1]),
+            "metallic": pbr.get("metallicFactor", 0), "roughness": pbr.get("roughnessFactor", 1),
+            "alpha": (pbr.get("baseColorFactor", [1, 1, 1, 1]) + [1])[3],
+            "emissive": glb.get("emissiveFactor", [0, 0, 0]),
+        }
 
     if use_uvs:
         # Split vertices on UV seams so textured sub-meshes carry valid UVs.
@@ -750,7 +837,7 @@ def _load_obj(path: str, size: list, position: list, rotation: float):
 
 
 def _emit_mtl_asset(scene, props, obj_name: str, fallback_mat: str, loaded: dict) -> None:
-    """Emit per-material sub-meshes for an OBJ with MTL: imagemap or flat Kd."""
+    """Emit namespaced per-slot PBR materials for a converted GLB."""
     vertices = loaded["vertices"]
     uvs = loaded["uvs"]
     materials = loaded["materials"]
@@ -768,20 +855,28 @@ def _emit_mtl_asset(scene, props, obj_name: str, fallback_mat: str, loaded: dict
         key = f"{obj_name}_{mat_name}"
         mesh_name = f"mesh_{key}"
         scene.DefineMesh(mesh_name, vertices, tris, None, uvs, None, None, None)
-        mat_prefix = f"scene.materials.{mat_name}."
+        material_name = f"{_sanitize(obj_name)}_{_sanitize(mat_name)}"
+        mat_prefix = f"scene.materials.{material_name}."
+        base = (mat_def.get("base_color") or [0.6, 0.6, 0.75])[:3]
+        metallic = float(mat_def.get("metallic", 0))
+        roughness = max(0.02, min(1.0, float(mat_def.get("roughness", 1))))
+        alpha = max(0.0, min(1.0, float(mat_def.get("alpha", 1))))
+        specular = [max(0.04, base[i]) if metallic >= 0.5 else 0.04 for i in range(3)]
+        lines = [f"{mat_prefix}type = glossy2"]
         if mat_def.get("textured") and mat_def.get("map_kd"):
-            tex_name = f"tex_{mat_name}"
-            props.SetFromString(
-                f"scene.textures.{tex_name}.type = imagemap\n"
-                f"scene.textures.{tex_name}.file = {mat_def['map_kd']}\n"
-                f"{mat_prefix}type = matte\n"
-                f"{mat_prefix}kd = {tex_name}"
-            )
+            tex_name = f"tex_{_sanitize(obj_name)}_{_sanitize(mat_name)}"
+            lines.extend((f"scene.textures.{tex_name}.type = imagemap",
+                          f"scene.textures.{tex_name}.file = {mat_def['map_kd']}",
+                          f"{mat_prefix}kd = {tex_name}"))
         else:
-            kd = mat_def.get("kd") or [0.6, 0.6, 0.75]
-            props.SetFromString(f"{mat_prefix}type = matte\n"
-                                f"{mat_prefix}kd = {' '.join(map(str, kd))}")
-        props.SetFromString(f"scene.objects.{key}.material = {mat_name}\n"
+            lines.append(f"{mat_prefix}kd = {' '.join(map(str, base if mat_def.get('base_color') else (mat_def.get('kd') or base)))}")
+        lines.extend((f"{mat_prefix}ks = {' '.join(map(str, specular))}",
+                      f"{mat_prefix}uroughness = {roughness}",
+                      f"{mat_prefix}vroughness = {roughness}",
+                      f"{mat_prefix}metallic = {metallic}",
+                      f"{mat_prefix}transparency = {alpha}"))
+        props.SetFromString("\n".join(lines))
+        props.SetFromString(f"scene.objects.{key}.material = {material_name}\n"
                             f"scene.objects.{key}.shape = {mesh_name}")
 
 
