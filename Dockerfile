@@ -51,7 +51,8 @@ ENV HOMELY_AUTOMATION_PORT=9529
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY --from=server-builder /app/server/package.json /app/server/package-lock.json ./
 RUN npm ci --omit=dev
-COPY --from=server-builder /app/server/dist ./dist
+COPY --from=server-builder /app/server/dist/server/src ./dist
+COPY --from=server-builder /app/server/dist/src ./dist/src
 COPY --from=frontend-builder /app/dist ./dist-static
 COPY scripts/fetch-infisical-secrets.js scripts/entrypoint.sh ./scripts/
 RUN chmod 755 ./scripts/entrypoint.sh
