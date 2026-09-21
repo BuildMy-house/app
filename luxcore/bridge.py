@@ -41,6 +41,7 @@ def home_to_scene(home: dict[str, Any], asset_root: str | None = None) -> dict[s
     for furn in home.get("furniture", []):
         source = _resolve_asset(furn, asset_root)
         objects.append({"type": "asset" if source else "box", "name": furn["id"], "material": "furniture",
+                        "window": furn.get("doorOrWindow") is True and "window" in str(furn.get("name", "")).lower(),
                         "size": _furniture_size(furn),
                         "position": [furn.get("x", 0) / 100, furn.get("y", 0) / 100,
                                      furn.get("elevation", 0) / 100],
@@ -491,12 +492,23 @@ def build_scene(scene_data: dict, luxcore_module: Any | None = None) -> Any:
                 continue
             obj_name = obj.get("name", "asset")
             if loaded["materials"] and loaded["face_materials"]:
-                _emit_mtl_asset(scene, props, obj_name, obj.get("material", ""), loaded)
+                _emit_mtl_asset(scene, props, obj_name, obj.get("material", ""), loaded, obj.get("window") is True)
             else:
                 mesh_name = f"mesh_{obj_name}"
                 scene.DefineMesh(mesh_name, vertices, faces, None, None, None, None, None)
                 prefix = f"scene.objects.{obj_name}."
-                props.SetFromString(f"{prefix}material = {obj.get('material', '')}\n{prefix}shape = {mesh_name}")
+                material = obj.get("material", "")
+                if obj.get("window") is True:
+                    material = f"{_sanitize(obj_name)}_window_glass"
+                    props.SetFromString(
+                        f"scene.materials.{material}.type = glossy2\n"
+                        f"scene.materials.{material}.kd = 0.72 0.9 0.96\n"
+                        f"scene.materials.{material}.ks = 0.9 0.95 1\n"
+                        f"scene.materials.{material}.uroughness = 0.04\n"
+                        f"scene.materials.{material}.vroughness = 0.04\n"
+                        f"scene.materials.{material}.transparency = 0.86"
+                    )
+                props.SetFromString(f"{prefix}material = {material}\n{prefix}shape = {mesh_name}")
             continue
         if obj_type == "box":
             vertices, faces = _box_to_mesh(obj.get("size", [1, 1, 1]), obj.get("position", [0, 0, 0]), obj.get("rotation", 0))
@@ -776,8 +788,8 @@ def _load_obj(path: str, size: list, position: list, rotation: float):
     return loaded["vertices"], loaded["faces"]
 
 
-def _emit_mtl_asset(scene, props, obj_name: str, fallback_mat: str, loaded: dict) -> None:
-    """Emit namespaced per-slot PBR materials for a converted GLB."""
+def _emit_mtl_asset(scene, props, obj_name: str, fallback_mat: str, loaded: dict, window: bool = False) -> None:
+    """Emit native OBJ material slots, forcing named window glazing transparent."""
     vertices = loaded["vertices"]
     uvs = loaded["uvs"]
     materials = loaded["materials"]
@@ -801,6 +813,7 @@ def _emit_mtl_asset(scene, props, obj_name: str, fallback_mat: str, loaded: dict
         metallic = float(mat_def.get("metallic", 0))
         roughness = max(0.02, min(1.0, float(mat_def.get("roughness", 1))))
         alpha = max(0.0, min(1.0, float(mat_def.get("alpha", 1))))
+        glass = window and any(token in mat_name.casefold() for token in ("glass", "glazing", "pane", "window"))
         specular = [max(0.04, base[i]) if metallic >= 0.5 else 0.04 for i in range(3)]
         lines = [f"{mat_prefix}type = glossy2"]
         if mat_def.get("textured") and mat_def.get("map_kd"):
@@ -814,7 +827,7 @@ def _emit_mtl_asset(scene, props, obj_name: str, fallback_mat: str, loaded: dict
                       f"{mat_prefix}uroughness = {roughness}",
                       f"{mat_prefix}vroughness = {roughness}",
                       f"{mat_prefix}metallic = {metallic}",
-                      f"{mat_prefix}transparency = {alpha}"))
+                      f"{mat_prefix}transparency = {0.86 if glass else 1 - alpha}"))
         props.SetFromString("\n".join(lines))
         props.SetFromString(f"scene.objects.{key}.material = {material_name}\n"
                             f"scene.objects.{key}.shape = {mesh_name}")

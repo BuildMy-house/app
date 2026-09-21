@@ -553,6 +553,7 @@ export class AssetIngestionService {
 
   private parsePropertiesFile(sub: string): LibraryItem[] {
     const propsPath = join(this.sh3fRoot, sub, 'PluginFurnitureCatalog.properties')
+    if (!existsSync(propsPath)) return []
     const text = readFileSync(propsPath, 'utf8')
     const byIndex: Record<string, Record<string, string>> = {}
     for (const line of text.split(/\r?\n/)) {
