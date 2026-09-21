@@ -4,7 +4,16 @@ import { HomeStore } from '../src/core/store'
 import { buildScene } from '../src/view3d/scene'
 import type { NormalizedHomeState } from '../src/core/home'
 
-type Request = { home: NormalizedHomeState; view: 'plan' | '3d'; width: number; height: number; camera?: string }
+type Request = {
+  home: NormalizedHomeState
+  view: 'plan' | '3d'
+  width: number
+  height: number
+  camera?: string
+  roofVisible?: boolean
+  lightIntensity?: number
+  siteContextVisible?: boolean
+}
 type Point = [number, number]
 
 const crcTable = Array.from({ length: 256 }, (_, n) => {
@@ -119,11 +128,18 @@ async function renderPlan(home: NormalizedHomeState, width: number, height: numb
   return png(width, height, pixels)
 }
 
-async function render3d(home: NormalizedHomeState, width: number, height: number, cameraName = 'observer'): Promise<string> {
+export type Render3dOptions = { roofVisible?: boolean; lightIntensity?: number; siteContextVisible?: boolean }
+
+export async function render3d(home: NormalizedHomeState, width: number, height: number, cameraName = 'observer', options: Render3dOptions = {}): Promise<string> {
   const store = new HomeStore()
   const safeHome = { ...home, furniture: home.furniture.map((item) => ({ ...item, catalogId: null, modelPath: null })) }
   store.loadHome(safeHome)
-  const scene = buildScene(safeHome, { modelUrlResolver: () => '' })
+  const scene = buildScene(safeHome, {
+    modelUrlResolver: () => '',
+    showRoof: options.roofVisible ?? true,
+    lightIntensity: options.lightIntensity,
+    showSiteContext: options.siteContextVisible ?? true,
+  })
   const state = safeHome.cameras[cameraName === 'top' ? 'top' : 'observer']
   const camera = new THREE.PerspectiveCamera(state.fovDeg, width / height, 1, 500_000)
   camera.position.set(state.x, state.z, state.y)
@@ -171,7 +187,11 @@ if (isMain) {
     const request = JSON.parse(input) as Request
     const rendered = request.view === 'plan'
       ? renderPlan(request.home, request.width, request.height)
-      : render3d(request.home, request.width, request.height, request.camera)
+      : render3d(request.home, request.width, request.height, request.camera, {
+          roofVisible: request.roofVisible,
+          lightIntensity: request.lightIntensity,
+          siteContextVisible: request.siteContextVisible,
+        })
     Promise.resolve(rendered).then((pngBase64) => process.stdout.write(JSON.stringify({ pngBase64, width: request.width, height: request.height })))
   })
 }

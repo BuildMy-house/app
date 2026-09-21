@@ -130,6 +130,13 @@ mcp = FastMCP("buildmyhouse", instructions=INSTRUCTIONS, lifespan=_lifespan if H
 
 _SERVER: AutomationServer | None = None
 _ACTIVE_CAMERA = "observer"
+# View-state flags mirrored from the app's CaptureService: the scripted
+# renderer (render_scene.ts) re-renders the raw home JSON headlessly, so these
+# must travel with every _render() call or set_roof_visible and friends would
+# never affect screenshot/screenshot_views output.
+_ROOF_VISIBLE = True
+_LIGHT_INTENSITY = 1.0
+_SITE_CONTEXT_VISIBLE = True
 _RENDERER = Path(__file__).with_name("render_scene.ts")
 _API_URL = os.environ.get("BUILDMYHOUSE_API_URL", "").rstrip("/")
 _API_TOKEN = os.environ.get("BUILDMYHOUSE_API_TOKEN", "")
@@ -232,7 +239,16 @@ async def _render(home: dict, view: str, width: int, height: int) -> Image:
             lambda: subprocess.run(
                 command,
                 cwd=_RENDERER.parent.parent,
-                input=json.dumps({"home": home, "view": view, "width": width, "height": height, "camera": _ACTIVE_CAMERA}),
+                input=json.dumps({
+                    "home": home,
+                    "view": view,
+                    "width": width,
+                    "height": height,
+                    "camera": _ACTIVE_CAMERA,
+                    "roofVisible": _ROOF_VISIBLE,
+                    "lightIntensity": _LIGHT_INTENSITY,
+                    "siteContextVisible": _SITE_CONTEXT_VISIBLE,
+                }),
                 text=True,
                 capture_output=True,
                 check=True,
@@ -857,6 +873,8 @@ async def set_roof_visible(visible: bool) -> dict:
     """Roof cutaway / hide-roof mode for the 3D view and scripted screenshots:
     visible=False hides every roof mesh so interiors are visible without
     omitting the roof from the home state itself. Returns {visible}."""
+    global _ROOF_VISIBLE
+    _ROOF_VISIBLE = visible
     return await _session().request("set_roof_visible", {"visible": visible})
 
 
@@ -867,6 +885,8 @@ async def set_light_intensity(intensity: float) -> dict:
     (1.0 = default/unchanged). Does not alter the persisted home
     environment's light color, only rendered brightness. Returns
     {intensity}."""
+    global _LIGHT_INTENSITY
+    _LIGHT_INTENSITY = intensity
     return await _session().request("set_light_intensity", {"intensity": intensity})
 
 
@@ -876,6 +896,8 @@ async def set_site_context_visible(visible: bool) -> dict:
     variation) for the 3D view and scripted screenshots: visible=False
     suppresses them even in the outside view, e.g. for a clean
     architectural shot. Returns {visible}."""
+    global _SITE_CONTEXT_VISIBLE
+    _SITE_CONTEXT_VISIBLE = visible
     return await _session().request("set_site_context_visible", {"visible": visible})
 
 
