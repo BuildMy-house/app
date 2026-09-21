@@ -60,7 +60,9 @@ test.describe('furniture placement', () => {
 
   test('place one item, then select it without creating duplicate (M13)', async ({ page }) => {
     // Arm and place one furniture item.
-    await page.locator('.catalog-card').first().click()
+    // Use a full-size furniture item; the curated catalog also contains
+    // wall frames whose tiny footprint makes a plan hit-test ambiguous.
+    await page.locator('.catalog-card').filter({ hasText: 'Bar table' }).click()
     const box = await page.locator('#plan-canvas').boundingBox()
     expect(box).not.toBeNull()
     const cx = box!.x + box!.width * 0.5

@@ -33,7 +33,10 @@ export async function loadDefaultCatalog(): Promise<CatalogLoadResult> {
   // Vite copies public/ to dist/ at the bundle root: /assets/catalog/catalog.json
   const source = 'assets/catalog/catalog.json'
   const manifest = await loadCatalogFromUrl(source)
-  return { catalog: new FurnitureCatalog(manifest.items), source }
+  // Keep ordinary furniture first so the default placement action is useful;
+  // doors/windows still remain searchable and available in the catalog.
+  const items = [...manifest.items].sort((a, b) => Number(a.doorOrWindow === true) - Number(b.doorOrWindow === true))
+  return { catalog: new FurnitureCatalog(items), source }
 }
 
 /** Minimal structural validation; throws a descriptive Error on bad manifests. */
