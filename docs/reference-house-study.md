@@ -133,8 +133,25 @@ architectural measurement.
   the live viewport, and `CaptureService.setLightIntensity()` /
   `set_light_intensity` automation command and MCP tool for scripted
   renders. Covered by tests in `src/view3d/scene.test.ts`,
-  `tests/capture.test.ts`, and `tests/handshake.test.ts`. Exterior cladding
-  remains open — **tracked as Ticket 5c**.
+  `tests/capture.test.ts`, and `tests/handshake.test.ts`. **Closed
+  2026-09-21 (Ticket 5c):** exterior cladding material fidelity for walls
+  also landed — `wallMesh()` (`src/view3d/scene.ts`) now builds its material
+  via `claddingMaterial()`, a `THREE.MeshPhysicalMaterial` with a subtle
+  clearcoat lobe (weather-sealed paint/siding sheen) layered on top of the
+  same color/roughness/metalness inputs the old flat `MeshStandardMaterial`
+  used, instead of a completely flat diffuse surface. The existing
+  `leftSideTextureId`/PBR-map pipeline (`applyMaterialTextures()`) keeps
+  working unmodified, since `MeshPhysicalMaterial` is a strict superset of
+  the `MeshStandardMaterial` properties it sets. Note: there is no
+  interior/exterior wall discriminator in the data model (walls have no
+  room-adjacency reference and rooms have no wall reference — they are
+  independent geometry, SweetHome3D-style), so this applies the cladding
+  material to every wall uniformly rather than only exterior-facing ones;
+  real per-wall exterior detection would need a room/wall adjacency
+  computation the schema doesn't support today and was judged out of scope
+  for this ticket's "keep it modest" instruction. Covered by tests in
+  `src/view3d/scene.test.ts` (`describe('exterior cladding material (Ticket
+  5c)')`).
 - Image-based reference overlay or camera matching for tracing proportions
   from a photo.
 - More architectural elements: large sliding-glass assemblies, skylights,

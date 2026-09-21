@@ -638,6 +638,35 @@ describe('lightIntensity option (Ticket 5b: general lighting controls)', () => {
   })
 })
 
+describe('exterior cladding material (Ticket 5c)', () => {
+  it('wall meshes get a MeshPhysicalMaterial with a clearcoat lobe, not the old flat MeshStandardMaterial', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 300, yEnd: 0,
+      thickness: 15, leftSideColor: 0xd2d2d2,
+    })
+    const scene = buildScene(home)
+    const mesh = wallMeshes(scene)[0]!
+    expect(mesh.material).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    const mat = mesh.material as THREE.MeshPhysicalMaterial
+    expect(mat.clearcoat).toBeGreaterThan(0)
+    expect(mat.color.getHex()).toBe(0xd2d2d2)
+    expect(mat.roughness).toBeCloseTo(0.7, 6)
+    expect(mat.metalness).toBe(0)
+  })
+
+  it('a custom leftSideColor still comes through the cladding material unchanged', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 300, yEnd: 0,
+      thickness: 15, leftSideColor: 0x224466,
+    })
+    const scene = buildScene(home)
+    const mesh = wallMeshes(scene)[0]!
+    expect((mesh.material as THREE.MeshPhysicalMaterial).color.getHex()).toBe(0x224466)
+  })
+})
+
 // ── T1: instanced furniture rendering ───────────────────────────────────────
 
 function instancedFurnitureMeshes(scene: THREE.Scene): THREE.InstancedMesh[] {

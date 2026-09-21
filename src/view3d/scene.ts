@@ -55,6 +55,20 @@ const FABRIC_SHEEN_COLOR = 0xffffff
 // showRoof), not persisted home state, so it needs no schema/export changes.
 const DEFAULT_LIGHT_INTENSITY = 1
 
+// Ticket 5c: exterior cladding material fidelity for walls (distinct from
+// window glass). There is no interior/exterior wall discriminator in the
+// data model (Wall has no room-adjacency reference, and Room has no wall
+// reference — walls and rooms are independent geometry, SweetHome3D-style),
+// so per-wall exterior detection would require real polygon adjacency
+// analysis — a materially bigger lift than this ticket's siblings. Kept
+// modest instead: every wall's material becomes a MeshPhysicalMaterial with
+// a subtle clearcoat lobe (weather-sealed paint/siding sheen) layered on top
+// of the existing diffuse/roughness/PBR-map pipeline, which keeps working
+// unmodified since MeshPhysicalMaterial is a strict superset of the
+// MeshStandardMaterial properties applyMaterialTextures() already sets.
+const CLADDING_CLEARCOAT = 0.15
+const CLADDING_CLEARCOAT_ROUGHNESS = 0.4
+
 const GROUND_SIZE_CM = 100_000
 const GRID_SIZE_CM = 20_000
 const GRID_DIVISIONS = 40
@@ -152,11 +166,9 @@ export function wallMesh(
   const dy = wall.yEnd - wall.yStart
   const length = Math.hypot(dx, dy)
   const height = wall.height ?? DEFAULT_WALL_HEIGHT_CM
-  const material = new THREE.MeshStandardMaterial({
-    color: wall.leftSideColor ?? DEFAULT_WALL_COLOR,
-    roughness: 0.7,
-    metalness: 0.0,
-  })
+  // Ticket 5c: exterior cladding material — MeshPhysicalMaterial + clearcoat
+  // instead of a flat MeshStandardMaterial (see claddingMaterial() above).
+  const material = claddingMaterial(wall.leftSideColor ?? DEFAULT_WALL_COLOR, 0.7, 0.0)
   // SH3D Wall3D.java:1522 — wallsAlpha is a TRANSPARENCY (0 = opaque).
   if (wallsTransparency > 0) {
     material.transparent = true
@@ -848,6 +860,26 @@ function fabricMaterial(color: number): THREE.MeshPhysicalMaterial {
     sheen: FABRIC_SHEEN,
     sheenRoughness: FABRIC_SHEEN_ROUGHNESS,
     sheenColor: new THREE.Color(FABRIC_SHEEN_COLOR),
+  })
+}
+
+/**
+ * Exterior cladding material (Ticket 5c) for walls: a MeshPhysicalMaterial
+ * with a subtle clearcoat lobe on top of the same color/roughness/metalness
+ * inputs the old MeshStandardMaterial used, giving painted siding/stucco a
+ * believable weather-sealed sheen instead of a completely flat diffuse
+ * surface. Deliberately colour/roughness-parametrized (not hardcoded) so
+ * applyMaterialTextures()'s existing per-wall texture/PBR-map pipeline keeps
+ * working unmodified — this only changes the material class and adds the
+ * clearcoat lobe, not the diffuse/texturing behavior.
+ */
+function claddingMaterial(color: number, roughness: number, metalness: number): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
+    color,
+    roughness,
+    metalness,
+    clearcoat: CLADDING_CLEARCOAT,
+    clearcoatRoughness: CLADDING_CLEARCOAT_ROUGHNESS,
   })
 }
 
