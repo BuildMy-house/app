@@ -932,7 +932,7 @@ async function uploadGlb(s3: S3Client, item: LibraryItem, buffer: Buffer): Promi
   const key = `${R2_KEY_PREFIX}/${item.slug}.glb`
   await uploadR2Object(s3, key, buffer, 'model/gltf-binary')
   const publicUrl = `${r2PublicUrl()}/${key}`
-  if (!await verifyUpload(publicUrl)) return false
+  if (!await verifyUpload(publicUrl, 'model/gltf-binary')) return false
   const materials = extractGlbMaterials(buffer)
   if (materials) await uploadR2Object(s3, `models/${item.slug}/model.materials.json`, Buffer.from(JSON.stringify(materials)), 'application/json')
   return uploadRenderBundle(s3, item)
@@ -969,13 +969,13 @@ async function uploadRenderBundle(s3: S3Client, item: LibraryItem): Promise<bool
       if (existsSync(source)) await uploadR2Object(s3, `${prefix}/${basename(source)}`, readFileSync(source), 'application/octet-stream')
     }
   }
-  return verifyUpload(`${r2PublicUrl()}/${objKey}`)
+  return verifyUpload(`${r2PublicUrl()}/${objKey}`, 'text/plain')
 }
 
-async function verifyUpload(publicUrl: string): Promise<boolean> {
+async function verifyUpload(publicUrl: string, contentType: string): Promise<boolean> {
   try {
     const res = await fetch(publicUrl, { method: 'HEAD' })
-    return res.ok && (res.headers.get('content-type') ?? '').includes('model/gltf-binary')
+    return res.ok && (res.headers.get('content-type') ?? '').includes(contentType)
   } catch {
     return false
   }
