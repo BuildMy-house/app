@@ -499,7 +499,9 @@ def build_scene(scene_data: dict, luxcore_module: Any | None = None) -> Any:
         if vertices and faces:
             prefix = f"scene.objects.{obj.get('name', 'object')}."
             mesh_name = f"mesh_{obj.get('name', 'object')}"
-            scene.DefineMesh(mesh_name, vertices, faces, None, _primitive_uvs(vertices), None, None, None)
+            points = list(zip(vertices[0::3], vertices[1::3], vertices[2::3]))
+            triangles = list(zip(faces[0::3], faces[1::3], faces[2::3]))
+            scene.DefineMesh(mesh_name, points, triangles, None, _primitive_uvs(vertices), None, None, None)
             props.SetFromString(f"{prefix}material = {obj.get('material', '')}\n{prefix}shape = {mesh_name}")
     for light in scene_data.get("lights", []):
         prefix = f"scene.lights.{light.get('name', 'light')}."
