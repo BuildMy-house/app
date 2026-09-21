@@ -62,6 +62,8 @@ jobs:
               -e ASSET_DIR=/data/assets \
               -e STATIC_DIR=/app/dist-static \
               -e PORT=3000 \
+              -e LUXCORE_WORKER_URL=http://buildmyhouse-luxcore:8081 \
+              --env-file /home/ubuntu/buildmyhouse-mcp.env \
               -v buildmyhouse-app-data:/data \
               buildmyhouse-app:latest
 
