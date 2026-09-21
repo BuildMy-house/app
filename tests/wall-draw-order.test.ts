@@ -65,6 +65,8 @@ describe('create_room slice replay (golden id parity)', () => {
         thickness: 7,
         height: 250,
         patternId: 'hatchUp',
+        leftSideTextureId: 'plaster-white',
+        rightSideTextureId: 'plaster-white',
       },
       {
         id: 'wall-2',
@@ -75,6 +77,8 @@ describe('create_room slice replay (golden id parity)', () => {
         thickness: 7,
         height: 250,
         patternId: 'hatchUp',
+        leftSideTextureId: 'plaster-white',
+        rightSideTextureId: 'plaster-white',
       },
       {
         id: 'wall-3',
@@ -85,6 +89,8 @@ describe('create_room slice replay (golden id parity)', () => {
         thickness: 7,
         height: 250,
         patternId: 'hatchUp',
+        leftSideTextureId: 'plaster-white',
+        rightSideTextureId: 'plaster-white',
       },
       {
         id: 'wall-4',
@@ -95,6 +101,8 @@ describe('create_room slice replay (golden id parity)', () => {
         thickness: 7,
         height: 250,
         patternId: 'hatchUp',
+        leftSideTextureId: 'plaster-white',
+        rightSideTextureId: 'plaster-white',
       },
     ])
     // Selection mirrors the golden: all four drawn walls, draw order.
