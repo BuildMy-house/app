@@ -131,8 +131,11 @@ describe('PBR map wiring (MAT-T2)', () => {
     expect(ground.geometry.getAttribute('uv2')).toBeDefined()
   })
 
-  it('textures without PBR fields get scalar overrides but no maps (tile-floor)', () => {
-    __seedTextureCache('tile-floor.png', makeTex())
+  it('tile-floor gets PBR maps + scalar overrides now that maps are shipped', () => {
+    __seedTextureCache('tile-floor.png', makeTex(THREE.SRGBColorSpace))
+    __seedTextureCache('tile-floor_normal.png', makeTex())
+    __seedTextureCache('tile-floor_roughness.png', makeTex())
+    __seedTextureCache('tile-floor_ao.png', makeTex())
     const home = createEmptyHome()
     home.walls.push({
       id: 'w1', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 15,
@@ -140,9 +143,9 @@ describe('PBR map wiring (MAT-T2)', () => {
     })
     const mat = findMesh(buildScene(home), 'wall:w1')!.material as THREE.MeshStandardMaterial
     expect(mat.map).toBeInstanceOf(THREE.Texture)
-    expect(mat.normalMap).toBeNull()
-    expect(mat.roughnessMap).toBeNull()
-    expect(mat.aoMap).toBeNull()
+    expect(mat.normalMap).toBeInstanceOf(THREE.Texture)
+    expect(mat.roughnessMap).toBeInstanceOf(THREE.Texture)
+    expect(mat.aoMap).toBeInstanceOf(THREE.Texture)
     expect(mat.roughness).toBe(0.35)
     expect(mat.metalness).toBe(0)
   })
