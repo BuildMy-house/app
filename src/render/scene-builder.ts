@@ -13,7 +13,7 @@ import type {
   PolygonPrimitive,
   CameraDef,
   LightDef,
-} from './scene-graph'
+} from './scene-graph.js'
 
 import {
   DEFAULT_WALL_HEIGHT_CM,
@@ -21,7 +21,7 @@ import {
   type Roof,
   type Wall,
   type Furniture,
-} from '../core/home'
+} from '../core/home.js'
 
 // ── Defaults ────────────────────────────────────────────────────
 

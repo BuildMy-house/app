@@ -5,7 +5,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { captureError, errorRateMonitor, ErrorContext, ErrorSource } from '../telemetry/errors';
+import { captureError, errorRateMonitor, ErrorContext, ErrorSource } from '../telemetry/errors.js';
 
 /**
  * Extract context from Express request

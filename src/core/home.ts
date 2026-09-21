@@ -4,7 +4,7 @@
  * otherwise (arcExtent stays radians, latitudeRad/longitudeRad radians).
  */
 
-import { compassRadiansForZone, resolveTimezone } from './compass-timezones'
+import { compassRadiansForZone, resolveTimezone } from './compass-timezones.js'
 
 const SCHEMA_VERSION = 1
 
