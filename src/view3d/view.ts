@@ -127,6 +127,7 @@ export class View3D {
     this._scene = buildScene(store.getHome(), {
       modelUrlResolver: this.modelUrlResolver,
       onModelReady: () => this.startAnimationLoop(),
+      onTextureReady: () => this.startAnimationLoop(),
       activeLevel: this._activeLevel,
       isOutsideView: this._isOutsideView,
       showRoof: this._showRoof,
@@ -578,6 +579,7 @@ export class View3D {
     this._scene = buildScene(this.store.getHome(), {
       modelUrlResolver: this.modelUrlResolver,
       onModelReady: () => this.startAnimationLoop(),
+      onTextureReady: () => this.startAnimationLoop(),
       activeLevel: this._activeLevel,
       isOutsideView: this._isOutsideView,
       showRoof: this._showRoof,
@@ -629,6 +631,7 @@ export class View3D {
         const ok = applySceneUpdate(this._scene, update, home, this._lastHome, {
           modelUrlResolver: this.modelUrlResolver,
           onModelReady: () => this.startAnimationLoop(),
+          onTextureReady: () => this.startAnimationLoop(),
           activeLevel: this._activeLevel,
           isOutsideView: this._isOutsideView,
         })

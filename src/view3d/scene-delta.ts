@@ -26,6 +26,7 @@ import {
   wallEdges,
   wallMesh,
   withModelUrlResolver,
+  runWithTextureReadyScope,
   type ModelUrlResolver,
 } from './scene'
 
@@ -268,12 +269,28 @@ export function isTransformOnlyFurnitureChange(a: Furniture, b: Furniture): bool
 export interface ApplySceneUpdateOptions {
   modelUrlResolver?: ModelUrlResolver
   onModelReady?: () => void
+  /** Same contract as buildScene's: kicked once per texture that finishes
+   * loading while the delta applies, so late maps trigger a redraw. */
+  onTextureReady?: () => void
   activeLevel?: string | null
   isOutsideView?: boolean
 }
 
 /** Apply one delta in place. False = caller must fall back to full rebuild. */
 export function applySceneUpdate(
+  scene: THREE.Scene,
+  update: SceneUpdate,
+  home: NormalizedHomeState,
+  oldHome?: NormalizedHomeState | null,
+  opts?: ApplySceneUpdateOptions,
+): boolean {
+  return runWithTextureReadyScope(
+    opts?.onTextureReady,
+    () => applySceneUpdateCase(scene, update, home, oldHome, opts),
+  )
+}
+
+function applySceneUpdateCase(
   scene: THREE.Scene,
   update: SceneUpdate,
   home: NormalizedHomeState,

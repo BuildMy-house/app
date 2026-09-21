@@ -587,6 +587,14 @@ export function withModelUrlResolver<T>(resolver: ModelUrlResolver | undefined, 
 const TEXTURE_TILE_CM = 100 // 1 repeat per 100 cm — documents the tiling choice
 const textureCache = new Map<string, THREE.Texture | null>()
 const textureLoader = new THREE.TextureLoader()
+/** URLs whose texture finished loading — only these may attach to materials. */
+const loadedTextureUrls = new Set<string>()
+/** onReady callbacks for textures still in flight (first requester registered
+ * the load; later requesters during the same load join here). */
+const pendingTextureReady = new Map<string, Array<(tex: THREE.Texture) => void>>()
+/** Scene-level redraw hook: fires once per texture that finishes loading, so a
+ * late-arriving map is actually rendered instead of waiting for a camera move. */
+let activeOnTextureReady: (() => void) | undefined
 
 /**
  * Apply the persisted viewport-quality anisotropy (1–16 per tier) to a
@@ -620,23 +628,57 @@ function applyAnisotropyToMaterial(material: THREE.Material): void {
  * diffuse/base-color map only — normal/roughness/metalness/AO maps are data
  * and must stay linear (NoColorSpace), a classic PBR correctness detail.
  */
-function loadTextureFile(file: string, colorSpace: THREE.ColorSpace): THREE.Texture | null {
+function loadTextureFile(
+  file: string,
+  colorSpace: THREE.ColorSpace,
+  onReady?: (tex: THREE.Texture) => void,
+): THREE.Texture | null {
   const url = resolveTextureUrl(file)
   const cached = textureCache.get(url)
   if (cached !== undefined) {
-    if (cached) recordTextureLoad(file, cached, 0, true, url)
+    if (!cached) return null
     // Quality presets can change between rebuilds; re-check the cached texel
     // filter instead of caching a stale anisotropy forever.
-    if (cached) applyAnisotropy(cached)
+    applyAnisotropy(cached)
+    if (!loadedTextureUrls.has(url)) {
+      // In-flight load from an earlier requester: join its ready list rather
+      // than handing out the still-empty Texture object.
+      const pending = pendingTextureReady.get(url) ?? []
+      if (onReady) pending.push(onReady)
+      pendingTextureReady.set(url, pending)
+      return null
+    }
+    recordTextureLoad(file, cached, 0, true, url)
+    onReady?.(cached)
     return cached
   }
   let tex: THREE.Texture | null = null
   try {
     const start = performance.now()
-    tex = textureLoader.load(url, () => {
+    // Capture at registration: the load completes after buildScene restored
+    // its module state, so the hook must be bound now, not at fire time.
+    const kick = activeOnTextureReady
+    const markReady = (t: THREE.Texture): void => {
+      loadedTextureUrls.add(url)
       // onLoad fires after network + decode — the real load duration.
-      recordTextureLoad(file, tex, performance.now() - start, false, url)
+      recordTextureLoad(file, t, performance.now() - start, false, url)
+      for (const cb of pendingTextureReady.get(url) ?? []) cb(t)
+      pendingTextureReady.delete(url)
+      if (onReady) onReady(t)
+      kick?.()
+    }
+    tex = textureLoader.load(url, () => {
+      if (tex) markReady(tex)
+    }, undefined, () => {
+      // 404/decode failure: poison the cache so neither this build nor any
+      // later one can assign the empty Texture object — an assigned-but-empty
+      // map is what triggers THREE.WebGLRenderer's "Texture marked for update
+      // but no image data found" warning and samples black (AO/normal) or 0
+      // (roughness) in shaders.
+      textureCache.set(url, null)
+      pendingTextureReady.delete(url)
     })
+    pendingTextureReady.set(url, [])
     tex.wrapS = THREE.RepeatWrapping
     tex.wrapT = THREE.RepeatWrapping
     tex.colorSpace = colorSpace
@@ -646,25 +688,31 @@ function loadTextureFile(file: string, colorSpace: THREE.ColorSpace): THREE.Text
     applyAnisotropy(tex)
   } catch {
     tex = null
+    textureCache.set(url, null)
   }
-  textureCache.set(url, tex)
-  return tex
+  // Only hand back a texture whose image data is already available; async
+  // arrivals reach the caller via onReady instead of a synchronous return.
+  return tex && loadedTextureUrls.has(url) ? tex : null
 }
 
 /** Test-only hook: seed the texture cache so unit tests can exercise the
  * PBR material wiring synchronously without real image files. */
 export function __seedTextureCache(file: string, tex: THREE.Texture | null): void {
   textureCache.set(resolveTextureUrl(file), tex)
+  if (tex) loadedTextureUrls.add(resolveTextureUrl(file))
 }
 
 export function __clearTextureCache(): void {
   textureCache.clear()
 }
 
-function loadWallTexture(textureId: string): THREE.Texture | null {
+function loadWallTexture(
+  textureId: string,
+  onReady?: (tex: THREE.Texture) => void,
+): THREE.Texture | null {
   const entry = WALL_TEXTURES.find((t) => t.id === textureId)
   if (!entry) return null
-  return loadTextureFile(entry.file, THREE.SRGBColorSpace)
+  return loadTextureFile(entry.file, THREE.SRGBColorSpace, onReady)
 }
 
 function textureEntryFor(textureId: string): WallTextureEntry | null {
@@ -677,21 +725,25 @@ function textureEntryFor(textureId: string): WallTextureEntry | null {
  * keep the project-wide 0.7/0.0 baseline.
  */
 function applyPbrMaps(material: THREE.MeshStandardMaterial, entry: WallTextureEntry): void {
+  // Maps attach only via onReady — once their image data has actually loaded.
+  // A failed URL (five of six catalog entries 404 on their PBR maps in R2)
+  // must never assign an empty Texture object to the material.
+  const attach = (slot: 'normalMap' | 'roughnessMap' | 'metalnessMap' | 'aoMap') =>
+    (t: THREE.Texture): void => {
+      material[slot] = t
+      material.needsUpdate = true
+    }
   if (entry.normalFile) {
-    const t = loadTextureFile(entry.normalFile, THREE.NoColorSpace)
-    if (t) material.normalMap = t
+    loadTextureFile(entry.normalFile, THREE.NoColorSpace, attach('normalMap'))
   }
   if (entry.roughnessFile) {
-    const t = loadTextureFile(entry.roughnessFile, THREE.NoColorSpace)
-    if (t) material.roughnessMap = t
+    loadTextureFile(entry.roughnessFile, THREE.NoColorSpace, attach('roughnessMap'))
   }
   if (entry.metalnessFile) {
-    const t = loadTextureFile(entry.metalnessFile, THREE.NoColorSpace)
-    if (t) material.metalnessMap = t
+    loadTextureFile(entry.metalnessFile, THREE.NoColorSpace, attach('metalnessMap'))
   }
   if (entry.aoFile) {
-    const t = loadTextureFile(entry.aoFile, THREE.NoColorSpace)
-    if (t) material.aoMap = t
+    loadTextureFile(entry.aoFile, THREE.NoColorSpace, attach('aoMap'))
   }
   if (entry.roughness !== undefined) material.roughness = entry.roughness
   if (entry.metalness !== undefined) material.metalness = entry.metalness
@@ -718,11 +770,10 @@ function applyMaterialTextures(
 ): WallTextureEntry | null {
   const entry = textureEntryFor(textureId)
   if (!entry) return null
-  const diffuse = loadWallTexture(textureId)
-  if (diffuse) {
-    material.map = diffuse
+  loadWallTexture(textureId, (t) => {
+    material.map = t
     material.needsUpdate = true
-  }
+  })
   applyPbrMaps(material, entry)
   return entry
 }
@@ -1223,10 +1274,15 @@ export function buildScene(
     /** Trees/deck placeholders + ground variation (Ticket 5d). Defaults to true; only
      * renders in the outside/whole-model view regardless of this flag. */
     showSiteContext?: boolean
+    /** Fires once per texture that finishes loading after the build — lets the
+     * view schedule a redraw so late-arriving maps actually appear. */
+    onTextureReady?: () => void
   },
 ): THREE.Scene {
   const previousResolver = activeModelUrlResolver
   if (options?.modelUrlResolver) activeModelUrlResolver = options.modelUrlResolver
+  const previousTextureReady = activeOnTextureReady
+  activeOnTextureReady = options?.onTextureReady
   try {
     return buildSceneInner(
       home,
@@ -1239,6 +1295,22 @@ export function buildScene(
     )
   } finally {
     activeModelUrlResolver = previousResolver
+    activeOnTextureReady = previousTextureReady
+  }
+}
+
+/** The scene-delta path applies updates outside buildScene; this scopes
+ * onTextureReady for the texture loads those single-object builders register. */
+export function runWithTextureReadyScope<T>(
+  onTextureReady: (() => void) | undefined,
+  fn: () => T,
+): T {
+  const previous = activeOnTextureReady
+  activeOnTextureReady = onTextureReady
+  try {
+    return fn()
+  } finally {
+    activeOnTextureReady = previous
   }
 }
 

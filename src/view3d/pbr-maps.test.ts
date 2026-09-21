@@ -186,4 +186,24 @@ describe('PBR map wiring (MAT-T2)', () => {
     expect(mat.aoMap).toBeNull()
     expect(mat.roughness).toBe(0.7)
   })
+
+  it('a texture whose URL fails to load never assigns an empty Texture to the material', () => {
+    // No cache seeding: TextureLoader cannot fetch in node, so every map for
+    // this texture id fails — regression for the "Texture marked for update
+    // but no image data found" warnings (empty maps were assigned and then
+    // sampled as black AO/normal + roughness 0, rendering walls black).
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 15,
+      leftSideTextureId: 'plaster-white',
+    })
+    const mat = findMesh(buildScene(home), 'wall:w1')!.material as THREE.MeshStandardMaterial
+    expect(mat.map).toBeNull()
+    expect(mat.normalMap).toBeNull()
+    expect(mat.roughnessMap).toBeNull()
+    expect(mat.aoMap).toBeNull()
+    // Catalog scalar defaults still apply as the graceful fallback.
+    expect(mat.roughness).toBe(0.9)
+    expect(mat.metalness).toBe(0)
+  })
 })
