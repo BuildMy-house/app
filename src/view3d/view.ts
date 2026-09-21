@@ -1,5 +1,11 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
+import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js'
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js'
 import { HomeModel } from '../core/model'
 import { HomeStore } from '../core/store'
 import { DEFAULT_WALL_HEIGHT_CM, type NormalizedHomeState } from '../core/home'
@@ -103,6 +109,8 @@ export class View3D {
   private _isOutsideView = false
   // Only changes when the scene graph is rebuilt, never during camera orbit.
   private _instancedMeshCount = 0
+  private _composer: EffectComposer | undefined
+  private _bloomPass: UnrealBloomPass | undefined
 
   constructor(
     private readonly store: HomeStore,
@@ -164,6 +172,7 @@ export class View3D {
       this.renderer = renderer
       this.applyQualityToScene()
       this.applyEnvironment()
+      this.setupPostProcessing()
 
       renderer.domElement.addEventListener('webglcontextlost', () => telemetry.webglContextLost())
 
@@ -334,6 +343,7 @@ export class View3D {
   resizeTo(width: number, height: number): void {
     if (!this.renderer) return
     this.renderer.setSize(width, height)
+    this._composer?.setSize(width, height)
     this.perspectiveCamera.aspect = width / height
     this.perspectiveCamera.updateProjectionMatrix()
     this.render()
@@ -361,6 +371,7 @@ export class View3D {
     const cap = this._quality.pixelRatioCap
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap))
     this.applyQualityToScene()
+    this.setupPostProcessing()
     this.render()
   }
 
@@ -388,6 +399,58 @@ export class View3D {
     // autoUpdate is off (see renderer setup) — force one shadow pass now that
     // shadow-casting geometry/resolution may have changed.
     this.renderer.shadowMap.needsUpdate = true
+  }
+
+  /**
+   * Build (or rebuild) the post-processing EffectComposer from the current
+   * viewport quality settings. Disposes any previous composer first.
+   *
+   * Pass chain: RenderPass → AO (SSAO/GTAO) → Bloom → OutputPass.
+   * When bloom and ao are both off the composer is left undefined and the
+   * render loop falls back to a plain renderer.render() call.
+   */
+  private setupPostProcessing(): void {
+    this._composer?.dispose()
+    this._composer = undefined
+    this._bloomPass = undefined
+
+    const renderer = this.renderer
+    if (!renderer) return
+
+    const { bloom, ao } = this._quality
+    if (!bloom && ao === 'none') return
+
+    const size = new THREE.Vector2()
+    renderer.getSize(size)
+
+    const composer = new EffectComposer(renderer)
+    composer.addPass(new RenderPass(this._scene, this.perspectiveCamera))
+
+    // Ambient occlusion — subtle contact shadows.
+    if (ao === 'gtao') {
+      const gtao = new GTAOPass(this._scene, this.perspectiveCamera, size.x, size.y)
+      gtao.output = GTAOPass.OUTPUT.Default
+      composer.addPass(gtao)
+    } else if (ao === 'ssao') {
+      const ssao = new SSAOPass(this._scene, this.perspectiveCamera, size.x, size.y)
+      ssao.kernelRadius = 16
+      ssao.minDistance = 0.005
+      ssao.maxDistance = 0.1
+      composer.addPass(ssao)
+    }
+
+    // Bloom — subtle glow on bright surfaces.
+    if (bloom) {
+      const bloomPass = new UnrealBloomPass(size, 0.4, 0.5, 0.85)
+      this._bloomPass = bloomPass
+      composer.addPass(bloomPass)
+    }
+
+    // OutputPass applies the renderer's toneMapping + outputColorSpace at the
+    // end of the chain so intermediate passes work in linear HDR.
+    composer.addPass(new OutputPass())
+
+    this._composer = composer
   }
 
   /** Current HDRI environment preset id (a viewport pref, not home state). */
@@ -466,6 +529,7 @@ export class View3D {
     this.countInstancedMeshes()
     this.applyQualityToScene()
     this.applyEnvironment()
+    this.setupPostProcessing()
 
     if (this.controls && savedTarget && savedPosition) {
       this.perspectiveCamera.position.copy(savedPosition)
@@ -638,7 +702,11 @@ export class View3D {
 
   /** Draw the current scene. Does NOT advance controls (that's the loop). */
   render(): void {
-    this.renderer?.render(this._scene, this.perspectiveCamera)
+    if (this._composer) {
+      this._composer.render()
+    } else {
+      this.renderer?.render(this._scene, this.perspectiveCamera)
+    }
   }
 
   /**
@@ -682,7 +750,11 @@ export class View3D {
       }
       this._frameLastTime = now
       const moving = this.controls ? this.controls.update() : false
-      this.renderer?.render(this._scene, this.perspectiveCamera)
+      if (this._composer) {
+        this._composer.render()
+      } else {
+        this.renderer?.render(this._scene, this.perspectiveCamera)
+      }
       if (moving) this._animationFrame = requestAnimationFrame(tick)
     }
     this._animationFrame = requestAnimationFrame(tick)
@@ -698,6 +770,8 @@ export class View3D {
     if (this.renderer) window.removeEventListener('resize', this.handleResize)
     this.environment?.dispose()
     this.environment = undefined
+    this._composer?.dispose()
+    this._composer = undefined
     this.disposeSceneObjects(this._scene)
     this.renderer?.dispose()
   }
