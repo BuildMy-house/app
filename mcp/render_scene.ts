@@ -13,22 +13,22 @@ const crcTable = Array.from({ length: 256 }, (_, n) => {
   return c >>> 0
 })
 
-function crc32(data: Buffer): number {
+export function crc32(data: Buffer): number {
   let c = 0xffffffff
-  for (let i = 0; i < data.length; i++) c = crcTable[(c ^ data[i]) & 0xff] ^ (c >>> 8)
+  for (let i = 0; i < data.length; i++) c = crcTable[(c ^ data[i]!) & 0xff]! ^ (c >>> 8)
   return (c ^ 0xffffffff) >>> 0
 }
 
-function chunk(type: string, data: Buffer): Buffer {
+export function chunk(type: string, data: Buffer): Buffer {
   const body = Buffer.concat([Buffer.from(type), data])
-  const out = Buffer.alloc(body.length + 12)
+  const out = Buffer.alloc(body.length + 8) // 4-byte length field + 4-byte CRC (body already includes the 4-byte type)
   out.writeUInt32BE(data.length, 0)
   body.copy(out, 4)
   out.writeUInt32BE(crc32(body), body.length + 4)
   return out
 }
 
-function png(width: number, height: number, pixels: Uint8Array): string {
+export function png(width: number, height: number, pixels: Uint8Array): string {
   const rows = Buffer.alloc((width * 4 + 1) * height)
   for (let y = 0; y < height; y++) {
     const row = y * (width * 4 + 1)
@@ -69,8 +69,8 @@ function polygon(pixels: Uint8Array, width: number, height: number, points: Poin
   for (let y = minY; y <= maxY; y++) for (let x = minX; x <= maxX; x++) {
     let inside = false
     for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-      const [xi, yi] = points[i]
-      const [xj, yj] = points[j]
+      const [xi, yi] = points[i]!
+      const [xj, yj] = points[j]!
       if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside
     }
     if (inside) paint(pixels, width, x, y, fill)
@@ -159,13 +159,19 @@ async function render3d(home: NormalizedHomeState, width: number, height: number
   return png(width, height, pixels)
 }
 
-let input = ''
-process.stdin.setEncoding('utf8')
-process.stdin.on('data', (chunk) => { input += chunk })
-process.stdin.on('end', () => {
-  const request = JSON.parse(input) as Request
-  const rendered = request.view === 'plan'
-    ? renderPlan(request.home, request.width, request.height)
-    : render3d(request.home, request.width, request.height, request.camera)
-  Promise.resolve(rendered).then((pngBase64) => process.stdout.write(JSON.stringify({ pngBase64, width: request.width, height: request.height })))
-})
+// Only run the stdin-driven CLI entrypoint when executed directly (`npx tsx
+// render_scene.ts`), not when imported for unit testing the pure PNG/rasterizer
+// helpers above.
+const isMain = import.meta.url === `file://${process.argv[1]}`
+if (isMain) {
+  let input = ''
+  process.stdin.setEncoding('utf8')
+  process.stdin.on('data', (chunk) => { input += chunk })
+  process.stdin.on('end', () => {
+    const request = JSON.parse(input) as Request
+    const rendered = request.view === 'plan'
+      ? renderPlan(request.home, request.width, request.height)
+      : render3d(request.home, request.width, request.height, request.camera)
+    Promise.resolve(rendered).then((pngBase64) => process.stdout.write(JSON.stringify({ pngBase64, width: request.width, height: request.height })))
+  })
+}
