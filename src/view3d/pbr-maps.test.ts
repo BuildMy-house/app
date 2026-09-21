@@ -154,4 +154,36 @@ describe('PBR map wiring (MAT-T2)', () => {
     expect(mat.roughness).toBe(0.35)
     expect(mat.metalness).toBe(0)
   })
+
+  it('room floor material gets PBR maps + uv2 when floorTextureId resolves', () => {
+    seedWoodOak()
+    const home = createEmptyHome()
+    home.rooms.push({
+      id: 'r1', points: [[0, 0], [100, 0], [100, 100]], floorTextureId: 'wood-oak',
+    })
+    const mesh = findMesh(buildScene(home), 'room:r1')!
+    const mat = mesh.material as THREE.MeshStandardMaterial
+    expect(mat.map).toBeInstanceOf(THREE.Texture)
+    expect(mat.normalMap).toBeInstanceOf(THREE.Texture)
+    expect(mat.roughnessMap).toBeInstanceOf(THREE.Texture)
+    expect(mat.aoMap).toBeInstanceOf(THREE.Texture)
+    expect(mat.map!.colorSpace).toBe(THREE.SRGBColorSpace)
+    expect(mat.roughness).toBe(0.65)
+    const uv2 = mesh.geometry.getAttribute('uv2')
+    expect(uv2).toBeDefined()
+    expect(uv2).toBe(mesh.geometry.getAttribute('uv'))
+  })
+
+  it('texture-free room floor keeps baseline material and gets no PBR maps', () => {
+    const home = createEmptyHome()
+    home.rooms.push({
+      id: 'r1', points: [[0, 0], [100, 0], [100, 100]], floorTextureId: null,
+    })
+    const mat = findMesh(buildScene(home), 'room:r1')!.material as THREE.MeshStandardMaterial
+    expect(mat.map).toBeNull()
+    expect(mat.normalMap).toBeNull()
+    expect(mat.roughnessMap).toBeNull()
+    expect(mat.aoMap).toBeNull()
+    expect(mat.roughness).toBe(0.7)
+  })
 })

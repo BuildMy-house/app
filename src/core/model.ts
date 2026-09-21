@@ -85,6 +85,13 @@ function validatePatch(key: CollectionKey, patch: Record<string, unknown>): void
           requireFinite(point[1], 'point y')
         }
       }
+      if (patch.floorTextureId !== undefined && patch.floorTextureId !== null) {
+        const validTextureIds = new Set(WALL_TEXTURES.map((t) => t.id))
+        assert(
+          typeof patch.floorTextureId === 'string' && validTextureIds.has(patch.floorTextureId),
+          'floorTextureId must be a known texture id or null',
+        )
+      }
       break
     }
     case 'polylines': {
@@ -344,6 +351,14 @@ export class HomeModel {
       requireFinite(x, 'point x')
       requireFinite(y, 'point y')
     }
+    const validTextureIds = new Set(WALL_TEXTURES.map((t) => t.id))
+    if (input.floorTextureId === undefined) input.floorTextureId = 'wood-oak'
+    if (input.floorTextureId !== undefined && input.floorTextureId !== null) {
+      assert(
+        typeof input.floorTextureId === 'string' && validTextureIds.has(input.floorTextureId),
+        'floorTextureId must be a known texture id or null',
+      )
+    }
     let created!: Room
     this.store.apply((h) => {
       created = {
@@ -353,6 +368,7 @@ export class HomeModel {
         areaVisible: input.areaVisible ?? true,
         floorVisible: input.floorVisible ?? true,
         floorColor: input.floorColor === undefined ? getDefaultFloorColor(h) : input.floorColor,
+        floorTextureId: input.floorTextureId,
         ceilingVisible: input.ceilingVisible,
         levelRef: input.levelRef ?? null,
       }

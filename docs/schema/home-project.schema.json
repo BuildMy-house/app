@@ -62,6 +62,7 @@
           "areaVisible": { "type": "boolean", "default": true },
           "floorVisible": { "type": "boolean", "default": true },
           "floorColor": { "$ref": "#/$defs/colorNullable" },
+          "floorTextureId": { "type": ["string", "null"] },
           "ceilingVisible": { "type": "boolean", "default": false },
           "levelRef": { "$ref": "#/$defs/ref" }
         }

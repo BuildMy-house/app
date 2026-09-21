@@ -212,7 +212,12 @@ function roomsEqual(a: Room, b: Room): boolean {
     const pb = b.points[i]!
     if (pa[0] !== pb[0] || pa[1] !== pb[1]) return false
   }
-  return a.name === b.name && a.floorColor === b.floorColor && a.levelRef === b.levelRef
+  return (
+    a.name === b.name &&
+    a.floorColor === b.floorColor &&
+    a.floorTextureId === b.floorTextureId &&
+    a.levelRef === b.levelRef
+  )
 }
 
 // ── Delta handlers (T2) ─────────────────────────────────────────────────────

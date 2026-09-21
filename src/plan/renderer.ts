@@ -440,7 +440,7 @@ export function drawPlan(
 
     const floorFill = cssColor(room.floorColor, ROOM_FILL)
     if (room.floorVisible !== false) {
-      ctx.fillStyle = floorFill
+      ctx.fillStyle = patternOrNull(ctx, room.floorTextureId) ?? floorFill
       ctx.fill()
     }
 

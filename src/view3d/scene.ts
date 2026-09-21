@@ -334,6 +334,13 @@ export function roomMesh(room: Room, elevation: number, opts?: { opacity?: numbe
     material.transparent = true
     material.opacity = opts.opacity
   }
+  const roomTexture = room.floorTextureId
+    ? applyMaterialTextures(material, room.floorTextureId)
+    : null
+  if (roomTexture) {
+    remapShapeUvs(geometry)
+    if (roomTexture.aoFile) addUv2(geometry)
+  }
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = `room:${room.id}`
   mesh.position.y = elevation
@@ -742,6 +749,23 @@ export function remapExtrudeUvs(geometry: THREE.BufferGeometry): void {
     const x = posAttr.getX(i)
     const y = posAttr.getY(i)
     uvAttr.setXY(i, x / TEXTURE_TILE_CM, y / TEXTURE_TILE_CM)
+  }
+  uvAttr.needsUpdate = true
+}
+
+/**
+ * Remap ShapeGeometry UVs so floor textures tile at physical scale. Unlike
+ * ExtrudeGeometry (bbox-normalised UVs), ShapeGeometry emits raw "world uvs" —
+ * shape x/y coordinates, i.e. centimeters here — so 1 UV unit = 1 repeat would
+ * tile 100× too dense. Divide by TEXTURE_TILE_CM (same 1-repeat-per-100cm
+ * convention as walls and the ground plane). Shape coords are world x and -y,
+ * which RepeatWrapping handles including the negative-V half-plane.
+ */
+function remapShapeUvs(geometry: THREE.BufferGeometry): void {
+  const uvAttr = geometry.getAttribute('uv')
+  if (!uvAttr) return
+  for (let i = 0; i < uvAttr.count; i++) {
+    uvAttr.setXY(i, uvAttr.getX(i) / TEXTURE_TILE_CM, uvAttr.getY(i) / TEXTURE_TILE_CM)
   }
   uvAttr.needsUpdate = true
 }

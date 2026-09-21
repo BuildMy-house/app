@@ -390,7 +390,7 @@ export class HomelyCommandHandler implements CommandHandler {
           'add_room requires points: array of [x,y] with >=3 entries',
         )
         const rest: Record<string, unknown> = {}
-        for (const field of ['name', 'floorColor', 'floorVisible', 'ceilingVisible', 'areaVisible', 'levelRef']) {
+        for (const field of ['name', 'floorColor', 'floorTextureId', 'floorVisible', 'ceilingVisible', 'areaVisible', 'levelRef']) {
           if (params[field] !== undefined) rest[field] = params[field]
         }
         const room = this.model.addRoom(

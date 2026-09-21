@@ -178,3 +178,86 @@ describe('room floor color defaults', () => {
     expect(room.floorColor).toBe(0xff0000)
   })
 })
+
+describe('room floor texture defaults', () => {
+  it('addRoom defaults floorTextureId to wood-oak when omitted', () => {
+    const { model } = makeStore()
+    const room = model.addRoom([[0, 0], [100, 0], [100, 100]])
+    expect(room.floorTextureId).toBe('wood-oak')
+  })
+
+  it('addRoom with explicit null floorTextureId keeps null (escape hatch)', () => {
+    const { model } = makeStore()
+    const room = model.addRoom([[0, 0], [100, 0], [100, 100]], { floorTextureId: null })
+    expect(room.floorTextureId).toBeNull()
+  })
+
+  it('addRoom preserves explicit valid texture id', () => {
+    const { model } = makeStore()
+    const room = model.addRoom([[0, 0], [100, 0], [100, 100]], { floorTextureId: 'tile-floor' })
+    expect(room.floorTextureId).toBe('tile-floor')
+  })
+
+  it('addRoom rejects unknown texture id', () => {
+    const { model } = makeStore()
+    expect(() =>
+      model.addRoom([[0, 0], [100, 0], [100, 100]], { floorTextureId: 'nonexistent' as never }),
+    ).toThrow(ModelError)
+  })
+
+  it('updateRoom accepts valid texture id', () => {
+    const { model } = makeStore()
+    const room = model.addRoom([[0, 0], [100, 0], [100, 100]])
+    const updated = model.updateRoom(room.id, { floorTextureId: 'carpet' })
+    expect(updated.floorTextureId).toBe('carpet')
+  })
+
+  it('updateRoom rejects invalid texture id', () => {
+    const { model } = makeStore()
+    const room = model.addRoom([[0, 0], [100, 0], [100, 100]])
+    expect(() =>
+      model.updateRoom(room.id, { floorTextureId: 'bad' as never }),
+    ).toThrow(ModelError)
+  })
+
+  it('updateRoom can clear texture id to null', () => {
+    const { model } = makeStore()
+    const room = model.addRoom([[0, 0], [100, 0], [100, 100]])
+    const updated = model.updateRoom(room.id, { floorTextureId: null })
+    expect(updated.floorTextureId).toBeNull()
+  })
+
+  it('floorTextureId survives serialize round-trip', () => {
+    const { store, model } = makeStore()
+    model.addRoom([[0, 0], [100, 0], [100, 100]], { floorTextureId: 'tile-floor' })
+    const serialized = serializeForSave(store.getHome())
+    const json = JSON.parse(serialized)
+    expect(json.rooms[0]!.floorTextureId).toBe('tile-floor')
+
+    const parsed = parseHomeFile(serialized)
+    expect(parsed.rooms[0]!.floorTextureId).toBe('tile-floor')
+  })
+})
+
+describe('automation add_room texture defaults', () => {
+  it('add_room with omitted floorTextureId lands wood-oak in the store', () => {
+    const store = new HomeStore()
+    const handler = new HomelyCommandHandler(store)
+    const result = handler.execute('add_room', {
+      points: [[0, 0], [100, 0], [100, 100]],
+    })
+    expect(result.ok).toBe(true)
+    expect(store.getHome().rooms[0]!.floorTextureId).toBe('wood-oak')
+  })
+
+  it('add_room with explicit floorTextureId is honored', () => {
+    const store = new HomeStore()
+    const handler = new HomelyCommandHandler(store)
+    const result = handler.execute('add_room', {
+      points: [[0, 0], [100, 0], [100, 100]],
+      floorTextureId: 'concrete',
+    })
+    expect(result.ok).toBe(true)
+    expect(store.getHome().rooms[0]!.floorTextureId).toBe('concrete')
+  })
+})

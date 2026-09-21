@@ -173,6 +173,7 @@ export interface Room {
   areaVisible?: boolean
   floorVisible?: boolean
   floorColor?: number | null
+  floorTextureId?: string | null
   ceilingVisible?: boolean
   levelRef?: string | null
 }

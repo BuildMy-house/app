@@ -379,6 +379,25 @@ export class PropertiesPanel {
     const floorColor = colorInput(room.floorColor)
     floorColor.addEventListener('input', () => commit({ floorColor: parseColor(floorColor.value) }))
     body.appendChild(fieldRow('Floor Color', floorColor))
+
+    // Floor texture
+    const floorTexture = document.createElement('select')
+    floorTexture.className = 'prop-input'
+    const ftNone = document.createElement('option')
+    ftNone.value = ''
+    ftNone.textContent = '— none —'
+    floorTexture.appendChild(ftNone)
+    for (const t of WALL_TEXTURES) {
+      const opt = document.createElement('option')
+      opt.value = t.id
+      opt.textContent = t.label
+      if (room.floorTextureId === t.id) opt.selected = true
+      floorTexture.appendChild(opt)
+    }
+    floorTexture.addEventListener('change', () =>
+      commit({ floorTextureId: floorTexture.value || null }),
+    )
+    body.appendChild(fieldRow('Floor Texture', floorTexture))
   }
 
   private renderFurniture(body: HTMLDivElement, f: Furniture, _store: HomeStore): void {
