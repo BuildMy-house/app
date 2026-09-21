@@ -4,7 +4,7 @@ WORKDIR /app
 ENV PYTHONPATH=/app
 ENV LUXCORE_ASSET_ROOT=/app/homely/assets/models/sh3d
 
-RUN apt-get update && apt-get install -y --no-install-recommends libatomic1 \
+RUN apt-get update && apt-get install -y --no-install-recommends assimp-utils libatomic1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir \

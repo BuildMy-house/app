@@ -1,5 +1,9 @@
 import math
 import os
+import re
+import subprocess
+import urllib.request
+from hashlib import sha256
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -214,10 +218,53 @@ def _polygon_to_bridge(name: str, prim: dict) -> dict:
 
 
 def _resolve_asset(item: dict) -> Path | None:
+    model_url = _r2_model_url(item)
+    if model_url:
+        return _cached_r2_obj(model_url)
     asset_root = _asset_root()
     asset_name = str(item.get("catalogId", "")).split("#")[-1]
     source = _find_asset(asset_root, asset_name)
     return source if source.exists() else None
+
+
+def _r2_model_url(item: dict) -> str | None:
+    base = os.environ.get(
+        "LUXCORE_MODEL_BASE_URL",
+        "https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/models",
+    ).rstrip("/")
+    model_path = item.get("modelPath")
+    if isinstance(model_path, str) and model_path.startswith(f"{base}/") and model_path.endswith(".glb"):
+        return model_path
+    parts = str(item.get("catalogId", "")).split("#")
+    if len(parts) < 3 or parts[1].casefold() != "blend swap cc-0":
+        return None
+    slug = re.sub(r"[^a-z0-9]+", "-", parts[-1].casefold()).strip("-")
+    return f"{base}/blend-swap-cc-0-{slug}.glb"
+
+
+@lru_cache(maxsize=256)
+def _cached_r2_obj(model_url: str) -> Path | None:
+    cache = Path(os.environ.get("LUXCORE_ASSET_CACHE", "/app/var/r2-assets"))
+    stem = sha256(model_url.encode()).hexdigest()[:24]
+    glb = cache / f"{stem}.glb"
+    obj = cache / f"{stem}.obj"
+    if not obj.is_file():
+        cache.mkdir(parents=True, exist_ok=True)
+        if not glb.is_file():
+            with urllib.request.urlopen(model_url, timeout=30) as response:
+                if int(response.headers.get("Content-Length", 0)) > 100 * 1024 * 1024:
+                    raise ValueError("R2 furniture model exceeds 100 MB")
+                data = response.read(100 * 1024 * 1024 + 1)
+                if len(data) > 100 * 1024 * 1024:
+                    raise ValueError("R2 furniture model exceeds 100 MB")
+                glb.write_bytes(data)
+        subprocess.run(
+            ["assimp", "export", str(glb), str(obj)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    return obj if obj.is_file() else None
 
 
 def _furniture_size(item: dict) -> list[float]:

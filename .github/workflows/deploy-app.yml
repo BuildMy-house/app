@@ -46,6 +46,7 @@ jobs:
             docker build -t buildmyhouse-mcp:latest -f mcp/Dockerfile .
             docker build -t buildmyhouse-luxcore:latest -f luxcore/Dockerfile .
             docker volume create buildmyhouse-app-data >/dev/null
+            docker volume create buildmyhouse-luxcore-assets >/dev/null
 
             docker stop buildmyhouse-app || true
             docker rm buildmyhouse-app || true
@@ -68,6 +69,7 @@ jobs:
               --restart unless-stopped \
               --env-file /home/ubuntu/buildmyhouse-mcp.env \
               -e PORT=8081 \
+              -v buildmyhouse-luxcore-assets:/app/var/r2-assets \
               buildmyhouse-luxcore:latest
 
             docker stop buildmyhouse-mcp || true
