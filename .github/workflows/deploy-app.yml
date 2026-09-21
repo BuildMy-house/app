@@ -83,6 +83,6 @@ jobs:
               -e HOMELY_MCP_HOST=0.0.0.0 \
               -e HOMELY_MCP_HTTP_PORT=8080 \
               -e BUILDMYHOUSE_MCP_RESOURCE_URL=https://app.buildmy.house/mcp \
-              -e BUILDMYHOUSE_LUXCORE_URL=http://buildmyhouse-luxcore:8081 \
+              -e BUILDMYHOUSE_API_URL=http://buildmyhouse-app:3000 \
               --env-file /home/ubuntu/buildmyhouse-mcp.env \
               buildmyhouse-mcp:latest

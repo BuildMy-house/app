@@ -97,10 +97,12 @@ scene builder and renderer. A cloud deployment must put the streamable HTTP
 endpoint behind authentication and a trusted network boundary. The default
 listener is loopback-only because the automation socket has no authentication.
 
-`screenshot` is the cheap iteration path. Configure
-`BUILDMYHOUSE_LUXCORE_URL`, `BUILDMYHOUSE_LUXCORE_TOKEN`, and optionally
-`BUILDMYHOUSE_LUXCORE_USER` to enable `render_photoreal`; start with
-`thumbnail`, then request `low` or `medium` only for a selected final view.
+`screenshot` is the cheap iteration path. `render_photoreal` submits through
+the app's own render queue (`POST /api/render/queue`), so it requires the
+same production API identity as the house tools below (`BUILDMYHOUSE_API_URL`
+and `BUILDMYHOUSE_API_TOKEN`) plus a selected house (`select_plan` or
+`create_plan`); start with `thumbnail`, then request `low` or `medium` only
+for a selected final view.
 
 Production house tools use the authenticated API identity. Configure
 `BUILDMYHOUSE_API_URL` and a user-scoped `BUILDMYHOUSE_API_TOKEN`; use

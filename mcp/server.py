@@ -131,8 +131,6 @@ mcp = FastMCP("buildmyhouse", instructions=INSTRUCTIONS, lifespan=_lifespan if H
 _SERVER: AutomationServer | None = None
 _ACTIVE_CAMERA = "observer"
 _RENDERER = Path(__file__).with_name("render_scene.ts")
-_LUXCORE_URL = os.environ.get("BUILDMYHOUSE_LUXCORE_URL", "").rstrip("/")
-_LUXCORE_TOKEN = os.environ.get("BUILDMYHOUSE_LUXCORE_TOKEN", "")
 _API_URL = os.environ.get("BUILDMYHOUSE_API_URL", "").rstrip("/")
 _API_TOKEN = os.environ.get("BUILDMYHOUSE_API_TOKEN", "")
 _ACTIVE_HOUSES: dict[str, str] = {}
@@ -246,29 +244,6 @@ async def _render(home: dict, view: str, width: int, height: int) -> Image:
     return Image(data=base64.b64decode(data["pngBase64"]), format="png")
 
 
-async def _luxcore_request(path: str, method: str = "GET", body: dict | None = None) -> dict | bytes:
-    if not _LUXCORE_URL or not _LUXCORE_TOKEN:
-        raise RuntimeError("LuxCore is not configured; set BUILDMYHOUSE_LUXCORE_URL and BUILDMYHOUSE_LUXCORE_TOKEN")
-    payload = json.dumps(body).encode() if body is not None else None
-    request = urllib.request.Request(
-        f"{_LUXCORE_URL}{path}",
-        data=payload,
-        method=method,
-        headers={"Authorization": f"Bearer {_LUXCORE_TOKEN}", "Content-Type": "application/json"},
-    )
-
-    def send() -> dict | bytes:
-        try:
-            with urllib.request.urlopen(request, timeout=30) as response:
-                data = response.read()
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode(errors="replace")
-            raise RuntimeError(f"LuxCore request failed ({exc.code}): {detail}") from exc
-        return data if response.headers.get_content_type() == "image/png" else json.loads(data)
-
-    return await anyio.to_thread.run_sync(send)
-
-
 def _empty_home() -> dict:
     return {
         "schemaVersion": 1, "name": "Untitled home", "levels": [], "walls": [], "rooms": [],
@@ -300,6 +275,24 @@ async def _api_request(path: str, method: str = "GET", body: dict | None = None)
         except urllib.error.HTTPError as exc:
             raise RuntimeError(f"production plan request failed ({exc.code}): {exc.read().decode(errors='replace')}") from exc
         return json.loads(data)
+
+    return await anyio.to_thread.run_sync(send)
+
+
+async def _api_request_bytes(path: str, method: str = "GET") -> bytes:
+    if not _API_URL or not _API_TOKEN:
+        raise RuntimeError("production plans are not configured; set BUILDMYHOUSE_API_URL and BUILDMYHOUSE_API_TOKEN")
+    request = urllib.request.Request(
+        f"{_API_URL}{path}", method=method,
+        headers={"Authorization": f"Bearer {_API_TOKEN}"},
+    )
+
+    def send() -> bytes:
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return response.read()
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(f"production plan request failed ({exc.code}): {exc.read().decode(errors='replace')}") from exc
 
     return await anyio.to_thread.run_sync(send)
 
@@ -633,39 +626,39 @@ async def screenshot(view: str, width: int = 800, height: int = 600) -> Image:
 
 @mcp.tool()
 async def render_photoreal(profile: str = "thumbnail", house_id: str | None = None) -> Image:
-    """Render a photorealistic LuxCore image; use screenshot for cheap iteration."""
+    """Render a photorealistic LuxCore image via the app's render queue; use screenshot for cheap iteration."""
     if profile not in {"thumbnail", "low", "medium", "high"}:
         raise ValueError("profile must be thumbnail, low, medium, or high")
-    if _API_URL:
-        selected = house_id or _ACTIVE_HOUSES.get(_API_TOKEN)
-        if not selected:
-            raise ValueError("select a production house first")
-        record = await _api_request(f"/api/homes/{selected}")
-        scene = json.loads(record["json"])
-    else:
-        scene = await _session().request("get_state")
-    user = os.environ.get("BUILDMYHOUSE_LUXCORE_USER", "test")
-    job = await _luxcore_request(
-        f"/api/render/jobs/{user}",
+    if not _API_URL or not _API_TOKEN:
+        raise RuntimeError("render_photoreal requires the app render queue; set BUILDMYHOUSE_API_URL and BUILDMYHOUSE_API_TOKEN")
+    selected = house_id or _ACTIVE_HOUSES.get(_API_TOKEN)
+    if not selected:
+        raise ValueError("select a production house first")
+    record = await _api_request(f"/api/homes/{selected}")
+    submission = await _api_request(
+        "/api/render/queue",
         "POST",
-        {"scene": scene, "profile": profile},
+        {
+            "homeId": selected,
+            "homeName": record.get("name", "Untitled"),
+            "homeJson": json.loads(record["json"]),
+            "quality": profile,
+        },
     )
-    if not isinstance(job, dict) or not job.get("id"):
-        raise RuntimeError("LuxCore did not return a render job")
-    job_id = str(job["id"])
+    job_id = submission.get("jobId")
+    if not job_id:
+        raise RuntimeError("render queue did not return a job id")
     for _ in range({"thumbnail": 90, "low": 360, "medium": 900, "high": 1860}[profile]):
         await anyio.sleep(1)
-        status = await _luxcore_request(f"/api/render/jobs/{user}/{job_id}")
+        status = await _api_request(f"/api/render/queue/{job_id}")
         if not isinstance(status, dict):
-            raise RuntimeError("LuxCore returned an invalid job status")
+            raise RuntimeError("render queue returned an invalid job status")
         if status.get("status") == "failed":
-            raise RuntimeError(str(status.get("error", "LuxCore render failed")))
-        if status.get("status") == "completed":
-            artifact = await _luxcore_request(f"/api/render/jobs/{user}/{job_id}/artifact")
-            if not isinstance(artifact, bytes):
-                raise RuntimeError("LuxCore returned an invalid image")
+            raise RuntimeError(str(status.get("error") or "render failed"))
+        if status.get("status") == "complete":
+            artifact = await _api_request_bytes(f"/api/render/queue/{job_id}/artifact")
             return Image(data=artifact, format="png")
-    raise TimeoutError(f"LuxCore {profile} render did not finish before the MCP timeout")
+    raise TimeoutError(f"render queue {profile} job did not finish before the MCP timeout")
 
 
 @mcp.tool()
