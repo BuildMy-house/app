@@ -9,7 +9,7 @@
  */
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
-const R2_PUBLIC_URL_FALLBACK = 'https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev'
+const R2_PUBLIC_URL_FALLBACK = 'https://assets.buildmy.house'
 
 /** Public base URL serving uploaded R2 objects. */
 export function r2PublicUrl(): string {

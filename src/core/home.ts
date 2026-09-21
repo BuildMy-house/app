@@ -136,7 +136,7 @@ export const WALL_TEXTURES: WallTextureEntry[] = [
 ]
 
 /** R2 key prefix + public base serving the texture files (see r2-client.ts). */
-const R2_MATERIALS_BASE = 'https://pub-fe765786711f4197a36aa5baabc8a3d6.r2.dev/materials'
+const R2_MATERIALS_BASE = 'https://assets.buildmy.house/materials'
 
 /**
  * Resolve a texture file name to its fetchable URL. The single resolution
