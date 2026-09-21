@@ -12,7 +12,7 @@ import type {
   Room,
   Wall,
 } from './home'
-import { DEFAULT_WALL_HEIGHT_CM, WALL_TEXTURES } from './home'
+import { DEFAULT_WALL_HEIGHT_CM, WALL_TEXTURES, getDefaultFloorColor } from './home'
 import type { HomeStore } from './store'
 import { normalizeAngle } from './export'
 
@@ -352,7 +352,7 @@ export class HomeModel {
         name: input.name ?? null,
         areaVisible: input.areaVisible ?? true,
         floorVisible: input.floorVisible ?? true,
-        floorColor: input.floorColor ?? null,
+        floorColor: input.floorColor === undefined ? getDefaultFloorColor(h) : input.floorColor,
         ceilingVisible: input.ceilingVisible,
         levelRef: input.levelRef ?? null,
       }

@@ -413,8 +413,8 @@ export class HomelyCommandHandler implements CommandHandler {
           patternId: (params.patternId as string | null) ?? 'hatchUp',
           leftSideColor: (params.leftSideColor as number | null) ?? null,
           rightSideColor: (params.rightSideColor as number | null) ?? null,
-          leftSideTextureId: (params.leftSideTextureId as string | null) ?? null,
-          rightSideTextureId: (params.rightSideTextureId as string | null) ?? null,
+          leftSideTextureId: params.leftSideTextureId as string | null | undefined,
+          rightSideTextureId: params.rightSideTextureId as string | null | undefined,
         })
         return { ok: true, data: { id: wall.id } }
       }

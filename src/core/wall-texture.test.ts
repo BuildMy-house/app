@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { HomeStore } from './store'
 import { HomeModel, ModelError } from './model'
-import { WALL_TEXTURES } from './home'
+import { WALL_TEXTURES, getDefaultFloorColor } from './home'
+import { HomelyCommandHandler } from '../automation/homely-handler'
 import { serializeForSave, parseHomeFile } from '../services/adapters/home-persistence'
 
 function makeStore() {
@@ -126,5 +127,54 @@ describe('wall texture schema', () => {
     const parsed = parseHomeFile(serialized)
     expect(parsed.walls[0]!.leftSideTextureId).toBe('wood-oak')
     expect(parsed.walls[0]!.rightSideTextureId).toBe('concrete')
+  })
+})
+
+describe('automation add_wall texture defaults', () => {
+  it('add_wall with omitted texture ids lands plaster-white in the store (regression: ?? null coercion)', () => {
+    const store = new HomeStore()
+    const handler = new HomelyCommandHandler(store)
+    const result = handler.execute('add_wall', {
+      xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7,
+    })
+    expect(result.ok).toBe(true)
+    const wall = store.getHome().walls[0]!
+    expect(wall.leftSideTextureId).toBe('plaster-white')
+    expect(wall.rightSideTextureId).toBe('plaster-white')
+  })
+
+  it('add_wall with explicit null texture ids keeps null (no default)', () => {
+    const store = new HomeStore()
+    const handler = new HomelyCommandHandler(store)
+    const result = handler.execute('add_wall', {
+      xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7,
+      leftSideTextureId: null,
+      rightSideTextureId: null,
+    })
+    expect(result.ok).toBe(true)
+    const wall = store.getHome().walls[0]!
+    expect(wall.leftSideTextureId).toBeNull()
+    expect(wall.rightSideTextureId).toBeNull()
+  })
+})
+
+describe('room floor color defaults', () => {
+  it('addRoom with omitted floorColor resolves to getDefaultFloorColor(home)', () => {
+    const { store, model } = makeStore()
+    const room = model.addRoom([[0, 0], [100, 0], [100, 100]])
+    expect(room.floorColor).toBe(getDefaultFloorColor(store.getHome()))
+    expect(room.floorColor).not.toBeNull()
+  })
+
+  it('addRoom with explicit null floorColor keeps null (escape hatch)', () => {
+    const { model } = makeStore()
+    const room = model.addRoom([[0, 0], [100, 0], [100, 100]], { floorColor: null })
+    expect(room.floorColor).toBeNull()
+  })
+
+  it('addRoom with explicit floorColor keeps the given value', () => {
+    const { model } = makeStore()
+    const room = model.addRoom([[0, 0], [100, 0], [100, 100]], { floorColor: 0xff0000 })
+    expect(room.floorColor).toBe(0xff0000)
   })
 })
