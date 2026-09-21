@@ -39,15 +39,14 @@ def home_to_scene(home: dict[str, Any], asset_root: str | None = None) -> dict[s
         objects.append({"type": "polygon", "name": room["id"], "material": "floor",
                         "vertices": [[x / 100, y / 100] for x, y in room["points"]], "z": 0, "height": 0})
     for furn in home.get("furniture", []):
-        asset_name = str(furn.get("catalogId", "")).split("#")[-1]
-        source = _find_asset(source_root, asset_name)
-        objects.append({"type": "asset" if source.exists() else "box", "name": furn["id"], "material": "furniture",
+        source = _resolve_asset(furn)
+        objects.append({"type": "asset" if source else "box", "name": furn["id"], "material": "furniture",
                         "size": _furniture_size(furn),
                         "position": [furn.get("x", 0) / 100, furn.get("y", 0) / 100,
                                      furn.get("elevation", 0) / 100],
                         # SH3D/Three rotate around +Y; after Y-up -> Z-up and
                         # plan-Y -> LuxCore-Y, the equivalent Z rotation is reversed.
-                        "rotation": -furn.get("angleDeg", 0), "path": str(source)})
+                        "rotation": -furn.get("angleDeg", 0), "path": str(source or "")})
     explicit_camera = home.get("renderCamera")
     if explicit_camera:
         lookat = [explicit_camera["orig"], explicit_camera["target"], explicit_camera.get("up", [0, 0, 1])]
