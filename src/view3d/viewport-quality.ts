@@ -27,6 +27,10 @@ export interface ViewportQuality {
   fogDensity: number
   /** Max texture anisotropy. */
   maxAnisotropy: number
+  /** Enable subtle bloom glow on bright surfaces. */
+  bloom: boolean
+  /** Ambient occlusion technique. 'ssao' is cheaper, 'gtao' is higher quality. */
+  ao: 'none' | 'ssao' | 'gtao'
 }
 
 export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = {
@@ -37,6 +41,8 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
     antialias: false,
     fogDensity: 0,
     maxAnisotropy: 1,
+    bloom: false,
+    ao: 'none',
   },
   medium: {
     preset: 'medium',
@@ -45,6 +51,8 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
     antialias: true,
     fogDensity: 0.00005,
     maxAnisotropy: 4,
+    bloom: true,
+    ao: 'none',
   },
   high: {
     preset: 'high',
@@ -53,6 +61,8 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
     antialias: true,
     fogDensity: 0.00005,
     maxAnisotropy: 8,
+    bloom: true,
+    ao: 'ssao',
   },
   ultra: {
     preset: 'ultra',
@@ -65,6 +75,8 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
     antialias: true,
     fogDensity: 0.00004,
     maxAnisotropy: 16,
+    bloom: true,
+    ao: 'gtao',
   },
 }
 
@@ -86,6 +98,10 @@ export function loadViewportQuality(storage: Pick<Storage, 'getItem'> = localSto
       antialias: typeof parsed.antialias === 'boolean' ? parsed.antialias : base.antialias,
       fogDensity: clampNum(parsed.fogDensity, 0, 0.001, base.fogDensity),
       maxAnisotropy: clampNum(parsed.maxAnisotropy, 1, 16, base.maxAnisotropy),
+      bloom: typeof parsed.bloom === 'boolean' ? parsed.bloom : base.bloom,
+      ao: (['none', 'ssao', 'gtao'] as const).includes(parsed.ao as 'none' | 'ssao' | 'gtao')
+        ? (parsed.ao as 'none' | 'ssao' | 'gtao')
+        : base.ao,
     }
   } catch {
     return { ...DEFAULT_VIEWPORT_QUALITY }
