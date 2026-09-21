@@ -15,11 +15,8 @@ import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { jobTelemetry } from './jobs/telemetry.js'
-
-interface NormalizedHomeState {
-  // Minimal interface for render queue; full type defined in client
-  [key: string]: unknown
-}
+import { buildRenderableScene } from '../../src/render/scene-builder'
+import type { NormalizedHomeState } from '../../src/core/home'
 
 type RenderProfile = 'thumbnail' | 'low' | 'medium' | 'high'
 type RenderJobStatus = 'pending' | 'processing' | 'complete' | 'failed'
@@ -134,10 +131,11 @@ class RenderQueue {
    */
   private async renderWithWorker(job: RenderJob): Promise<void> {
     const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.workerToken}` }
+    const { scene: renderableScene } = buildRenderableScene(job.homeJson, job.homeName)
     const submitted = await fetch(`${this.workerUrl}/api/render/jobs/${job.userId}`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ scene: job.homeJson, home: job.homeJson, profile: job.quality }),
+      body: JSON.stringify({ scene: renderableScene, home: job.homeJson, profile: job.quality }),
     })
     if (!submitted.ok) throw new Error(`LuxCore submit failed: ${submitted.status}`)
     const remote = (await submitted.json()) as { id: string }
