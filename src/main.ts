@@ -528,7 +528,8 @@ function buildToolbar(): void {
       <button class="tool-btn" id="btn-redo" title="Redo (Ctrl+Y)">Redo</button>
     </div>
     <div class="tool-separator"></div>
-    <div class="tool-group" id="level-group">
+    <span class="toolbar-label" id="level-group-label">Floor:</span>
+    <div class="tool-group level-group" id="level-group">
       <button class="tool-btn" id="btn-level-all" title="Show all levels" data-level="all">All</button>
     </div>
     <div class="tool-separator"></div>
