@@ -213,3 +213,51 @@ describe('dimension line editing updates the model and is undoable', () => {
     expect(after.offset).toBe(before.offset)
   })
 })
+
+describe('roof editing updates the model and is undoable', () => {
+  it('updating style, pitch, and overhang persists', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const roof = model.addRoof([[0, 0], [100, 0], [100, 100]], { style: 'gable', pitchDeg: 30, overhangCm: 30 })
+
+    model.updateRoof(roof.id, { style: 'hip' })
+    expect(store.getHome().roofs[0]!.style).toBe('hip')
+
+    model.updateRoof(roof.id, { pitchDeg: 45 })
+    expect(store.getHome().roofs[0]!.pitchDeg).toBe(45)
+
+    model.updateRoof(roof.id, { overhangCm: 50 })
+    expect(store.getHome().roofs[0]!.overhangCm).toBe(50)
+  })
+
+  it('edits are undoable', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const roof = model.addRoof([[0, 0], [100, 0], [100, 100]], { style: 'gable', pitchDeg: 30 })
+
+    model.updateRoof(roof.id, { style: 'shed' })
+    expect(store.getHome().roofs[0]!.style).toBe('shed')
+
+    store.undo()
+    expect(store.getHome().roofs[0]!.style).toBe('gable')
+
+    store.redo()
+    expect(store.getHome().roofs[0]!.style).toBe('shed')
+  })
+
+  it('an invalid roof commit keeps it unchanged', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const roof = model.addRoof([[0, 0], [100, 0], [100, 100]], { style: 'gable', pitchDeg: 30, overhangCm: 30 })
+    const before = store.getHome().roofs[0]!
+    const invalidInputs = ['', 'not-a-number', 'NaN', 'Infinity']
+    for (const raw of invalidInputs) {
+      const pitchDeg = validatePositive(raw, store.getHome().roofs[0]!.pitchDeg, 0)
+      const overhangCm = validatePositive(raw, store.getHome().roofs[0]!.overhangCm, 0)
+      model.updateRoof(roof.id, { pitchDeg, overhangCm })
+    }
+    const after = store.getHome().roofs[0]!
+    expect(after.pitchDeg).toBe(before.pitchDeg)
+    expect(after.overhangCm).toBe(before.overhangCm)
+  })
+})

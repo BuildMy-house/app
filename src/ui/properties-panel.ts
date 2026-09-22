@@ -1,6 +1,6 @@
 import type { HomeStore } from '../core/store'
 import { HomeModel } from '../core/model'
-import type { Wall, Room, Furniture, Label, DimensionLine, NormalizedHomeState } from '../core/home'
+import type { Wall, Room, Furniture, Label, DimensionLine, Roof, NormalizedHomeState } from '../core/home'
 import { WALL_TEXTURES } from '../core/home'
 import { normalizeAngle } from '../core/export'
 import { observeStore } from '../view3d/watch'
@@ -178,6 +178,7 @@ export class PropertiesPanel {
     else if (obj.kind === 'Furniture') this.renderFurniture(body, obj.item as Furniture, store)
     else if (obj.kind === 'Label') this.renderLabel(body, obj.item as Label, store)
     else if (obj.kind === 'DimensionLine') this.renderDimensionLine(body, obj.item as DimensionLine, store)
+    else if (obj.kind === 'Roof') this.renderRoof(body, obj.item as Roof, store)
 
     this.root.appendChild(body)
   }
@@ -203,7 +204,7 @@ export class PropertiesPanel {
     return el
   }
 
-  private findObject(home: NormalizedHomeState, id: string): { kind: string; item: Wall | Room | Furniture | Label | DimensionLine } | null {
+  private findObject(home: NormalizedHomeState, id: string): { kind: string; item: Wall | Room | Furniture | Label | DimensionLine | Roof } | null {
     const w = home.walls.find((w) => w.id === id)
     if (w) return { kind: 'Wall', item: w }
     const r = home.rooms.find((r) => r.id === id)
@@ -214,6 +215,8 @@ export class PropertiesPanel {
     if (l) return { kind: 'Label', item: l }
     const d = home.dimensionLines.find((d) => d.id === id)
     if (d) return { kind: 'DimensionLine', item: d }
+    const roof = home.roofs.find((r) => r.id === id)
+    if (roof) return { kind: 'Roof', item: roof }
     return null
   }
 
@@ -642,6 +645,46 @@ export class PropertiesPanel {
     const levelText = document.createElement('span')
     levelText.className = 'prop-static'
     levelText.textContent = dim.levelRef ?? '(none)'
+    body.appendChild(fieldRow('Level', levelText))
+  }
+
+  private renderRoof(body: HTMLDivElement, roof: Roof, _store: HomeStore): void {
+    const commit = (patch: Partial<Omit<Roof, 'id'>>) => {
+      this.model.updateRoof(roof.id, patch)
+    }
+
+    // Style
+    const styleInput = selectInput(roof.style, [
+      { value: 'gable', label: 'Gable' },
+      { value: 'hip', label: 'Hip' },
+      { value: 'shed', label: 'Shed' },
+      { value: 'flat', label: 'Flat' },
+    ])
+    styleInput.addEventListener('change', () => commit({ style: styleInput.value as Roof['style'] }))
+    body.appendChild(fieldRow('Style', styleInput))
+
+    // Pitch (degrees)
+    const pitchInput = numInput(num(roof.pitchDeg, 30), { min: 0, max: 90, step: 1 })
+    pitchInput.addEventListener('change', () => {
+      const n = validatePositive(pitchInput.value, num(roof.pitchDeg, 30), 0)
+      pitchInput.value = String(n)
+      commit({ pitchDeg: n })
+    })
+    body.appendChild(fieldRow('Pitch', pitchInput))
+
+    // Overhang (cm)
+    const overhangInput = numInput(num(roof.overhangCm, 30), { min: 0, step: 1 })
+    overhangInput.addEventListener('change', () => {
+      const n = validatePositive(overhangInput.value, num(roof.overhangCm, 30), 0)
+      overhangInput.value = String(n)
+      commit({ overhangCm: n })
+    })
+    body.appendChild(fieldRow('Overhang', overhangInput))
+
+    // Level (read-only)
+    const levelText = document.createElement('span')
+    levelText.className = 'prop-static'
+    levelText.textContent = roof.levelRef ?? '(none)'
     body.appendChild(fieldRow('Level', levelText))
   }
 
