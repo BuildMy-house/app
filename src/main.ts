@@ -494,9 +494,6 @@ const profileWidget = new ProfileWidget(profileWidgetHost, auth, {
   onSignUp: () => {
     new AuthDialog(auth, () => { refreshAll(); profileWidget.refresh() }, 'register').open()
   },
-  onLogIn: () => {
-    promptLogin(() => profileWidget.refresh())
-  },
   onLogOut: () => {
     auth.logout()
     closeHomeSession()
