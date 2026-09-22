@@ -70,6 +70,11 @@ function validatePatch(key: CollectionKey, patch: Record<string, unknown>): void
           )
         }
       }
+      for (const field of ['leftSideExteriorOverride', 'rightSideExteriorOverride']) {
+        if (patch[field] !== undefined && patch[field] !== null) {
+          assert(typeof patch[field] === 'boolean', `${field} must be a boolean or null`)
+        }
+      }
       break
     }
     case 'rooms': {

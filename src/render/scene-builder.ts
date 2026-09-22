@@ -22,6 +22,11 @@ import {
   type Wall,
   type Furniture,
 } from '../core/home.js'
+import {
+  getWallSideExterior,
+  wallSideOutwardNormal,
+  type WallSide,
+} from '../core/wall-exterior.js'
 
 // ── Defaults ────────────────────────────────────────────────────
 
@@ -284,7 +289,9 @@ function buildWindowOverhangPrimitives(
   wallElevation: number,
   angle: number,
   length: number,
+  exteriorSide: WallSide | null,
 ): BoxPrimitive[] {
+  if (!exteriorSide) return []
   const overhangDepth = Math.max(0, wall.windowOverhangCm ?? DEFAULT_WINDOW_OVERHANG_CM)
   if (overhangDepth <= 0) return []
 
@@ -294,10 +301,8 @@ function buildWindowOverhangPrimitives(
   const uy = dy / length
   const thickness = wall.thickness
 
-  // Outward normal = wall direction rotated 90° clockwise in XZ plane
-  // This is the rightSideColor convention side (wall local +90°).
-  const nx = uy
-  const ny = -ux
+  // Outward normal of the exterior-facing side (wall local ±90°).
+  const { nx, ny } = wallSideOutwardNormal(wall, exteriorSide)
 
   const panels: BoxPrimitive[] = []
   for (const op of openings) {
@@ -418,11 +423,14 @@ export function buildRenderableScene(
     objects.push(wallObj)
 
     // ── Window overhangs for this wall ──────────────────────
+    const rightExt = getWallSideExterior(wall, 'right', home.rooms)
+    const leftExt = getWallSideExterior(wall, 'left', home.rooms)
+    const exteriorSide: WallSide | null = rightExt ? 'right' : leftExt ? 'left' : null
     const overhangPrims = buildWindowOverhangPrimitives(
-      wall, openings, elevation, angle, length,
+      wall, openings, elevation, angle, length, exteriorSide,
     )
     if (overhangPrims.length > 0) {
-      const overhangMat = makeColorMaterial(rightColor)
+      const overhangMat = makeColorMaterial(exteriorSide === 'left' ? leftColor : rightColor)
       materials.push(overhangMat)
       for (const p of overhangPrims) p.materialId = overhangMat.id
       objects.push({

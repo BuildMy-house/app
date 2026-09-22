@@ -61,6 +61,12 @@ export interface WallTextureEntry {
   /** Scalar PBR defaults applied wherever this texture is used. */
   roughness?: number
   metalness?: number
+  /**
+   * Scopes this texture to specific wall usages in the wall-material dropdown
+   * (e.g. ['exterior'] hides it for interior-facing sides). Absent = usable
+   * on any wall side. UI hint only — not validated.
+   */
+  wallUsage?: Array<'exterior' | 'interior'>
 }
 
 /**
@@ -82,6 +88,7 @@ export const WALL_TEXTURES: WallTextureEntry[] = [
     aoFile: 'carpet_ao.png',
     roughness: 0.95,
     metalness: 0,
+    wallUsage: ['interior'],
   },
   {
     id: 'concrete',
@@ -92,6 +99,7 @@ export const WALL_TEXTURES: WallTextureEntry[] = [
     aoFile: 'concrete_ao.png',
     roughness: 0.9,
     metalness: 0,
+    wallUsage: ['exterior'],
   },
   {
     id: 'plaster-white',
@@ -102,6 +110,7 @@ export const WALL_TEXTURES: WallTextureEntry[] = [
     aoFile: 'plaster-white_ao.png',
     roughness: 0.9,
     metalness: 0,
+    wallUsage: ['interior'],
   },
   {
     id: 'tile-floor',
@@ -112,6 +121,7 @@ export const WALL_TEXTURES: WallTextureEntry[] = [
     aoFile: 'tile-floor_ao.png',
     roughness: 0.35,
     metalness: 0,
+    wallUsage: ['interior', 'exterior'],
   },
   {
     id: 'wood-oak',
@@ -122,6 +132,7 @@ export const WALL_TEXTURES: WallTextureEntry[] = [
     aoFile: 'wood-oak_ao.png',
     roughness: 0.65,
     metalness: 0,
+    wallUsage: ['interior'],
   },
   {
     id: 'wood-pine',
@@ -132,6 +143,7 @@ export const WALL_TEXTURES: WallTextureEntry[] = [
     aoFile: 'wood-pine_ao.png',
     roughness: 0.7,
     metalness: 0,
+    wallUsage: ['exterior'],
   },
 ]
 
@@ -163,6 +175,10 @@ export interface Wall {
   rightSideColor?: number | null
   leftSideTextureId?: string | null
   rightSideTextureId?: string | null
+  /** Manual override of auto exterior/interior derivation (getWallSideExterior). true = exterior, false = interior, null/absent = auto. */
+  leftSideExteriorOverride?: boolean | null
+  /** Manual override of auto exterior/interior derivation (getWallSideExterior). true = exterior, false = interior, null/absent = auto. */
+  rightSideExteriorOverride?: boolean | null
   patternId?: string | null
   /** Depth of window overhang/eave projecting outward from wall face (cm). 0 = no overhang. */
   windowOverhangCm?: number | null

@@ -2,6 +2,7 @@ import type { HomeStore } from '../core/store'
 import { HomeModel } from '../core/model'
 import type { Wall, Room, Furniture, Label, DimensionLine, Roof, NormalizedHomeState } from '../core/home'
 import { WALL_TEXTURES } from '../core/home'
+import { getWallSideExterior, deriveWallSideExterior } from '../core/wall-exterior'
 import { normalizeAngle } from '../core/export'
 import { observeStore } from '../view3d/watch'
 
@@ -220,10 +221,11 @@ export class PropertiesPanel {
     return null
   }
 
-  private renderWall(body: HTMLDivElement, wall: Wall, _store: HomeStore): void {
+  private renderWall(body: HTMLDivElement, wall: Wall, store: HomeStore): void {
     const commit = (patch: Partial<Omit<Wall, 'id'>>) => {
       this.model.updateWall(wall.id, patch)
     }
+    const rooms = store.getHome().rooms
 
     // Start point
     const startGroup = this.group('Start')
@@ -297,14 +299,25 @@ export class PropertiesPanel {
     rightColor.addEventListener('input', () => commit({ rightSideColor: parseColor(rightColor.value) }))
     body.appendChild(fieldRow('Right', rightColor))
 
-    // Left texture
+    // Left texture + facing
+    const leftIsExterior = getWallSideExterior(wall, 'left', rooms)
     const leftTexture = document.createElement('select')
     leftTexture.className = 'prop-input'
     const ltNone = document.createElement('option')
     ltNone.value = ''
     ltNone.textContent = '— none —'
     leftTexture.appendChild(ltNone)
+    const leftSelected = WALL_TEXTURES.find((t) => t.id === wall.leftSideTextureId)
+    if (leftSelected) {
+      const opt = document.createElement('option')
+      opt.value = leftSelected.id
+      opt.textContent = leftSelected.label
+      opt.selected = true
+      leftTexture.appendChild(opt)
+    }
     for (const t of WALL_TEXTURES) {
+      if (t.id === leftSelected?.id) continue
+      if (t.wallUsage && !t.wallUsage.includes(leftIsExterior ? 'exterior' : 'interior')) continue
       const opt = document.createElement('option')
       opt.value = t.id
       opt.textContent = t.label
@@ -316,14 +329,44 @@ export class PropertiesPanel {
     )
     body.appendChild(fieldRow('L Texture', leftTexture))
 
-    // Right texture
+    const leftFacing = document.createElement('select')
+    leftFacing.className = 'prop-input'
+    for (const [value, label] of [
+      ['', `Auto (${deriveWallSideExterior(wall, 'left', rooms) ? 'Exterior' : 'Interior'})`],
+      ['exterior', 'Exterior'],
+      ['interior', 'Interior'],
+    ] as const) {
+      const opt = document.createElement('option')
+      opt.value = value
+      opt.textContent = label
+      const current = wall.leftSideExteriorOverride === true ? 'exterior' : wall.leftSideExteriorOverride === false ? 'interior' : ''
+      if (value === current) opt.selected = true
+      leftFacing.appendChild(opt)
+    }
+    leftFacing.addEventListener('change', () =>
+      commit({ leftSideExteriorOverride: leftFacing.value === 'exterior' ? true : leftFacing.value === 'interior' ? false : null }),
+    )
+    body.appendChild(fieldRow('L Facing', leftFacing))
+
+    // Right texture + facing
+    const rightIsExterior = getWallSideExterior(wall, 'right', rooms)
     const rightTexture = document.createElement('select')
     rightTexture.className = 'prop-input'
     const rtNone = document.createElement('option')
     rtNone.value = ''
     rtNone.textContent = '— none —'
     rightTexture.appendChild(rtNone)
+    const rightSelected = WALL_TEXTURES.find((t) => t.id === wall.rightSideTextureId)
+    if (rightSelected) {
+      const opt = document.createElement('option')
+      opt.value = rightSelected.id
+      opt.textContent = rightSelected.label
+      opt.selected = true
+      rightTexture.appendChild(opt)
+    }
     for (const t of WALL_TEXTURES) {
+      if (t.id === rightSelected?.id) continue
+      if (t.wallUsage && !t.wallUsage.includes(rightIsExterior ? 'exterior' : 'interior')) continue
       const opt = document.createElement('option')
       opt.value = t.id
       opt.textContent = t.label
@@ -334,6 +377,25 @@ export class PropertiesPanel {
       commit({ rightSideTextureId: rightTexture.value || null }),
     )
     body.appendChild(fieldRow('R Texture', rightTexture))
+
+    const rightFacing = document.createElement('select')
+    rightFacing.className = 'prop-input'
+    for (const [value, label] of [
+      ['', `Auto (${deriveWallSideExterior(wall, 'right', rooms) ? 'Exterior' : 'Interior'})`],
+      ['exterior', 'Exterior'],
+      ['interior', 'Interior'],
+    ] as const) {
+      const opt = document.createElement('option')
+      opt.value = value
+      opt.textContent = label
+      const current = wall.rightSideExteriorOverride === true ? 'exterior' : wall.rightSideExteriorOverride === false ? 'interior' : ''
+      if (value === current) opt.selected = true
+      rightFacing.appendChild(opt)
+    }
+    rightFacing.addEventListener('change', () =>
+      commit({ rightSideExteriorOverride: rightFacing.value === 'exterior' ? true : rightFacing.value === 'interior' ? false : null }),
+    )
+    body.appendChild(fieldRow('R Facing', rightFacing))
 
     // Level
     const levelText = document.createElement('span')

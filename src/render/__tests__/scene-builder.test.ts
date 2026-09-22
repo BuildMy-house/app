@@ -381,4 +381,56 @@ describe('buildRenderableScene', () => {
     const overhangs = scene.objects.filter(o => o.id.startsWith('overhang:'))
     expect(overhangs).toHaveLength(0)
   })
+
+  it('omits overhang when no wall side is exterior (rooms on both sides)', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+    })
+    home.rooms.push({
+      id: 'r-right', points: [[0, -200], [400, -200], [400, -5], [0, -5]],
+    })
+    home.rooms.push({
+      id: 'r-left', points: [[0, 5], [400, 5], [400, 200], [0, 200]],
+    })
+    home.furniture.push({
+      id: 'win1', name: 'Window',
+      x: 200, y: 0, angleDeg: 0,
+      width: 120, depth: 15, height: 120,
+      elevation: 90,
+      doorOrWindow: true, wallRef: 'w1', wallOffset: 200,
+    })
+    const { scene } = buildRenderableScene(home)
+    const overhang = scene.objects.find(o => o.id === 'overhang:w1')
+    expect(overhang).toBeUndefined()
+  })
+
+  it('places overhang on the derived exterior side and uses that side color', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+      leftSideColor: 0xff0000, rightSideColor: 0x0000ff,
+    })
+    // Room only on the right side (z < 0) → right is interior, left is exterior.
+    home.rooms.push({
+      id: 'r-right', points: [[0, -200], [400, -200], [400, -5], [0, -5]],
+    })
+    home.furniture.push({
+      id: 'win1', name: 'Window',
+      x: 200, y: 0, angleDeg: 0,
+      width: 120, depth: 15, height: 120,
+      elevation: 90,
+      doorOrWindow: true, wallRef: 'w1', wallOffset: 200,
+    })
+    const { scene } = buildRenderableScene(home)
+    const overhang = scene.objects.find(o => o.id === 'overhang:w1')
+    expect(overhang).toBeDefined()
+    const box = overhang!.primitives[0]!
+    if (box.type === 'box') {
+      // Left normal of a +X wall is (0,1) → z should be positive
+      expect(box.position[2]).toBeGreaterThan(0)
+      const mat = scene.materials.find(m => m.id === box.materialId)
+      expect(mat!.color).toBe(0xff0000)
+    }
+  })
 })
