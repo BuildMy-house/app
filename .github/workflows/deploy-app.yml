@@ -25,6 +25,10 @@ jobs:
       - run: npm run check
       - run: npx playwright install --with-deps chromium
       - run: npm run build
+        env:
+          VITE_AXIOM_TOKEN: ${{ secrets.VITE_AXIOM_TOKEN }}
+          VITE_AXIOM_DATASET: ${{ secrets.VITE_AXIOM_DATASET }}
+          VITE_AXIOM_ENDPOINT: ${{ secrets.VITE_AXIOM_ENDPOINT }}
 
       - name: Warn about deployment cutover
         run: echo "::warning::Production uses a blue/green app cutover; the current app remains live until the candidate passes its runtime smoke test."
