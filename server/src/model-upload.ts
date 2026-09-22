@@ -103,7 +103,7 @@ function unpackModelBundle(buffer: Buffer): BundleFile[] {
   for (const [name, bytes] of Object.entries(files)) {
     if (name.endsWith('/') || bytes.byteLength === 0) continue;
     const base = name.split(/[\\/]/).pop() ?? '';
-    if (!base || !/\.(glb|gltf|obj|mtl|png|jpe?g|webp|bmp|tga)$/i.test(base)) continue;
+    if (!base || (!/\.(glb|gltf|obj|mtl|png|jpe?g|webp|bmp|tga)$/i.test(base) && !/^PluginFurnitureCatalog\.properties$/i.test(base))) continue;
     total += bytes.byteLength;
     if (total > MAX_IMPORT_BYTES) throw new Error('model bundle exceeds the 50 MB limit');
     result.push({ name: base, data: Buffer.from(bytes) });
@@ -120,11 +120,12 @@ function findBundleModel(files: BundleFile[]): BundleFile {
     ?? files.find((file) => /\.obj$/i.test(file.name))!;
 }
 
-function rewriteObjBundle(files: BundleFile[], model: BundleFile): { obj: Buffer; files: BundleFile[] } {
+function rewriteObjBundle(files: BundleFile[], model: BundleFile, rotation: number[] | null): { obj: Buffer; files: BundleFile[] } {
   const mtl = files.find((file) => /\.mtl$/i.test(file.name));
-  if (!mtl) return { obj: model.data, files };
+  const objBuffer = rotation ? rotateObjAxes(model.data, rotation) : model.data;
+  if (!mtl) return { obj: objBuffer, files: files.map((file) => file === model ? { ...file, data: objBuffer, name: 'model.obj' } : file) };
   const mtlName = 'model.mtl';
-  const obj = model.data.toString('utf8').replace(/^mtllib\s+.*$/gim, `mtllib ${mtlName}`);
+  const obj = objBuffer.toString('utf8').replace(/^mtllib\s+.*$/gim, `mtllib ${mtlName}`);
   const rewrittenMtl = mtl.data.toString('utf8').replace(
     /^(map_Kd|map_Ks|map_Ns|map_d|map_Bump|bump|disp)\s+(.+)$/gim,
     (_line, key: string, value: string) => `${key} ${value.trim().split(/[\\/]/).pop()}`,
@@ -184,7 +185,7 @@ function ensureDomPolyfills(): void {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-async function convertObjToGlb(objBuffer: Buffer): Promise<Buffer> {
+async function convertObjToGlb(objBuffer: Buffer, rotation: number[] | null = null): Promise<Buffer> {
   ensureDomPolyfills();
   const THREE = await import('three');
   const { OBJLoader } = await import('three/examples/jsm/loaders/OBJLoader.js');
@@ -193,6 +194,14 @@ async function convertObjToGlb(objBuffer: Buffer): Promise<Buffer> {
   const objText = objBuffer.toString('utf8');
   const loader = new OBJLoader();
   const group: any = loader.parse(objText);
+  if (rotation) {
+    group.applyMatrix4(new THREE.Matrix4().set(
+      rotation[0]!, rotation[1]!, rotation[2]!, 0,
+      rotation[3]!, rotation[4]!, rotation[5]!, 0,
+      rotation[6]!, rotation[7]!, rotation[8]!, 0,
+      0, 0, 0, 1,
+    ));
+  }
 
   // Apply flat grey material if none present
   const hasMaterials = group.children.some(
@@ -227,6 +236,40 @@ async function convertObjToGlb(objBuffer: Buffer): Promise<Buffer> {
       { binary: true },
     );
   });
+}
+
+/** SH3D catalog metadata is the authoritative source for a model's local axes. */
+function sh3dModelRotation(files: BundleFile[] | null, model: BundleFile): number[] | null {
+  const properties = files?.find((file) => /^PluginFurnitureCatalog\.properties$/i.test(file.name));
+  if (!properties) return null;
+  const entries = new Map<string, Record<string, string>>();
+  for (const line of properties.data.toString('utf8').split(/\r?\n/)) {
+    const match = line.match(/^([^#\s]+)#(\d+)=(.*)$/);
+    if (!match) continue;
+    const fields = entries.get(match[2]!) ?? {};
+    fields[match[1]!] = match[3]!;
+    entries.set(match[2]!, fields);
+  }
+  const modelName = model.name.split(/[\\/]/).pop()?.toLowerCase();
+  for (const fields of entries.values()) {
+    if (fields.model?.split(/[\\/]/).pop()?.toLowerCase() !== modelName || !fields.modelRotation) continue;
+    const rotation = fields.modelRotation.trim().split(/\s+/).map(Number);
+    if (rotation.length === 9 && rotation.every(Number.isFinite)) return rotation;
+  }
+  return null;
+}
+
+function rotateObjAxes(buffer: Buffer, rotation: number[]): Buffer {
+  const values = [0, 1, 2].map((row) => rotation.slice(row * 3, row * 3 + 3));
+  const text = buffer.toString('utf8').replace(/^(\s*)(v|vn)\s+([^\r\n]+)$/gm, (line, indent: string, kind: string, coords: string) => {
+    const parts = coords.trim().split(/\s+/);
+    if (parts.length < 3) return line;
+    const [x, y, z] = parts.slice(0, 3).map(Number);
+    if (![x, y, z].every(Number.isFinite)) return line;
+    parts.splice(0, 3, ...values.map((row) => String(row[0]! * x + row[1]! * y + row[2]! * z)));
+    return `${indent}${kind} ${parts.join(' ')}`;
+  });
+  return Buffer.from(text);
 }
 
 /* ------------------------------------------------------------------ */
@@ -350,12 +393,14 @@ export function modelUploadRouter(db: DbAdapter): Router {
 
       // --- Normalize one input into web GLB plus optional native bundle ---
       let bundleFiles: BundleFile[] | null = null;
+      let modelRotation: number[] | null = null;
       let sourceModel = fileBuffer;
       let sourceExt = ext;
       if (ext === '.zip') {
         try {
           bundleFiles = unpackModelBundle(fileBuffer);
           const model = findBundleModel(bundleFiles);
+          modelRotation = sh3dModelRotation(bundleFiles, model);
           sourceModel = model.data;
           sourceExt = `.${(model.name.match(/\.([^.]+)$/)?.[1] ?? '').toLowerCase()}`;
         } catch (err) {
@@ -369,7 +414,7 @@ export function modelUploadRouter(db: DbAdapter): Router {
 
       if (sourceExt === '.obj') {
         try {
-          uploadBuffer = await convertObjToGlb(sourceModel);
+          uploadBuffer = await convertObjToGlb(sourceModel, modelRotation);
           uploadExt = '.glb';
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -399,7 +444,8 @@ export function modelUploadRouter(db: DbAdapter): Router {
       let renderModelPath: string | null = null;
       if (bundleFiles && sourceExt === '.obj') {
         const model = findBundleModel(bundleFiles);
-        const rewritten = rewriteObjBundle(bundleFiles, model).files;
+        const rewritten = rewriteObjBundle(bundleFiles, model, modelRotation).files
+          .filter((file) => !/^PluginFurnitureCatalog\.properties$/i.test(file.name));
         const renderPrefix = `models/${id}-${slug}`;
         for (const file of rewritten) {
           const key = `${renderPrefix}/${file.name}`;
