@@ -105,6 +105,98 @@ describe('buildRenderableScene', () => {
     expect(scene.lights[0]!.color).toBe(0xFF8800)
   })
 
+  // ── Roof style geometry (roof-1-fix) ──────────────────────────
+
+  it('gable roof produces 2 tilted panels', () => {
+    const home = createEmptyHome()
+    home.roofs.push({
+      id: 'roof-g', points: [[0, 0], [400, 0], [400, 200], [0, 200]],
+      style: 'gable', pitchDeg: 30, overhangCm: 20,
+    })
+    const { scene } = buildRenderableScene(home)
+    const roof = scene.objects.find((o) => o.id === 'roof:roof-g')!
+    expect(roof.primitives).toHaveLength(2)
+    roof.primitives.forEach((p) => {
+      expect(p.type).toBe('box')
+      if (p.type === 'box') {
+        expect(p.rotation[0] !== 0 || p.rotation[2] !== 0).toBe(true)
+      }
+    })
+  })
+
+  it('hip roof produces 4 tilted panels', () => {
+    const home = createEmptyHome()
+    home.roofs.push({
+      id: 'roof-h', points: [[0, 0], [400, 0], [400, 200], [0, 200]],
+      style: 'hip', pitchDeg: 30, overhangCm: 20,
+    })
+    const { scene } = buildRenderableScene(home)
+    const roof = scene.objects.find((o) => o.id === 'roof:roof-h')!
+    expect(roof.primitives).toHaveLength(4)
+    roof.primitives.forEach((p) => {
+      expect(p.type).toBe('box')
+      if (p.type === 'box') {
+        expect(p.rotation[0] !== 0 || p.rotation[2] !== 0).toBe(true)
+      }
+    })
+  })
+
+  it('shed roof produces 1 tilted panel covering full footprint', () => {
+    const home = createEmptyHome()
+    home.roofs.push({
+      id: 'roof-s', points: [[0, 0], [400, 0], [400, 200], [0, 200]],
+      style: 'shed', pitchDeg: 15, overhangCm: 10,
+    })
+    const { scene } = buildRenderableScene(home)
+    const roof = scene.objects.find((o) => o.id === 'roof:roof-s')!
+    expect(roof.primitives).toHaveLength(1)
+    const p = roof.primitives[0]!
+    expect(p.type).toBe('box')
+    if (p.type === 'box') {
+      expect(p.rotation[0] !== 0 || p.rotation[2] !== 0).toBe(true)
+      expect(p.size[0]).toBe(420)
+    }
+  })
+
+  it('flat roof produces 1 horizontal panel with no rotation', () => {
+    const home = createEmptyHome()
+    home.roofs.push({
+      id: 'roof-f', points: [[0, 0], [400, 0], [400, 200], [0, 200]],
+      style: 'flat', pitchDeg: 30, overhangCm: 20,
+    })
+    const { scene } = buildRenderableScene(home)
+    const roof = scene.objects.find((o) => o.id === 'roof:roof-f')!
+    expect(roof.primitives).toHaveLength(1)
+    const p = roof.primitives[0]!
+    expect(p.type).toBe('box')
+    if (p.type === 'box') {
+      expect(p.rotation).toEqual([0, 0, 0])
+      expect(p.size[0]).toBe(440)
+      expect(p.size[2]).toBe(240)
+    }
+  })
+
+  it('overhang extends footprint for all roof styles', () => {
+    const home = createEmptyHome()
+    const pts: [number, number][] = [[0, 0], [300, 0], [300, 200], [0, 200]]
+    for (const style of ['gable', 'hip', 'shed', 'flat'] as const) {
+      home.roofs.push({ id: `roof-${style}`, points: pts, style, pitchDeg: 30, overhangCm: 50 })
+    }
+    const { scene } = buildRenderableScene(home)
+    for (const style of ['gable', 'hip', 'shed', 'flat']) {
+      const roof = scene.objects.find((o) => o.id === `roof:roof-${style}`)!
+      const boxes = roof.primitives.filter((p) => p.type === 'box')
+      expect(boxes.length).toBeGreaterThan(0)
+      const anyBox = boxes[0]!
+      expect(anyBox.type).toBe('box')
+      if (anyBox.type === 'box') {
+        const hasOverhangWidth = anyBox.size[0] >= 400
+        const hasOverhangDepth = anyBox.size[2] >= 300
+        expect(hasOverhangWidth || hasOverhangDepth).toBe(true)
+      }
+    }
+  })
+
   // ── Wall opening segmentation (M27) ──────────────────────────
 
   it('keeps 2 boxes for wall with no openings (backward compat)', () => {

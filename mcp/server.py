@@ -767,7 +767,7 @@ async def add_roof(
     points: list[list[float]], style: str = "gable", pitch_deg: float = 30,
     overhang_cm: float = 30, level_ref: str | None = None,
 ) -> dict:
-    """Add a gable or hip roof footprint from plan points."""
+    """Add a roof footprint from plan points. Style: gable, hip, shed, or flat."""
     params: dict = {"points": points, "style": style, "pitchDeg": pitch_deg, "overhangCm": overhang_cm}
     if level_ref is not None:
         params["levelRef"] = level_ref

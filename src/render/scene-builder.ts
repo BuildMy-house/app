@@ -117,11 +117,80 @@ function buildRoofPrimitives(
   const width = maxX - minX
   const depth = maxZ - minZ
   const longX = width >= depth
+  const baseY = elevation + levelHeight
+  const halfShort = Math.min(width, depth) / 2
+  const pitch = Math.tan(degToRad(Math.max(0, roof.pitchDeg)))
+  const makeBox = (
+    pos: [number, number, number],
+    size: [number, number, number],
+    rot: [number, number, number],
+  ): BoxPrimitive => ({ type: 'box', position: pos, size, rotation: rot, materialId })
+
+  if (roof.style === 'hip') {
+    const rise = pitch * halfShort
+    const centerX = (minX + maxX) / 2
+    const centerZ = (minZ + maxZ) / 2
+    const halfX = width / 2
+    const halfZ = depth / 2
+    const panels: BoxPrimitive[] = []
+    for (const side of [-1, 1]) {
+      const slopeLen = Math.hypot(halfZ, rise)
+      panels.push(makeBox(
+        [centerX, baseY + rise / 2, centerZ + side * halfZ / 2],
+        [width, 5, slopeLen],
+        [side * Math.atan2(rise, halfZ), 0, 0],
+      ))
+    }
+    for (const side of [-1, 1]) {
+      const slopeLen = Math.hypot(halfX, rise)
+      panels.push(makeBox(
+        [centerX + side * halfX / 2, baseY + rise / 2, centerZ],
+        [slopeLen, 5, depth],
+        [0, 0, -side * Math.atan2(rise, halfX)],
+      ))
+    }
+    return panels
+  }
+
+  if (roof.style === 'shed') {
+    const rise = pitch * halfShort
+    const slopeLen = Math.hypot(halfShort, rise)
+    const angle = Math.atan2(rise, halfShort)
+    if (longX) {
+      return [makeBox(
+        [(minX + maxX) / 2, baseY + rise / 2, (minZ + maxZ) / 2],
+        [width, 5, slopeLen],
+        [angle, 0, 0],
+      )]
+    }
+    return [makeBox(
+      [(minX + maxX) / 2, baseY + rise / 2, (minZ + maxZ) / 2],
+      [slopeLen, 5, depth],
+      [0, 0, -angle],
+    )]
+  }
+
+  if (roof.style === 'flat') {
+    const thick = 5
+    if (longX) {
+      return [makeBox(
+        [(minX + maxX) / 2, baseY + thick / 2, (minZ + maxZ) / 2],
+        [width, thick, depth],
+        [0, 0, 0],
+      )]
+    }
+    return [makeBox(
+      [(minX + maxX) / 2, baseY + thick / 2, (minZ + maxZ) / 2],
+      [width, thick, depth],
+      [0, 0, 0],
+    )]
+  }
+
+  // gable (default)
   const run = (longX ? depth : width) / 2
-  const rise = Math.tan(degToRad(Math.max(0, roof.pitchDeg))) * Math.min(width, depth) / 2
+  const rise = pitch * halfShort
   const slope = Math.hypot(run, rise)
   const angle = Math.atan2(rise, run)
-  const baseY = elevation + levelHeight
   const position = [
     (minX + maxX) / 2,
     baseY + rise / 2,

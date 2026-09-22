@@ -149,6 +149,19 @@ describe('Roof schema fields', () => {
     expect(roof.ridgeAngleDeg).toBe(15)
   })
 
+  it('addRoof accepts shed style', () => {
+    const { model } = setup()
+    const roof = model.addRoof([[0, 0], [100, 0], [50, 80]], { style: 'shed', pitchDeg: 10 })
+    expect(roof.style).toBe('shed')
+    expect(roof.pitchDeg).toBe(10)
+  })
+
+  it('addRoof accepts flat style', () => {
+    const { model } = setup()
+    const roof = model.addRoof([[0, 0], [100, 0], [50, 80]], { style: 'flat' })
+    expect(roof.style).toBe('flat')
+  })
+
   it('updateRoof can patch style/pitchDeg/overhangCm/ridgeAngleDeg', () => {
     const { model, store } = setup()
     const roof = model.addRoof([[0, 0], [100, 0], [50, 80]])

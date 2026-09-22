@@ -251,7 +251,7 @@ export interface Roof {
   name?: string | null
   color?: number | null
   levelRef?: string | null
-  style: 'gable' | 'hip'
+  style: 'gable' | 'hip' | 'shed' | 'flat'
   pitchDeg: number
   overhangCm: number
   ridgeAngleDeg?: number | null
