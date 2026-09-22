@@ -58,6 +58,14 @@ export function trackBusiness(eventType: BusinessEventType, data: BusinessEventM
 }
 
 /**
+ * Generic escape hatch for ad-hoc business event types not yet in the
+ * BusinessEventType union — mirrors the client-side telemetry.track().
+ */
+export function trackCustomEvent(eventType: string, data: BusinessEventMetadata = {}): void {
+  trackBusiness(eventType as BusinessEventType, data);
+}
+
+/**
  * Convenience function to track user login events
  */
 export function trackUserLogin(userId: string, platform?: string): void {

@@ -63,7 +63,7 @@ export function initTelemetryConfig(): TelemetryConfig {
   const enabled = webserver || !!token
 
   _config = {
-    dataset: (import.meta.env.VITE_AXIOM_DATASET as string) ?? 'homely-telemetry',
+    dataset: (import.meta.env.VITE_AXIOM_DATASET as string) ?? 'buildmy-house-telemetry',
     endpoint: ((import.meta.env.VITE_AXIOM_ENDPOINT as string) ?? 'https://api.axiom.co')
       .replace(/\/+$/, ''),
     token,

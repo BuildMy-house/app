@@ -6,7 +6,7 @@
  *   tier: 1 | 2          – visibility tier
  *   ts: string           – ISO-8601 timestamp
  *   sid: string          – session ID
- *   app: string          – "homely"
+ *   app: string          – "buildmy-house"
  *   ver: string          – app version
  */
 

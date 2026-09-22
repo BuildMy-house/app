@@ -16,7 +16,7 @@ describe('RenderingMetricsEvent', () => {
       tier: 1,
       ts: new Date().toISOString(),
       sid: 'test-session',
-      app: 'homely',
+      app: 'buildmy-house',
       ver: '0.1.0',
       ...metrics,
     }

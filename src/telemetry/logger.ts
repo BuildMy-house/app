@@ -19,7 +19,7 @@ function makeEvent(event: string, tier: TelemetryTier, extra?: Record<string, un
     tier,
     ts: new Date().toISOString(),
     sid: getSessionId(),
-    app: 'homely',
+    app: 'buildmy-house',
     ver: getVersion(),
     ...extra,
   } as TelemetryEvent
@@ -186,6 +186,13 @@ export const telemetry = {
     errorMessage?: string
   }): void {
     emit('user.action_trace', 2, { ...metrics })
+  },
+
+  // ── Generic escape hatch ─────────────────────────────────────────────────
+
+  /** Emit an ad-hoc event without a dedicated typed method. */
+  track(eventName: string, tier: TelemetryTier, payload?: Record<string, unknown>): void {
+    emit(eventName, tier, payload)
   },
 
   // ── Preferences ──────────────────────────────────────────────────────────

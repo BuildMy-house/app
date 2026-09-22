@@ -1,6 +1,6 @@
 /**
  * AxiomClient handles the actual HTTP communication with Axiom Analytics.
- * It's responsible for sending event batches to the 'homely-telemetry' dataset.
+ * It's responsible for sending event batches to the 'buildmy-house-telemetry' dataset.
  */
 
 export interface AxiomEvent {
@@ -23,7 +23,7 @@ export class AxiomClient {
 
   constructor(
     apiToken: string = process.env.AXIOM_API_TOKEN || '',
-    datasetName: string = 'homely-telemetry',
+    datasetName: string = 'buildmy-house-telemetry',
     baseUrl: string = process.env.AXIOM_BASE_URL || 'https://api.axiom.co',
   ) {
     this.apiToken = apiToken;

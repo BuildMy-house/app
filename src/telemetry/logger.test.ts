@@ -110,3 +110,36 @@ describe('telemetry.userActionMetrics', () => {
     }))
   })
 })
+
+describe('telemetry.track (generic escape hatch)', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    enqueue.mockClear()
+    vi.unstubAllEnvs()
+    vi.stubEnv('DATABASE_URL', undefined)
+  })
+
+  it('emits ad-hoc events without a dedicated typed method', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token')
+    const { telemetry } = await import('./logger')
+
+    telemetry.track('some.new.event', 1, { foo: 'bar' })
+
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
+      event: 'some.new.event',
+      tier: 1,
+      foo: 'bar',
+      app: 'buildmy-house',
+    }))
+  })
+
+  it('is a no-op when telemetry disabled', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', '')
+    const { telemetry } = await import('./logger')
+
+    telemetry.track('some.new.event', 2)
+
+    expect(enqueue).not.toHaveBeenCalled()
+  })
+})
