@@ -46,6 +46,7 @@ describe('telemetry deployment modes', () => {
   it('local mode + token set → opt-in telemetry sends', async () => {
     vi.stubEnv('DATABASE_URL', '')
     vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token-123')
+    vi.stubEnv('VITE_AXIOM_ENDPOINT', 'https://example.axiom.co')
 
     const config = initTelemetryConfig()
     expect(config.enabled).toBe(true)
@@ -64,6 +65,7 @@ describe('telemetry deployment modes', () => {
   it('webserver mode (DATABASE_URL set) → always sends when token present', async () => {
     vi.stubEnv('DATABASE_URL', 'postgres://localhost/db')
     vi.stubEnv('VITE_AXIOM_TOKEN', 'web-token-456')
+    vi.stubEnv('VITE_AXIOM_ENDPOINT', 'https://example.axiom.co')
 
     const config = initTelemetryConfig()
     expect(config.enabled).toBe(true)
@@ -91,6 +93,7 @@ describe('telemetry deployment modes', () => {
   it('tier 2 event is dropped when tier2Enabled=false', async () => {
     vi.stubEnv('DATABASE_URL', '')
     vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token')
+    vi.stubEnv('VITE_AXIOM_ENDPOINT', 'https://example.axiom.co')
 
     const config = initTelemetryConfig()
     config.tier2Enabled = false

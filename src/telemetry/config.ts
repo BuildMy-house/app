@@ -64,8 +64,10 @@ export function initTelemetryConfig(): TelemetryConfig {
 
   _config = {
     dataset: (import.meta.env.VITE_AXIOM_DATASET as string) ?? 'buildmy-house-telemetry',
-    endpoint: ((import.meta.env.VITE_AXIOM_ENDPOINT as string) ?? 'https://api.axiom.co')
-      .replace(/\/+$/, ''),
+    // No hardcoded fallback: Axiom datasets can be pinned to a specific
+    // regional edge domain, so a guessed default silently breaks ingest.
+    // The endpoint must come from Infisical/.env (VITE_AXIOM_ENDPOINT).
+    endpoint: ((import.meta.env.VITE_AXIOM_ENDPOINT as string) ?? '').replace(/\/+$/, ''),
     token,
     batchSize: 20,
     flushIntervalMs: 5000,

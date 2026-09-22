@@ -24,7 +24,10 @@ export class AxiomClient {
   constructor(
     apiToken: string = process.env.AXIOM_API_TOKEN || '',
     datasetName: string = 'buildmy-house-telemetry',
-    baseUrl: string = process.env.AXIOM_BASE_URL || 'https://api.axiom.co',
+    // No hardcoded fallback: Axiom datasets can be pinned to a specific
+    // regional edge domain, so a guessed default silently breaks ingest.
+    // Must come from Infisical/.env (AXIOM_BASE_URL).
+    baseUrl: string = process.env.AXIOM_BASE_URL || '',
   ) {
     this.apiToken = apiToken;
     this.datasetName = datasetName;
@@ -70,15 +73,16 @@ export class AxiomClient {
     if (!this.apiToken) {
       throw new Error('AXIOM_API_TOKEN is not configured');
     }
+    if (!this.baseUrl) {
+      throw new Error('AXIOM_BASE_URL is not configured');
+    }
 
-    const payload = {
-      events: events.map((e) => ({
-        ...e,
-        _time: e._time || Date.now(),
-      })),
-    };
+    const payload = events.map((e) => ({
+      ...e,
+      _time: e._time || Date.now(),
+    }));
 
-    const response = await fetch(`${this.baseUrl}/v1/datasets/${this.datasetName}/ingest`, {
+    const response = await fetch(`${this.baseUrl}/v1/ingest/${this.datasetName}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

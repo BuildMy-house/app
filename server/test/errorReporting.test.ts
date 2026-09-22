@@ -47,7 +47,7 @@ describe('reportError', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('https://axiom.example.com/api/v1/datasets/homely-server-errors/ingest');
+    expect(url).toBe('https://axiom.example.com/v1/ingest/homely-server-errors');
     expect(init.method).toBe('POST');
     expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer tok-123');
     expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json');
@@ -67,15 +67,26 @@ describe('reportError', () => {
     expect(Number.isNaN(new Date(event._time).getTime())).toBe(false);
   });
 
-  it('uses default endpoint/dataset when unset', async () => {
+  it('uses default dataset when only AXIOM_DATASET is unset', async () => {
     process.env.AXIOM_TOKEN = 'tok-123';
+    process.env.AXIOM_ENDPOINT = 'https://axiom.example.com';
     const fetchMock = stubFetch();
 
     reportError(new Error('boom'));
     await flushMicrotasks();
 
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('https://api.axiom.co/api/v1/datasets/homely-server-errors/ingest');
+    expect(url).toBe('https://axiom.example.com/v1/ingest/buildmy-house-telemetry');
+  });
+
+  it('is a true no-op with no AXIOM_ENDPOINT — fetch is never called even with a token', async () => {
+    process.env.AXIOM_TOKEN = 'tok-123';
+    const fetchMock = stubFetch();
+
+    reportError(new Error('boom'));
+    await flushMicrotasks();
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('is a true no-op with no AXIOM_TOKEN — fetch is never called', async () => {
@@ -99,6 +110,7 @@ describe('reportError', () => {
 
   it('handles non-Error values (string) without throwing', async () => {
     process.env.AXIOM_TOKEN = 'tok-123';
+    process.env.AXIOM_ENDPOINT = 'https://axiom.example.com';
     const fetchMock = stubFetch();
 
     expect(() => reportError('a plain string failure')).not.toThrow();
@@ -114,6 +126,7 @@ describe('reportError', () => {
 describe('centralized error handler + reportError wiring', () => {
   it('responds 500 immediately even when the Axiom fetch hangs forever', async () => {
     process.env.AXIOM_TOKEN = 'tok-123';
+    process.env.AXIOM_ENDPOINT = 'https://axiom.example.com';
     vi.spyOn(console, 'error').mockImplementation(() => {});
     // Never resolves — if the handler awaited it, the response would hang.
     const fetchMock = stubFetch(() => new Promise(() => {}));
@@ -137,6 +150,7 @@ describe('centralized error handler + reportError wiring', () => {
 
   it('sends {path, method, userId} context from the request', async () => {
     process.env.AXIOM_TOKEN = 'tok-123';
+    process.env.AXIOM_ENDPOINT = 'https://axiom.example.com';
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const fetchMock = stubFetch();
 
