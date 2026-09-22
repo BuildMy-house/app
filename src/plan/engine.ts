@@ -2043,20 +2043,7 @@ export class PlanEngine {
         }
       }
     }
-    // 2. Wall body
-    for (let i = home.walls.length - 1; i >= 0; i--) {
-      const wall = home.walls[i]!
-      if (!this.matchesActiveLevel(wall.levelRef)) continue
-      const dist = distToSegment(
-        point,
-        { x: wall.xStart, y: wall.yStart },
-        { x: wall.xEnd, y: wall.yEnd },
-      )
-      if (dist <= Math.max(wall.thickness / 2, 2) + 2) {
-        return { kind: 'wall-body', id: wall.id }
-      }
-    }
-    // 3. Furniture rotation handle (single-selected)
+    // 2. Furniture rotation handle (single-selected)
     if (home.selection.length === 1) {
       const selectedId = home.selection[0]!
       const sf = home.furniture.find((f) => f.id === selectedId && this.matchesActiveLevel(f.levelRef))
@@ -2067,7 +2054,8 @@ export class PlanEngine {
         }
       }
     }
-    // 4. Furniture body
+    // 3. Furniture body takes priority over wall bodies so overlapping items
+    // remain selectable and draggable.
     for (let i = home.furniture.length - 1; i >= 0; i--) {
       const f = home.furniture[i]!
       if (!this.matchesActiveLevel(f.levelRef)) continue
@@ -2078,6 +2066,19 @@ export class PlanEngine {
         point.y <= f.y + f.depth / 2
       ) {
         return { kind: 'furniture', id: f.id }
+      }
+    }
+    // 4. Wall body
+    for (let i = home.walls.length - 1; i >= 0; i--) {
+      const wall = home.walls[i]!
+      if (!this.matchesActiveLevel(wall.levelRef)) continue
+      const dist = distToSegment(
+        point,
+        { x: wall.xStart, y: wall.yStart },
+        { x: wall.xEnd, y: wall.yEnd },
+      )
+      if (dist <= Math.max(wall.thickness / 2, 2) + 2) {
+        return { kind: 'wall-body', id: wall.id }
       }
     }
     // 5. Rooms
@@ -2185,4 +2186,3 @@ export class PlanEngine {
     }
   }
 }
-

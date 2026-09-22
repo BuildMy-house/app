@@ -103,6 +103,7 @@ export class View3D {
   private readonly modelUrlResolver: ModelUrlResolver
   private readonly model: HomeModel
   private readonly pointerDown = { x: 0, y: 0 }
+  private furnitureDrag: { id: string; x: number; y: number; start: { x: number; y: number } } | null = null
   private readonly isPlacing?: () => boolean
   private readonly onFloorClick?: (point: { x: number; y: number }) => void
   private _lastHome: NormalizedHomeState | null = null
@@ -216,8 +217,32 @@ export class View3D {
       renderer.domElement.addEventListener('pointerdown', (e) => {
         this.pointerDown.x = e.clientX
         this.pointerDown.y = e.clientY
+        if (e.button !== 0 || (this.onFloorClick && this.isPlacing?.())) return
+        const id = this.pickFurnitureId(e)
+        const item = id && this.store.getHome().furniture.find((f) => f.id === id)
+        const start = item && this.floorPoint(e)
+        if (!item || !start) return
+        this.furnitureDrag = { id: item.id, x: item.x, y: item.y, start }
+        this.model.setSelection([item.id])
+        this.controls!.enabled = false
+        renderer.domElement.setPointerCapture(e.pointerId)
+      })
+      renderer.domElement.addEventListener('pointermove', (e) => {
+        if (!this.furnitureDrag) return
+        const point = this.floorPoint(e)
+        if (!point) return
+        const drag = this.furnitureDrag
+        this.model.updateFurniture(drag.id, {
+          x: drag.x + point.x - drag.start.x,
+          y: drag.y + point.y - drag.start.y,
+        })
       })
       renderer.domElement.addEventListener('pointerup', (e) => {
+        if (this.furnitureDrag) {
+          this.furnitureDrag = null
+          this.controls!.enabled = true
+          return
+        }
         const moved = Math.hypot(e.clientX - this.pointerDown.x, e.clientY - this.pointerDown.y)
         if (moved > 5) return
         if (this.onFloorClick && this.isPlacing?.()) {
@@ -226,6 +251,11 @@ export class View3D {
           return
         }
         this.pick(e)
+      })
+      renderer.domElement.addEventListener('pointercancel', () => {
+        if (!this.furnitureDrag) return
+        this.furnitureDrag = null
+        this.controls!.enabled = true
       })
 
       // Apply the empty-home framing after OrbitControls exists; the initial
@@ -724,6 +754,29 @@ export class View3D {
         o = o.parent
       }
     }
+  }
+
+  private pickFurnitureId(e: PointerEvent): string | null {
+    if (!this.renderer) return null
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    const ndc = new THREE.Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1,
+    )
+    const raycaster = new THREE.Raycaster()
+    raycaster.setFromCamera(ndc, this.perspectiveCamera)
+    for (const hit of raycaster.intersectObjects(this._scene.children, true)) {
+      if (hit.object instanceof THREE.InstancedMesh && hit.instanceId != null) {
+        const id = (hit.object.userData.instanceFurnitureIds as string[] | undefined)?.[hit.instanceId]
+        if (id) return id
+      }
+      for (let o: THREE.Object3D | null = hit.object; o; o = o.parent) {
+        const id = /^furniture:(.+)$/.exec(o.name)?.[1]
+        if (id) return id
+        if (/^wall:/.test(o.name)) break
+      }
+    }
+    return null
   }
 
   /**
