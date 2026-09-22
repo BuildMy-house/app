@@ -12,7 +12,6 @@ type Request = {
   camera?: string
   roofVisible?: boolean
   lightIntensity?: number
-  siteContextVisible?: boolean
 }
 type Point = [number, number]
 
@@ -128,7 +127,7 @@ async function renderPlan(home: NormalizedHomeState, width: number, height: numb
   return png(width, height, pixels)
 }
 
-export type Render3dOptions = { roofVisible?: boolean; lightIntensity?: number; siteContextVisible?: boolean }
+export type Render3dOptions = { roofVisible?: boolean; lightIntensity?: number }
 
 export async function render3d(home: NormalizedHomeState, width: number, height: number, cameraName = 'observer', options: Render3dOptions = {}): Promise<string> {
   const store = new HomeStore()
@@ -138,7 +137,6 @@ export async function render3d(home: NormalizedHomeState, width: number, height:
     modelUrlResolver: () => '',
     showRoof: options.roofVisible ?? true,
     lightIntensity: options.lightIntensity,
-    showSiteContext: options.siteContextVisible ?? true,
   })
   const state = safeHome.cameras[cameraName === 'top' ? 'top' : 'observer']
   const camera = new THREE.PerspectiveCamera(state.fovDeg, width / height, 1, 500_000)
@@ -190,7 +188,6 @@ if (isMain) {
       : render3d(request.home, request.width, request.height, request.camera, {
           roofVisible: request.roofVisible,
           lightIntensity: request.lightIntensity,
-          siteContextVisible: request.siteContextVisible,
         })
     Promise.resolve(rendered).then((pngBase64) => process.stdout.write(JSON.stringify({ pngBase64, width: request.width, height: request.height })))
   })

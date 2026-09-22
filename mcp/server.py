@@ -136,7 +136,6 @@ _ACTIVE_CAMERA = "observer"
 # never affect screenshot/screenshot_views output.
 _ROOF_VISIBLE = True
 _LIGHT_INTENSITY = 1.0
-_SITE_CONTEXT_VISIBLE = True
 _RENDERER = Path(__file__).with_name("render_scene.ts")
 _API_URL = os.environ.get("BUILDMYHOUSE_API_URL", "").rstrip("/")
 _API_TOKEN = os.environ.get("BUILDMYHOUSE_API_TOKEN", "")
@@ -247,7 +246,6 @@ async def _render(home: dict, view: str, width: int, height: int) -> Image:
                     "camera": _ACTIVE_CAMERA,
                     "roofVisible": _ROOF_VISIBLE,
                     "lightIntensity": _LIGHT_INTENSITY,
-                    "siteContextVisible": _SITE_CONTEXT_VISIBLE,
                 }),
                 text=True,
                 capture_output=True,
@@ -888,17 +886,6 @@ async def set_light_intensity(intensity: float) -> dict:
     global _LIGHT_INTENSITY
     _LIGHT_INTENSITY = intensity
     return await _session().request("set_light_intensity", {"intensity": intensity})
-
-
-@mcp.tool()
-async def set_site_context_visible(visible: bool) -> dict:
-    """Basic exterior site context (trees/deck placeholders + ground
-    variation) for the 3D view and scripted screenshots: visible=False
-    suppresses them even in the outside view, e.g. for a clean
-    architectural shot. Returns {visible}."""
-    global _SITE_CONTEXT_VISIBLE
-    _SITE_CONTEXT_VISIBLE = visible
-    return await _session().request("set_site_context_visible", {"visible": visible})
 
 
 @mcp.tool()

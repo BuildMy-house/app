@@ -109,7 +109,6 @@ export class View3D {
   private _isOutsideView = false
   private _showRoof = true
   private _lightIntensity = 1
-  private _showSiteContext = true
   // Only changes when the scene graph is rebuilt, never during camera orbit.
   private _instancedMeshCount = 0
   private _composer: EffectComposer | undefined
@@ -132,7 +131,6 @@ export class View3D {
       isOutsideView: this._isOutsideView,
       showRoof: this._showRoof,
       lightIntensity: this._lightIntensity,
-      showSiteContext: this._showSiteContext,
     })
     this.countInstancedMeshes()
     this.perspectiveCamera = new THREE.PerspectiveCamera(63, 4 / 3, 1, 500_000)
@@ -298,23 +296,6 @@ export class View3D {
   setLightIntensity(value: number): void {
     if (this._lightIntensity === value) return
     this._lightIntensity = value
-    this.rebuild()
-  }
-
-  get showSiteContext(): boolean {
-    return this._showSiteContext
-  }
-
-  /**
-   * Basic exterior site context (Ticket 5d): trees/deck placeholders + ground
-   * variation. Only renders in the outside/whole-model view regardless of
-   * this flag (see buildScene's isOutsideView gating) — this flag lets the
-   * caller suppress it even while outside, e.g. for a clean architectural
-   * screenshot.
-   */
-  setSiteContextVisible(value: boolean): void {
-    if (this._showSiteContext === value) return
-    this._showSiteContext = value
     this.rebuild()
   }
 
@@ -584,7 +565,6 @@ export class View3D {
       isOutsideView: this._isOutsideView,
       showRoof: this._showRoof,
       lightIntensity: this._lightIntensity,
-      showSiteContext: this._showSiteContext,
     })
     this.countInstancedMeshes()
     this.applyQualityToScene()

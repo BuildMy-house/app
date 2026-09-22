@@ -156,7 +156,6 @@ describe('ws protocol v1 handshake', () => {
           'add_roof',
           'set_roof_visible',
           'set_light_intensity',
-          'set_site_context_visible',
         ]),
       },
     })
@@ -310,20 +309,6 @@ describe('ws protocol v1 handshake', () => {
     const negative = await orch.sendRequest('set_light_intensity', { intensity: -1 })
     expect(negative.ok).toBe(false)
     expect(negative.code).toBe('INVALID_PARAMS')
-  })
-
-  it('set_site_context_visible toggles the exterior site-context flag used by scripted 3D captures', async () => {
-    await awaitHello()
-
-    const hidden = await orch.sendRequest('set_site_context_visible', { visible: false })
-    expect(hidden).toMatchObject({ ok: true, data: { visible: false } })
-
-    const shown = await orch.sendRequest('set_site_context_visible', { visible: true })
-    expect(shown).toMatchObject({ ok: true, data: { visible: true } })
-
-    const bad = await orch.sendRequest('set_site_context_visible', { visible: 'nope' })
-    expect(bad.ok).toBe(false)
-    expect(bad.code).toBe('INVALID_PARAMS')
   })
 
   it('add_furniture + undo + redo round-trips with capability flags', async () => {

@@ -129,7 +129,6 @@ export class CaptureService {
   private view: View3D | undefined
   private roofVisible = true
   private lightIntensity = 1
-  private siteContextVisible = true
 
   constructor(
     private readonly store: HomeStore,
@@ -165,19 +164,6 @@ export class CaptureService {
     return this.lightIntensity
   }
 
-  /**
-   * Basic exterior site context (Ticket 5d) for scripted 3D renders (mirrors
-   * View3D.setSiteContextVisible). Applied to the headless capture view on
-   * the next 3d screenshot.
-   */
-  setSiteContextVisible(visible: boolean): void {
-    this.siteContextVisible = visible
-  }
-
-  getSiteContextVisible(): boolean {
-    return this.siteContextVisible
-  }
-
   screenshot(request: ScreenshotRequest): ScreenshotResult {
     const valid = validateScreenshotRequest(request)
     const backend = this.ensureBackend()
@@ -208,7 +194,6 @@ export class CaptureService {
     const view = this.ensureView()
     view.setRoofVisible(this.roofVisible)
     view.setLightIntensity(this.lightIntensity)
-    view.setSiteContextVisible(this.siteContextVisible)
     view.rebuild()
     this.syncActiveCamera(view)
     return backend.render3d(view.scene, view.camera, width, height)
