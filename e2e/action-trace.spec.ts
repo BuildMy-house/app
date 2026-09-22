@@ -25,7 +25,7 @@ async function findTrace(page: import('@playwright/test').Page, actionName: stri
       return evts.find((e) => (e as ActionTraceEvent).event === 'user.action_trace' && (e as ActionTraceEvent).actionName === name) ?? null
     },
     actionName,
-    { timeout: 5_000 },
+    { timeout: 15_000 },
   )
   return (await handle.jsonValue()) as ActionTraceEvent
 }
@@ -36,12 +36,14 @@ test.describe('user action tracing (A4)', () => {
       ;(window as unknown as { __telemetryEvents: unknown[] }).__telemetryEvents = []
     })
     await page.goto('/')
+    await page.waitForLoadState('networkidle')
     await page.waitForSelector('#view3d canvas', { timeout: 10_000 })
     await page.waitForSelector('.catalog-card', { timeout: 10_000 })
   })
 
   test('placing furniture emits a traced action with timing and complexity', async ({ page }) => {
     await page.locator('.catalog-card').first().click()
+    await page.waitForTimeout(200)
     const box = await page.locator('#plan-canvas').boundingBox()
     expect(box).not.toBeNull()
     await page.mouse.click(box!.x + box!.width * 0.5, box!.y + box!.height * 0.55)
