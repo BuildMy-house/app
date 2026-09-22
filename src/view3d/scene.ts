@@ -23,7 +23,7 @@ type Pt = [number, number]
 const DEFAULT_WALL_COLOR = 0xd2d2d2
 const DEFAULT_FLOOR_COLOR = 0xc8c8c8
 const DEFAULT_FURNITURE_COLOR = 0x9e9e9e
-const DEFAULT_CEILING_COLOR = 0xf0f0f0
+const DEFAULT_CEILING_COLOR = 0xc8c8c8 // matches DEFAULT_FLOOR_COLOR; 0xf0f0f0 clipped to white under ACES tonemap + bloom in outside/top view
 
 // Ticket 5a: real glass/reflective window materials. Windows have no
 // dedicated data-model discriminator (Furniture.doorOrWindow?: boolean is
