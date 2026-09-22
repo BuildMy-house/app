@@ -139,6 +139,67 @@ describe('showRoof option (roof cutaway / hide-roof mode)', () => {
   })
 })
 
+// ── Interior-view roof hiding (single-story) ────────────────────────────────
+
+describe('interior-view roof hiding', () => {
+  function homeWithRoof(levelOverrides?: { id: string; elevation: number; height: number }[]): ReturnType<typeof createEmptyHome> {
+    const home = createEmptyHome()
+    const levels = levelOverrides ?? [{ id: 'level-1', elevation: 0, height: 250 }]
+    for (const l of levels) {
+      home.levels.push({ id: l.id, name: l.id, elevation: l.elevation, floorThickness: 5, height: l.height, visible: true, viewable: true })
+    }
+    home.roofs.push({
+      id: 'roof-1', points: [[0, 0], [400, 0], [400, 200], [0, 200]],
+      levelRef: levels[0]!.id, style: 'gable', pitchDeg: 30, overhangCm: 20,
+    })
+    return home
+  }
+
+  it('hides roof in interior view when single-story (no level above)', () => {
+    const scene = buildScene(homeWithRoof(), { activeLevel: 'level-1', isOutsideView: false })
+    expect(roofMeshes(scene).length).toBe(0)
+  })
+
+  it('shows roof in outside view even when single-story', () => {
+    const scene = buildScene(homeWithRoof(), { activeLevel: 'level-1', isOutsideView: true })
+    expect(roofMeshes(scene).length).toBe(1)
+  })
+
+  it('shows roof in interior view when level above exists (multi-story)', () => {
+    const home = homeWithRoof([
+      { id: 'level-1', elevation: 0, height: 250 },
+      { id: 'level-2', elevation: 250, height: 250 },
+    ])
+    const scene = buildScene(home, { activeLevel: 'level-1', isOutsideView: false })
+    expect(roofMeshes(scene).length).toBe(1)
+  })
+
+  it('hides roof in interior view on top level with no level above', () => {
+    const home = homeWithRoof([
+      { id: 'level-1', elevation: 0, height: 250 },
+      { id: 'level-2', elevation: 250, height: 250 },
+    ])
+    home.roofs[0]!.levelRef = 'level-2'
+    const scene = buildScene(home, { activeLevel: 'level-2', isOutsideView: false })
+    expect(roofMeshes(scene).length).toBe(0)
+  })
+
+  it('shows roof in interior view on lower level when level above exists', () => {
+    const home = homeWithRoof([
+      { id: 'level-1', elevation: 0, height: 250 },
+      { id: 'level-2', elevation: 250, height: 250 },
+    ])
+    home.roofs[0]!.levelRef = 'level-1'
+    const scene = buildScene(home, { activeLevel: 'level-1', isOutsideView: false })
+    expect(roofMeshes(scene).length).toBe(1)
+  })
+
+  it('shows roof when activeLevel is null (all-levels view)', () => {
+    const scene = buildScene(homeWithRoof(), { activeLevel: null, isOutsideView: false })
+    expect(roofMeshes(scene).length).toBe(1)
+  })
+})
+
 // ── M53b: arc walls extrude as a curved 3D shape ────────────────────────────
 
 describe('arc wall 3D extrusion (M53b)', () => {

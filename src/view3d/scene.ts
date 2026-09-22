@@ -1340,6 +1340,26 @@ export function findLevelBelowId(activeLevel: string | null, levels: Level[]): s
   return bestElevation === -Infinity ? undefined : bestId
 }
 
+/**
+ * Id of the level immediately above `activeLevel`, or undefined when
+ * `activeLevel` is null (all levels shown) or is already the highest level.
+ */
+export function findLevelAboveId(activeLevel: string | null, levels: Level[]): string | undefined {
+  if (activeLevel === null) return undefined
+  const active = levels.find((l) => l.id === activeLevel)
+  if (!active) return undefined
+  let bestId: string | undefined
+  let bestElevation = Infinity
+  for (const level of levels) {
+    if (level.id === activeLevel) continue
+    if (level.elevation > active.elevation && level.elevation < bestElevation) {
+      bestId = level.id
+      bestElevation = level.elevation
+    }
+  }
+  return bestElevation === Infinity ? undefined : bestId
+}
+
 function buildSceneInner(
   home: NormalizedHomeState,
   onModelReady?: () => void,
@@ -1477,6 +1497,7 @@ function buildSceneInner(
   for (const roof of home.roofs) {
     if (!showRoof) continue
     if (!matchesLevel(roof.levelRef, activeLevel) && !isOutsideView) continue
+    if (activeLevel !== null && !isOutsideView && matchesLevel(roof.levelRef, activeLevel) && !findLevelAboveId(activeLevel, home.levels)) continue
     const level = home.levels.find((item) => item.id === roof.levelRef)
     const mesh = roofMesh(
       roof,
