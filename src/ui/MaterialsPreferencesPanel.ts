@@ -11,7 +11,7 @@ const DEFAULTS = {
   floorColor: 0xf0f0f0,
   floorShininess: 0,
   ceilingColor: 0xffffff,
-  ceilingVisible: true,
+  ceilingVisible: undefined,
 }
 
 export class MaterialsPreferencesPanel {
@@ -20,7 +20,7 @@ export class MaterialsPreferencesPanel {
   private floorColor: number
   private floorShininess: number
   private ceilingColor: number
-  private ceilingVisible: boolean
+  private ceilingVisible: boolean | undefined
 
   constructor(store: HomeStore) {
     this.store = store
@@ -50,10 +50,18 @@ export class MaterialsPreferencesPanel {
       </div>
       <div class="prefs-row">
         <label for="mat-ceiling-visible">Ceiling visible</label>
-        <input id="mat-ceiling-visible" type="checkbox" ${this.ceilingVisible ? 'checked' : ''} />
+        <select id="mat-ceiling-visible">
+          <option value="auto" ${this.ceilingMode() === 'auto' ? 'selected' : ''}>Auto (per view)</option>
+          <option value="show" ${this.ceilingMode() === 'show' ? 'selected' : ''}>Always show</option>
+          <option value="hide" ${this.ceilingMode() === 'hide' ? 'selected' : ''}>Always hide</option>
+        </select>
       </div>
     `
     this.wireControls()
+  }
+
+  private ceilingMode(): 'show' | 'hide' | 'auto' {
+    return this.ceilingVisible === true ? 'show' : this.ceilingVisible === false ? 'hide' : 'auto'
   }
 
   private wireControls(): void {
@@ -61,7 +69,7 @@ export class MaterialsPreferencesPanel {
     const floorColorInput = this.container.querySelector<HTMLInputElement>('#mat-floor-color')!
     const floorShininessInput = this.container.querySelector<HTMLInputElement>('#mat-floor-shininess')!
     const ceilingColorInput = this.container.querySelector<HTMLInputElement>('#mat-ceiling-color')!
-    const ceilingVisibleInput = this.container.querySelector<HTMLInputElement>('#mat-ceiling-visible')!
+    const ceilingVisibleInput = this.container.querySelector<HTMLSelectElement>('#mat-ceiling-visible')!
     const shininessLabel = this.container.querySelector<HTMLSpanElement>('.mat-shininess-label')!
 
     floorColorInput.addEventListener('input', () => {
@@ -75,7 +83,8 @@ export class MaterialsPreferencesPanel {
       this.ceilingColor = hexToIntColor(ceilingColorInput.value)
     })
     ceilingVisibleInput.addEventListener('change', () => {
-      this.ceilingVisible = ceilingVisibleInput.checked
+      const mode = ceilingVisibleInput.value
+      this.ceilingVisible = mode === 'show' ? true : mode === 'hide' ? false : undefined
     })
   }
 

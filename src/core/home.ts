@@ -318,7 +318,8 @@ interface HomePreferences {
   defaultFloorColor: number
   defaultFloorShininess: number
   defaultCeilingColor: number
-  defaultCeilingVisibility: boolean
+  /** Tri-state: true = show, false = hide, undefined = auto (per-view). */
+  defaultCeilingVisibility?: boolean
 }
 
 /** Ground textures reuse the same PNG catalog as walls (SH3D parity). */
@@ -414,7 +415,6 @@ export function createEmptyHome(timeZoneId?: string | null): NormalizedHomeState
       defaultFloorColor: 0xf0f0f0,
       defaultFloorShininess: 0,
       defaultCeilingColor: 0xffffff,
-      defaultCeilingVisibility: true,
     },
     activeTool: null,
     capabilities: { canUndo: false, canRedo: false },
@@ -442,6 +442,8 @@ export function getDefaultCeilingColor(home: NormalizedHomeState): number {
   return home.preferences?.defaultCeilingColor ?? 0xffffff
 }
 
-export function getDefaultCeilingVisibility(home: NormalizedHomeState): boolean {
-  return home.preferences?.defaultCeilingVisibility ?? true
+export function getDefaultCeilingVisibility(
+  home: NormalizedHomeState,
+): boolean | undefined {
+  return home.preferences?.defaultCeilingVisibility
 }

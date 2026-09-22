@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { createEmptyHome, DEFAULT_WALL_HEIGHT_CM, type Furniture } from '../core/home'
+import { createEmptyHome, getDefaultCeilingVisibility, DEFAULT_WALL_HEIGHT_CM, type Furniture } from '../core/home'
+import { HomeStore } from '../core/store'
+import { HomeModel } from '../core/model'
+import { PlanEngine } from '../plan/engine'
 import { wallOutlinePoints } from '../core/top-camera-follower'
 import {
   buildScene,
@@ -10,6 +13,7 @@ import {
   __clearTextureCache,
   SELECTION_EMISSIVE_COLOR,
   isWindowFurniture,
+  shouldShowCeiling,
 } from './scene'
 import {
   applySceneUpdate,
@@ -1265,5 +1269,78 @@ describe('delta updates (T2)', () => {
     const elapsed = performance.now() - t0
     expect(ok).toBe(true)
     expect(elapsed).toBeLessThan(2)
+  })
+})
+
+// ── Ceiling visibility tri-state (default = auto / per-view) ─────────────
+
+describe('ceiling visibility tri-state', () => {
+  const square = [[0, 0], [100, 0], [100, 100], [0, 100]] as Array<[number, number]>
+
+  function groundLevelHome() {
+    const home = createEmptyHome()
+    home.levels.push({
+      id: 'L0', name: 'Ground', elevation: 0,
+      floorThickness: 0, height: 250, visible: true, viewable: true,
+    })
+    return home
+  }
+
+  it('getDefaultCeilingVisibility defaults to undefined (auto) for a fresh home', () => {
+    expect(getDefaultCeilingVisibility(createEmptyHome())).toBeUndefined()
+  })
+
+  it('a room created via the engine with default preferences has no explicit ceilingVisible', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const engine = new PlanEngine(model)
+    engine.createRoomFromLoop({
+      walls: [],
+      area: 10000,
+      vertices: square.map(([x, y]) => ({ x, y })),
+    })
+    const room = store.getHome().rooms[0]!
+    expect(room.ceilingVisible).toBeUndefined()
+  })
+
+  it('fresh room (auto) hides ceiling in interior view, shows in outside view', () => {
+    const home = groundLevelHome()
+    home.rooms.push({ id: 'r1', points: square, levelRef: 'L0' })
+
+    const interior = buildScene(home)
+    expect(ceilingMeshes(interior).length).toBe(0)
+
+    const outside = buildScene(home, { isOutsideView: true })
+    expect(ceilingMeshes(outside).length).toBe(1)
+  })
+
+  it('explicit ceilingVisible=true shows the ceiling even in interior view', () => {
+    const home = groundLevelHome()
+    home.rooms.push({ id: 'r1', points: square, levelRef: 'L0', ceilingVisible: true })
+    expect(ceilingMeshes(buildScene(home)).length).toBe(1)
+  })
+
+  describe('shouldShowCeiling', () => {
+    const interior = { isOutsideView: false, isBelowActiveLevel: false }
+    const outside = { isOutsideView: true, isBelowActiveLevel: false }
+    const below = { isOutsideView: false, isBelowActiveLevel: true }
+    const room = (ceilingVisible: boolean | undefined) => ({
+      id: 'r1',
+      points: square,
+      ceilingVisible,
+    })
+
+    it('undefined (auto): hidden in interior, shown outside and below active level', () => {
+      expect(shouldShowCeiling(room(undefined), interior)).toBe(false)
+      expect(shouldShowCeiling(room(undefined), outside)).toBe(true)
+      expect(shouldShowCeiling(room(undefined), below)).toBe(true)
+    })
+
+    it('true is always shown, false is always hidden', () => {
+      expect(shouldShowCeiling(room(true), interior)).toBe(true)
+      expect(shouldShowCeiling(room(true), outside)).toBe(true)
+      expect(shouldShowCeiling(room(false), interior)).toBe(false)
+      expect(shouldShowCeiling(room(false), outside)).toBe(false)
+    })
   })
 })

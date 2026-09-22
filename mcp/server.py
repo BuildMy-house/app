@@ -268,7 +268,7 @@ def _empty_home() -> dict:
         },
         "compass": {"x": -100, "y": 50, "diameter": 100, "northDirectionDeg": 0, "latitudeRad": 0, "longitudeRad": 0, "visible": True},
         "environment": {"skyColor": 0xcce4fc, "groundColor": 0xa8a8a8, "lightColor": 0xd0d0d0, "wallsAlpha": 0},
-        "preferences": {"defaultFloorColor": 0xf0f0f0, "defaultFloorShininess": 0, "defaultCeilingColor": 0xffffff, "defaultCeilingVisibility": True},
+        "preferences": {"defaultFloorColor": 0xf0f0f0, "defaultFloorShininess": 0, "defaultCeilingColor": 0xffffff},
         "activeTool": None, "capabilities": {"canUndo": False, "canRedo": False},
     }
 
@@ -778,16 +778,20 @@ async def add_room(
     name: str | None = None,
     floor_color: int | None = None,
     floor_visible: bool = True,
-    ceiling_visible: bool = False,
+    ceiling_visible: bool | None = None,
 ) -> dict:
-    """Create a room (floor/ceiling) from a polygon of plan points [[x,y], ...] (>=3). Returns {id}."""
+    """Create a room (floor/ceiling) from a polygon of plan points [[x,y], ...] (>=3). Returns {id}.
+
+    ceiling_visible: True = always show, False = always hide, None = auto
+    (default: hides the ceiling in interior view, shows it from outside)."""
     params: dict = {"points": points}
     if name is not None:
         params["name"] = name
     if floor_color is not None:
         params["floorColor"] = floor_color
     params["floorVisible"] = floor_visible
-    params["ceilingVisible"] = ceiling_visible
+    if ceiling_visible is not None:
+        params["ceilingVisible"] = ceiling_visible
     return await _session().request("add_room", params)
 
 
