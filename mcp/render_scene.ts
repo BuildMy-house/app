@@ -135,6 +135,12 @@ export async function render3d(home: NormalizedHomeState, width: number, height:
   store.loadHome(safeHome)
   const scene = buildScene(safeHome, {
     modelUrlResolver: () => '',
+    // This is a documentation/verification rasterizer for the whole model
+    // (MCP screenshot tool, scripted demos) — not a first-person interior
+    // walkthrough — so it renders in "outside view" like CaptureService's
+    // headless capture path (see src/automation/capture.ts), independent of
+    // the live viewport's interior-view-only roof/ceiling auto-hiding.
+    isOutsideView: true,
     showRoof: options.roofVisible ?? true,
     lightIntensity: options.lightIntensity,
   })

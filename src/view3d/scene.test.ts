@@ -80,7 +80,7 @@ describe('roof 3D extrusion (X3)', () => {
       levelRef: 'level-1', style: 'gable', pitchDeg: 30, overhangCm: 20,
     })
 
-    const mesh = roofMeshes(buildScene(home))[0]!
+    const mesh = roofMeshes(buildScene(home, { isOutsideView: true }))[0]!
     const positions = mesh.geometry.getAttribute('position')
     const ys = Array.from({ length: positions.count }, (_, i) => positions.getY(i))
 
@@ -109,13 +109,13 @@ describe('showRoof option (roof cutaway / hide-roof mode)', () => {
     return home
   }
 
-  it('shows the roof by default (option omitted)', () => {
-    const scene = buildScene(homeWithRoof())
+  it('shows the roof by default (option omitted) in outside view', () => {
+    const scene = buildScene(homeWithRoof(), { isOutsideView: true })
     expect(roofMeshes(scene).length).toBe(1)
   })
 
-  it('shows the roof when showRoof is explicitly true', () => {
-    const scene = buildScene(homeWithRoof(), { showRoof: true })
+  it('shows the roof when showRoof is explicitly true (outside view)', () => {
+    const scene = buildScene(homeWithRoof(), { showRoof: true, isOutsideView: true })
     expect(roofMeshes(scene).length).toBe(1)
   })
 
@@ -198,8 +198,39 @@ describe('interior-view roof hiding', () => {
     expect(roofMeshes(scene).length).toBe(1)
   })
 
-  it('shows roof when activeLevel is null (all-levels view)', () => {
+  // Regression: activeLevel stays null ("All levels") by default for every
+  // new/single-story home — this is the common state a user lands in, not an
+  // edge case. The topmost roof (no level above it) must hide here exactly
+  // as it does when that level is explicitly selected, otherwise the roof
+  // renders "always present" for anyone who never touches the floor
+  // selector.
+  it('hides roof when activeLevel is null (all-levels view, single-story)', () => {
     const scene = buildScene(homeWithRoof(), { activeLevel: null, isOutsideView: false })
+    expect(roofMeshes(scene).length).toBe(0)
+  })
+
+  it('shows roof in outside view when activeLevel is null', () => {
+    const scene = buildScene(homeWithRoof(), { activeLevel: null, isOutsideView: true })
+    expect(roofMeshes(scene).length).toBe(1)
+  })
+
+  it('hides the topmost roof when activeLevel is null (all-levels, multi-story)', () => {
+    const home = homeWithRoof([
+      { id: 'level-1', elevation: 0, height: 250 },
+      { id: 'level-2', elevation: 250, height: 250 },
+    ])
+    home.roofs[0]!.levelRef = 'level-2'
+    const scene = buildScene(home, { activeLevel: null, isOutsideView: false })
+    expect(roofMeshes(scene).length).toBe(0)
+  })
+
+  it('shows an interstitial roof underside when activeLevel is null (all-levels, multi-story)', () => {
+    const home = homeWithRoof([
+      { id: 'level-1', elevation: 0, height: 250 },
+      { id: 'level-2', elevation: 250, height: 250 },
+    ])
+    home.roofs[0]!.levelRef = 'level-1'
+    const scene = buildScene(home, { activeLevel: null, isOutsideView: false })
     expect(roofMeshes(scene).length).toBe(1)
   })
 })

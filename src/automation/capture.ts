@@ -186,7 +186,16 @@ export class CaptureService {
   }
 
   private ensureView(): View3D {
-    if (!this.view) this.view = new View3D(this.store)
+    if (!this.view) {
+      this.view = new View3D(this.store)
+      // Headless/automation captures document the whole model (used by the
+      // MCP screenshot tool and scripted demos), not a first-person interior
+      // walkthrough — match the live viewport's "outside view" so roof/
+      // ceiling meshes render the same way a full-model screenshot expects,
+      // independent of the interior-view-only roof/ceiling auto-hiding in
+      // scene.ts (see shouldShowCeiling / the roof-visibility loop there).
+      this.view.setOutsideView(true)
+    }
     return this.view
   }
 

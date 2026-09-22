@@ -1380,7 +1380,7 @@ function buildSceneInner(
   for (const roof of home.roofs) {
     if (!showRoof) continue
     if (!matchesLevel(roof.levelRef, activeLevel) && !isOutsideView) continue
-    if (activeLevel !== null && !isOutsideView && matchesLevel(roof.levelRef, activeLevel) && !findLevelAboveId(activeLevel, home.levels)) continue
+    if (!isOutsideView && matchesLevel(roof.levelRef, activeLevel) && !findLevelAboveId(roof.levelRef ?? null, home.levels)) continue
     const level = home.levels.find((item) => item.id === roof.levelRef)
     const mesh = roofMesh(
       roof,
