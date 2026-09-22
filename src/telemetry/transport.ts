@@ -15,6 +15,7 @@ export function enqueue(event: TelemetryEvent): void {
   const config = getTelemetryConfig()
   if (!config.enabled) return
   if (!config.token) return
+  if (!config.endpoint) return
   if (event.tier === 2 && !config.tier2Enabled) return
 
   _buffer.push(event)
@@ -41,13 +42,13 @@ export async function flush(): Promise<void> {
   _buffer = []
 
   const config = getTelemetryConfig()
-  if (!config.enabled || !config.token) {
+  if (!config.enabled || !config.token || !config.endpoint) {
     _flushing = false
     return
   }
 
   try {
-    const url = `${config.endpoint}/api/v1/datasets/${config.dataset}/ingest`
+    const url = `${config.endpoint}/v1/ingest/${config.dataset}`
     await fetch(url, {
       method: 'POST',
       headers: {
