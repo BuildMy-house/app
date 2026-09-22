@@ -277,4 +277,108 @@ describe('buildRenderableScene', () => {
 
     expect(boxesWith).toBeGreaterThan(boxesWithout)
   })
+
+  // ── Window overhang geometry ────────────────────────────────
+
+  it('generates overhang above a window (bottom > 0)', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+    })
+    home.furniture.push({
+      id: 'win1', name: 'Window',
+      x: 200, y: 0, angleDeg: 0,
+      width: 120, depth: 15, height: 120,
+      elevation: 90,
+      doorOrWindow: true, wallRef: 'w1', wallOffset: 200,
+    })
+    const { scene } = buildRenderableScene(home)
+    const overhang = scene.objects.find(o => o.id === 'overhang:w1')
+    expect(overhang).toBeDefined()
+    expect(overhang!.primitives).toHaveLength(1)
+    expect(overhang!.visible.threeD).toBe(true)
+    expect(overhang!.visible.plan).toBe(false)
+    const box = overhang!.primitives[0]!
+    expect(box.type).toBe('box')
+    if (box.type === 'box') {
+      // width = window 120 + margin 20 = 140
+      expect(box.size[0]).toBe(140)
+      // thickness = 5 (panel)
+      expect(box.size[1]).toBe(5)
+      // depth = default 20cm overhang
+      expect(box.size[2]).toBe(20)
+      // y position = elevation(0) + top(210) + panel/2(2.5) = 212.5
+      expect(box.position[1]).toBeCloseTo(212.5, 1)
+      // x position should be offset outward from wall
+      // Wall along X axis → outward normal is (0,-1), so z should be negative
+      expect(box.position[2]).toBeLessThan(0)
+    }
+  })
+
+  it('does NOT generate overhang for a door (bottom === 0)', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+    })
+    home.furniture.push({
+      id: 'd1', name: 'Door',
+      x: 200, y: 0, angleDeg: 0,
+      width: 90, depth: 15, height: 210,
+      elevation: 0,
+      doorOrWindow: true, wallRef: 'w1', wallOffset: 200,
+    })
+    const { scene } = buildRenderableScene(home)
+    const overhang = scene.objects.find(o => o.id === 'overhang:w1')
+    expect(overhang).toBeUndefined()
+  })
+
+  it('generates no overhang when windowOverhangCm is 0', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+      windowOverhangCm: 0,
+    })
+    home.furniture.push({
+      id: 'win1', name: 'Window',
+      x: 200, y: 0, angleDeg: 0,
+      width: 120, depth: 15, height: 120,
+      elevation: 90,
+      doorOrWindow: true, wallRef: 'w1', wallOffset: 200,
+    })
+    const { scene } = buildRenderableScene(home)
+    const overhang = scene.objects.find(o => o.id === 'overhang:w1')
+    expect(overhang).toBeUndefined()
+  })
+
+  it('respects custom windowOverhangCm depth', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+      windowOverhangCm: 40,
+    })
+    home.furniture.push({
+      id: 'win1', name: 'Window',
+      x: 200, y: 0, angleDeg: 0,
+      width: 120, depth: 15, height: 120,
+      elevation: 90,
+      doorOrWindow: true, wallRef: 'w1', wallOffset: 200,
+    })
+    const { scene } = buildRenderableScene(home)
+    const overhang = scene.objects.find(o => o.id === 'overhang:w1')!
+    const box = overhang.primitives[0]!
+    expect(box.type).toBe('box')
+    if (box.type === 'box') {
+      expect(box.size[2]).toBe(40)
+    }
+  })
+
+  it('no overhang objects for wall with no window openings', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15,
+    })
+    const { scene } = buildRenderableScene(home)
+    const overhangs = scene.objects.filter(o => o.id.startsWith('overhang:'))
+    expect(overhangs).toHaveLength(0)
+  })
 })

@@ -164,6 +164,8 @@ export interface Wall {
   leftSideTextureId?: string | null
   rightSideTextureId?: string | null
   patternId?: string | null
+  /** Depth of window overhang/eave projecting outward from wall face (cm). 0 = no overhang. */
+  windowOverhangCm?: number | null
 }
 
 export interface Room {

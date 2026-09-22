@@ -272,6 +272,58 @@ function buildWallPrimitives(
   return boxes
 }
 
+// ── Window overhang geometry ──────────────────────────────────
+
+const DEFAULT_WINDOW_OVERHANG_CM = 20
+const OVERHANG_PANEL_THICKNESS = 5
+const OVERHANG_WIDTH_MARGIN = 20 // total extra cm (10 each side)
+
+function buildWindowOverhangPrimitives(
+  wall: Wall,
+  openings: WallOpening[],
+  wallElevation: number,
+  angle: number,
+  length: number,
+): BoxPrimitive[] {
+  const overhangDepth = Math.max(0, wall.windowOverhangCm ?? DEFAULT_WINDOW_OVERHANG_CM)
+  if (overhangDepth <= 0) return []
+
+  const dx = wall.xEnd - wall.xStart
+  const dy = wall.yEnd - wall.yStart
+  const ux = dx / length
+  const uy = dy / length
+  const thickness = wall.thickness
+
+  // Outward normal = wall direction rotated 90° clockwise in XZ plane
+  // This is the rightSideColor convention side (wall local +90°).
+  const nx = uy
+  const ny = -ux
+
+  const panels: BoxPrimitive[] = []
+  for (const op of openings) {
+    if (op.bottom <= 0) continue // door — skip
+    const width = op.width + OVERHANG_WIDTH_MARGIN
+    const centerAlong = op.centerAlong
+    const wallCenterX = wall.xStart + ux * centerAlong
+    const wallCenterZ = wall.yStart + uy * centerAlong
+    const overhangY = wallElevation + op.top + OVERHANG_PANEL_THICKNESS / 2
+    const outwardOffset = thickness / 2 + overhangDepth / 2
+
+    panels.push({
+      type: 'box',
+      position: [
+        wallCenterX + nx * outwardOffset,
+        overhangY,
+        wallCenterZ + ny * outwardOffset,
+      ],
+      size: [width, OVERHANG_PANEL_THICKNESS, overhangDepth],
+      rotation: [0, -angle, 0],
+      materialId: '', // assigned by caller
+    })
+  }
+  return panels
+}
+
 // ── Build function ──────────────────────────────────────────────
 
 export interface SceneBuilderResult {
@@ -364,6 +416,22 @@ export function buildRenderableScene(
       visible: { plan: true, threeD: true, luxcore: true },
     }
     objects.push(wallObj)
+
+    // ── Window overhangs for this wall ──────────────────────
+    const overhangPrims = buildWindowOverhangPrimitives(
+      wall, openings, elevation, angle, length,
+    )
+    if (overhangPrims.length > 0) {
+      const overhangMat = makeColorMaterial(rightColor)
+      materials.push(overhangMat)
+      for (const p of overhangPrims) p.materialId = overhangMat.id
+      objects.push({
+        id: `overhang:${wall.id}`,
+        name: `Overhang ${wall.id}`,
+        primitives: overhangPrims,
+        visible: { plan: false, threeD: true, luxcore: true },
+      })
+    }
   }
 
   // ── Rooms ───────────────────────────────────────────────────
