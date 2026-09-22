@@ -22,7 +22,7 @@ export interface AuthAdapter {
   /** Raw JWT for Authorization headers, or null when signed out. */
   getToken(): string | null
   login(email: string, password: string): Promise<void>
-  register(email: string, password: string): Promise<void>
+  register(email: string, password: string, companyName?: string): Promise<void>
   changePassword(currentPassword: string, newPassword: string): Promise<void>
   logout(): void
 }
@@ -57,11 +57,11 @@ export class HttpAuth implements AuthAdapter {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
   }
 
-  private async post(path: string, email: string, password: string): Promise<void> {
+  private async post(path: string, email: string, password: string, extra: Record<string, string> = {}): Promise<void> {
     const response = await fetch(path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, ...extra }),
     })
     if (!response.ok) {
       let message = `authentication failed (${response.status})`
@@ -84,8 +84,8 @@ export class HttpAuth implements AuthAdapter {
     await this.post('/api/auth/login', email, password)
   }
 
-  async register(email: string, password: string): Promise<void> {
-    await this.post('/api/auth/register', email, password)
+  async register(email: string, password: string, companyName?: string): Promise<void> {
+    await this.post('/api/auth/register', email, password, companyName ? { companyName } : {})
   }
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {

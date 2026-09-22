@@ -55,6 +55,32 @@ describe('POST /api/auth/register', () => {
     expect(res.body.token).not.toBe(row!.password_hash);
   });
 
+  it('creates a company workspace and owner membership atomically when requested', async () => {
+    const { app, db } = await makeApp();
+    openDbs.push(db);
+
+    const res = await request(app).post('/api/auth/register').send({
+      email: 'founder@example.com', password: 'password123', companyName: 'Acme Design',
+    });
+    expect(res.status).toBe(201);
+    const userId = jwt.verify(res.body.token, getJwtSecret()).sub as string;
+    const team = db.prepare('SELECT id, name FROM teams').get() as { id: string; name: string };
+    expect(team.name).toBe('Acme Design');
+    expect(db.prepare('SELECT role FROM team_members WHERE team_id = ? AND user_id = ?').get(team.id, userId)).toEqual({ role: 'owner' });
+  });
+
+  it('rejects invalid company names without creating an account', async () => {
+    const { app, db } = await makeApp();
+    openDbs.push(db);
+
+    const res = await request(app).post('/api/auth/register').send({
+      email: 'founder@example.com', password: 'password123', companyName: '  ',
+    });
+    expect(res.status).toBe(400);
+    expect(db.prepare('SELECT COUNT(*) AS count FROM users').get()).toEqual({ count: 0 });
+    expect(db.prepare('SELECT COUNT(*) AS count FROM teams').get()).toEqual({ count: 0 });
+  });
+
   it('rejects a duplicate email with a clear 409', async () => {
     const { app, db } = await makeApp();
     openDbs.push(db);

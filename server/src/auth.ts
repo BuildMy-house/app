@@ -172,6 +172,13 @@ export function registerHandler(db: DbAdapter) {
       return;
     }
 
+    const rawCompanyName = req.body?.companyName;
+    const companyName = rawCompanyName === undefined ? null : typeof rawCompanyName === 'string' ? rawCompanyName.trim() : '';
+    if (companyName !== null && (companyName.length < 2 || companyName.length > 100)) {
+      res.status(400).json({ error: 'companyName must be 2-100 characters' });
+      return;
+    }
+
     const existing = await db.get<{ id: string }>('SELECT id FROM users WHERE email = ?', valid.email);
     if (existing) {
       res.status(409).json({ error: 'email already registered' });
@@ -186,14 +193,27 @@ export function registerHandler(db: DbAdapter) {
       created_at: new Date().toISOString(),
     };
     try {
-      await db.run(
-        `INSERT INTO users (id, email, password_hash, created_at)
-         VALUES (?, ?, ?, ?)`,
-        user.id,
-        user.email,
-        user.password_hash,
-        user.created_at,
-      );
+      await db.transaction(async (tx) => {
+        await tx.run(
+          `INSERT INTO users (id, email, password_hash, created_at)
+           VALUES (?, ?, ?, ?)`,
+          user.id,
+          user.email,
+          user.password_hash,
+          user.created_at,
+        );
+        if (companyName) {
+          const teamId = randomUUID();
+          await tx.run('INSERT INTO teams (id, name, created_at) VALUES (?, ?, ?)', teamId, companyName, user.created_at);
+          await tx.run(
+            'INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)',
+            teamId,
+            user.id,
+            'owner',
+            user.created_at,
+          );
+        }
+      });
     } catch (err) {
       if (isUniqueViolation(err)) {
         res.status(409).json({ error: 'email already registered' });

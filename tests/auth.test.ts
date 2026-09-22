@@ -46,9 +46,21 @@ describe('HttpAuth', () => {
     await auth.register(' User@Example.COM ', 'password123')
 
     expect(fetchStub).toHaveBeenCalledWith('/api/auth/register', expect.objectContaining({ method: 'POST' }))
+    expect(JSON.parse(fetchStub.mock.calls[0]![1].body)).toEqual({ email: ' User@Example.COM ', password: 'password123' })
     expect(auth.currentUser()).toBe('user@example.com')
     expect(auth.getToken()).toBe('jwt')
     expect(JSON.parse(ls.data[SESSION_KEY]!).email).toBe('user@example.com')
+  })
+
+  it('register() includes company name when creating a company workspace', async () => {
+    fetchStub.mockResolvedValue(jsonResponse(201, { token: 'jwt' }))
+    const auth = new HttpAuth()
+
+    await auth.register('owner@example.com', 'password123', 'Acme Design')
+
+    expect(JSON.parse(fetchStub.mock.calls[0]![1].body)).toEqual({
+      email: 'owner@example.com', password: 'password123', companyName: 'Acme Design',
+    })
   })
 
   it('login() POSTs to the login endpoint', async () => {
