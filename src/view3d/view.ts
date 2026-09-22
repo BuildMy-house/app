@@ -40,6 +40,7 @@ import { exportViewportAsImage } from '../export/quick-preview'
 
 // Per-texture memory estimate for the telemetry textureMemoryMB figure (1024×1024 RGBA).
 const ESTIMATED_TEXTURE_MB = 1
+const INTERACTION_PIXEL_RATIO = 0.75
 
 export interface View3DOptions {
   /** DOM container; when absent the view stays a headless scene graph. */
@@ -815,14 +816,17 @@ export class View3D {
     }
     if (this._interacting || !this.renderer) return
     this._interacting = true
-    this.renderer.setPixelRatio(1)
+    this.renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio || 1, this._quality.pixelRatioCap) * INTERACTION_PIXEL_RATIO,
+    )
     // The EffectComposer (AO/bloom) allocates its render targets at
     // construction/resize time from renderer.getPixelRatio() — dropping the
     // renderer's pixel ratio alone does NOT shrink those targets, so the
     // composer would keep rendering AO/bloom at full resolution and this
     // optimization would do nothing whenever bloom or AO is enabled (the
-    // default at medium quality). Re-running setSize forces the composer to
-    // pick up the new (lower) pixel ratio without rebuilding passes.
+    // default at medium quality). Scale below 1x too, so 1x displays also
+    // benefit. Re-running setSize applies the lower ratio without rebuilding
+    // passes.
     if (this._composer) {
       const size = new THREE.Vector2()
       this.renderer.getSize(size)
