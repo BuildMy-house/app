@@ -469,6 +469,27 @@ describe('ceiling mesh height (M56)', () => {
     const ceilings = ceilingMeshes(scene)
     expect(ceilings.length).toBe(0)
   })
+
+  it('ceiling material is not near-white — regression guard against tonemap/bloom blowout', () => {
+    // 0xf0f0f0 previously used here clipped to a "glowing white" ceiling under
+    // ACES tonemapping + bloom when viewed from outside/top-down, since the
+    // ceiling faces almost directly into the downward directional lights.
+    // Must stay at or below DEFAULT_FLOOR_COLOR's brightness (0xc8c8c8), which
+    // is proven safe under the same light rig.
+    const home = createEmptyHome()
+    home.levels.push({
+      id: 'L0', name: 'Ground', elevation: 0,
+      floorThickness: 0, height: 250, visible: true, viewable: true,
+    })
+    home.rooms.push({
+      id: 'r1', points: [[0, 0], [100, 0], [100, 100], [0, 100]],
+      levelRef: 'L0',
+    })
+    const scene = buildScene(home, { isOutsideView: true })
+    const ceiling = ceilingMeshes(scene)[0]!
+    const material = ceiling.material as THREE.MeshStandardMaterial
+    expect(material.color.getHex()).toBeLessThanOrEqual(0xc8c8c8)
+  })
 })
 
 // ── M60: furniture horizontal flip (mirror) ──────────────────────────────
