@@ -89,6 +89,8 @@ export class View3D {
     this.resizeTo(container.clientWidth || 800, container.clientHeight || 600)
   }
   private _quality: ViewportQuality
+  private _interacting = false
+  private _settleTimer: ReturnType<typeof setTimeout> | undefined
   private _envPreset: HdriPresetId
   private _requestedEnvPreset: HdriPresetId
   private environment: HdriEnvironment | undefined
@@ -183,7 +185,10 @@ export class View3D {
       // Drive redraws from control interaction. Must NOT call render() here:
       // render() draws, the loop below calls update(); update() dispatches
       // 'change', so calling render() from this handler would recurse forever.
-      this.controls.addEventListener('change', () => this.startAnimationLoop())
+      this.controls.addEventListener('change', () => {
+        this.enterInteractionMode()
+        this.startAnimationLoop()
+      })
 
       window.addEventListener('resize', this.handleResize)
 
@@ -699,6 +704,24 @@ export class View3D {
     this.renderer?.render(this._scene, this.perspectiveCamera)
   }
 
+  private enterInteractionMode(): void {
+    if (this._settleTimer) {
+      clearTimeout(this._settleTimer)
+      this._settleTimer = undefined
+    }
+    if (this._interacting || !this.renderer) return
+    this._interacting = true
+    this.renderer.setPixelRatio(1)
+  }
+
+  private exitInteractionMode(): void {
+    if (!this._interacting) return
+    this._interacting = false
+    if (!this.renderer) return
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this._quality.pixelRatioCap))
+    this.render()
+  }
+
   /**
    * Run the render loop while OrbitControls is animating (inertia/damping).
    * update() is the ONLY place controls advance; it dispatches 'change', which
@@ -741,6 +764,12 @@ export class View3D {
       this._frameLastTime = now
       const moving = this.controls ? this.controls.update() : false
       this.renderer?.render(this._scene, this.perspectiveCamera)
+      if (!moving && this._interacting && this._settleTimer === undefined) {
+        this._settleTimer = setTimeout(() => {
+          this._settleTimer = undefined
+          this.exitInteractionMode()
+        }, 250)
+      }
       if (moving) this._animationFrame = requestAnimationFrame(tick)
     }
     this._animationFrame = requestAnimationFrame(tick)
@@ -750,6 +779,7 @@ export class View3D {
     this.cancelAnimation()
     if (this._frameReportTimer) clearTimeout(this._frameReportTimer)
     if (this._deltaReportTimer) clearTimeout(this._deltaReportTimer)
+    if (this._settleTimer) clearTimeout(this._settleTimer)
     this.unobserve()
     this.controls?.dispose()
     this.resizeObserver?.disconnect()
