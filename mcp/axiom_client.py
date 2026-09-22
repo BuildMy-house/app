@@ -11,14 +11,19 @@ class AxiomClient:
 
     def __init__(self, token: str | None = None) -> None:
         self.token = token or os.environ.get("AXIOM_TOKEN", "")
-        self.endpoint = os.environ.get("AXIOM_ENDPOINT", "https://api.axiom.co").rstrip("/")
-        self.dataset = os.environ.get("AXIOM_DATASET", "homely-telemetry")
+        self.endpoint = os.environ.get("AXIOM_ENDPOINT", "").rstrip("/")
+        self.dataset = os.environ.get("AXIOM_DATASET", "buildmy-house-telemetry")
 
     def query(self, aql: str, *, timeframe: str = "24h") -> dict:
-        url = f"{self.endpoint}/api/v1/datasets/{self.dataset}/_search"
+        if not self.endpoint or not self.token:
+            raise RuntimeError("Axiom is not configured: AXIOM_ENDPOINT/AXIOM_TOKEN must be set (no hardcoded fallback)")
+        # Callers may pass a full APL pipeline (already starting with ['dataset']) or a bare
+        # filter/aggregation fragment, in which case we scope it to our dataset + timeframe.
+        apl = aql if aql.lstrip().startswith("[") else f"['{self.dataset}'] | where _time > ago({timeframe}) | {aql}"
+        url = f"{self.endpoint}/v1/datasets/_apl?format=tabular"
         request = Request(
             url,
-            data=json.dumps({"query": aql, "timeframe": timeframe}).encode(),
+            data=json.dumps({"apl": apl}).encode(),
             method="POST",
             headers={"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"},
         )
@@ -29,11 +34,12 @@ class AxiomClient:
             raise RuntimeError(f"Axiom query failed ({exc.code})") from exc
 
     def summary(self, metric: str = "errors", *, timeframe: str = "7d") -> dict:
+        ds = self.dataset
         queries = {
-            "errors": "['error.caught'] | stats count() as cnt by message | sort cnt desc | head 20",
-            "performance": "['perf.frame_time'] | stats avg(p50) as avg_p50, avg(p95) as avg_p95, avg(p99) as avg_p99 by bin(1h, ts)",
-            "usage": "['tool.switch', 'feature.undo', 'feature.redo', 'feature.room_add'] | stats count() as cnt by event | sort cnt desc",
+            "errors": f"['{ds}'] | where _time > ago({timeframe}) | where event == 'error.caught' | summarize count() by message | sort by count_ desc | limit 20",
+            "performance": f"['{ds}'] | where _time > ago({timeframe}) | where event == 'perf.frame_time' | summarize avg(p50), avg(p95), avg(p99) by bin(_time, 1h)",
+            "usage": f"['{ds}'] | where _time > ago({timeframe}) | where event in ('tool.switch', 'feature.undo', 'feature.redo', 'feature.room_add') | summarize count() by event | sort by count_ desc",
         }
         if metric not in queries:
             raise ValueError(f"Unknown metric: {metric}. Choose from: {', '.join(queries)}")
-        return self.query(queries[metric], timeframe=timeframe)
+        return self.query(queries[metric])
