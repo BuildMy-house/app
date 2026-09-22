@@ -8,8 +8,8 @@ test('company signup sends company details and authenticates the new owner', asy
   })
   await page.goto('/')
 
-  await page.locator('#profile-widget').getByRole('button', { name: /Sign Up to Save/ }).click()
-  await page.getByRole('button', { name: 'Sign Up', exact: true }).click()
+  await page.locator('#profile-widget').getByRole('button', { name: 'Sign Up', exact: true }).click()
+  await page.locator('.auth-dialog').getByRole('button', { name: 'Sign Up', exact: true }).click()
   await page.getByLabel('Company', { exact: true }).check()
   await page.getByLabel('Company name').fill('Acme Design')
   await page.getByLabel('Email').fill('owner@example.com')
