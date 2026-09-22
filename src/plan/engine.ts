@@ -169,6 +169,19 @@ export class PlanEngine {
   private sessionOpen = false
   /** Polygon vertices collected during a room-tool drawing session. */
   private roomPoints: Array<[number, number]> = []
+  /** Set right before closeRoom() when the room closed because the click
+   *  landed back near the FIRST vertex (roomClick's close-to-first branch).
+   *  A real browser double-click gesture fires TWO click events (dbl:false)
+   *  at the same spot before the native dblclick (dbl:true) — see main.ts's
+   *  canvas 'pointerup'/'dblclick' listeners. If the user double-clicks (or
+   *  even just clicks twice) to close a room, the FIRST click already closes
+   *  it and resets phase to 'idle'; without this guard the SECOND click (and
+   *  then doubleClick()'s own room-tool fallback) lands with phase idle and
+   *  reads as "start a brand-new room here", leaving a dangling one-point
+   *  drawing session that renders an unwanted extra boundary segment on the
+   *  user's very next click. Consumed (cleared) by the next doubleClick()
+   *  call, whichever tool/point it targets — see doubleClick(). */
+  private roomJustClosedAt: Point | null = null
   /** Currently-open AutoFloorDialog, tracked so a dblclick can dismiss it
    *  (click-before-dblclick race: singleClick opens the dialog, then the
    *  dblclick handler must clear it before auto-creating the room). */
@@ -1082,6 +1095,19 @@ export class PlanEngine {
   private doubleClick(point: Point): void {
     this.marqueeFrom = null
     this.marqueeTo = null
+    // Consume roomJustClosedAt exactly once per gesture, regardless of what
+    // this dblclick otherwise does. If it's still armed AND this is the
+    // room tool AND the point matches, the room was already closed by the
+    // click that set it (roomClick's close-to-first branch) — skip this
+    // call entirely instead of falling into isTrivial/findEnclosingWallLoop/
+    // roomClick, any of which would otherwise start a dangling new session
+    // at the point we just closed (see roomJustClosedAt's own comment).
+    if (this.roomJustClosedAt) {
+      const suppressRoomClose =
+        this.tool === 'room' && distance(point, this.roomJustClosedAt) <= ENDPOINT_HIT_RADIUS
+      this.roomJustClosedAt = null
+      if (suppressRoomClose) return
+    }
     if (this.tool === 'roof') {
       const loop = this.findLargestEnclosingWallLoop(point)
       if (loop) {
@@ -1469,6 +1495,13 @@ export class PlanEngine {
   private roomClick(point: Point): void {
     const pt = this.gridSnapEnabled ? this.snapToGrid(point.x, point.y) : point
     if (this.phase === 'idle') {
+      // Suppress the redundant second click of a close-via-click-on-start
+      // double-click gesture (see roomJustClosedAt) — otherwise this starts
+      // a brand-new, unwanted room session at the point we just closed.
+      if (this.roomJustClosedAt && distance(pt, this.roomJustClosedAt) <= ENDPOINT_HIT_RADIUS) {
+        return
+      }
+      this.roomJustClosedAt = null
       this.roomPoints = [[pt.x, pt.y]]
       this.phase = 'drawing'
       this.chainStart = pt
@@ -1477,6 +1510,7 @@ export class PlanEngine {
     if (this.roomPoints.length >= 3) {
       const first = this.roomPoints[0]!
       if (distance(pt, { x: first[0], y: first[1] }) <= ENDPOINT_HIT_RADIUS) {
+        this.roomJustClosedAt = { x: first[0], y: first[1] }
         this.closeRoom()
         return
       }

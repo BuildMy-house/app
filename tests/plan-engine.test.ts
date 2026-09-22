@@ -615,6 +615,44 @@ describe('room tool state machine', () => {
     expect(store.canUndo()).toBe(false)
   })
 
+  it('a real double-click gesture that closes the room via click-on-start leaves the tool idle, not a dangling new session (prod bug repro)', () => {
+    // Regression test for a prod bug: main.ts's canvas listeners wire a real
+    // double-click as THREE engine.click() calls — 'pointerup' fires
+    // engine.click({dbl:false}) on EACH of the two clicks that make up a
+    // double-click, and only then does the native 'dblclick' event fire
+    // engine.click({dbl:true}). roomClick() already closes the room on a
+    // single click landing back near the first vertex (see the "close near
+    // start" test above) — so for a double-click gesture used to close a
+    // room, the FIRST of the three calls already closes it and resets phase
+    // to 'idle'. Without the roomJustClosedAt guard, the SECOND call (still
+    // part of the same gesture) reads that idle phase as "start a new room
+    // here" and leaves a dangling one-point drawing session behind — the
+    // user's very next click then silently adds an extra, unwanted boundary
+    // segment near the room they just finished closing.
+    const { engine, click, store } = setup()
+    engine.setTool('room')
+    engine.setMagnetism(false)
+    click(0, 0)
+    click(100, 0)
+    click(100, 80)
+    click(0, 80)
+    click(1, 1, { dbl: false })
+    click(1, 1, { dbl: false })
+    click(1, 1, { dbl: true })
+
+    const home = store.getHome()
+    expect(home.rooms).toHaveLength(1)
+    expect(home.rooms[0]!.points).toEqual([
+      [0, 0],
+      [100, 0],
+      [100, 80],
+      [0, 80],
+    ])
+    // No dangling drawing session left behind by the gesture's extra clicks.
+    expect(engine.getPreview().phase).toBe('idle')
+    expect(engine.getPreview().roomPoints).toHaveLength(0)
+  })
+
   it('double-click immediately after starting (1 vertex) creates no room', () => {
     const { engine, click, store } = setup()
     engine.setTool('room')
