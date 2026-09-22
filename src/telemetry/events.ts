@@ -19,6 +19,10 @@ interface BaseEvent {
   sid: string
   app: string
   ver: string
+  os?: string
+  tauri?: string
+  renderer?: string
+  lang?: string
 }
 
 // ── Tier 1: Software Health (always on) ─────────────────────────────────────
@@ -102,8 +106,19 @@ export interface RenderingMetrics {
   drawCalls: number
   instancedMeshCount: number
   triangleCount: number
+  wallCount: number
+  furnitureCount: number
+  roomCount: number
   textureMemoryMB: number
   fps: number
+  frameTimeP95Ms: number
+  renderCpuMs: number
+  renderCpuP95Ms: number
+  pixelRatio: number
+  qualityPreset: string
+  ao: 'none' | 'ssao' | 'gtao'
+  bloom: boolean
+  interacting: boolean
 }
 
 export interface RenderingMetricsEvent extends BaseEvent, RenderingMetrics {

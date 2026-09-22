@@ -10,7 +10,7 @@
 
 import type { RenderingMetrics, TelemetryEvent, TelemetryTier } from './events'
 import { getTelemetryConfig, initTelemetryConfig, setTelemetryTier2 } from './config'
-import { getSessionId, getVersion, initContext } from './context'
+import { getDeviceContext, getSessionId, getVersion, initContext } from './context'
 import { enqueue, flush, registerUnload } from './transport'
 
 function makeEvent(event: string, tier: TelemetryTier, extra?: Record<string, unknown>): TelemetryEvent {
@@ -21,6 +21,7 @@ function makeEvent(event: string, tier: TelemetryTier, extra?: Record<string, un
     sid: getSessionId(),
     app: 'buildmy-house',
     ver: getVersion(),
+    ...getDeviceContext(),
     ...extra,
   } as TelemetryEvent
 }

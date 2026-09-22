@@ -7,8 +7,19 @@ describe('RenderingMetricsEvent', () => {
       drawCalls: 42,
       instancedMeshCount: 3,
       triangleCount: 12000,
+      wallCount: 30,
+      furnitureCount: 42,
+      roomCount: 5,
       textureMemoryMB: 64,
       fps: 59.94,
+      frameTimeP95Ms: 19.1,
+      renderCpuMs: 4.2,
+      renderCpuP95Ms: 8.4,
+      pixelRatio: 0.75,
+      qualityPreset: 'medium',
+      ao: 'none',
+      bloom: true,
+      interacting: true,
     }
 
     const event: RenderingMetricsEvent = {
@@ -28,6 +39,9 @@ describe('RenderingMetricsEvent', () => {
     expect(event.triangleCount).toBe(12000)
     expect(event.textureMemoryMB).toBe(64)
     expect(event.fps).toBe(59.94)
+    expect(event.renderCpuMs).toBe(4.2)
+    expect(event.pixelRatio).toBe(0.75)
+    expect(event.interacting).toBe(true)
 
     // Part of the TelemetryEvent union (compile-time check with a runtime guard).
     const union: TelemetryEvent = event

@@ -22,6 +22,10 @@ export function getVersion(): string {
   return _ver
 }
 
+export function getDeviceContext(): Record<string, string> {
+  return _device
+}
+
 function detectDevice(): Record<string, string> {
   const ua = navigator.userAgent
   const isTauri = '__TAURI_INTERNALS__' in window

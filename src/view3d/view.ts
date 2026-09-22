@@ -115,6 +115,10 @@ export class View3D {
   private _lightIntensity = 1
   // Only changes when the scene graph is rebuilt, never during camera orbit.
   private _instancedMeshCount = 0
+  private _lastDrawCalls = 0
+  private _lastTriangleCount = 0
+  private _lastRenderCpuMs = 0
+  private _renderSamples: number[] = []
   private _composer: EffectComposer | undefined
   private _bloomPass: UnrealBloomPass | undefined
 
@@ -802,10 +806,27 @@ export class View3D {
 
   /** Draw the current scene. Does NOT advance controls (that's the loop). */
   render(): void {
-    if (this._composer) {
-      this._composer.render()
-    } else {
-      this.renderer?.render(this._scene, this.perspectiveCamera)
+    this.draw()
+  }
+
+  private draw(): void {
+    const renderer = this.renderer
+    if (!renderer) return
+    const info = renderer.info
+    info.autoReset = false
+    info.reset()
+    const started = performance.now()
+    try {
+      if (this._composer) this._composer.render()
+      else renderer.render(this._scene, this.perspectiveCamera)
+    } finally {
+      this._lastRenderCpuMs = performance.now() - started
+      this._renderSamples.push(this._lastRenderCpuMs)
+      if (this._renderSamples.length > 100) this._renderSamples.shift()
+      this._lastDrawCalls = info.render.calls
+      this._lastTriangleCount = info.render.triangles
+      info.autoReset = true
+      info.reset()
     }
   }
 
@@ -862,11 +883,6 @@ export class View3D {
         const dt = now - this._frameLastTime
         this._frameSamples.push(dt)
         if (this._frameSamples.length > 100) this._frameSamples.shift()
-        this._metricsFrameCount++
-        if (this._metricsFrameCount >= 30) {
-          this._metricsFrameCount = 0
-          this._lastMetrics = this.collectRenderingMetrics()
-        }
         if (!this._frameReportTimer) {
           this._frameReportTimer = setTimeout(() => {
             telemetry.frameTime(this._frameSamples)
@@ -888,10 +904,11 @@ export class View3D {
       }
       this._frameLastTime = now
       const moving = this.controls ? this.controls.update() : false
-      if (this._composer) {
-        this._composer.render()
-      } else {
-        this.renderer?.render(this._scene, this.perspectiveCamera)
+      this.draw()
+      this._metricsFrameCount++
+      if (this._metricsFrameCount >= 30) {
+        this._metricsFrameCount = 0
+        this._lastMetrics = this.collectRenderingMetrics()
       }
       if (!moving && this._interacting && this._settleTimer === undefined) {
         this._settleTimer = setTimeout(() => {
@@ -944,15 +961,33 @@ export class View3D {
     const renderer = this.renderer
     if (!renderer) return undefined
     const instancedMeshCount = this._instancedMeshCount
-    const samples = this._frameSamples
-    const avgDt = samples.length > 0 ? samples.reduce((a, b) => a + b, 0) / samples.length : 0
+    const frameSamples = [...this._frameSamples].sort((a, b) => a - b)
+    const renderSamples = [...this._renderSamples].sort((a, b) => a - b)
+    const home = this.store.getHome()
+    const frameAvg =
+      frameSamples.length > 0 ? frameSamples.reduce((a, b) => a + b, 0) / frameSamples.length : 0
+    const renderAvg =
+      renderSamples.length > 0 ? renderSamples.reduce((a, b) => a + b, 0) / renderSamples.length : 0
+    const p95 = (values: number[]): number =>
+      values[Math.max(0, Math.ceil(values.length * 0.95) - 1)] ?? 0
     return {
-      drawCalls: renderer.info.render.calls,
+      drawCalls: this._lastDrawCalls,
       instancedMeshCount,
-      triangleCount: renderer.info.render.triangles,
+      triangleCount: this._lastTriangleCount,
+      wallCount: home.walls.length,
+      furnitureCount: home.furniture.length,
+      roomCount: home.rooms.length,
       // ponytail: renderer.info doesn't expose per-texture bytes; 1MB avg per texture (1024×1024 RGBA), refine only if texture memory ever matters
       textureMemoryMB: renderer.info.memory.textures * ESTIMATED_TEXTURE_MB,
-      fps: avgDt > 0 ? Math.round((1000 / avgDt) * 100) / 100 : 0,
+      fps: frameAvg > 0 ? Math.round((1000 / frameAvg) * 100) / 100 : 0,
+      frameTimeP95Ms: Math.round(p95(frameSamples) * 100) / 100,
+      renderCpuMs: Math.round(renderAvg * 100) / 100,
+      renderCpuP95Ms: Math.round(p95(renderSamples) * 100) / 100,
+      pixelRatio: renderer.getPixelRatio(),
+      qualityPreset: this._quality.preset,
+      ao: this._quality.ao,
+      bloom: this._quality.bloom,
+      interacting: this._interacting,
     }
   }
 

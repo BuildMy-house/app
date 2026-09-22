@@ -49,7 +49,7 @@ export async function flush(): Promise<void> {
 
   try {
     const url = `${config.endpoint}/v1/ingest/${config.dataset}`
-    await fetch(url, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${config.token}`,
@@ -58,8 +58,10 @@ export async function flush(): Promise<void> {
       body: JSON.stringify(batch),
       keepalive: true,
     })
-  } catch {
-    // Silently drop — telemetry must never break the app.
+    if (!response.ok) console.warn(`[telemetry] Axiom ingest failed: HTTP ${response.status}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn('[telemetry] Axiom ingest failed:', message)
   } finally {
     _flushing = false
   }

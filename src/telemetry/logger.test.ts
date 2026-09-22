@@ -8,12 +8,30 @@ vi.mock('./transport', () => ({
   registerUnload: vi.fn(),
 }))
 
+vi.mock('./context', () => ({
+  getDeviceContext: () => ({ os: 'linux', tauri: 'false', renderer: 'Test GPU', lang: 'en' }),
+  getSessionId: () => 'test-session',
+  getVersion: () => '0.1.0',
+  initContext: vi.fn(),
+}))
+
 const METRICS = {
   drawCalls: 10,
   instancedMeshCount: 2,
   triangleCount: 3000,
+  wallCount: 10,
+  furnitureCount: 20,
+  roomCount: 3,
   textureMemoryMB: 64,
   fps: 58.5,
+  frameTimeP95Ms: 19.6,
+  renderCpuMs: 4.8,
+  renderCpuP95Ms: 7.2,
+  pixelRatio: 1,
+  qualityPreset: 'medium',
+  ao: 'none' as const,
+  bloom: true,
+  interacting: false,
 }
 
 describe('telemetry.renderingMetrics', () => {
@@ -39,6 +57,10 @@ describe('telemetry.renderingMetrics', () => {
       triangleCount: 3000,
       textureMemoryMB: 64,
       fps: 58.5,
+      renderCpuMs: 4.8,
+      pixelRatio: 1,
+      renderer: 'Test GPU',
+      os: 'linux',
     }))
     const event = enqueue.mock.calls[0]![0] as Record<string, unknown>
     expect(event).toHaveProperty('sid')

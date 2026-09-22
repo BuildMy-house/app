@@ -31,9 +31,26 @@ test.describe('3D viewport interactions', () => {
     const cy = box.y + box.height / 2
     await page.mouse.move(cx, cy)
     await page.mouse.down()
+    await page.mouse.move(cx + 20, cy + 10)
+    const interactionRatio = await page.evaluate(
+      () => (window as any).__view3d.renderer.getPixelRatio(),
+    )
+    const expectedInteractionRatio = await page.evaluate(() => {
+      const view = (window as any).__view3d
+      return Math.min(window.devicePixelRatio || 1, view.quality.pixelRatioCap) * 0.75
+    })
+    expect(interactionRatio).toBeCloseTo(expectedInteractionRatio, 2)
     await page.mouse.move(cx + 120, cy + 60, { steps: 10 })
     await page.mouse.up()
     await page.waitForTimeout(600)
+    const settledRatio = await page.evaluate(
+      () => (window as any).__view3d.renderer.getPixelRatio(),
+    )
+    const qualityRatio = await page.evaluate(() => {
+      const view = (window as any).__view3d
+      return Math.min(window.devicePixelRatio || 1, view.quality.pixelRatioCap)
+    })
+    expect(settledRatio).toBeCloseTo(qualityRatio, 2)
 
     const after = await page.evaluate(() => {
       const c = (window as any).__view3d.camera
