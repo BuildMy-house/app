@@ -1238,6 +1238,20 @@ export function findLevelBelowId(activeLevel: string | null, levels: Level[]): s
   return bestElevation === -Infinity ? undefined : bestId
 }
 
+/**
+ * Three-way render gate shared by the full-rebuild path (below) and the
+ * incremental delta path (scene-delta.ts) so both agree on which
+ * elevation-relative meshes appear in the scene: the active level, the level
+ * directly below it (ghosted), or everything when stepped outside.
+ */
+export function shouldRenderAtElevation(
+  isActive: boolean,
+  isBelowActive: boolean,
+  isOutsideView: boolean,
+): boolean {
+  return isActive || isBelowActive || isOutsideView
+}
+
 function buildSceneInner(
   home: NormalizedHomeState,
   onModelReady?: () => void,
@@ -1342,7 +1356,7 @@ function buildSceneInner(
     const isBelowActive = belowLevelId !== undefined && (wall.levelRef ?? null) === belowLevelId
     // Outside view means "step outside and look at the whole model" — every
     // level's geometry is included regardless of which floor is active.
-    if (!isActive && !isBelowActive && !isOutsideView) continue
+    if (!shouldRenderAtElevation(isActive, isBelowActive, isOutsideView)) continue
     const elev = elevationFor(wall.levelRef, elevations)
     const transparency = isBelowActive
       ? Math.max(wallsTransparency, BELOW_LEVEL_WALL_TRANSPARENCY)
@@ -1358,7 +1372,7 @@ function buildSceneInner(
     if (room.points.length < 3) continue
     const isActive = matchesLevel(room.levelRef, activeLevel)
     const isBelowActive = belowLevelId !== undefined && (room.levelRef ?? null) === belowLevelId
-    if (!isActive && !isBelowActive && !isOutsideView) continue
+    if (!shouldRenderAtElevation(isActive, isBelowActive, isOutsideView)) continue
     const elev = elevationFor(room.levelRef, elevations)
     if (isActive && room.floorVisible !== false) root.add(roomMesh(room, elev))
     else if (isBelowActive) root.add(roomMesh(room, elev, { opacity: BELOW_LEVEL_FLOOR_OPACITY }))

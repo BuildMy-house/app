@@ -13,7 +13,7 @@
  */
 
 import * as THREE from 'three'
-import type { Wall, Furniture, Room, NormalizedHomeState } from '../core/home'
+import type { Wall, Furniture, Room, Roof, NormalizedHomeState } from '../core/home'
 import {
   BELOW_CEILING_Z_FIGHT_OFFSET_CM,
   BELOW_LEVEL_FLOOR_OPACITY,
@@ -23,6 +23,7 @@ import {
   furnitureMesh,
   matchesLevel,
   roomMesh,
+  shouldRenderAtElevation,
   shouldShowCeiling,
   tintEmissive,
   wallEdges,
@@ -151,6 +152,18 @@ export function computeSceneUpdates(
     }
   }
 
+  // Roofs have no delta path — any roof change falls back to a full rebuild
+  // so a roof edit bundled with, say, a furniture move isn't silently dropped.
+  const roofsChanged =
+    oldHome.roofs.length !== newHome.roofs.length ||
+    newHome.roofs.some((r) => {
+      const old = oldHome.roofs.find((o) => o.id === r.id)
+      return !old || !roofsEqual(old, r)
+    })
+  if (roofsChanged) {
+    return [{ type: 'full-rebuild', reason: 'roof change detected' }]
+  }
+
   // If no updates detected but we have a change, something structural changed
   if (updates.length === 0) {
     return [{ type: 'full-rebuild', reason: 'structural change detected' }]
@@ -220,6 +233,25 @@ function roomsEqual(a: Room, b: Room): boolean {
     a.floorColor === b.floorColor &&
     a.floorTextureId === b.floorTextureId &&
     a.levelRef === b.levelRef
+  )
+}
+
+/**
+ * Deep equality for roofs (compare fields the roof mesh is built from).
+ */
+function roofsEqual(a: Roof, b: Roof): boolean {
+  if (a.points.length !== b.points.length) return false
+  for (let i = 0; i < a.points.length; i++) {
+    const pa = a.points[i]!
+    const pb = b.points[i]!
+    if (pa[0] !== pb[0] || pa[1] !== pb[1]) return false
+  }
+  return (
+    a.levelRef === b.levelRef &&
+    a.style === b.style &&
+    a.pitchDeg === b.pitchDeg &&
+    a.overhangCm === b.overhangCm &&
+    a.color === b.color
   )
 }
 
@@ -475,8 +507,11 @@ function remeshWall(
   removeNamed(scene, `wall:${w.id}`)
   removeNamed(scene, `wall-edge:${w.id}`)
   const activeLevel = opts?.activeLevel ?? null
+  const isOutsideView = opts?.isOutsideView ?? false
+  const isActive = matchesLevel(w.levelRef, activeLevel)
   const belowLevelId = findLevelBelowId(activeLevel, home.levels)
   const isBelowActive = belowLevelId !== undefined && (w.levelRef ?? null) === belowLevelId
+  if (!shouldRenderAtElevation(isActive, isBelowActive, isOutsideView)) return
   const transparency = isBelowActive
     ? Math.max(wallsTransparency, BELOW_LEVEL_WALL_TRANSPARENCY)
     : wallsTransparency
@@ -486,7 +521,7 @@ function remeshWall(
   // stack) — drop them just under it to avoid z-fighting, same as ceilings.
   if (isBelowActive) mesh.position.y -= BELOW_CEILING_Z_FIGHT_OFFSET_CM
   root.add(mesh)
-  root.add(wallEdges(w, elev, home.walls))
+  if (isActive) root.add(wallEdges(w, elev, home.walls))
   if (home.selection.includes(w.id)) tintEmissive(mesh)
 }
 
@@ -556,22 +591,26 @@ function applyRoomUpdate(
   const belowLevelId = findLevelBelowId(activeLevel, home.levels)
   const isBelowActive = belowLevelId !== undefined && (room.levelRef ?? null) === belowLevelId
 
+  if (room.points.length < 3) return true
+  if (!shouldRenderAtElevation(isActive, isBelowActive, isOutsideView)) return true
+
   const elev = elevationAt(room.levelRef, levelElevations(home))
   let floor: THREE.Mesh | null = null
   let ceiling: THREE.Mesh | null = null
-  if (room.points.length >= 3 && (isActive || isBelowActive)) {
-    if (isActive && room.floorVisible !== false) {
-      floor = roomMesh(room, elev)
-      root.add(floor)
-    } else if (isBelowActive) {
-      floor = roomMesh(room, elev, { opacity: BELOW_LEVEL_FLOOR_OPACITY })
-      root.add(floor)
-    }
-    if (shouldShowCeiling(room, { isOutsideView, isBelowActiveLevel: isBelowActive })) {
-      ceiling = ceilingMesh(room, elev, home.levels)
-      if (isBelowActive) ceiling.position.y -= BELOW_CEILING_Z_FIGHT_OFFSET_CM
-      root.add(ceiling)
-    }
+  if (isActive && room.floorVisible !== false) {
+    floor = roomMesh(room, elev)
+    root.add(floor)
+  } else if (isBelowActive) {
+    floor = roomMesh(room, elev, { opacity: BELOW_LEVEL_FLOOR_OPACITY })
+    root.add(floor)
+  } else if (isOutsideView && room.floorVisible !== false) {
+    floor = roomMesh(room, elev)
+    root.add(floor)
+  }
+  if (shouldShowCeiling(room, { isOutsideView, isBelowActiveLevel: isBelowActive })) {
+    ceiling = ceilingMesh(room, elev, home.levels)
+    if (isBelowActive) ceiling.position.y -= BELOW_CEILING_Z_FIGHT_OFFSET_CM
+    root.add(ceiling)
   }
   if (home.selection.includes(room.id)) {
     if (floor) tintEmissive(floor)
