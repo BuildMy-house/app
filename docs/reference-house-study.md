@@ -76,21 +76,22 @@ architectural measurement.
 3. ~~The default 3D camera plus a solid roof hides the interior. The
    comparison captures omit the roof so the interiors remain visible; this
    is explicitly a presentation workaround, not a faithful roof
-   reconstruction.~~ **Closed 2026-09-21:** a real roof cutaway / hide-roof
-   toggle now exists, following the existing `isOutsideView`/ceiling-
-   visibility pattern in `src/view3d/scene.ts` (`shouldShowCeiling`) rather
-   than a new mechanism. `buildScene`'s `showRoof` option (default `true`)
-   skips every roof mesh when `false`; `View3D.setRoofVisible()` /
-   `View3D.showRoof` drive it for the live viewport, wired to a "Roof"
-   checkbox in the toolbar (`src/main.ts`). The headless `CaptureService`
-   used by the automation `screenshot` command got the same flag
+   reconstruction.~~ **Closed 2026-09-21:** roof visibility in the live
+   viewport is now fully automatic, tied to the outside/inside view mode
+   rather than a user-facing control: the roof render loop in
+   `src/view3d/scene.ts` gates on `isOutsideView` (added in commit 4d6bffc),
+   so roofs hide themselves whenever the viewport is not in outside/exterior
+   view — there is no "Roof" toolbar toggle anymore. `View3D.setRoofVisible()`
+   / `View3D.showRoof` and the headless `CaptureService`
    (`setRoofVisible`/`getRoofVisible`), exposed as the `set_roof_visible`
    automation command (`src/automation/homely-handler.ts`) and MCP tool
-   (`mcp/server.py`) — so scripted comparison renders can hide the roof for
-   an interior shot without omitting it from the home state itself, closing
-   the presentation-workaround gap this issue described. Covered by tests in
-   `src/view3d/scene.test.ts`, `tests/capture.test.ts`, and
-   `tests/handshake.test.ts`.
+   (`mcp/server.py`), still exist and still work exactly as before, but only
+   as a dev/automation override for scripted screenshots — not as something
+   surfaced in the app's own toolbar — so scripted comparison renders can
+   still hide the roof for an interior shot without omitting it from the home
+   state itself, closing the presentation-workaround gap this issue
+   described. Covered by tests in `src/view3d/scene.test.ts`,
+   `tests/capture.test.ts`, and `tests/handshake.test.ts`.
 4. Furniture catalog items are mostly proxy geometry and vary from the
    reference furniture in scale, color, and silhouette.
 5. The first MCP study reported two unconnected divider-wall endpoints; the
