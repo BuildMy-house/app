@@ -829,6 +829,35 @@ export class PlanEngine {
         )
         return
       }
+      if (hit.kind === 'room') {
+        if (!home.selection.includes(hit.id)) this.model.setSelection([hit.id])
+        const room = home.rooms.find((r) => r.id === hit.id)
+        if (!room) return
+        const loop = detectClosedLoops(
+          home.walls.filter((w) => this.matchesActiveLevel(w.levelRef)).map((w) => ({
+            id: w.id,
+            start: { x: w.xStart, y: w.yStart },
+            end: { x: w.xEnd, y: w.yEnd },
+            levelRef: w.levelRef ?? null,
+          })),
+        ).find((candidate) => this.findRoomByVertices(candidate.vertices, home)?.id === room.id)
+        this.model.getStore().beginCompoundEdit()
+        this.model.moveSelection(to.x - from.x, to.y - from.y)
+        if (loop) {
+          const ids = loop.walls.map((w) => w.id)
+          for (const id of ids) {
+            const wall = home.walls.find((w) => w.id === id)!
+            this.model.updateWall(id, {
+              xStart: wall.xStart + to.x - from.x,
+              yStart: wall.yStart + to.y - from.y,
+              xEnd: wall.xEnd + to.x - from.x,
+              yEnd: wall.yEnd + to.y - from.y,
+            })
+          }
+        }
+        this.model.getStore().endCompoundEdit()
+        return
+      }
       // polyline-vertex: select the parent entity for dragging
       if (hit.kind === 'polyline-vertex') {
         if (!home.selection.includes(hit.polylineId)) {

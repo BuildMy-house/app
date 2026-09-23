@@ -1159,6 +1159,31 @@ describe('room vertex drag magnetism', () => {
   })
 })
 
+describe('room body drag', () => {
+  it('moves a room and its enclosing walls together in selection mode', () => {
+    const s = setup()
+    const points: [number, number][] = [[0, 0], [200, 0], [200, 150], [0, 150]]
+    const walls = points.map((start, i) => {
+      const end = points[(i + 1) % points.length]!
+      return s.model.addWall({ xStart: start[0], yStart: start[1], xEnd: end[0], yEnd: end[1], thickness: 10, height: 250 })
+    })
+    const room = s.model.addRoom(points)
+
+    s.drag(100, 75, 125, 95)
+
+    expect(s.store.getHome().rooms.find((r) => r.id === room.id)!.points).toEqual(
+      points.map(([x, y]) => [x + 25, y + 20]),
+    )
+    expect(s.store.getHome().walls.map((w) => [w.xStart, w.yStart])).toEqual(
+      points.map(([x, y]) => [x + 25, y + 20]),
+    )
+    expect(s.store.undo()).toBe(true)
+    expect(s.store.getHome().walls.map((w) => [w.xStart, w.yStart])).toEqual(points)
+    expect(s.store.getHome().rooms.find((r) => r.id === room.id)!.points).toEqual(points)
+    expect(walls).toHaveLength(4)
+  })
+})
+
 describe('marquee selection', () => {
   it('selects walls, rooms, furniture inside the rectangle', () => {
     const s = setup()
