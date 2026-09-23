@@ -1411,3 +1411,41 @@ describe('below-level ghost ceiling vs active floor (z-fighting regression)', ()
     expect(upperCeiling.position.y).toBe(500)
   })
 })
+
+describe('below-level walls vs active floor (z-fighting regression)', () => {
+  function stackedHomeWithWalls(): ReturnType<typeof createEmptyHome> {
+    const home = createEmptyHome()
+    home.levels.push(
+      { id: 'level-1', name: 'Ground', elevation: 0, floorThickness: 5, height: 250, visible: true, viewable: true },
+      { id: 'level-2', name: 'Upper', elevation: 250, floorThickness: 5, height: 250, visible: true, viewable: true },
+    )
+    for (const levelRef of ['level-1', 'level-2']) {
+      home.rooms.push({
+        id: `room-${levelRef}`, points: [[0, 0], [400, 0], [400, 200], [0, 200]],
+        levelRef,
+      })
+      home.walls.push({
+        id: `wall-${levelRef}`,
+        xStart: 0, yStart: 0, xEnd: 400, yEnd: 0,
+        thickness: 10, levelRef,
+      })
+    }
+    return home
+  }
+
+  it('drops the below-level wall just under the active floor, never coplanar', () => {
+    const scene = buildScene(stackedHomeWithWalls(), { activeLevel: 'level-2', isOutsideView: false })
+    const belowWall = scene.getObjectByName('wall:wall-level-1') as THREE.Object3D
+    expect(belowWall).toBeTruthy()
+    // Wall top cap would land at exactly the active floor's Y (0 + 250) and
+    // z-fight with it. Dropped by BELOW_CEILING_Z_FIGHT_OFFSET_CM instead.
+    expect(belowWall.position.y).toBe(-BELOW_CEILING_Z_FIGHT_OFFSET_CM)
+  })
+
+  it('leaves the active-level wall at its own elevation', () => {
+    const scene = buildScene(stackedHomeWithWalls(), { activeLevel: 'level-2', isOutsideView: false })
+    const activeWall = scene.getObjectByName('wall:wall-level-2') as THREE.Object3D
+    expect(activeWall).toBeTruthy()
+    expect(activeWall.position.y).toBe(250)
+  })
+})

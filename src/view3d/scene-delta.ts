@@ -17,6 +17,7 @@ import type { Wall, Furniture, Room, NormalizedHomeState } from '../core/home'
 import {
   BELOW_CEILING_Z_FIGHT_OFFSET_CM,
   BELOW_LEVEL_FLOOR_OPACITY,
+  BELOW_LEVEL_WALL_TRANSPARENCY,
   ceilingMesh,
   findLevelBelowId,
   furnitureMesh,
@@ -307,9 +308,9 @@ function applySceneUpdateCase(
       return applyFurnitureMatrixUpdate(scene, update, home)
     }
     case 'wall-update':
-      return applyWallUpdate(scene, update, home, oldHome)
+      return applyWallUpdate(scene, update, home, oldHome, opts)
     case 'wall-delete':
-      return applyWallDelete(scene, update, home, oldHome)
+      return applyWallDelete(scene, update, home, oldHome, opts)
     case 'room-update':
       return applyRoomUpdate(scene, update, home, opts)
     case 'room-delete':
@@ -424,6 +425,7 @@ function applyWallUpdate(
   update: SceneUpdate,
   home: NormalizedHomeState,
   oldHome?: NormalizedHomeState | null,
+  opts?: ApplySceneUpdateOptions,
 ): boolean {
   const wall = update.wall
   if (!wall || !update.wallId) return false
@@ -451,7 +453,7 @@ function applyWallUpdate(
   const elevations = levelElevations(home)
   const wallsTransparency = home.environment.wallsAlpha ?? 0
   for (const [, w] of touched) {
-    remeshWall(scene, root, w, home, elevations, wallsTransparency)
+    remeshWall(scene, root, w, home, elevations, wallsTransparency, opts)
   }
   return true
 }
@@ -468,11 +470,21 @@ function remeshWall(
   home: NormalizedHomeState,
   elevations: Map<string, number>,
   wallsTransparency: number,
+  opts?: ApplySceneUpdateOptions,
 ): void {
   removeNamed(scene, `wall:${w.id}`)
   removeNamed(scene, `wall-edge:${w.id}`)
+  const activeLevel = opts?.activeLevel ?? null
+  const belowLevelId = findLevelBelowId(activeLevel, home.levels)
+  const isBelowActive = belowLevelId !== undefined && (w.levelRef ?? null) === belowLevelId
+  const transparency = isBelowActive
+    ? Math.max(wallsTransparency, BELOW_LEVEL_WALL_TRANSPARENCY)
+    : wallsTransparency
   const elev = elevationAt(w.levelRef, elevations)
-  const mesh = wallMesh(w, elev, wallsTransparency, home.furniture, home.walls)
+  const mesh = wallMesh(w, elev, transparency, home.furniture, home.walls)
+  // Below-level walls' top caps sit coplanar with the active floor (levels
+  // stack) — drop them just under it to avoid z-fighting, same as ceilings.
+  if (isBelowActive) mesh.position.y -= BELOW_CEILING_Z_FIGHT_OFFSET_CM
   root.add(mesh)
   root.add(wallEdges(w, elev, home.walls))
   if (home.selection.includes(w.id)) tintEmissive(mesh)
@@ -490,6 +502,7 @@ function applyWallDelete(
   update: SceneUpdate,
   home: NormalizedHomeState,
   oldHome?: NormalizedHomeState | null,
+  opts?: ApplySceneUpdateOptions,
 ): boolean {
   const id = update.wallId
   if (!id) return false
@@ -514,7 +527,7 @@ function applyWallDelete(
   const elevations = levelElevations(home)
   const wallsTransparency = home.environment.wallsAlpha ?? 0
   for (const w of touched) {
-    remeshWall(scene, root, w, home, elevations, wallsTransparency)
+    remeshWall(scene, root, w, home, elevations, wallsTransparency, opts)
   }
   return true
 }
