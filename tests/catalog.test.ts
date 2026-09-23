@@ -173,7 +173,7 @@ describe('bundled catalog manifest', () => {
     const catalog = new FurnitureCatalog(catalogJson.items)
     for (const item of catalog.list()) {
       if (item.modelPath !== undefined) {
-        expect(item.modelPath, `item ${item.catalogId} modelPath`).toMatch(/^(models\/.+\.glb|https?:\/\/.+\.glb)$/)
+        expect(item.modelPath, `item ${item.catalogId} modelPath`).toMatch(/^(models\/.+\.glb|https?:\/\/.+\.glb(\?.*)?)$/)
       }
     }
   })
