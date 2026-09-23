@@ -34,6 +34,14 @@ export function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new ModelError(message)
 }
 
+function wallOffsetAt(x: number, y: number, wall: Wall): number | null {
+  const dx = wall.xEnd - wall.xStart
+  const dy = wall.yEnd - wall.yStart
+  const length = Math.hypot(dx, dy)
+  if (length === 0) return null
+  return ((x - wall.xStart) * dx + (y - wall.yStart) * dy) / length
+}
+
 function requirePositive(value: unknown, field: string): void {
   assert(
     typeof value === 'number' && Number.isFinite(value) && value > 0,
@@ -464,6 +472,18 @@ export class HomeModel {
   }
 
   updateFurniture(id: string, patch: Partial<Omit<Furniture, 'id'>>): Furniture {
+    if ((patch.x !== undefined || patch.y !== undefined) && patch.wallOffset === undefined) {
+      const home = this.store.getHome()
+      const item = home.furniture.find((f) => f.id === id)
+      const wallRef = patch.wallRef === undefined ? item?.wallRef : patch.wallRef
+      const wall = wallRef ? home.walls.find((w) => w.id === wallRef) : undefined
+      if (item && wall) {
+        patch = {
+          ...patch,
+          wallOffset: wallOffsetAt(patch.x ?? item.x, patch.y ?? item.y, wall),
+        }
+      }
+    }
     return this.updateIn('furniture', id, patch)
   }
 
@@ -723,9 +743,17 @@ export class HomeModel {
         p.points = p.points.map(([x, y]) => [x + dx, y + dy] as [number, number])
       }
       for (const f of h.furniture) {
-        if (!selection.has(f.id)) continue
-        f.x += dx
-        f.y += dy
+        if (selection.has(f.id)) {
+          f.x += dx
+          f.y += dy
+          if (f.wallRef && !selection.has(f.wallRef)) {
+            const wall = h.walls.find((w) => w.id === f.wallRef)
+            if (wall) f.wallOffset = wallOffsetAt(f.x, f.y, wall)
+          }
+        } else if (f.wallRef && selection.has(f.wallRef)) {
+          f.x += dx
+          f.y += dy
+        }
       }
       for (const d of h.dimensionLines) {
         if (!selection.has(d.id)) continue
