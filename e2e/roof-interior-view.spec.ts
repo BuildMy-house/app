@@ -28,6 +28,17 @@ function roofMeshCount(page: import('@playwright/test').Page) {
   })
 }
 
+function namedMeshCount(page: import('@playwright/test').Page, prefix: string) {
+  return page.evaluate((p) => {
+    const v3d = (window as unknown as { __view3d?: { scene: { traverse: (fn: (o: any) => void) => void } } }).__view3d
+    let count = 0
+    v3d?.scene.traverse((obj: any) => {
+      if (obj?.isMesh && typeof obj.name === 'string' && obj.name.startsWith(p)) count++
+    })
+    return count
+  }, prefix)
+}
+
 test.describe('roof visibility in default (interior) app state', () => {
   test('roof is hidden by default on a fresh single-story home (no level selected, not outside view)', async ({ page }) => {
     await boot(page)
@@ -73,5 +84,55 @@ test.describe('roof visibility in default (interior) app state', () => {
       await page.waitForTimeout(200)
       expect(await roofMeshCount(page)).toBeGreaterThan(0)
     }
+  })
+
+  test('single-level home: ceiling visibility rules hold and repeated toggles leave no stale meshes', async ({ page }) => {
+    await boot(page)
+    await page.evaluate(() => {
+      const model = (window as unknown as { __model: any }).__model
+      model.addLevel({ name: 'Ground', elevation: 0, floorThickness: 5, height: 250, visible: true, viewable: true })
+      const ground = model.getStore().getHome().levels[0]
+      // Auto ceiling (ceilingVisible undefined), forced-on, forced-off.
+      model.addRoom([[0, 0], [200, 0], [200, 200], [0, 200]], { levelRef: ground.id })
+      model.addRoom([[200, 0], [400, 0], [400, 200], [200, 200]], { levelRef: ground.id, ceilingVisible: true })
+      model.addRoom([[0, 200], [200, 200], [200, 400], [0, 400]], { levelRef: ground.id, ceilingVisible: false })
+      model.addRoof([[0, 0], [400, 0], [400, 400], [0, 400]], { levelRef: ground.id })
+    })
+    await page.waitForFunction(() => {
+      const model = (window as unknown as { __model?: any }).__model
+      const home = model?.getStore()?.getHome()
+      return home?.levels?.length === 1 && home?.rooms?.length === 3 && home?.roofs?.length === 1
+    }, { timeout: 10_000 })
+    await page.waitForTimeout(200)
+
+    const assertInsideState = async () => {
+      // Default state (no level selected): roofs never render in interior view.
+      expect(await roofMeshCount(page)).toBe(0)
+      // Auto ceiling hidden; forced-on shown exactly once (no duplicates); forced-off hidden.
+      expect(await namedMeshCount(page, 'ceiling:')).toBe(1)
+    }
+    const assertOutsideState = async () => {
+      // Outside view: the roof renders exactly once, forced-off ceiling stays hidden.
+      expect(await roofMeshCount(page)).toBe(1)
+      expect(await namedMeshCount(page, 'ceiling:')).toBe(2)
+    }
+
+    // Static toolbar HTML: both toggle buttons must exist or the toggles below are vacuous.
+    await expect(page.locator('button[data-outside-view="true"]')).toHaveCount(1)
+    await expect(page.locator('button[data-outside-view="false"]')).toHaveCount(1)
+
+    const insideBtn = page.locator('button[data-outside-view="false"]')
+    const outsideBtn = page.locator('button[data-outside-view="true"]')
+
+    await assertInsideState()
+    await outsideBtn.click()
+    await page.waitForTimeout(200)
+    await assertOutsideState()
+    await insideBtn.click()
+    await page.waitForTimeout(200)
+    await assertInsideState()
+    await outsideBtn.click()
+    await page.waitForTimeout(200)
+    await assertOutsideState()
   })
 })
