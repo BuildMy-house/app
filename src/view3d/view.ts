@@ -228,6 +228,7 @@ export class View3D {
         const start = item && this.floorPoint(e)
         if (!item || !start) return
         this.furnitureDrag = { id: item.id, x: item.x, y: item.y, start }
+        this.store.beginCompoundEdit()
         this.model.setSelection([item.id])
         this.controls!.enabled = false
         renderer.domElement.setPointerCapture(e.pointerId)
@@ -245,6 +246,7 @@ export class View3D {
       renderer.domElement.addEventListener('pointerup', (e) => {
         if (this.furnitureDrag) {
           this.furnitureDrag = null
+          this.store.endCompoundEdit()
           this.controls!.enabled = true
           return
         }
@@ -260,6 +262,7 @@ export class View3D {
       renderer.domElement.addEventListener('pointercancel', () => {
         if (!this.furnitureDrag) return
         this.furnitureDrag = null
+        this.store.endCompoundEdit()
         this.controls!.enabled = true
       })
 

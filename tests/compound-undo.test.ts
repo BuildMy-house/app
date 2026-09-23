@@ -54,6 +54,22 @@ describe('compound undo — furniture placement (M43)', () => {
     expect(store.canUndo()).toBe(false)
   })
 
+  it('undoes all position updates from one furniture drag together', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const item = model.addFurniture(makeFurniture())
+    const original = store.getHome().furniture[0]!
+
+    store.beginCompoundEdit()
+    model.updateFurniture(item.id, { x: 110, y: 210 })
+    model.updateFurniture(item.id, { x: 130, y: 240 })
+    store.endCompoundEdit()
+
+    expect(store.getHome().furniture[0]).toMatchObject({ x: 130, y: 240 })
+    expect(store.undo()).toBe(true)
+    expect(store.getHome().furniture[0]).toEqual(original)
+  })
+
   it('without compound edit, addFurniture + setSelection needs TWO undos', () => {
     const store = new HomeStore()
     const model = new HomeModel(store)
