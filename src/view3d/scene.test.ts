@@ -800,9 +800,10 @@ describe('exterior cladding material (Ticket 5c)', () => {
     })
     const scene = buildScene(home)
     const mesh = wallMeshes(scene)[0]!
-    // ExtrudeGeometry materials array: [caps, side cladding] (group 0/1).
+    // ExtrudeGeometry materials array: [caps, left cladding, right cladding]
+    // (side group split into left/right faces by splitSideFacesByWallSide).
     const mats = mesh.material as THREE.MeshPhysicalMaterial[]
-    expect(mats).toHaveLength(2)
+    expect(mats).toHaveLength(3)
     expect(mats[1]).toBeInstanceOf(THREE.MeshPhysicalMaterial)
     const mat = mats[1]!
     expect(mat.clearcoat).toBeGreaterThan(0)
@@ -820,11 +821,13 @@ describe('exterior cladding material (Ticket 5c)', () => {
     })
     const scene = buildScene(home)
     const mats = wallMeshes(scene)[0]!.material as THREE.MeshStandardMaterial[]
-    const [caps, side] = mats
-    expect(caps).not.toBe(side)
+    const [caps, left, right] = mats
+    expect(caps).not.toBe(left)
     expect(caps!.color.getHex()).toBe(0xc8c8c8) // DEFAULT_CEILING_COLOR
     expect(caps!.roughness).toBe(0.7)
-    expect(side!.color.getHex()).toBe(0x224466)
+    expect(left!.color.getHex()).toBe(0x224466)
+    // No rightSideColor set → right face falls back to the left side's look.
+    expect(right!.color.getHex()).toBe(0x224466)
   })
 
   it('a custom leftSideColor still comes through the cladding material unchanged', () => {
@@ -836,6 +839,114 @@ describe('exterior cladding material (Ticket 5c)', () => {
     const scene = buildScene(home)
     const mesh = wallMeshes(scene)[0]!
     expect((mesh.material as THREE.MeshPhysicalMaterial[])[1]!.color.getHex()).toBe(0x224466)
+  })
+})
+
+// ── Per-side wall materials: left/right faces render their own side fields ──
+
+describe('wall left/right side faces (per-side materials)', () => {
+  /** Centroid Z (plan depth) of every triangle in a geometry group. */
+  function groupCentroidZs(mesh: THREE.Mesh, materialIndex: number): number[] {
+    const pos = mesh.geometry.getAttribute('position') as THREE.BufferAttribute
+    const zs: number[] = []
+    for (const group of mesh.geometry.groups) {
+      if (group.materialIndex !== materialIndex) continue
+      for (let t = group.start; t < group.start + group.count; t += 3) {
+        zs.push((pos.getZ(t) + pos.getZ(t + 1) + pos.getZ(t + 2)) / 3)
+      }
+    }
+    return zs
+  }
+
+  it('a plain wall splits its side faces into a left group (z > 0) and a right group (z < 0)', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 300, yEnd: 0,
+      thickness: 15, leftSideColor: 0x224466,
+    })
+    const scene = buildScene(home)
+    const mesh = wallMeshes(scene)[0]!
+    expect(mesh.geometry.groups.map((g) => g.materialIndex)).toEqual([0, 1, 2])
+
+    // Wall runs +X, so wall-exterior.ts convention: RIGHT normal = (uy, -ux)
+    // = (0, -1) in plan → right faces sit at plan z = -thickness/2, left at
+    // +thickness/2. Geometry local z matches plan offsets from the midpoint.
+    // Long side faces land exactly at ±7.5; end/miter faces lean by their
+    // centroid (±thickness/6 for a flat end) — the split guarantees sign
+    // consistency: group 1 = z ≥ 0 half, group 2 = z ≤ 0 half.
+    const leftZs = groupCentroidZs(mesh, 1)
+    const rightZs = groupCentroidZs(mesh, 2)
+    for (const z of leftZs) expect(z).toBeGreaterThanOrEqual(0)
+    for (const z of rightZs) expect(z).toBeLessThanOrEqual(0)
+    expect(leftZs.filter((z) => Math.abs(z - 7.5) < 1e-6).length).toBeGreaterThan(0)
+    expect(rightZs.filter((z) => Math.abs(z + 7.5) < 1e-6).length).toBeGreaterThan(0)
+  })
+
+  it('left and right faces get materials from their own leftSide*/rightSide* fields', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 300, yEnd: 0,
+      thickness: 15,
+      leftSideColor: 0x224466,
+      rightSideColor: 0x884422,
+    })
+    const scene = buildScene(home)
+    const mats = wallMeshes(scene)[0]!.material as THREE.MeshPhysicalMaterial[]
+    expect(mats[1]!.color.getHex()).toBe(0x224466) // left
+    expect(mats[2]!.color.getHex()).toBe(0x884422) // right
+  })
+
+  it('segmented walls (with openings) also carry the 3-way material split', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 400, yEnd: 0,
+      thickness: 15,
+      leftSideColor: 0x224466,
+      rightSideColor: 0x884422,
+    })
+    home.furniture.push({
+      id: 'd1', name: 'Door',
+      x: 200, y: 0, angleDeg: 0,
+      width: 90, depth: 15, height: 210,
+      elevation: 0,
+      doorOrWindow: true, wallRef: 'w1', wallOffset: 200,
+    })
+    const scene = buildScene(home)
+    const meshes = wallMeshes(scene)
+    expect(meshes.length).toBeGreaterThan(1)
+    for (const mesh of meshes) {
+      const mats = mesh.material as THREE.MeshPhysicalMaterial[]
+      expect(mats).toHaveLength(3)
+      expect(mats[1]!.color.getHex()).toBe(0x224466)
+      expect(mats[2]!.color.getHex()).toBe(0x884422)
+    }
+  })
+
+  it('userData exposes the shared interior/exterior derivation for both sides', () => {
+    const home = createEmptyHome()
+    // Wall (0,0)→(100,0): LEFT = +z side, RIGHT = -z side (plan -y).
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0,
+      thickness: 15, leftSideColor: 0xd2d2d2,
+    })
+    // Room only on the left side → left interior, right exterior.
+    home.rooms.push({ id: 'r1', points: [[0, 10], [200, 10], [200, 200], [0, 200]] })
+    const scene = buildScene(home)
+    const userData = wallMeshes(scene)[0]!.userData
+    expect(userData.leftSideExterior).toBe(false)
+    expect(userData.rightSideExterior).toBe(true)
+
+    // Manual override short-circuits the geometry derivation.
+    const home2 = createEmptyHome()
+    home2.walls.push({
+      id: 'w2', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0,
+      thickness: 15, leftSideColor: 0xd2d2d2,
+      rightSideExteriorOverride: false,
+    })
+    const scene2 = buildScene(home2)
+    const userData2 = wallMeshes(scene2)[0]!.userData
+    expect(userData2.leftSideExterior).toBe(true) // no rooms → auto exterior
+    expect(userData2.rightSideExterior).toBe(false) // overridden
   })
 })
 

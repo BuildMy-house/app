@@ -514,7 +514,7 @@ function remeshWall(
     ? Math.max(wallsTransparency, BELOW_LEVEL_WALL_TRANSPARENCY)
     : wallsTransparency
   const elev = elevationAt(w.levelRef, elevations)
-  const mesh = wallMesh(w, elev, transparency, home.furniture, home.walls)
+  const mesh = wallMesh(w, elev, transparency, home.furniture, home.walls, home.rooms)
   // Below-level walls' top caps sit coplanar with the active floor (levels
   // stack) — drop them just under it to avoid z-fighting, same as ceilings.
   if (isBelowActive) mesh.position.y -= BELOW_CEILING_Z_FIGHT_OFFSET_CM

@@ -14,6 +14,7 @@ import {
   type WallTextureEntry,
 } from '../core/home'
 import { isArcWall, wallOutlinePoints } from '../core/top-camera-follower'
+import { getWallSideExterior } from '../core/wall-exterior'
 import { createInstancedMesh, groupFurnitureForInstancing } from './instanced-meshes'
 import { recordModelLoad, recordTextureLoad } from './asset-metrics'
 import { loadViewportQuality } from './viewport-quality'
@@ -131,6 +132,73 @@ function miteredShape(outline: Pt[], midX: number, midY: number): THREE.Shape {
   return shape
 }
 
+/**
+ * Split ExtrudeGeometry's single swept-side group (materialIndex 1) into the
+ * wall's LEFT (materialIndex 1) and RIGHT (materialIndex 2) face groups, so
+ * each physical side renders its own material. ExtrudeGeometry groups by
+ * cap-vs-side only — left and right faces of the wall end up in one group —
+ * so classification is per-triangle, by the sign of the triangle centroid's
+ * offset along the wall's right-side outward plan normal (wall-exterior.ts
+ * convention: RIGHT = (uy, -ux)). Geometry-local X/Z map 1:1 to plan offsets
+ * from the wall midpoint (miteredShape centres the outline; rotateX(-π/2)
+ * maps shape y → -z), so long side faces land at ±thickness/2 and end/miter
+ * faces lean whichever way their centroid does (±thickness/6 for a flat end),
+ * reading as a continuation of the adjacent side's cladding.
+ * The vertex buffer is rebuilt as [caps | left | right] with one group per
+ * band, matching a [capMaterial, leftMaterial, rightMaterial] array.
+ */
+function splitSideFacesByWallSide(
+  geometry: THREE.BufferGeometry,
+  ux: number,
+  uy: number,
+): void {
+  const pos = geometry.getAttribute('position') as THREE.BufferAttribute | null
+  if (!pos || geometry.groups.length === 0) return
+  const triCount = pos.count / 3
+  const sideOf = new Uint8Array(triCount) // 0 = cap, 1 = left, 2 = right
+  let leftTris = 0
+  let rightTris = 0
+  for (const group of geometry.groups) {
+    if (group.materialIndex !== 1) continue
+    for (let t = group.start / 3; t < (group.start + group.count) / 3; t++) {
+      const v = t * 3
+      const cx = (pos.getX(v) + pos.getX(v + 1) + pos.getX(v + 2)) / 3
+      const cz = (pos.getZ(v) + pos.getZ(v + 1) + pos.getZ(v + 2)) / 3
+      sideOf[t] = cx * uy - cz * ux >= 0 ? 2 : 1
+      if (sideOf[t] === 1) leftTris++
+      else rightTris++
+    }
+  }
+  if (leftTris === 0 || rightTris === 0) return
+
+  const order: number[] = []
+  for (let pass = 0; pass < 3; pass++) {
+    for (let t = 0; t < triCount; t++) {
+      if (sideOf[t] === pass) order.push(t)
+    }
+  }
+  for (const name of ['position', 'normal', 'uv']) {
+    const src = geometry.getAttribute(name) as THREE.BufferAttribute | undefined
+    if (!src) continue
+    const itemSize = src.itemSize
+    const arr = new Float32Array(itemSize * src.count)
+    let w = 0
+    for (const t of order) {
+      for (let v = 0; v < 3; v++) {
+        const s = t * 3 + v
+        for (let c = 0; c < itemSize; c++) arr[w++] = src.array[itemSize * s + c] as number
+      }
+    }
+    geometry.setAttribute(name, new THREE.BufferAttribute(arr, itemSize))
+  }
+  const capTris = triCount - leftTris - rightTris
+  const capVerts = capTris * 3
+  geometry.clearGroups()
+  geometry.addGroup(0, capVerts, 0)
+  geometry.addGroup(capVerts, leftTris * 3, 1)
+  geometry.addGroup(capVerts + leftTris * 3, rightTris * 3, 2)
+}
+
 // ── Wall opening segmentation (M33, ported from render/scene-builder.ts) ──
 
 interface WallOpening {
@@ -171,6 +239,9 @@ export function wallMesh(
   wallsTransparency: number,
   furniture: ReadonlyArray<Furniture>,
   allWalls: Wall[],
+  // Not ReadonlyArray: getWallSideExterior() takes RoomPolygon[] (mutable)
+  // and wall-exterior.ts is shared with the panel/export paths.
+  rooms: Room[],
 ): THREE.Object3D {
   const dx = wall.xEnd - wall.xStart
   const dy = wall.yEnd - wall.yStart
@@ -178,21 +249,40 @@ export function wallMesh(
   const height = wall.height ?? DEFAULT_WALL_HEIGHT_CM
   // Ticket 5c: exterior cladding material — MeshPhysicalMaterial + clearcoat
   // instead of a flat MeshStandardMaterial (see claddingMaterial() above).
-  const material = claddingMaterial(wall.leftSideColor ?? DEFAULT_WALL_COLOR, 0.7, 0.0)
+  // Each physical side of the wall gets its OWN material from its own
+  // leftSide*/rightSide* fields (rightSide falls back to leftSide, matching
+  // scene-builder.ts:399-400) — splitSideFacesByWallSide() routes each side
+  // face group to its material below.
+  const leftMaterial = claddingMaterial(wall.leftSideColor ?? DEFAULT_WALL_COLOR, 0.7, 0.0)
   // SH3D Wall3D.java:1522 — wallsAlpha is a TRANSPARENCY (0 = opaque).
   if (wallsTransparency > 0) {
-    material.transparent = true
-    material.opacity = 1 - wallsTransparency
+    leftMaterial.transparent = true
+    leftMaterial.opacity = 1 - wallsTransparency
+  }
+  const rightMaterial = claddingMaterial(
+    wall.rightSideColor ?? wall.leftSideColor ?? DEFAULT_WALL_COLOR,
+    0.7,
+    0.0,
+  )
+  if (wallsTransparency > 0) {
+    rightMaterial.transparent = true
+    rightMaterial.opacity = 1 - wallsTransparency
   }
 
   // Untextured walls default to the plaster-white PBR set (diffuse/normal/
   // roughness/AO, matte 0.9 roughness) instead of a flat clearcoat-shiny
   // color; the material's color still tints the near-white plaster map.
-  const wallTexture = applyMaterialTextures(material, wall.leftSideTextureId ?? 'plaster-white')
+  const leftTexture = applyMaterialTextures(leftMaterial, wall.leftSideTextureId ?? 'plaster-white')
+  const rightTexture = applyMaterialTextures(
+    rightMaterial,
+    wall.rightSideTextureId ?? wall.leftSideTextureId ?? 'plaster-white',
+  )
+  const wallTexture = leftTexture ?? rightTexture
 
-  // ExtrudeGeometry groups: materialIndex 0 = caps (top/bottom after the
-  // rotateX below), 1 = side walls. Caps get the matte neutral ceiling-style
-  // material so a wall's top edge reads as a cut slab surface, not cladding.
+  // ExtrudeGeometry groups (after splitSideFacesByWallSide): materialIndex
+  // 0 = caps (top/bottom after the rotateX below), 1 = left side faces,
+  // 2 = right side faces. Caps get the matte neutral ceiling-style material
+  // so a wall's top edge reads as a cut slab surface, not cladding.
   const capMaterial = new THREE.MeshStandardMaterial({
     color: DEFAULT_CEILING_COLOR,
     roughness: 0.7,
@@ -201,6 +291,14 @@ export function wallMesh(
   if (wallsTransparency > 0) {
     capMaterial.transparent = true
     capMaterial.opacity = 1 - wallsTransparency
+  }
+
+  // Same derivation the properties panel and scene-builder.ts use (shared
+  // wall-exterior.ts logic, honoring the manual overrides) — exposed on
+  // userData so the 3D view never contradicts the panel's label.
+  const sideExterior = {
+    leftSideExterior: getWallSideExterior(wall, 'left', rooms),
+    rightSideExterior: getWallSideExterior(wall, 'right', rooms),
   }
 
   const ux = dx / (length || 1)
@@ -217,15 +315,17 @@ export function wallMesh(
     const shape = miteredShape(outline, midX, midY)
     const geometry = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false })
     geometry.rotateX(-Math.PI / 2)
+    splitSideFacesByWallSide(geometry, ux, uy)
     if (wallTexture) {
       remapExtrudeUvs(geometry)
       if (wallTexture.aoFile) addUv2(geometry)
     }
-    const mesh = new THREE.Mesh(geometry, [capMaterial, material])
+    const mesh = new THREE.Mesh(geometry, [capMaterial, leftMaterial, rightMaterial])
     mesh.name = `wall:${wall.id}`
     mesh.position.set(midX, elevation, midY)
     mesh.castShadow = true
     mesh.receiveShadow = true
+    Object.assign(mesh.userData, sideExterior)
     return mesh
   }
 
@@ -239,15 +339,17 @@ export function wallMesh(
     // ExtrudeGeometry builds in XY extruded along +Z.
     // Rotate -π/2 around X: Y→Z(up), Z→-Y so front face (z=depth) → +Y.
     geometry.rotateX(-Math.PI / 2)
+    splitSideFacesByWallSide(geometry, ux, uy)
     if (wallTexture) {
       remapExtrudeUvs(geometry)
       if (wallTexture.aoFile) addUv2(geometry)
     }
-    const mesh = new THREE.Mesh(geometry, [capMaterial, material])
+    const mesh = new THREE.Mesh(geometry, [capMaterial, leftMaterial, rightMaterial])
     mesh.name = `wall:${wall.id}`
     mesh.position.set(midX, elevation, midY)
     mesh.castShadow = true
     mesh.receiveShadow = true
+    Object.assign(mesh.userData, sideExterior)
     return mesh
   }
 
@@ -272,16 +374,17 @@ export function wallMesh(
 
   const segMesh = (d1: number, d2: number, y1: number, y2: number): THREE.Mesh => {
     const segLen = d2 - d1
-    if (segLen <= 0 || y2 - y1 <= 0) return new THREE.Mesh(new THREE.BufferGeometry(), material)
+    if (segLen <= 0 || y2 - y1 <= 0) return new THREE.Mesh(new THREE.BufferGeometry(), leftMaterial)
     const shape = segShape(d1, d2)
     const segHeight = y2 - y1
     const geometry = new THREE.ExtrudeGeometry(shape, { depth: segHeight, bevelEnabled: false })
     geometry.rotateX(-Math.PI / 2)
+    splitSideFacesByWallSide(geometry, ux, uy)
     if (wallTexture) {
       remapExtrudeUvs(geometry)
       if (wallTexture.aoFile) addUv2(geometry)
     }
-    const m = new THREE.Mesh(geometry, [capMaterial, material])
+    const m = new THREE.Mesh(geometry, [capMaterial, leftMaterial, rightMaterial])
     m.name = `wall:${wall.id}`
     m.position.set(midX, elevation + y1, midY)
     m.castShadow = true
@@ -302,6 +405,7 @@ export function wallMesh(
     pos = Math.max(pos, opEnd)
   }
   if (pos < length) group.add(segMesh(pos, length, 0, height))
+  Object.assign(group.userData, sideExterior)
   return group
 }
 
@@ -1363,7 +1467,7 @@ function buildSceneInner(
     const transparency = isBelowActive
       ? Math.max(wallsTransparency, BELOW_LEVEL_WALL_TRANSPARENCY)
       : wallsTransparency
-    const mesh = wallMesh(wall, elev, transparency, home.furniture, home.walls)
+    const mesh = wallMesh(wall, elev, transparency, home.furniture, home.walls, home.rooms)
     // Below-level walls' top caps sit coplanar with the active floor (levels
     // stack) — drop them just under it to avoid z-fighting, same as ceilings.
     if (isBelowActive) mesh.position.y -= BELOW_CEILING_Z_FIGHT_OFFSET_CM
