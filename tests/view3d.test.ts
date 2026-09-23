@@ -5,7 +5,7 @@ import { HomelyCommandHandler } from '../src/automation/homely-handler'
 import { HomeModel, ModelError } from '../src/core/model'
 import { HomeStore } from '../src/core/store'
 import { CameraDirector, type CameraPresetName } from '../src/view3d/cameras'
-import { buildScene } from '../src/view3d/scene'
+import { __seedModelCache, buildScene, furnitureMesh } from '../src/view3d/scene'
 import { observeStore } from '../src/view3d/watch'
 import { View3D } from '../src/view3d/view'
 
@@ -293,6 +293,23 @@ describe('buildScene', () => {
     const material = (wall.material as THREE.MeshStandardMaterial[])[1]!
     expect(material.transparent).toBe(false)
     expect(material.opacity).toBe(1)
+  })
+})
+
+describe('rotated catalog model dimensions', () => {
+  it('fits quarter-turned door width on its long local axis', () => {
+    const url = 'https://example.test/door.glb?orientation-90-v1'
+    __seedModelCache(url, new THREE.Mesh(new THREE.BoxGeometry(15, 200, 90)))
+    const mesh = furnitureMesh({
+      id: 'door', name: 'Door', x: 0, y: 0, angleDeg: 0,
+      width: 90, depth: 15, height: 200, elevation: 0,
+      doorOrWindow: true, modelPath: url,
+    }, 0)
+    mesh.updateMatrixWorld(true)
+    const size = new THREE.Box3().setFromObject(mesh).getSize(new THREE.Vector3())
+    expect(size.x).toBeCloseTo(15)
+    expect(size.y).toBeCloseTo(200)
+    expect(size.z).toBeCloseTo(90)
   })
 })
 

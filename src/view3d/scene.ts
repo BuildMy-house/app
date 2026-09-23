@@ -931,7 +931,7 @@ function fitModelToBox(model: THREE.Object3D, item: Furniture): THREE.Object3D {
   const box = new THREE.Box3().setFromObject(model)
   const size = box.getSize(new THREE.Vector3())
   if (size.x <= 0 || size.y <= 0 || size.z <= 0) return model
-  const scale = new THREE.Vector3(item.width / size.x, item.height / size.y, item.depth / size.z)
+  const scale = new THREE.Vector3(item.depth / size.x, item.height / size.y, item.width / size.z)
   model.scale.copy(scale)
   const center = box.getCenter(new THREE.Vector3()).multiply(scale)
   model.position.sub(center)
