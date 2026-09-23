@@ -170,13 +170,13 @@ describe('interior-view roof hiding', () => {
     expect(roofMeshes(scene).length).toBe(1)
   })
 
-  it('shows roof in interior view when level above exists (multi-story)', () => {
+  it('hides roof in interior view even when level above exists (multi-story)', () => {
     const home = homeWithRoof([
       { id: 'level-1', elevation: 0, height: 250 },
       { id: 'level-2', elevation: 250, height: 250 },
     ])
     const scene = buildScene(home, { activeLevel: 'level-1', isOutsideView: false })
-    expect(roofMeshes(scene).length).toBe(1)
+    expect(roofMeshes(scene).length).toBe(0)
   })
 
   it('hides roof in interior view on top level with no level above', () => {
@@ -189,14 +189,18 @@ describe('interior-view roof hiding', () => {
     expect(roofMeshes(scene).length).toBe(0)
   })
 
-  it('shows roof in interior view on lower level when level above exists', () => {
+  // User report 2026-09-23: "the roof is on when it should be off" — a
+  // multi-story home with the roof attached to a lower level rendered that
+  // roof in interior view ("interstitial roof underside"). Interior view
+  // must never render roofs, no matter which level they belong to.
+  it('hides roof in interior view on lower level even when level above exists', () => {
     const home = homeWithRoof([
       { id: 'level-1', elevation: 0, height: 250 },
       { id: 'level-2', elevation: 250, height: 250 },
     ])
     home.roofs[0]!.levelRef = 'level-1'
     const scene = buildScene(home, { activeLevel: 'level-1', isOutsideView: false })
-    expect(roofMeshes(scene).length).toBe(1)
+    expect(roofMeshes(scene).length).toBe(0)
   })
 
   // Regression: activeLevel stays null ("All levels") by default for every
@@ -225,14 +229,42 @@ describe('interior-view roof hiding', () => {
     expect(roofMeshes(scene).length).toBe(0)
   })
 
-  it('shows an interstitial roof underside when activeLevel is null (all-levels, multi-story)', () => {
+  it('hides every roof when activeLevel is null (all-levels, multi-story)', () => {
     const home = homeWithRoof([
       { id: 'level-1', elevation: 0, height: 250 },
       { id: 'level-2', elevation: 250, height: 250 },
     ])
     home.roofs[0]!.levelRef = 'level-1'
     const scene = buildScene(home, { activeLevel: null, isOutsideView: false })
-    expect(roofMeshes(scene).length).toBe(1)
+    expect(roofMeshes(scene).length).toBe(0)
+  })
+})
+
+// Interpretation (a) of the "closed rooms are back" report: the ceiling
+// tri-state (8fcc503) must still auto-hide the active level's ceiling in
+// interior view — only below-level ghost ceilings and outside view show one.
+describe('interior-view ceiling auto-hide (tri-state default)', () => {
+  function homeWithRoom(): ReturnType<typeof createEmptyHome> {
+    const home = createEmptyHome()
+    home.levels.push({
+      id: 'level-1', name: 'Ground', elevation: 0, floorThickness: 5,
+      height: 250, visible: true, viewable: true,
+    })
+    home.rooms.push({
+      id: 'r1', points: [[0, 0], [400, 0], [400, 200], [0, 200]],
+      levelRef: 'level-1',
+    })
+    return home
+  }
+
+  it('hides the active room ceiling in interior view (ceilingVisible unset)', () => {
+    const scene = buildScene(homeWithRoom(), { activeLevel: null, isOutsideView: false })
+    expect(ceilingMeshes(scene).length).toBe(0)
+  })
+
+  it('shows the ceiling in outside view', () => {
+    const scene = buildScene(homeWithRoom(), { activeLevel: null, isOutsideView: true })
+    expect(ceilingMeshes(scene).length).toBe(1)
   })
 })
 

@@ -1238,26 +1238,6 @@ export function findLevelBelowId(activeLevel: string | null, levels: Level[]): s
   return bestElevation === -Infinity ? undefined : bestId
 }
 
-/**
- * Id of the level immediately above `activeLevel`, or undefined when
- * `activeLevel` is null (all levels shown) or is already the highest level.
- */
-export function findLevelAboveId(activeLevel: string | null, levels: Level[]): string | undefined {
-  if (activeLevel === null) return undefined
-  const active = levels.find((l) => l.id === activeLevel)
-  if (!active) return undefined
-  let bestId: string | undefined
-  let bestElevation = Infinity
-  for (const level of levels) {
-    if (level.id === activeLevel) continue
-    if (level.elevation > active.elevation && level.elevation < bestElevation) {
-      bestId = level.id
-      bestElevation = level.elevation
-    }
-  }
-  return bestElevation === Infinity ? undefined : bestId
-}
-
 function buildSceneInner(
   home: NormalizedHomeState,
   onModelReady?: () => void,
@@ -1391,8 +1371,10 @@ function buildSceneInner(
   }
   for (const roof of home.roofs) {
     if (!showRoof) continue
-    if (!matchesLevel(roof.levelRef, activeLevel) && !isOutsideView) continue
-    if (!isOutsideView && matchesLevel(roof.levelRef, activeLevel) && !findLevelAboveId(roof.levelRef ?? null, home.levels)) continue
+    // Interior view never renders roofs: any roof at head height reads as
+    // "the roof is stuck on" (user report 2026-09-23), regardless of which
+    // level the roof is attached to. Outside view documents the whole model.
+    if (!isOutsideView) continue
     const level = home.levels.find((item) => item.id === roof.levelRef)
     const mesh = roofMesh(
       roof,

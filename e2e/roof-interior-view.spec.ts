@@ -1,13 +1,12 @@
 import { test, expect } from '@playwright/test'
 
 /**
- * Regression for "the roof still seems to be always present": buildScene's
- * roof-hiding condition (added in ba4cc89) only fired when a specific level
- * was selected (activeLevel !== null). But every home's default state is
- * activeLevel === null ("All levels") — the state a single-story home stays
- * in forever since there is nothing to switch — so the roof never actually
- * hid for the common case. Fixed in scene.ts by keying the "is there a
- * level above" check off the roof's own levelRef instead of activeLevel.
+ * Regression for "the roof still seems to be always present" and its
+ * follow-up "the roof is on when it should be off": interior view must
+ * never render roofs, regardless of which level a roof is attached to
+ * (originally fixed for single-story homes in 011cf96; the "interstitial
+ * roof underside" exemption for lower-level roofs was removed after the
+ * multi-story user report 2026-09-23). Outside view shows all roofs.
  */
 
 async function boot(page: import('@playwright/test').Page) {
@@ -45,6 +44,29 @@ test.describe('roof visibility in default (interior) app state', () => {
 
     // Switching to outside view should still show it -- roof isn't gone,
     // just correctly hidden for the interior default.
+    const outsideBtn = page.locator('button[data-outside-view="true"]')
+    if (await outsideBtn.count()) {
+      await outsideBtn.click()
+      await page.waitForTimeout(200)
+      expect(await roofMeshCount(page)).toBeGreaterThan(0)
+    }
+  })
+
+  test('roof on a lower level of a multi-story home stays hidden in interior view', async ({ page }) => {
+    await boot(page)
+    await page.evaluate(() => {
+      const model = (window as unknown as { __model: any }).__model
+      model.addLevel({ name: 'Ground', elevation: 0, floorThickness: 5, height: 250, visible: true, viewable: true })
+      const ground = model.getStore().getHome().levels[0]
+      model.addLevel({ name: 'Upper', elevation: 250, floorThickness: 5, height: 250, visible: true, viewable: true })
+      // Roof attached to the GROUND level — the user's production shape
+      // (roof drawn before the upper story was added).
+      model.addRoof([[0, 0], [400, 0], [400, 200], [0, 200]], { levelRef: ground.id })
+    })
+    await page.waitForTimeout(200)
+
+    expect(await roofMeshCount(page)).toBe(0)
+
     const outsideBtn = page.locator('button[data-outside-view="true"]')
     if (await outsideBtn.count()) {
       await outsideBtn.click()
