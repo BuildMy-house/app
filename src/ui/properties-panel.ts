@@ -134,6 +134,10 @@ export class PropertiesPanel {
     this.render(store)
   }
 
+  get element(): HTMLDivElement {
+    return this.root
+  }
+
   toggle(): void {
     this.visible = !this.visible
     this.root.classList.toggle('collapsed', !this.visible)

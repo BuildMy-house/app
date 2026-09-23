@@ -618,15 +618,6 @@ body {
     height: 2px;
   }
 
-  #properties-panel.properties-panel {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    width: min(92vw, 300px);
-    max-height: 52%;
-    z-index: 20;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.18);
-  }
 }
 
 /* ── Panel hidden states for camera preset ────────────────────────────────── */
@@ -653,12 +644,38 @@ body {
 /* ── Properties panel ──────────────────────────────────────────────────────── */
 
 #properties-panel.properties-panel {
-  width: 260px;
-  flex-shrink: 0;
+  display: none;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
   overflow-y: auto;
   background: var(--panel-bg);
-  border-left: 1px solid var(--border);
   font-size: 12px;
+}
+
+#catalog-host.show-properties > .catalog-panel { display: none; }
+#catalog-host.show-properties > #properties-panel { display: block; }
+
+.sidebar-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-tabs button {
+  flex: 1;
+  padding: 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.sidebar-tabs button[aria-selected="true"] {
+  color: var(--text);
+  border-bottom-color: var(--accent, #4d94ff);
 }
 
 #properties-panel.properties-panel.collapsed {
@@ -1273,6 +1290,8 @@ body {
     flex-wrap: wrap;
     max-height: none;
   }
+
+  #properties-panel.properties-panel { width: 100%; }
 }
 
 /* ── Print plan (ticket M70) ─────────────────────────────────────────────── */

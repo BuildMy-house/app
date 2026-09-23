@@ -781,12 +781,14 @@ function refreshMobileNav(tab: string): void {
 }
 
 function setMobileTab(tab: string): void {
-  const properties = root.querySelector<HTMLElement>('#properties-panel')
   const showCatalog = tab === 'furniture'
   const showProperties = tab === 'properties'
 
-  catalogHost.classList.toggle('collapsed', !showCatalog)
-  properties?.classList.toggle('collapsed', !showProperties)
+  catalogHost.classList.toggle('collapsed', !showCatalog && !showProperties)
+  catalogHost.classList.toggle('show-properties', showProperties)
+  for (const button of catalogHost.querySelectorAll<HTMLButtonElement>('[data-sidebar-tab]')) {
+    button.setAttribute('aria-selected', String(button.dataset.sidebarTab === (showProperties ? 'properties' : 'furniture')))
+  }
   setCameraPreset(tab === '3d' ? '3d' : 'plan')
   refreshMobileNav(tab)
 }
@@ -1521,6 +1523,22 @@ const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
     },
   })
   catalogHost.appendChild(catalogPanel.element)
+  catalogHost.appendChild(propsPanel.element)
+  catalogHost.insertAdjacentHTML('afterbegin', `
+    <div class="sidebar-tabs" role="tablist" aria-label="Furniture sidebar">
+      <button type="button" role="tab" aria-selected="true" data-sidebar-tab="furniture">Furniture</button>
+      <button type="button" role="tab" aria-selected="false" data-sidebar-tab="properties">Properties</button>
+    </div>
+  `)
+  for (const button of catalogHost.querySelectorAll<HTMLButtonElement>('[data-sidebar-tab]')) {
+    button.addEventListener('click', () => {
+      const showProperties = button.dataset.sidebarTab === 'properties'
+      catalogHost.classList.toggle('show-properties', showProperties)
+      for (const tab of catalogHost.querySelectorAll<HTMLButtonElement>('[data-sidebar-tab]')) {
+        tab.setAttribute('aria-selected', String(tab === button))
+      }
+    })
+  }
   telemetry.catalogLoad(performance.now() - catalogLoadStart, sharedCatalog.size)
 }).catch((err) => {
   console.error('[catalog] failed to load catalog:', err)
