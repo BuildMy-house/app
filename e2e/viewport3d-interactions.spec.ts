@@ -29,6 +29,10 @@ test.describe('3D viewport interactions', () => {
     if (!box) throw new Error('no canvas box')
     const cx = box.x + box.width / 2
     const cy = box.y + box.height / 2
+    // Emulate a retina display: orbit mode should still cap at 0.75x CSS pixels.
+    await page.evaluate(() => {
+      Object.defineProperty(window, 'devicePixelRatio', { configurable: true, value: 2 })
+    })
     await page.mouse.move(cx, cy)
     await page.mouse.down()
     await page.mouse.move(cx + 20, cy + 10)
@@ -37,7 +41,7 @@ test.describe('3D viewport interactions', () => {
     )
     const expectedInteractionRatio = await page.evaluate(() => {
       const view = (window as any).__view3d
-      return Math.min(window.devicePixelRatio || 1, view.quality.pixelRatioCap) * 0.75
+      return Math.min(window.devicePixelRatio || 1, view.quality.pixelRatioCap, 1) * 0.75
     })
     expect(interactionRatio).toBeCloseTo(expectedInteractionRatio, 2)
     await page.mouse.move(cx + 120, cy + 60, { steps: 10 })

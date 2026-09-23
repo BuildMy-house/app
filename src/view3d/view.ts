@@ -844,7 +844,7 @@ export class View3D {
     if (this._interacting || !this.renderer) return
     this._interacting = true
     this.renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio || 1, this._quality.pixelRatioCap) * INTERACTION_PIXEL_RATIO,
+      Math.min(window.devicePixelRatio || 1, this._quality.pixelRatioCap, 1) * INTERACTION_PIXEL_RATIO,
     )
     // The pixel-ratio drop shrinks the renderer's drawing buffer, and draw()
     // bypasses the composer entirely while _interacting (see draw()), so
