@@ -775,6 +775,7 @@ function loadTextureFile(
       // map is what triggers THREE.WebGLRenderer's "Texture marked for update
       // but no image data found" warning and samples black (AO/normal) or 0
       // (roughness) in shaders.
+      console.warn(`[textures] failed to load texture ${file} from ${url} — material falls back without this map`)
       textureCache.set(url, null)
       pendingTextureReady.delete(url)
     })
@@ -787,6 +788,7 @@ function loadTextureFile(
     // MAT-T3; do not disable either.
     applyAnisotropy(tex)
   } catch {
+    console.warn(`[textures] failed to load texture ${file} from ${url} — material falls back without this map`)
     tex = null
     textureCache.set(url, null)
   }
