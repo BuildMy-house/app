@@ -345,6 +345,12 @@ export function roomMesh(room: Room, elevation: number, opts?: { opacity?: numbe
 /** Opacity used to render the floor of the level below the active one, as
  * standing-surface context under the floor being worked on. */
 export const BELOW_LEVEL_FLOOR_OPACITY = 0.4
+/** Vertical offset (cm) that drops the level-below ghost ceiling just under
+ * the active level's floor. ceilingMesh lands at exactly the active level's
+ * floor elevation (levels stack), so with overlapping footprints the two
+ * coplanar planes z-fight — the flickering "clipping" floor. Same 0.5 cm the
+ * ground grid lifts itself by to dodge z-fighting. */
+export const BELOW_CEILING_Z_FIGHT_OFFSET_CM = 0.5
 /** Transparency (SH3D-style: 0 = opaque) for walls of the level below the
  * active one — enough to read as context without blocking the active floor. */
 const BELOW_LEVEL_WALL_TRANSPARENCY = 0.75
@@ -1374,7 +1380,9 @@ function buildSceneInner(
     else if (isBelowActive) root.add(roomMesh(room, elev, { opacity: BELOW_LEVEL_FLOOR_OPACITY }))
     else if (isOutsideView && room.floorVisible !== false) root.add(roomMesh(room, elev))
     if (shouldShowCeiling(room, { isOutsideView, isBelowActiveLevel: isBelowActive })) {
-      root.add(ceilingMesh(room, elev, home.levels))
+      const ceiling = ceilingMesh(room, elev, home.levels)
+      if (isBelowActive) ceiling.position.y -= BELOW_CEILING_Z_FIGHT_OFFSET_CM
+      root.add(ceiling)
     }
   }
   for (const roof of home.roofs) {

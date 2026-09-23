@@ -15,6 +15,7 @@
 import * as THREE from 'three'
 import type { Wall, Furniture, Room, NormalizedHomeState } from '../core/home'
 import {
+  BELOW_CEILING_Z_FIGHT_OFFSET_CM,
   BELOW_LEVEL_FLOOR_OPACITY,
   ceilingMesh,
   findLevelBelowId,
@@ -555,6 +556,7 @@ function applyRoomUpdate(
     }
     if (shouldShowCeiling(room, { isOutsideView, isBelowActiveLevel: isBelowActive })) {
       ceiling = ceilingMesh(room, elev, home.levels)
+      if (isBelowActive) ceiling.position.y -= BELOW_CEILING_Z_FIGHT_OFFSET_CM
       root.add(ceiling)
     }
   }

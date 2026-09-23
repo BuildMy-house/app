@@ -6,6 +6,7 @@ import { HomeModel } from '../core/model'
 import { PlanEngine } from '../plan/engine'
 import { wallOutlinePoints } from '../core/top-camera-follower'
 import {
+  BELOW_CEILING_Z_FIGHT_OFFSET_CM,
   buildScene,
   remapExtrudeUvs,
   __seedModelCache,
@@ -1373,5 +1374,40 @@ describe('ceiling visibility tri-state', () => {
       expect(shouldShowCeiling(room(false), interior)).toBe(false)
       expect(shouldShowCeiling(room(false), outside)).toBe(false)
     })
+  })
+})
+
+describe('below-level ghost ceiling vs active floor (z-fighting regression)', () => {
+  function stackedHome(): ReturnType<typeof createEmptyHome> {
+    const home = createEmptyHome()
+    home.levels.push(
+      { id: 'level-1', name: 'Ground', elevation: 0, floorThickness: 5, height: 250, visible: true, viewable: true },
+      { id: 'level-2', name: 'Upper', elevation: 250, floorThickness: 5, height: 250, visible: true, viewable: true },
+    )
+    for (const levelRef of ['level-1', 'level-2']) {
+      home.rooms.push({
+        id: `room-${levelRef}`, points: [[0, 0], [400, 0], [400, 200], [0, 200]],
+        levelRef,
+      })
+    }
+    return home
+  }
+
+  it('drops the below-level ceiling just under the active floor, never coplanar', () => {
+    const scene = buildScene(stackedHome(), { activeLevel: 'level-2', isOutsideView: false })
+    const floor = scene.getObjectByName('room:room-level-2') as THREE.Mesh
+    const ceiling = scene.getObjectByName('ceiling:room-level-1') as THREE.Mesh
+    expect(floor).toBeTruthy()
+    expect(ceiling).toBeTruthy()
+    // Levels stack: below ceiling would land at exactly the active floor's Y
+    // and z-fight. It must sit BELOW_CEILING_Z_FIGHT_OFFSET_CM lower instead.
+    expect(floor.position.y).toBe(250)
+    expect(ceiling.position.y).toBe(250 - BELOW_CEILING_Z_FIGHT_OFFSET_CM)
+  })
+
+  it('leaves unrelated (non-below) ceilings at their level-top elevation', () => {
+    const scene = buildScene(stackedHome(), { activeLevel: 'level-2', isOutsideView: true })
+    const upperCeiling = scene.getObjectByName('ceiling:room-level-2') as THREE.Mesh
+    expect(upperCeiling.position.y).toBe(500)
   })
 })

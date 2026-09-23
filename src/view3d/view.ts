@@ -817,7 +817,13 @@ export class View3D {
     info.reset()
     const started = performance.now()
     try {
-      if (this._composer) this._composer.render()
+      // While interacting, render straight through the renderer instead of the
+      // composer: AO/bloom passes are at their least visible mid-motion and
+      // their per-frame cost dominates low-end GPUs. This also avoids the
+      // EffectComposer.setSize() render-target reallocation that used to run
+      // on every gesture start/end and stalled the first/last frame of each
+      // orbit by hundreds of ms.
+      if (this._composer && !this._interacting) this._composer.render()
       else renderer.render(this._scene, this.perspectiveCamera)
     } finally {
       this._lastRenderCpuMs = performance.now() - started
@@ -840,19 +846,11 @@ export class View3D {
     this.renderer.setPixelRatio(
       Math.min(window.devicePixelRatio || 1, this._quality.pixelRatioCap) * INTERACTION_PIXEL_RATIO,
     )
-    // The EffectComposer (AO/bloom) allocates its render targets at
-    // construction/resize time from renderer.getPixelRatio() — dropping the
-    // renderer's pixel ratio alone does NOT shrink those targets, so the
-    // composer would keep rendering AO/bloom at full resolution and this
-    // optimization would do nothing whenever bloom or AO is enabled (the
-    // default at medium quality). Scale below 1x too, so 1x displays also
-    // benefit. Re-running setSize applies the lower ratio without rebuilding
-    // passes.
-    if (this._composer) {
-      const size = new THREE.Vector2()
-      this.renderer.getSize(size)
-      this._composer.setSize(size.x, size.y)
-    }
+    // The pixel-ratio drop shrinks the renderer's drawing buffer, and draw()
+    // bypasses the composer entirely while _interacting (see draw()), so
+    // AO/bloom don't render at all mid-gesture — no EffectComposer.setSize()
+    // here: reallocating its render targets on every gesture start stalled
+    // the first frame by hundreds of ms.
   }
 
   private exitInteractionMode(): void {
@@ -860,11 +858,8 @@ export class View3D {
     this._interacting = false
     if (!this.renderer) return
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this._quality.pixelRatioCap))
-    if (this._composer) {
-      const size = new THREE.Vector2()
-      this.renderer.getSize(size)
-      this._composer.setSize(size.x, size.y)
-    }
+    // No composer.setSize() on exit either — the composer's targets were never
+    // resized, so restoring is just a ratio reset + one full-quality render.
     this.render()
   }
 
