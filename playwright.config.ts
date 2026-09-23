@@ -36,7 +36,7 @@ export default defineConfig({
     timeout: isCI ? 10_000 : 5_000,
   },
   retries: 1,
-  workers: isCI ? 1 : undefined,
+  workers: isCI ? 1 : 4,
   use: {
     baseURL: `http://localhost:${port}`,
     screenshot: 'only-on-failure',
