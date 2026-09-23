@@ -15,6 +15,7 @@ import {
   SELECTION_EMISSIVE_COLOR,
   isWindowFurniture,
   shouldShowCeiling,
+  findLevelBelowId,
 } from './scene'
 import {
   applySceneUpdate,
@@ -799,12 +800,31 @@ describe('exterior cladding material (Ticket 5c)', () => {
     })
     const scene = buildScene(home)
     const mesh = wallMeshes(scene)[0]!
-    expect(mesh.material).toBeInstanceOf(THREE.MeshPhysicalMaterial)
-    const mat = mesh.material as THREE.MeshPhysicalMaterial
+    // ExtrudeGeometry materials array: [caps, side cladding] (group 0/1).
+    const mats = mesh.material as THREE.MeshPhysicalMaterial[]
+    expect(mats).toHaveLength(2)
+    expect(mats[1]).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+    const mat = mats[1]!
     expect(mat.clearcoat).toBeGreaterThan(0)
     expect(mat.color.getHex()).toBe(0xd2d2d2)
-    expect(mat.roughness).toBeCloseTo(0.7, 6)
+    // Untextured walls default to the plaster-white catalog scalars now.
+    expect(mat.roughness).toBeCloseTo(0.9, 6)
     expect(mat.metalness).toBe(0)
+  })
+
+  it('wall top/bottom caps use a distinct matte neutral material, not cladding (double-material extrusion)', () => {
+    const home = createEmptyHome()
+    home.walls.push({
+      id: 'w1', xStart: 0, yStart: 0, xEnd: 300, yEnd: 0,
+      thickness: 15, leftSideColor: 0x224466,
+    })
+    const scene = buildScene(home)
+    const mats = wallMeshes(scene)[0]!.material as THREE.MeshStandardMaterial[]
+    const [caps, side] = mats
+    expect(caps).not.toBe(side)
+    expect(caps!.color.getHex()).toBe(0xc8c8c8) // DEFAULT_CEILING_COLOR
+    expect(caps!.roughness).toBe(0.7)
+    expect(side!.color.getHex()).toBe(0x224466)
   })
 
   it('a custom leftSideColor still comes through the cladding material unchanged', () => {
@@ -815,11 +835,59 @@ describe('exterior cladding material (Ticket 5c)', () => {
     })
     const scene = buildScene(home)
     const mesh = wallMeshes(scene)[0]!
-    expect((mesh.material as THREE.MeshPhysicalMaterial).color.getHex()).toBe(0x224466)
+    expect((mesh.material as THREE.MeshPhysicalMaterial[])[1]!.color.getHex()).toBe(0x224466)
+  })
+})
+
+describe('wall edges removed (double-wall regression)', () => {
+  it('active walls render once — no wall-edge wireframe duplicates in the scene', () => {
+    const home = createEmptyHome()
+    home.walls.push(
+      { id: 'wA', xStart: 0, yStart: 0, xEnd: 300, yEnd: 0, thickness: 15 },
+      { id: 'wB', xStart: 300, yStart: 0, xEnd: 300, yEnd: 300, thickness: 15 },
+    )
+    const scene = buildScene(home)
+    let edgeCount = 0
+    scene.traverse((obj) => {
+      if (obj.name.startsWith('wall-edge:')) edgeCount++
+    })
+    expect(edgeCount).toBe(0)
+    expect(scene.getObjectByName('wall:wA')).toBeDefined()
+    expect(scene.getObjectByName('wall:wB')).toBeDefined()
+  })
+
+  it('findLevelBelowId returns undefined (not null) for a lone elevated level — unset levelRefs must not ghost', () => {
+    // Regression: with one level at elevation 250 and nothing below it, the
+    // old `bestElevation` ternary returned null, which matched walls whose
+    // levelRef is unset (`(levelRef ?? null) === null`) and ghosted/dropped
+    // them while their (since-removed) edge outline stayed put.
+    const levels = [{ id: 'l1', name: 'L1', elevation: 250, floorThickness: 10, height: 250, visible: true, viewable: true }]
+    expect(findLevelBelowId('l1', levels)).toBeUndefined()
+    expect(findLevelBelowId(null, levels)).toBeUndefined()
   })
 })
 
 describe('ground rendering', () => {
+  it('the ground plane sits below elevation-0 room floors so they never z-fight ("floor is clipping")', () => {
+    const home = createEmptyHome()
+    home.rooms.push({ id: 'r1', points: [[0, 0], [400, 0], [400, 300], [0, 300]] })
+    const scene = buildScene(home)
+    let ground: THREE.Mesh | undefined
+    let floor: THREE.Mesh | undefined
+    scene.traverse((obj) => {
+      if (obj.name === 'ground') ground = obj as THREE.Mesh
+      if (obj.name === 'room:r1') floor = obj as THREE.Mesh
+    })
+    expect(ground).toBeDefined()
+    expect(floor).toBeDefined()
+    // Ground dropped by the shared 0.5cm z-fight offset; floor at elevation 0.
+    expect(ground!.position.y).toBe(-BELOW_CEILING_Z_FIGHT_OFFSET_CM)
+    expect(floor!.position.y).toBe(0)
+    expect(Math.abs(floor!.position.y - ground!.position.y)).toBeGreaterThanOrEqual(
+      BELOW_CEILING_Z_FIGHT_OFFSET_CM,
+    )
+  })
+
   it('an untextured ground gets per-vertex color variation (grass/snow look), not a single flat color', () => {
     const home = createEmptyHome()
     const scene = buildScene(home)

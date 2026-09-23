@@ -32,6 +32,11 @@ function findMesh(scene: THREE.Scene, name: string): THREE.Mesh | undefined {
   return found
 }
 
+/** Walls use an ExtrudeGeometry materials array: [caps, side cladding]. */
+function sideMat(mesh: THREE.Mesh): THREE.MeshStandardMaterial {
+  return (mesh.material as THREE.MeshStandardMaterial[])[1]!
+}
+
 describe('PBR map wiring (MAT-T2)', () => {
   beforeEach(() => {
     __clearTextureCache()
@@ -45,7 +50,7 @@ describe('PBR map wiring (MAT-T2)', () => {
       leftSideTextureId: 'wood-oak',
     })
     const mesh = findMesh(buildScene(home), 'wall:w1')!
-    const mat = mesh.material as THREE.MeshStandardMaterial
+    const mat = sideMat(mesh)
     expect(mat.map).toBeInstanceOf(THREE.Texture)
     expect(mat.normalMap).toBeInstanceOf(THREE.Texture)
     expect(mat.roughnessMap).toBeInstanceOf(THREE.Texture)
@@ -81,7 +86,7 @@ describe('PBR map wiring (MAT-T2)', () => {
     expect(furniture.geometry.getAttribute('uv2')).toBeDefined()
   })
 
-  it('texture-free materials keep their baseline roughness and get no PBR maps', () => {
+  it('texture-free walls default to plaster-white PBR scalars; furniture keeps its baseline', () => {
     const home = createEmptyHome()
     home.walls.push({ id: 'w1', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 15 })
     home.furniture.push({
@@ -89,13 +94,15 @@ describe('PBR map wiring (MAT-T2)', () => {
       width: 100, depth: 50, height: 75, elevation: 0,
     })
     const scene = buildScene(home)
-    // Walls keep the plain 0.7 baseline; furniture uses the fabric material's
-    // 0.85 baseline (Ticket 5b: furniture fabric materials) — both still get
-    // no PBR maps when texture-free.
-    const expectedRoughness: Record<string, number> = { 'wall:w1': 0.7, 'furniture:f1': 0.85 }
+    // Walls now default to the plaster-white catalog entry (matte 0.9
+    // roughness); its maps load async, so in node they stay null. Furniture
+    // keeps the fabric material's 0.85 baseline (Ticket 5b).
+    const expectedRoughness: Record<string, number> = { 'wall:w1': 0.9, 'furniture:f1': 0.85 }
     for (const name of Object.keys(expectedRoughness)) {
       const mesh = findMesh(scene, name)!
-      const mat = mesh.material as THREE.MeshStandardMaterial
+      const mat = Array.isArray(mesh.material)
+        ? sideMat(mesh)
+        : (mesh.material as THREE.MeshStandardMaterial)
       expect(mat.map).toBeNull()
       expect(mat.normalMap).toBeNull()
       expect(mat.roughnessMap).toBeNull()
@@ -146,7 +153,7 @@ describe('PBR map wiring (MAT-T2)', () => {
       id: 'w1', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 15,
       leftSideTextureId: 'tile-floor',
     })
-    const mat = findMesh(buildScene(home), 'wall:w1')!.material as THREE.MeshStandardMaterial
+    const mat = sideMat(findMesh(buildScene(home), 'wall:w1')!)
     expect(mat.map).toBeInstanceOf(THREE.Texture)
     expect(mat.normalMap).toBeInstanceOf(THREE.Texture)
     expect(mat.roughnessMap).toBeInstanceOf(THREE.Texture)
@@ -197,7 +204,7 @@ describe('PBR map wiring (MAT-T2)', () => {
       id: 'w1', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 15,
       leftSideTextureId: 'plaster-white',
     })
-    const mat = findMesh(buildScene(home), 'wall:w1')!.material as THREE.MeshStandardMaterial
+    const mat = sideMat(findMesh(buildScene(home), 'wall:w1')!)
     expect(mat.map).toBeNull()
     expect(mat.normalMap).toBeNull()
     expect(mat.roughnessMap).toBeNull()

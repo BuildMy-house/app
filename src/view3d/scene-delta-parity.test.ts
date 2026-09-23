@@ -48,7 +48,7 @@ const ELEVATION_CASES = [
   { name: 'above active', activeLevel: 'level-m', levelRef: 'level-t' },
 ]
 
-const MESH_NAMES = ['wall:w1', 'wall-edge:w1', 'room:r1', 'ceiling:r1']
+const MESH_NAMES = ['wall:w1', 'room:r1', 'ceiling:r1']
 
 function findNamed(scene: THREE.Object3D, name: string): THREE.Object3D[] {
   const found: THREE.Object3D[] = []

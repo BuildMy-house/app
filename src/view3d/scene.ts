@@ -185,9 +185,23 @@ export function wallMesh(
     material.opacity = 1 - wallsTransparency
   }
 
-  const wallTexture = wall.leftSideTextureId
-    ? applyMaterialTextures(material, wall.leftSideTextureId)
-    : null
+  // Untextured walls default to the plaster-white PBR set (diffuse/normal/
+  // roughness/AO, matte 0.9 roughness) instead of a flat clearcoat-shiny
+  // color; the material's color still tints the near-white plaster map.
+  const wallTexture = applyMaterialTextures(material, wall.leftSideTextureId ?? 'plaster-white')
+
+  // ExtrudeGeometry groups: materialIndex 0 = caps (top/bottom after the
+  // rotateX below), 1 = side walls. Caps get the matte neutral ceiling-style
+  // material so a wall's top edge reads as a cut slab surface, not cladding.
+  const capMaterial = new THREE.MeshStandardMaterial({
+    color: DEFAULT_CEILING_COLOR,
+    roughness: 0.7,
+    metalness: 0.0,
+  })
+  if (wallsTransparency > 0) {
+    capMaterial.transparent = true
+    capMaterial.opacity = 1 - wallsTransparency
+  }
 
   const ux = dx / (length || 1)
   const uy = dy / (length || 1)
@@ -207,7 +221,7 @@ export function wallMesh(
       remapExtrudeUvs(geometry)
       if (wallTexture.aoFile) addUv2(geometry)
     }
-    const mesh = new THREE.Mesh(geometry, material)
+    const mesh = new THREE.Mesh(geometry, [capMaterial, material])
     mesh.name = `wall:${wall.id}`
     mesh.position.set(midX, elevation, midY)
     mesh.castShadow = true
@@ -229,7 +243,7 @@ export function wallMesh(
       remapExtrudeUvs(geometry)
       if (wallTexture.aoFile) addUv2(geometry)
     }
-    const mesh = new THREE.Mesh(geometry, material)
+    const mesh = new THREE.Mesh(geometry, [capMaterial, material])
     mesh.name = `wall:${wall.id}`
     mesh.position.set(midX, elevation, midY)
     mesh.castShadow = true
@@ -267,7 +281,7 @@ export function wallMesh(
       remapExtrudeUvs(geometry)
       if (wallTexture.aoFile) addUv2(geometry)
     }
-    const m = new THREE.Mesh(geometry, material)
+    const m = new THREE.Mesh(geometry, [capMaterial, material])
     m.name = `wall:${wall.id}`
     m.position.set(midX, elevation + y1, midY)
     m.castShadow = true
@@ -289,25 +303,6 @@ export function wallMesh(
   }
   if (pos < length) group.add(segMesh(pos, length, 0, height))
   return group
-}
-
-export function wallEdges(wall: Wall, elevation: number, allWalls: Wall[]): THREE.LineSegments {
-  const height = wall.height ?? DEFAULT_WALL_HEIGHT_CM
-  const midX = (wall.xStart + wall.xEnd) / 2
-  const midY = (wall.yStart + wall.yEnd) / 2
-  const outline = wallOutlinePoints(wall, allWalls)
-  const shape = miteredShape(outline, midX, midY)
-  const geometry = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false })
-  geometry.rotateX(-Math.PI / 2)
-  const edges = new THREE.EdgesGeometry(geometry)
-  const line = new THREE.LineSegments(
-    edges,
-    new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.3 }),
-  )
-  line.position.set(midX, elevation, midY)
-  // Named so scene-delta.ts can find and replace an edited wall's edges.
-  line.name = `wall-edge:${wall.id}`
-  return line
 }
 
 export function roomMesh(room: Room, elevation: number, opts?: { opacity?: number }): THREE.Mesh {
@@ -1235,7 +1230,11 @@ export function findLevelBelowId(activeLevel: string | null, levels: Level[]): s
       bestElevation = level.elevation
     }
   }
-  return bestElevation === -Infinity ? undefined : bestId
+  // `?? undefined` (not the bestElevation ternary): with no qualifying level
+  // below, bestId stays null — returning null here would falsely match walls
+  // whose levelRef is unset (`(levelRef ?? null) === null`) and ghost/drop
+  // them on the level the user is editing.
+  return bestId ?? undefined
 }
 
 /**
@@ -1324,6 +1323,9 @@ function buildSceneInner(
       : plainGroundMaterial()
     const ground = new THREE.Mesh(groundGeometry, mat)
     ground.rotation.x = -Math.PI / 2
+    // Sit just below room floors (elevation 0) — coplanar ground/floor
+    // z-fights ("floor is clipping", user report 2026-09-23).
+    ground.position.y = -BELOW_CEILING_Z_FIGHT_OFFSET_CM
     ground.name = 'ground'
     ground.receiveShadow = true
     scene.add(ground)
@@ -1366,7 +1368,6 @@ function buildSceneInner(
     // stack) — drop them just under it to avoid z-fighting, same as ceilings.
     if (isBelowActive) mesh.position.y -= BELOW_CEILING_Z_FIGHT_OFFSET_CM
     root.add(mesh)
-    if (isActive) root.add(wallEdges(wall, elev, home.walls))
   }
   for (const room of home.rooms) {
     if (room.points.length < 3) continue

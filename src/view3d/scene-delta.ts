@@ -26,7 +26,6 @@ import {
   shouldRenderAtElevation,
   shouldShowCeiling,
   tintEmissive,
-  wallEdges,
   wallMesh,
   withModelUrlResolver,
   runWithTextureReadyScope,
@@ -505,7 +504,6 @@ function remeshWall(
   opts?: ApplySceneUpdateOptions,
 ): void {
   removeNamed(scene, `wall:${w.id}`)
-  removeNamed(scene, `wall-edge:${w.id}`)
   const activeLevel = opts?.activeLevel ?? null
   const isOutsideView = opts?.isOutsideView ?? false
   const isActive = matchesLevel(w.levelRef, activeLevel)
@@ -521,12 +519,11 @@ function remeshWall(
   // stack) — drop them just under it to avoid z-fighting, same as ceilings.
   if (isBelowActive) mesh.position.y -= BELOW_CEILING_Z_FIGHT_OFFSET_CM
   root.add(mesh)
-  if (isActive) root.add(wallEdges(w, elev, home.walls))
   if (home.selection.includes(w.id)) tintEmissive(mesh)
 }
 
 /**
- * wall-delete: remove the deleted wall's mesh + edges, and re-mesh every wall
+ * wall-delete: remove the deleted wall's mesh, and re-mesh every wall
  * that shared an endpoint with it — wallOutlinePoints miters wall ends
  * against joined neighbors, so the neighbors' geometry changes when the
  * deleted wall disappears. Without oldHome we don't know the deleted wall's
@@ -558,7 +555,6 @@ function applyWallDelete(
   const touched = home.walls.filter((w) => corners.some(([cx, cy]) => joins(w, cx, cy)))
 
   removeNamed(scene, `wall:${id}`)
-  removeNamed(scene, `wall-edge:${id}`)
   const elevations = levelElevations(home)
   const wallsTransparency = home.environment.wallsAlpha ?? 0
   for (const w of touched) {

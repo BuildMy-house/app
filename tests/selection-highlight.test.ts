@@ -184,9 +184,11 @@ describe('selection highlight for modeled furniture (M47)', () => {
     const scene = buildScene(home)
     const wall = findByName(scene, 'wall:w-sel') as THREE.Mesh
     expect(wall).toBeDefined()
-    const mat = wall.material as THREE.MeshStandardMaterial
-    expect(mat.emissive.getHex()).toBe(SELECTION_COLOR)
-    expect(mat.emissiveIntensity).toBe(SELECTION_INTENSITY)
+    const mats = wall.material as THREE.MeshStandardMaterial[]
+    for (const mat of mats) {
+      expect(mat.emissive.getHex()).toBe(SELECTION_COLOR)
+      expect(mat.emissiveIntensity).toBe(SELECTION_INTENSITY)
+    }
   })
 
   it('integration: highlight works through real HomeModel/HomeStore (regression guard)', () => {

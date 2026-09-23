@@ -131,7 +131,9 @@ describe('applySceneUpdate wall-delete', () => {
     // Neighbor shared the deleted wall's endpoint → its miter changed, so it
     // must have been removed and rebuilt, not left untouched.
     expect(scene.getObjectByName('wall:wB')).toBeDefined()
-    expect(scene.getObjectByName('wall-edge:wB')).toBeDefined()
+    // Wall edge wireframes are gone entirely (double-wall regression fix) —
+    // the rebuilt neighbor must not resurrect one.
+    expect(scene.getObjectByName('wall-edge:wB')).toBeUndefined()
   })
 
   it('returns false without oldHome (cannot find miter-affected neighbors)', () => {

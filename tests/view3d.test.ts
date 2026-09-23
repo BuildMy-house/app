@@ -271,7 +271,7 @@ describe('buildScene', () => {
       })
     })
     const wall = meshChild(buildScene(store.getHome()), 'wall:w-x')
-    const material = wall.material as THREE.MeshStandardMaterial
+    const material = (wall.material as THREE.MeshStandardMaterial[])[1]!
     expect(material.transparent).toBe(true)
     expect(material.opacity).toBeCloseTo(0.5)
   })
@@ -290,7 +290,7 @@ describe('buildScene', () => {
       })
     })
     const wall = meshChild(buildScene(store.getHome()), 'wall:w-solid')
-    const material = wall.material as THREE.MeshStandardMaterial
+    const material = (wall.material as THREE.MeshStandardMaterial[])[1]!
     expect(material.transparent).toBe(false)
     expect(material.opacity).toBe(1)
   })
