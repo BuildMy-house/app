@@ -53,6 +53,10 @@ export default defineConfig({
     port,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
+    // Multi-level e2e specs (level deletion, roof/interior view, level
+    // discoverability) exercise the full feature, so the flag must be ON
+    // for the dev server they run against.
+    env: { VITE_ENABLE_MULTI_LEVEL: 'true' },
   },
   reporter: [['html', { open: 'never' }]],
 })
