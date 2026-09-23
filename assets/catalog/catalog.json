@@ -15,7 +15,7 @@
         "3",
         "three"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-dianawindow.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-dianawindow.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-dianawindow/model.obj"
     },
     {
@@ -32,7 +32,7 @@
         "entrance",
         "shop"
       ],
-      "modelPath": "https://assets.buildmy.house/models/siath-emergencyglassdoubledoor.glb",
+      "modelPath": "https://assets.buildmy.house/models/siath-emergencyglassdoubledoor.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/siath-emergencyglassdoubledoor/model.obj"
     },
     {
@@ -46,7 +46,7 @@
       "color": 12632256,
       "doorOrWindow": true,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-accordionfolddoors.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-accordionfolddoors.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-accordionfolddoors/model.obj"
     },
     {
@@ -60,7 +60,7 @@
       "color": 12632256,
       "doorOrWindow": true,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-garagedoor2.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-garagedoor2.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-garagedoor2/model.obj"
     },
     {
@@ -74,7 +74,7 @@
       "color": 12632256,
       "doorOrWindow": true,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/petersmolik-doorglasspanels.glb",
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-doorglasspanels.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/petersmolik-doorglasspanels/model.obj"
     },
     {
@@ -88,7 +88,7 @@
       "color": 12632256,
       "doorOrWindow": true,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/petersmolik-door1.glb",
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-door1.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/petersmolik-door1/model.obj"
     },
     {
@@ -102,7 +102,7 @@
       "color": 12632256,
       "doorOrWindow": true,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-fancywindow.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-fancywindow.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-fancywindow/model.obj"
     },
     {
@@ -116,7 +116,7 @@
       "color": 12632256,
       "doorOrWindow": true,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-newwindowdk.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-newwindowdk.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-newwindowdk/model.obj"
     },
     {
@@ -130,7 +130,7 @@
       "color": 12632256,
       "doorOrWindow": true,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-windowfrostedglass.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-windowfrostedglass.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-windowfrostedglass/model.obj"
     },
     {
@@ -147,7 +147,7 @@
         "4",
         "four"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-glassdoorsopened.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-glassdoorsopened.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-glassdoorsopened/model.obj"
     },
     {
@@ -161,7 +161,7 @@
       "color": 12632256,
       "doorOrWindow": true,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-patiodooropened.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-patiodooropened.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-patiodooropened/model.obj"
     },
     {
@@ -175,7 +175,7 @@
       "color": 12632256,
       "doorOrWindow": true,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-patiodoor.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-patiodoor.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-patiodoor/model.obj"
     },
     {
@@ -189,7 +189,7 @@
       "color": 12632256,
       "doorOrWindow": true,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-patiosidedoor.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-patiosidedoor.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-patiosidedoor/model.obj"
     },
     {
@@ -205,7 +205,7 @@
       "tags": [
         "entrance"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-fancyfrontdoor.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-fancyfrontdoor.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-fancyfrontdoor/model.obj"
     },
     {
@@ -222,7 +222,7 @@
         "okh",
         "vent"
       ],
-      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-bathroom-fan.glb",
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-bathroom-fan.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-bathroom-fan/model.obj"
     },
     {
@@ -236,7 +236,7 @@
       "color": 12632256,
       "doorOrWindow": true,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/mchnz-craftsmandoorclosed.glb",
+      "modelPath": "https://assets.buildmy.house/models/mchnz-craftsmandoorclosed.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/mchnz-craftsmandoorclosed/model.obj"
     },
     {
@@ -253,7 +253,7 @@
         "okh",
         "sliding"
       ],
-      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-sliderpocketdoor.glb",
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-sliderpocketdoor.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-sliderpocketdoor/model.obj"
     },
     {
@@ -270,7 +270,7 @@
         "okh",
         "fan"
       ],
-      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-vent-round.glb",
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-vent-round.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-vent-round/model.obj"
     },
     {
@@ -286,7 +286,7 @@
       "tags": [
         "okh"
       ],
-      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-window-2x3-frame-sill.glb",
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-window-2x3-frame-sill.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-window-2x3-frame-sill/model.obj"
     },
     {
@@ -302,7 +302,7 @@
       "tags": [
         "okh"
       ],
-      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-window-deep.glb",
+      "modelPath": "https://assets.buildmy.house/models/olakristianhoff-window-deep.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/olakristianhoff-window-deep/model.obj"
     },
     {
@@ -320,7 +320,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-antelopecanyonframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-antelopecanyonframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-antelopecanyonframe/model.obj"
     },
     {
@@ -338,7 +338,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-eiffeltowerframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-eiffeltowerframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-eiffeltowerframe/model.obj"
     },
     {
@@ -356,7 +356,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-haivanpassframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-haivanpassframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-haivanpassframe/model.obj"
     },
     {
@@ -374,7 +374,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-inariframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-inariframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-inariframe/model.obj"
     },
     {
@@ -392,7 +392,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-montblancframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-montblancframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-montblancframe/model.obj"
     },
     {
@@ -406,7 +406,7 @@
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-mirror.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-mirror.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-mirror/model.obj"
     },
     {
@@ -420,7 +420,7 @@
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-ovalmirror.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-ovalmirror.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-ovalmirror/model.obj"
     },
     {
@@ -434,7 +434,7 @@
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-rectangularmirror.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-rectangularmirror.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-rectangularmirror/model.obj"
     },
     {
@@ -451,7 +451,7 @@
         "rug",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-carpet.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-carpet.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-carpet/model.obj"
     },
     {
@@ -469,7 +469,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-butterflyframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-butterflyframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-butterflyframe/model.obj"
     },
     {
@@ -487,7 +487,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-torontoontarioplaceframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-torontoontarioplaceframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-torontoontarioplaceframe/model.obj"
     },
     {
@@ -505,7 +505,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-tigerframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-tigerframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-tigerframe/model.obj"
     },
     {
@@ -523,7 +523,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-niagarafallsframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-niagarafallsframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-niagarafallsframe/model.obj"
     },
     {
@@ -541,7 +541,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-veniceframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-veniceframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-veniceframe/model.obj"
     },
     {
@@ -558,7 +558,7 @@
         "cooker",
         "appliance"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-ceramichob.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-ceramichob.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-ceramichob/model.obj"
     },
     {
@@ -574,7 +574,7 @@
       "tags": [
         "table"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-secretarysdesk.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-secretarysdesk.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-secretarysdesk/model.obj"
     },
     {
@@ -592,7 +592,7 @@
         "shelf",
         "bookcase"
       ],
-      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheighthalfwidth.glb",
+      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheighthalfwidth.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheighthalfwidth/model.obj"
     },
     {
@@ -610,7 +610,7 @@
         "shelf",
         "bookcase"
       ],
-      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheight.glb",
+      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheight.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackfullheight/model.obj"
     },
     {
@@ -628,7 +628,7 @@
         "shelf",
         "bookcase"
       ],
-      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodracklowheight.glb",
+      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodracklowheight.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodracklowheight/model.obj"
     },
     {
@@ -646,7 +646,7 @@
         "shelf",
         "bookcase"
       ],
-      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackmediumheight.glb",
+      "modelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackmediumheight.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/dingenskirchen-pinewoodrackmediumheight/model.obj"
     },
     {
@@ -662,7 +662,7 @@
       "tags": [
         "seat"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-latticechair.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-latticechair.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-latticechair/model.obj"
     },
     {
@@ -679,7 +679,7 @@
         "cooker",
         "appliance"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-stove1.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-stove1.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-stove1/model.obj"
     },
     {
@@ -695,7 +695,7 @@
       "tags": [
         "cupboard"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-cornercabinet.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-cornercabinet.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-cornercabinet/model.obj"
     },
     {
@@ -711,7 +711,7 @@
       "tags": [
         "cupboard"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-3drawercabinet.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-3drawercabinet.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-3drawercabinet/model.obj"
     },
     {
@@ -727,7 +727,7 @@
       "tags": [
         "cupboard"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-2glassdoorcabinet.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-2glassdoorcabinet.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-2glassdoorcabinet/model.obj"
     },
     {
@@ -743,7 +743,7 @@
       "tags": [
         "cupboard"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-2dooruppercabinet.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-2dooruppercabinet.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-2dooruppercabinet/model.obj"
     },
     {
@@ -759,7 +759,7 @@
       "tags": [
         "cupboard"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-2doorlowercabinet.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-2doorlowercabinet.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-2doorlowercabinet/model.obj"
     },
     {
@@ -775,7 +775,7 @@
       "tags": [
         "cupboard"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-1glassdoorcabinet.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-1glassdoorcabinet.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-1glassdoorcabinet/model.obj"
     },
     {
@@ -791,7 +791,7 @@
       "tags": [
         "cupboard"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-1dooruppercabinet.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-1dooruppercabinet.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-1dooruppercabinet/model.obj"
     },
     {
@@ -807,7 +807,7 @@
       "tags": [
         "cupboard"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-1doorlowercabinet.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-1doorlowercabinet.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-1doorlowercabinet/model.obj"
     },
     {
@@ -824,7 +824,7 @@
         "cupboard",
         "closet"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-pantry.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-pantry.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-pantry/model.obj"
     },
     {
@@ -841,7 +841,7 @@
         "basin",
         "cupboard"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-kitchensinkwithmarble.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-kitchensinkwithmarble.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-kitchensinkwithmarble/model.obj"
     },
     {
@@ -858,7 +858,7 @@
         "cabinet",
         "cupboard"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-kitchenisland.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-kitchenisland.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-kitchenisland/model.obj"
     },
     {
@@ -875,7 +875,7 @@
         "cabinet",
         "cupboard"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-cornerchina.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-cornerchina.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-cornerchina/model.obj"
     },
     {
@@ -895,7 +895,7 @@
         "deck",
         "garden"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-grillngauge.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-grillngauge.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-grillngauge/model.obj"
     },
     {
@@ -911,7 +911,7 @@
       "tags": [
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/petersmolik-candleornament.glb",
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-candleornament.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/petersmolik-candleornament/model.obj"
     },
     {
@@ -928,7 +928,7 @@
         "shelves",
         "shelf"
       ],
-      "modelPath": "https://assets.buildmy.house/models/petersmolik-cdrack.glb",
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-cdrack.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/petersmolik-cdrack/model.obj"
     },
     {
@@ -944,7 +944,7 @@
       "tags": [
         "seat"
       ],
-      "modelPath": "https://assets.buildmy.house/models/petersmolik-chair2.glb",
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-chair2.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/petersmolik-chair2/model.obj"
     },
     {
@@ -960,7 +960,7 @@
       "tags": [
         "bed"
       ],
-      "modelPath": "https://assets.buildmy.house/models/petersmolik-futon.glb",
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-futon.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/petersmolik-futon/model.obj"
     },
     {
@@ -974,7 +974,7 @@
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/petersmolik-halltable.glb",
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-halltable.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/petersmolik-halltable/model.obj"
     },
     {
@@ -990,7 +990,7 @@
       "tags": [
         "seat"
       ],
-      "modelPath": "https://assets.buildmy.house/models/petersmolik-officechair.glb",
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-officechair.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/petersmolik-officechair/model.obj"
     },
     {
@@ -1007,7 +1007,7 @@
         "photo",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/petersmolik-picture.glb",
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-picture.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/petersmolik-picture/model.obj"
     },
     {
@@ -1023,7 +1023,7 @@
       "tags": [
         "patio"
       ],
-      "modelPath": "https://assets.buildmy.house/models/petersmolik-potplant2.glb",
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-potplant2.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/petersmolik-potplant2/model.obj"
     },
     {
@@ -1040,7 +1040,7 @@
         "couch",
         "seat"
       ],
-      "modelPath": "https://assets.buildmy.house/models/petersmolik-sofa1.glb",
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-sofa1.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/petersmolik-sofa1/model.obj"
     },
     {
@@ -1057,7 +1057,7 @@
         "couch",
         "seat"
       ],
-      "modelPath": "https://assets.buildmy.house/models/petersmolik-sofa4.glb",
+      "modelPath": "https://assets.buildmy.house/models/petersmolik-sofa4.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/petersmolik-sofa4/model.obj"
     },
     {
@@ -1075,7 +1075,7 @@
         "seat",
         "cushion"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-couchpoofypillows.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-couchpoofypillows.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-couchpoofypillows/model.obj"
     },
     {
@@ -1092,7 +1092,7 @@
         "sofa",
         "seat"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-largecouch.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-largecouch.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-largecouch/model.obj"
     },
     {
@@ -1108,7 +1108,7 @@
       "tags": [
         "seat"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-singlechair.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-singlechair.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-singlechair/model.obj"
     },
     {
@@ -1124,7 +1124,7 @@
       "tags": [
         "cushion"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-throwpillow.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-throwpillow.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-throwpillow/model.obj"
     },
     {
@@ -1140,7 +1140,7 @@
       "tags": [
         "outdoor"
       ],
-      "modelPath": "https://assets.buildmy.house/models/pencilart-privacyfence2.glb",
+      "modelPath": "https://assets.buildmy.house/models/pencilart-privacyfence2.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/pencilart-privacyfence2/model.obj"
     },
     {
@@ -1154,7 +1154,7 @@
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/nmi-stainlesssteelshelf.glb",
+      "modelPath": "https://assets.buildmy.house/models/nmi-stainlesssteelshelf.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/nmi-stainlesssteelshelf/model.obj"
     },
     {
@@ -1172,7 +1172,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-lakemoraineframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-lakemoraineframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-lakemoraineframe/model.obj"
     },
     {
@@ -1190,7 +1190,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-squirrelframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-squirrelframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-squirrelframe/model.obj"
     },
     {
@@ -1208,7 +1208,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-statueoflibertyframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-statueoflibertyframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-statueoflibertyframe/model.obj"
     },
     {
@@ -1226,7 +1226,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-vaticanmuseumframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-vaticanmuseumframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-vaticanmuseumframe/model.obj"
     },
     {
@@ -1244,7 +1244,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-etretatframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-etretatframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-etretatframe/model.obj"
     },
     {
@@ -1262,7 +1262,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-coloredfountainframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-coloredfountainframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-coloredfountainframe/model.obj"
     },
     {
@@ -1280,7 +1280,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-horseshoebendframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-horseshoebendframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-horseshoebendframe/model.obj"
     },
     {
@@ -1298,7 +1298,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-tucanframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-tucanframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-tucanframe/model.obj"
     },
     {
@@ -1316,7 +1316,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-yosemiteframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-yosemiteframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-yosemiteframe/model.obj"
     },
     {
@@ -1334,7 +1334,7 @@
         "picture",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-waterlilyframe.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-waterlilyframe.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-waterlilyframe/model.obj"
     },
     {
@@ -1351,7 +1351,7 @@
         "table",
         "class"
       ],
-      "modelPath": "https://assets.buildmy.house/models/fabricedelobe-bureauecolier.glb",
+      "modelPath": "https://assets.buildmy.house/models/fabricedelobe-bureauecolier.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/fabricedelobe-bureauecolier/model.obj"
     },
     {
@@ -1367,7 +1367,7 @@
       "tags": [
         "food"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-baguettepain.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-baguettepain.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-baguettepain/model.obj"
     },
     {
@@ -1384,7 +1384,7 @@
         "book",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/toomy-bd.glb",
+      "modelPath": "https://assets.buildmy.house/models/toomy-bd.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/toomy-bd/model.obj"
     },
     {
@@ -1401,7 +1401,7 @@
         "book",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/toomy-bdouverte.glb",
+      "modelPath": "https://assets.buildmy.house/models/toomy-bdouverte.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/toomy-bdouverte/model.obj"
     },
     {
@@ -1417,7 +1417,7 @@
       "tags": [
         "food"
       ],
-      "modelPath": "https://assets.buildmy.house/models/toomy-bolderiz.glb",
+      "modelPath": "https://assets.buildmy.house/models/toomy-bolderiz.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/toomy-bolderiz/model.obj"
     },
     {
@@ -1431,7 +1431,7 @@
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/toomy-eponge.glb",
+      "modelPath": "https://assets.buildmy.house/models/toomy-eponge.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/toomy-eponge/model.obj"
     },
     {
@@ -1447,7 +1447,7 @@
       "tags": [
         "appliance"
       ],
-      "modelPath": "https://assets.buildmy.house/models/toomy-fer.glb",
+      "modelPath": "https://assets.buildmy.house/models/toomy-fer.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/toomy-fer/model.obj"
     },
     {
@@ -1461,7 +1461,7 @@
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-invoice.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-invoice.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-invoice/model.obj"
     },
     {
@@ -1477,7 +1477,7 @@
       "tags": [
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-livrejava.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-livrejava.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-livrejava/model.obj"
     },
     {
@@ -1494,7 +1494,7 @@
         "appliance",
         "espresso"
       ],
-      "modelPath": "https://assets.buildmy.house/models/toomy-percolateur.glb",
+      "modelPath": "https://assets.buildmy.house/models/toomy-percolateur.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/toomy-percolateur/model.obj"
     },
     {
@@ -1511,7 +1511,7 @@
         "book",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/toomy-pilemagazines.glb",
+      "modelPath": "https://assets.buildmy.house/models/toomy-pilemagazines.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/toomy-pilemagazines/model.obj"
     },
     {
@@ -1527,7 +1527,7 @@
       "tags": [
         "food"
       ],
-      "modelPath": "https://assets.buildmy.house/models/toomy-pizza.glb",
+      "modelPath": "https://assets.buildmy.house/models/toomy-pizza.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/toomy-pizza/model.obj"
     },
     {
@@ -1541,7 +1541,7 @@
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/toomy-plancheadecouper.glb",
+      "modelPath": "https://assets.buildmy.house/models/toomy-plancheadecouper.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/toomy-plancheadecouper/model.obj"
     },
     {
@@ -1557,7 +1557,7 @@
       "tags": [
         "appliance"
       ],
-      "modelPath": "https://assets.buildmy.house/models/toomy-sechecheveux.glb",
+      "modelPath": "https://assets.buildmy.house/models/toomy-sechecheveux.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/toomy-sechecheveux/model.obj"
     },
     {
@@ -1574,7 +1574,7 @@
         "book",
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/toomy-sh3dmag.glb",
+      "modelPath": "https://assets.buildmy.house/models/toomy-sh3dmag.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/toomy-sh3dmag/model.obj"
     },
     {
@@ -1590,7 +1590,7 @@
       "tags": [
         "decoration"
       ],
-      "modelPath": "https://assets.buildmy.house/models/puybaret-sweethome3dkompakt.glb",
+      "modelPath": "https://assets.buildmy.house/models/puybaret-sweethome3dkompakt.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/puybaret-sweethome3dkompakt/model.obj"
     },
     {
@@ -1607,7 +1607,7 @@
         "food",
         "bread"
       ],
-      "modelPath": "https://assets.buildmy.house/models/toomy-toast.glb",
+      "modelPath": "https://assets.buildmy.house/models/toomy-toast.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/toomy-toast/model.obj"
     },
     {
@@ -1623,7 +1623,7 @@
       "tags": [
         "closet"
       ],
-      "modelPath": "https://assets.buildmy.house/models/bettinelli-armoirelotus.glb",
+      "modelPath": "https://assets.buildmy.house/models/bettinelli-armoirelotus.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/bettinelli-armoirelotus/model.obj"
     },
     {
@@ -1637,7 +1637,7 @@
       "color": 12632256,
       "doorOrWindow": false,
       "tags": [],
-      "modelPath": "https://assets.buildmy.house/models/bettinelli-barcusisine.glb",
+      "modelPath": "https://assets.buildmy.house/models/bettinelli-barcusisine.glb?v=orientation-90-v1",
       "renderModelPath": "https://assets.buildmy.house/models/bettinelli-barcusisine/model.obj"
     }
   ]

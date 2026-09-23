@@ -45,7 +45,7 @@ function thumbUrlFor(modelUrl: string, modelPath: string): string | null {
   if (modelUrl.startsWith('https://') || modelUrl.startsWith('http://')) {
     // External R2 model → prebaked WebP thumbnail at same domain/bucket
     // Replace /models/ with /thumbs/ and .glb with .webp
-    return modelUrl.replace(/\/models\//, '/thumbs/').replace(/\.glb$/, '.webp')
+    return modelUrl.replace(/\/models\//, '/thumbs/').replace(/\.glb(?=\?|$)/, '.webp')
   }
   if (!modelUrl.startsWith('assets/')) return null
   // Local bundled model → asset thumbs directory
@@ -640,4 +640,3 @@ function colorCss(color: number | null | undefined): string {
   if (color === null || color === undefined) return '#9e9e9e'
   return `#${(color >>> 0).toString(16).padStart(6, '0')}`
 }
-

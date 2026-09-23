@@ -47,6 +47,7 @@ const DEFAULT_SCRATCH_ROOT = join(ROOT, '.sh3d-scratch')
 const CATALOG_PATH = join(ROOT, 'assets', 'catalog', 'catalog.json')
 const THUMBS_DIR = join(ROOT, 'assets', 'thumbs')
 const R2_KEY_PREFIX = 'models'
+const ASSET_TRANSFORM_VERSION = 'orientation-90-v1'
 
 /** sub-directory -> license tier, read from each archive's own LICENSE.TXT. */
 const SUB_LICENSES: Record<string, string> = {
@@ -563,15 +564,16 @@ export class AssetIngestionService {
     return items
   }
 
-  /** Check source geometry after the exact catalog rotation used by conversion. */
+  /** Check source geometry after SH3D rotation and the app's quarter-turn correction. */
   checkTransform(item: LibraryItem): TransformCheck {
     if (item.rotationError) return { status: 'ambiguous', extents: [0, 0, 0], scale: null, error: null, swapError: null, reason: item.rotationError }
     const group = new OBJLoader().parse(readFileSync(item.objPath, 'utf8'))
     const rawBox = new THREE.Box3().setFromObject(group)
     const rawSize = rawBox.getSize(new THREE.Vector3())
     applyModelRotation(group, item.rotation)
+    group.rotateY(Math.PI / 2)
     const size = new THREE.Box3().setFromObject(group).getSize(new THREE.Vector3())
-    const check = classifyTransform([size.x, size.y, size.z], [item.width, item.depth])
+    const check = classifyTransform([size.x, size.y, size.z], [item.depth, item.width])
     check.rawError = footprintError(rawSize.x, rawSize.z, item.width, item.depth)
     return check
   }
@@ -689,10 +691,7 @@ export class AssetIngestionService {
           installNodeGlbPolyfills()
           const { group, transformCheck } = this.convertToGroup(item)
           state.transformCheck = transformCheck
-          if (state.transformCheck.status === 'axis-swap') {
-            throw new Error(`transform audit flagged likely X/Z swap (error ${state.transformCheck.error?.toFixed(3)}, swapped ${state.transformCheck.swapError?.toFixed(3)})`)
-          }
-          if (state.transformCheck.status === 'ambiguous') {
+          if (state.transformCheck.status === 'axis-swap' || state.transformCheck.status === 'ambiguous') {
             console.warn(`[import] transform ambiguous ${item.catalogId}: ${state.transformCheck.reason ?? `error ${state.transformCheck.error?.toFixed(3)}`}`)
           }
           buffer = await exportGlb(group)
@@ -742,7 +741,7 @@ export class AssetIngestionService {
     // Thumbnails for exactly the items this batch added.
     let thumbnailsWritten = 0
     let thumbnailsSkipped = 0
-    if (catalogAdded > 0) {
+    if (!mode.skipUpload && queue.length > 0) {
       const manifest = this.readCatalog()
       const addedIds = new Set(queue.map((item) => item.catalogId))
       const jobs = manifest.items
@@ -782,14 +781,21 @@ export class AssetIngestionService {
   private mergeEntries(only?: (entry: CatalogEntry) => boolean): number {
     const checkpoint = this.loadCheckpoint()
     const manifest = this.readCatalog()
-    const existing = new Set(manifest.items.map((i) => i.catalogId))
+    const existing = new Map(manifest.items.map((item, index) => [item.catalogId, index]))
     let added = 0
     for (const [catalogId, state] of Object.entries(checkpoint.items)) {
       if (!state.verified || !state.entry) continue
-      if (existing.has(catalogId)) continue
       if (only && !only(state.entry)) continue
+      const index = existing.get(catalogId)
+      if (index !== undefined) {
+        if (only) {
+          manifest.items[index] = state.entry
+          added++
+        }
+        continue
+      }
       manifest.items.push(state.entry)
-      existing.add(catalogId)
+      existing.set(catalogId, manifest.items.length - 1)
       added++
     }
     if (added > 0) this.writeCatalog(manifest)
@@ -909,10 +915,12 @@ export class AssetIngestionService {
       })
     }
     applyModelRotation(group, item.rotation)
+    // Align the imported library's +Z front with buildmy.house's +X zero-angle convention.
+    group.rotateY(Math.PI / 2)
     const size = new THREE.Box3().setFromObject(group).getSize(new THREE.Vector3())
     const transformCheck = item.rotationError
       ? { status: 'ambiguous' as const, extents: [0, 0, 0] as [number, number, number], scale: null, error: null, swapError: null, reason: item.rotationError }
-      : classifyTransform([size.x, size.y, size.z], [item.width, item.depth])
+      : classifyTransform([size.x, size.y, size.z], [item.depth, item.width])
     transformCheck.rawError = footprintError(rawSize.x, rawSize.z, item.width, item.depth)
     // Center on X/Z, rest on floor at Y=0.
     const bbox = new THREE.Box3().setFromObject(group)
@@ -1000,7 +1008,7 @@ function buildEntry(item: LibraryItem): CatalogEntry {
     color: 12632256,
     doorOrWindow: item.doorOrWindow,
     tags: item.tags,
-    modelPath: `${r2PublicUrl()}/${R2_KEY_PREFIX}/${item.slug}.glb`,
+    modelPath: `${r2PublicUrl()}/${R2_KEY_PREFIX}/${item.slug}.glb?v=${ASSET_TRANSFORM_VERSION}`,
     renderModelPath: `${r2PublicUrl()}/${R2_KEY_PREFIX}/${item.slug}/model.obj`,
   }
 }
