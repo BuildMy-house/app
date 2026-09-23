@@ -1531,6 +1531,7 @@ const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
       })
       model.setSelection([placed.id])
       model.getStore().endCompoundEdit()
+      setSidebarTab('furniture')
       refreshToolbar()
       refreshStatus()
       return placed.id
@@ -1557,6 +1558,7 @@ const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
       setSidebarTab(button.dataset.sidebarTab === 'properties' ? 'properties' : 'furniture')
     })
   }
+  setSidebarTab(catalogHost.classList.contains('show-properties') ? 'properties' : 'furniture')
   telemetry.catalogLoad(performance.now() - catalogLoadStart, sharedCatalog.size)
 }).catch((err) => {
   console.error('[catalog] failed to load catalog:', err)
