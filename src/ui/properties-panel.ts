@@ -122,10 +122,13 @@ export class PropertiesPanel {
   private readonly root: HTMLDivElement
   private readonly model: HomeModel
   private readonly unobserve: () => void
+  private readonly onSelection: () => void
+  private previousSelection: string | null = null
   private visible = true
 
-  constructor(store: HomeStore, parent: HTMLElement) {
+  constructor(store: HomeStore, parent: HTMLElement, onSelection: () => void = () => {}) {
     this.model = new HomeModel(store)
+    this.onSelection = onSelection
     this.root = document.createElement('div')
     this.root.id = 'properties-panel'
     this.root.className = 'properties-panel'
@@ -151,6 +154,11 @@ export class PropertiesPanel {
   private render(store: HomeStore): void {
     const home = store.getHome()
     const sel = home.selection
+    const selectionKey = sel.join('\0')
+    if (selectionKey !== this.previousSelection) {
+      this.previousSelection = selectionKey
+      if (sel.length > 0) this.onSelection()
+    }
 
     this.root.innerHTML = ''
 

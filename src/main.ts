@@ -8,6 +8,7 @@ import { HomeModel } from './core/model'
 import { HomelyCommandHandler } from './automation/homely-handler'
 import { FurnitureCatalog } from './core/catalog'
 import { loadDefaultCatalog } from './core/catalog-service'
+import { isMultiLevelEnabled } from './config/feature-flags'
 import { CatalogPanel } from './ui/catalog-panel'
 import { PlanEngine, type PlanPreview, type PlanTool } from './plan/engine'
 import { snapFurniturePlacement } from './plan/furniture-snap'
@@ -664,14 +665,28 @@ function refreshOutsideViewButtons(): void {
 function refreshLevelButtons(): void {
   const home = store.getHome()
   const group = toolbar.querySelector<HTMLDivElement>('#level-group')!
-  const canDelete = home.levels.length > 1
+  const multiLevelOn = isMultiLevelEnabled()
+  // Flag OFF + single-level home: no level UI at all — the polished default.
+  if (!multiLevelOn && home.levels.length <= 1) {
+    group.innerHTML = ''
+    return
+  }
+  // Flag OFF but the home already has multiple levels (saved before this flag
+  // existed): keep read-only navigation (All / switch / rename via dblclick)
+  // so users can still reach their levels; hide only structural actions
+  // (add level, delete level).
+  const canDelete = multiLevelOn && home.levels.length > 1
   let html = `<button class="tool-btn" id="btn-level-all" title="Show all levels" data-level="all">All</button>`
   for (const level of home.levels) {
     const isActive = activeLevelId === level.id
     html += `<button class="tool-btn level-btn${isActive ? ' active' : ''}" data-level="${level.id}" title="${level.name}">${level.name}</button>`
-    html += `<button class="level-delete" data-delete-level="${level.id}" title="Delete level"${canDelete ? '' : ' disabled'}>×</button>`
+    if (multiLevelOn) {
+      html += `<button class="level-delete" data-delete-level="${level.id}" title="Delete level"${canDelete ? '' : ' disabled'}>×</button>`
+    }
   }
-  html += `<button class="tool-btn" id="btn-add-level" title="Add level">+</button>`
+  if (multiLevelOn) {
+    html += `<button class="tool-btn" id="btn-add-level" title="Add level">+</button>`
+  }
   group.innerHTML = html
 
   group.querySelector('#btn-level-all')!.addEventListener('click', () => {
@@ -715,25 +730,27 @@ function refreshLevelButtons(): void {
     })
   }
 
-  group.querySelector('#btn-add-level')!.addEventListener('click', async () => {
-    const name = await promptDialog('Level name:', `Level ${home.levels.length + 1}`)
-    if (!name || !name.trim()) return
-    await traceAction('level.add', () => {
-      const elevation = nextLevelElevation(home.levels)
-      const created = model.addLevel({
-        name: name.trim(),
-        elevation,
-        floorThickness: 20,
-        height: 250,
-        visible: true,
-        viewable: true,
+  if (multiLevelOn) {
+    group.querySelector('#btn-add-level')!.addEventListener('click', async () => {
+      const name = await promptDialog('Level name:', `Level ${home.levels.length + 1}`)
+      if (!name || !name.trim()) return
+      await traceAction('level.add', () => {
+        const elevation = nextLevelElevation(home.levels)
+        const created = model.addLevel({
+          name: name.trim(),
+          elevation,
+          floorThickness: 20,
+          height: 250,
+          visible: true,
+          viewable: true,
+        })
+        activeLevelId = created.id
+        engine.setActiveLevel(created.id)
+        view3d?.setActiveLevel(created.id)
+        refreshAll()
       })
-      activeLevelId = created.id
-      engine.setActiveLevel(created.id)
-      view3d?.setActiveLevel(created.id)
-      refreshAll()
     })
-  })
+  }
 }
 
 // ── Status bar ──────────────────────────────────────────────────────────────
@@ -780,15 +797,20 @@ function refreshMobileNav(tab: string): void {
   }
 }
 
+function setSidebarTab(tab: 'furniture' | 'properties'): void {
+  const showProperties = tab === 'properties'
+  catalogHost.classList.toggle('show-properties', showProperties)
+  for (const button of catalogHost.querySelectorAll<HTMLButtonElement>('[data-sidebar-tab]')) {
+    button.setAttribute('aria-selected', String(button.dataset.sidebarTab === tab))
+  }
+}
+
 function setMobileTab(tab: string): void {
   const showCatalog = tab === 'furniture'
   const showProperties = tab === 'properties'
 
   catalogHost.classList.toggle('collapsed', !showCatalog && !showProperties)
-  catalogHost.classList.toggle('show-properties', showProperties)
-  for (const button of catalogHost.querySelectorAll<HTMLButtonElement>('[data-sidebar-tab]')) {
-    button.setAttribute('aria-selected', String(button.dataset.sidebarTab === (showProperties ? 'properties' : 'furniture')))
-  }
+  setSidebarTab(showProperties ? 'properties' : 'furniture')
   setCameraPreset(tab === '3d' ? '3d' : 'plan')
   refreshMobileNav(tab)
 }
@@ -1460,7 +1482,7 @@ view3d = new View3D(store, {
 
 // Properties panel — right sidebar
 const mainArea = root.querySelector<HTMLDivElement>('#main-area')!
-const propsPanel = new PropertiesPanel(store, mainArea)
+const propsPanel = new PropertiesPanel(store, mainArea, () => setSidebarTab('properties'))
 if (window.matchMedia('(max-width: 799px)').matches) setMobileTab('plan')
 
 // Pending snap wall-ref data set before catalogPanel.place() and consumed in
@@ -1532,11 +1554,7 @@ const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
   `)
   for (const button of catalogHost.querySelectorAll<HTMLButtonElement>('[data-sidebar-tab]')) {
     button.addEventListener('click', () => {
-      const showProperties = button.dataset.sidebarTab === 'properties'
-      catalogHost.classList.toggle('show-properties', showProperties)
-      for (const tab of catalogHost.querySelectorAll<HTMLButtonElement>('[data-sidebar-tab]')) {
-        tab.setAttribute('aria-selected', String(tab === button))
-      }
+      setSidebarTab(button.dataset.sidebarTab === 'properties' ? 'properties' : 'furniture')
     })
   }
   telemetry.catalogLoad(performance.now() - catalogLoadStart, sharedCatalog.size)
