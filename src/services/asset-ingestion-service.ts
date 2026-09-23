@@ -83,6 +83,17 @@ export interface LibraryItem {
   objPath: string
   mtlPath: string | null
   rotation: number[] | null
+  rotationError?: string
+}
+
+export interface TransformCheck {
+  status: 'pass' | 'pass-scale' | 'axis-swap' | 'ambiguous'
+  extents: [number, number, number]
+  scale: number | null
+  error: number | null
+  swapError: number | null
+  rawError?: number | null
+  reason?: string
 }
 
 interface CheckpointEntry {
@@ -90,6 +101,7 @@ interface CheckpointEntry {
   uploaded: boolean
   verified: boolean
   bytes?: number
+  transformCheck?: TransformCheck
   error?: string
   entry?: CatalogEntry
 }
@@ -551,6 +563,19 @@ export class AssetIngestionService {
     return items
   }
 
+  /** Check source geometry after the exact catalog rotation used by conversion. */
+  checkTransform(item: LibraryItem): TransformCheck {
+    if (item.rotationError) return { status: 'ambiguous', extents: [0, 0, 0], scale: null, error: null, swapError: null, reason: item.rotationError }
+    const group = new OBJLoader().parse(readFileSync(item.objPath, 'utf8'))
+    const rawBox = new THREE.Box3().setFromObject(group)
+    const rawSize = rawBox.getSize(new THREE.Vector3())
+    applyModelRotation(group, item.rotation)
+    const size = new THREE.Box3().setFromObject(group).getSize(new THREE.Vector3())
+    const check = classifyTransform([size.x, size.y, size.z], [item.width, item.depth])
+    check.rawError = footprintError(rawSize.x, rawSize.z, item.width, item.depth)
+    return check
+  }
+
   private parsePropertiesFile(sub: string): LibraryItem[] {
     const propsPath = join(this.sh3fRoot, sub, 'PluginFurnitureCatalog.properties')
     if (!existsSync(propsPath)) return []
@@ -568,9 +593,8 @@ export class AssetIngestionService {
       const objRel = (fields.model ?? '').replace(/^\//, '')
       const objPath = join(this.sh3fRoot, sub, objRel)
       const mtlPath = objPath.replace(/\.obj$/i, '.mtl')
-      const rotation = fields.modelRotation
-        ? fields.modelRotation.trim().split(/\s+/).map(Number)
-        : null
+      const rotationValues = fields.modelRotation?.trim().split(/\s+/).map(Number) ?? null
+      const validRotation = isRotationMatrix(rotationValues)
       items.push({
         catalogId: `sh3d-full#${sourceId}`,
         slug: slugify(sourceId),
@@ -585,7 +609,8 @@ export class AssetIngestionService {
         license,
         objPath,
         mtlPath: existsSync(mtlPath) ? mtlPath : null,
-        rotation: rotation && rotation.length === 9 && rotation.every((n) => Number.isFinite(n)) ? rotation : null,
+        rotation: validRotation ? rotationValues : null,
+        rotationError: fields.modelRotation !== undefined && !validRotation ? 'expected a proper 3×3 rotation matrix' : undefined,
       })
     }
     return items
@@ -662,7 +687,14 @@ export class AssetIngestionService {
           buffer = readFileSync(glbPath)
         } else {
           installNodeGlbPolyfills()
-          const group = this.convertToGroup(item)
+          const { group, transformCheck } = this.convertToGroup(item)
+          state.transformCheck = transformCheck
+          if (state.transformCheck.status === 'axis-swap') {
+            throw new Error(`transform audit flagged likely X/Z swap (error ${state.transformCheck.error?.toFixed(3)}, swapped ${state.transformCheck.swapError?.toFixed(3)})`)
+          }
+          if (state.transformCheck.status === 'ambiguous') {
+            console.warn(`[import] transform ambiguous ${item.catalogId}: ${state.transformCheck.reason ?? `error ${state.transformCheck.error?.toFixed(3)}`}`)
+          }
           buffer = await exportGlb(group)
           writeFileSync(glbPath, buffer)
           state.converted = true
@@ -860,7 +892,7 @@ export class AssetIngestionService {
     return { written, skipped }
   }
 
-  private convertToGroup(item: LibraryItem): THREE.Group {
+  private convertToGroup(item: LibraryItem): { group: THREE.Group; transformCheck: TransformCheck } {
     const objText = readFileSync(item.objPath, 'utf8')
     const objLoader = new OBJLoader()
     if (item.mtlPath) {
@@ -869,21 +901,19 @@ export class AssetIngestionService {
       objLoader.setMaterials(materialCreator)
     }
     const group = objLoader.parse(objText)
+    const rawSize = new THREE.Box3().setFromObject(group).getSize(new THREE.Vector3())
     if (!item.mtlPath) {
       const flatMaterial = new THREE.MeshStandardMaterial({ color: 0xc0c0c0, roughness: 0.8, metalness: 0.05 })
       group.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).material = flatMaterial
       })
     }
-    if (item.rotation) {
-      const r = item.rotation
-      group.applyMatrix4(new THREE.Matrix4().set(
-        r[0]!, r[1]!, r[2]!, 0,
-        r[3]!, r[4]!, r[5]!, 0,
-        r[6]!, r[7]!, r[8]!, 0,
-        0, 0, 0, 1,
-      ))
-    }
+    applyModelRotation(group, item.rotation)
+    const size = new THREE.Box3().setFromObject(group).getSize(new THREE.Vector3())
+    const transformCheck = item.rotationError
+      ? { status: 'ambiguous' as const, extents: [0, 0, 0] as [number, number, number], scale: null, error: null, swapError: null, reason: item.rotationError }
+      : classifyTransform([size.x, size.y, size.z], [item.width, item.depth])
+    transformCheck.rawError = footprintError(rawSize.x, rawSize.z, item.width, item.depth)
     // Center on X/Z, rest on floor at Y=0.
     const bbox = new THREE.Box3().setFromObject(group)
     const center = bbox.getCenter(new THREE.Vector3())
@@ -896,8 +926,55 @@ export class AssetIngestionService {
       }
     })
     sanitizeTextures(group)
-    return group
+    return { group, transformCheck }
   }
+}
+
+function applyModelRotation(group: THREE.Object3D, rotation: number[] | null): void {
+  if (!rotation) return
+  group.applyMatrix4(new THREE.Matrix4().set(
+    rotation[0]!, rotation[1]!, rotation[2]!, 0,
+    rotation[3]!, rotation[4]!, rotation[5]!, 0,
+    rotation[6]!, rotation[7]!, rotation[8]!, 0,
+    0, 0, 0, 1,
+  ))
+}
+
+function isRotationMatrix(values: number[] | null): values is number[] {
+  if (!values || values.length !== 9 || !values.every(Number.isFinite)) return false
+  const rows = [values.slice(0, 3), values.slice(3, 6), values.slice(6, 9)]
+  const dot = (a: number[], b: number[]) => a.reduce((sum, value, i) => sum + value * b[i]!, 0)
+  if (rows.some((row) => Math.abs(dot(row, row) - 1) > 0.02)) return false
+  if (Math.abs(dot(rows[0]!, rows[1]!)) > 0.02 || Math.abs(dot(rows[0]!, rows[2]!)) > 0.02 || Math.abs(dot(rows[1]!, rows[2]!)) > 0.02) return false
+  const [a, b, c, d, e, f, g, h, i] = values
+  const determinant = a! * (e! * i! - f! * h!) - b! * (d! * i! - f! * g!) + c! * (d! * h! - e! * g!)
+  return Math.abs(determinant - 1) <= 0.02
+}
+
+export function classifyTransform(
+  extents: [number, number, number],
+  dimensions: [number, number],
+): TransformCheck {
+  const base = { extents, scale: null as number | null, error: null as number | null, swapError: null as number | null }
+  if (![...extents, ...dimensions].every(Number.isFinite) || extents[0] <= 0 || extents[2] <= 0 || dimensions.some((n) => n <= 0)) {
+    return { ...base, status: 'ambiguous', reason: 'missing or invalid geometry dimensions' }
+  }
+  const scale = Math.sqrt((extents[0] / dimensions[0]) * (extents[2] / dimensions[1]))
+  const error = footprintError(extents[0], extents[2], dimensions[0], dimensions[1])
+  const swapError = footprintError(extents[2], extents[0], dimensions[0], dimensions[1])
+  if (error <= 0.05) {
+    return { ...base, scale, error, swapError, status: Math.abs(scale - 1) > 0.15 ? 'pass-scale' : 'pass' }
+  }
+  const footprintDiff = Math.abs(dimensions[0] - dimensions[1]) / Math.max(dimensions[0], dimensions[1])
+  if (swapError <= 0.05 && footprintDiff > 0.05) {
+    return { ...base, scale, error, swapError, status: 'axis-swap' }
+  }
+  return { ...base, scale, error, swapError, status: 'ambiguous', reason: footprintDiff <= 0.05 ? 'near-square footprint cannot distinguish X/Z' : 'footprint does not match catalog proportions' }
+}
+
+function footprintError(x: number, z: number, width: number, depth: number): number {
+  if (![x, z, width, depth].every(Number.isFinite) || x <= 0 || z <= 0 || width <= 0 || depth <= 0) return Infinity
+  return Math.abs(Math.log((x / z) / (width / depth)))
 }
 
 function exportGlb(group: THREE.Object3D): Promise<Buffer> {

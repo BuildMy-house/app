@@ -26,6 +26,7 @@
     "format": "prettier --write .",
     "tauri": "tauri",
     "thumbnails": "tsx scripts/render-thumbnails.ts",
+    "audit:sh3d-transforms": "tsx scripts/audit-sh3d-transforms.ts",
     "patch-r2-cache-headers": "tsx scripts/patch-r2-cache-headers.ts"
   },
   "dependencies": {
