@@ -1,7 +1,7 @@
 import type { NormalizedHomeState, Wall, Furniture, Level } from '../core/home'
 import { WALL_TEXTURES, resolveTextureUrl } from '../core/home'
 import { wallOutlinePoints } from '../core/top-camera-follower'
-import { wallArcHandlePos } from './engine'
+import { furnitureRotationHandlePos, wallArcHandlePos } from './engine'
 import type { PlanPreview } from './engine'
 
 export interface ViewTransform {
@@ -49,8 +49,7 @@ const CLOSURE_PREVIEW_FILL = 'rgba(100, 180, 100, 0.18)'
 const CLOSURE_PREVIEW_STROKE = 'rgba(80, 160, 80, 0.7)'
 const FURNITURE_FILL = 'rgba(160, 160, 90, 0.5)'
 const POLYLINE_FILL = 'rgba(120, 160, 200, 0.25)'
-const ROTATION_HANDLE_OFFSET = 20
-const ROTATION_HANDLE_RADIUS = 5
+const ROTATION_HANDLE_RADIUS = 8
 
 // Grid colors per theme — minor lines must stay low-contrast vs canvas bg
 // (transparent; body uses --bg), major lines moderately stronger.
@@ -755,21 +754,27 @@ export function drawPlan(
   )
   if (selectedFurniture.length === 1) {
     const f = selectedFurniture[0]!
-    const angleRad = (f.angleDeg * Math.PI) / 180
-    const cos = Math.cos(angleRad)
-    const sin = Math.sin(angleRad)
-    const hd = f.depth / 2
-    const hx = f.x + (hd + ROTATION_HANDLE_OFFSET) * sin
-    const hy = f.y - (hd + ROTATION_HANDLE_OFFSET) * cos
-    const px = mapper.sx(hx)
-    const py = mapper.sy(hy)
+    const handle = furnitureRotationHandlePos(f)
+    const px = mapper.sx(handle.x)
+    const py = mapper.sy(handle.y)
     ctx.beginPath()
-    ctx.arc(px, py, ROTATION_HANDLE_RADIUS, 0, Math.PI * 2)
-    ctx.fillStyle = SELECTION_COLOR
-    ctx.fill()
+    ctx.arc(px, py, ROTATION_HANDLE_RADIUS, -Math.PI * 0.7, Math.PI * 1.05)
     ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 4
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(px, py, ROTATION_HANDLE_RADIUS, -Math.PI * 0.7, Math.PI * 1.05)
+    ctx.strokeStyle = SELECTION_COLOR
     ctx.lineWidth = 2
     ctx.stroke()
+    const tip = -Math.PI * 0.7
+    ctx.beginPath()
+    ctx.moveTo(px + Math.cos(tip) * ROTATION_HANDLE_RADIUS, py + Math.sin(tip) * ROTATION_HANDLE_RADIUS)
+    ctx.lineTo(px + Math.cos(tip + 0.9) * 4, py + Math.sin(tip + 0.9) * 4)
+    ctx.lineTo(px + Math.cos(tip - 0.9) * 4, py + Math.sin(tip - 0.9) * 4)
+    ctx.closePath()
+    ctx.fillStyle = SELECTION_COLOR
+    ctx.fill()
   }
 
   // Dimension lines.

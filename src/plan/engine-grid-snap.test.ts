@@ -60,7 +60,7 @@ describe('PlanEngine grid snap', () => {
       model.setSelection([fid])
 
       // drag by (2, 3) → naive = (55, 50), grid-snapped = (60, 50)
-      engine.drag({ fromX: 53, fromY: 47, toX: 55, toY: 50, shift: false, altOrMeta: false })
+      engine.drag({ fromX: 68, fromY: 47, toX: 70, toY: 50, shift: false, altOrMeta: false })
 
       const h2 = store.getHome()
       const f = h2.furniture.find((fi) => fi.id === fid)!
@@ -77,7 +77,7 @@ describe('PlanEngine grid snap', () => {
       const fid = home.furniture[0]!.id
       model.setSelection([fid])
 
-      engine.drag({ fromX: 53, fromY: 47, toX: 55, toY: 50, shift: false, altOrMeta: false })
+      engine.drag({ fromX: 68, fromY: 47, toX: 70, toY: 50, shift: false, altOrMeta: false })
 
       const h2 = store.getHome()
       const f = h2.furniture.find((fi) => fi.id === fid)!

@@ -43,18 +43,9 @@ function endpointSnapMargin(): number {
 const EPSILON = 1e-6
 const ENDPOINT_HIT_RADIUS = 10
 const CONNECTED_WALL_EPSILON = 0.1
-const ROTATION_HANDLE_OFFSET = 20
-
 /** Model-space position of the rotation handle for a furniture item. */
-export function furnitureRotationHandlePos(f: { x: number; y: number; depth: number; angleDeg: number }): Point {
-  const angleRad = (f.angleDeg * Math.PI) / 180
-  const cos = Math.cos(angleRad)
-  const sin = Math.sin(angleRad)
-  const hd = f.depth / 2
-  return {
-    x: f.x + (hd + ROTATION_HANDLE_OFFSET) * sin,
-    y: f.y - (hd + ROTATION_HANDLE_OFFSET) * cos,
-  }
+export function furnitureRotationHandlePos(f: { x: number; y: number }): Point {
+  return { x: f.x, y: f.y }
 }
 
 /** Perpendicular unit vector to a wall's chord (points in the CCW bulge direction). */
