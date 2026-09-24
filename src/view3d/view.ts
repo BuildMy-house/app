@@ -304,7 +304,7 @@ export class View3D {
       this.setActivePreset(this.director.getActivePreset())
     }
 
-    this.ensureGizmo()
+    if (this.renderer) this.ensureGizmo()
   }
 
   get scene(): THREE.Scene {
