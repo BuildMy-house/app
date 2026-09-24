@@ -969,7 +969,7 @@ export class View3D {
       const a0 = Math.atan2(d.start.z - d.origin.z, d.start.x - d.origin.x)
       const a1 = Math.atan2(p.z - d.origin.z, p.x - d.origin.x)
       this.model.updateFurniture(d.id, {
-        angleDeg: d.value0 - THREE.MathUtils.radToDeg(a1 - a0),
+        angleDeg: d.value0 + THREE.MathUtils.radToDeg(a1 - a0),
       })
       return
     }
@@ -1037,11 +1037,12 @@ export class View3D {
     const xs: number[] = []
     const ys: number[] = []
     for (const w of home.walls) {
+      if ((w.levelRef ?? null) !== (item.levelRef ?? null)) continue
       xs.push(w.xStart, w.xEnd)
       ys.push(w.yStart, w.yEnd)
     }
     for (const f of home.furniture) {
-      if (f.id === item.id || f.visible === false) continue
+      if (f.id === item.id || f.visible === false || (f.levelRef ?? null) !== (item.levelRef ?? null)) continue
       xs.push(f.x - f.width / 2, f.x, f.x + f.width / 2)
       ys.push(f.y - f.depth / 2, f.y, f.y + f.depth / 2)
     }
