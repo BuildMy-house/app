@@ -8,7 +8,7 @@ import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js'
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js'
 import { HomeModel } from '../core/model'
 import { HomeStore } from '../core/store'
-import { DEFAULT_WALL_HEIGHT_CM, type NormalizedHomeState } from '../core/home'
+import { DEFAULT_WALL_HEIGHT_CM, type Furniture, type NormalizedHomeState } from '../core/home'
 import { CameraDirector, type CameraPatch, type CameraPresetName } from './cameras'
 import { buildScene, defaultModelUrlResolver, type ModelUrlResolver } from './scene'
 import { observeStore } from './watch'
@@ -41,6 +41,11 @@ import { exportViewportAsImage } from '../export/quick-preview'
 // Per-texture memory estimate for the telemetry textureMemoryMB figure (1024×1024 RGBA).
 const ESTIMATED_TEXTURE_MB = 1
 const INTERACTION_PIXEL_RATIO = 0.75
+// Furniture gizmo handle geometry and 3D floor-drag magnetism, in world cm.
+const GIZMO_ARROW_LENGTH_CM = 90
+const GIZMO_RING_RADIUS_CM = 65
+const GIZMO_HANDLE_RADIUS_CM = 7
+const FLOOR_DRAG_SNAP_CM = 10
 
 export interface View3DOptions {
   /** DOM container; when absent the view stays a headless scene graph. */
@@ -105,6 +110,16 @@ export class View3D {
   private readonly model: HomeModel
   private readonly pointerDown = { x: 0, y: 0 }
   private furnitureDrag: { id: string; x: number; y: number; start: { x: number; y: number } } | null = null
+  private gizmo: THREE.Group | undefined
+  private gizmoDrag: {
+    id: string
+    kind: 'x' | 'y' | 'z' | 'ring'
+    origin: THREE.Vector3
+    axis: THREE.Vector3
+    normal: THREE.Vector3
+    start: THREE.Vector3
+    value0: number
+  } | null = null
   private readonly isPlacing?: () => boolean
   private readonly onFloorClick?: (point: { x: number; y: number }) => void
   private _lastHome: NormalizedHomeState | null = null
@@ -223,6 +238,7 @@ export class View3D {
         this.pointerDown.x = e.clientX
         this.pointerDown.y = e.clientY
         if (e.button !== 0 || (this.onFloorClick && this.isPlacing?.())) return
+        if (this.beginGizmoDrag(e)) return
         const id = this.pickFurnitureId(e)
         const item = id && this.store.getHome().furniture.find((f) => f.id === id)
         const start = item && this.floorPoint(e)
@@ -234,16 +250,28 @@ export class View3D {
         renderer.domElement.setPointerCapture(e.pointerId)
       })
       renderer.domElement.addEventListener('pointermove', (e) => {
+        if (this.gizmoDrag) {
+          this.updateGizmoDrag(e)
+          return
+        }
         if (!this.furnitureDrag) return
         const point = this.floorPoint(e)
         if (!point) return
         const drag = this.furnitureDrag
-        this.model.updateFurniture(drag.id, {
+        const naive = {
           x: drag.x + point.x - drag.start.x,
           y: drag.y + point.y - drag.start.y,
-        })
+        }
+        const item = this.store.getHome().furniture.find((f) => f.id === drag.id)
+        this.model.updateFurniture(drag.id, item ? this.snapFloorTarget(item, naive) : naive)
       })
       renderer.domElement.addEventListener('pointerup', (e) => {
+        if (this.gizmoDrag) {
+          this.gizmoDrag = null
+          this.store.endCompoundEdit()
+          this.controls!.enabled = true
+          return
+        }
         if (this.furnitureDrag) {
           this.furnitureDrag = null
           this.store.endCompoundEdit()
@@ -260,6 +288,11 @@ export class View3D {
         this.pick(e)
       })
       renderer.domElement.addEventListener('pointercancel', () => {
+        if (this.gizmoDrag) {
+          this.gizmoDrag = null
+          this.store.endCompoundEdit()
+          this.controls!.enabled = true
+        }
         if (!this.furnitureDrag) return
         this.furnitureDrag = null
         this.store.endCompoundEdit()
@@ -270,6 +303,8 @@ export class View3D {
       // camera sync cannot set a useful orbit target without controls.
       this.setActivePreset(this.director.getActivePreset())
     }
+
+    this.ensureGizmo()
   }
 
   get scene(): THREE.Scene {
@@ -599,6 +634,7 @@ export class View3D {
       savedPosition = this.perspectiveCamera.position.clone()
     }
 
+    if (this.gizmo) this._scene.remove(this.gizmo)
     this.disposeSceneObjects(this._scene)
     this._scene = buildScene(this.store.getHome(), {
       modelUrlResolver: this.modelUrlResolver,
@@ -609,6 +645,7 @@ export class View3D {
       showRoof: this._showRoof,
       lightIntensity: this._lightIntensity,
     })
+    if (this.gizmo) this._scene.add(this.gizmo)
     this.countInstancedMeshes()
     this.applyQualityToScene()
     this.applyEnvironment()
@@ -666,6 +703,7 @@ export class View3D {
       }
       if (applied) {
         for (const { type, ms } of deltaTimings) recordSceneDelta(type, ms)
+        this.startAnimationLoop()
       }
       this._lastDeltaMs = applied ? performance.now() - batchStart : 0
       // Delta path moved/changed shadow-casting geometry directly; autoUpdate
@@ -677,6 +715,8 @@ export class View3D {
     this._lastHome = { ...home } // Shallow copy for next frame
 
     if (selectionChanged && home.selection.length > 0) this.focusSelection()
+    this.updateGizmo()
+    if (selectionChanged) this.startAnimationLoop()
   }
 
   /**
@@ -805,6 +845,224 @@ export class View3D {
     const hit = new THREE.Vector3()
     if (!raycaster.ray.intersectPlane(plane, hit)) return null
     return { x: hit.x, y: hit.z }
+  }
+
+  private ensureGizmo(): THREE.Group {
+    if (!this.gizmo) {
+      const g = new THREE.Group()
+      g.name = 'furniture-gizmo'
+      g.visible = false
+      const axes: Array<['x' | 'y' | 'z', THREE.Vector3, number]> = [
+        ['x', new THREE.Vector3(1, 0, 0), 0xff4444],
+        ['y', new THREE.Vector3(0, 1, 0), 0x44ff66],
+        ['z', new THREE.Vector3(0, 0, 1), 0x4477ff],
+      ]
+      for (const [kind, dir, color] of axes) {
+        const arrow = new THREE.ArrowHelper(
+          dir,
+          new THREE.Vector3(),
+          GIZMO_ARROW_LENGTH_CM,
+          color,
+          12,
+          6,
+        )
+        arrow.userData.gizmoKind = kind
+        arrow.traverse((o) => {
+          const m = (o as THREE.Mesh).material as THREE.Material | undefined
+          if (m) {
+            m.depthTest = false
+            m.depthWrite = false
+          }
+          o.renderOrder = 10
+        })
+        g.add(arrow)
+        const hit = new THREE.Mesh(
+          new THREE.CylinderGeometry(
+            GIZMO_HANDLE_RADIUS_CM,
+            GIZMO_HANDLE_RADIUS_CM,
+            GIZMO_ARROW_LENGTH_CM,
+            8,
+          ),
+          new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
+        )
+        hit.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
+        hit.position.copy(dir).multiplyScalar(GIZMO_ARROW_LENGTH_CM / 2)
+        hit.userData.gizmoKind = kind
+        g.add(hit)
+      }
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(GIZMO_RING_RADIUS_CM, 2.5, 8, 64),
+        new THREE.MeshBasicMaterial({
+          color: 0xffdd44,
+          depthTest: false,
+          depthWrite: false,
+          transparent: true,
+        }),
+      )
+      ring.rotation.x = -Math.PI / 2
+      ring.renderOrder = 10
+      ring.userData.gizmoKind = 'ring'
+      g.add(ring)
+      const ringHit = new THREE.Mesh(
+        new THREE.TorusGeometry(GIZMO_RING_RADIUS_CM, GIZMO_HANDLE_RADIUS_CM, 8, 64),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
+      )
+      ringHit.rotation.x = -Math.PI / 2
+      ringHit.userData.gizmoKind = 'ring'
+      g.add(ringHit)
+      this.gizmo = g
+    }
+    this._scene.add(this.gizmo)
+    return this.gizmo
+  }
+
+  private updateGizmo(): void {
+    const g = this.gizmo
+    if (!g) return
+    const home = this.store.getHome()
+    const id = home.selection.length === 1 ? home.selection[0] : null
+    const item = id ? home.furniture.find((f) => f.id === id) : undefined
+    if (!item || item.visible === false) {
+      g.visible = false
+      return
+    }
+    const levels = new Map(home.levels.map((l) => [l.id, l.elevation]))
+    const levelY = item.levelRef ? levels.get(item.levelRef) ?? 0 : 0
+    g.position.set(item.x, levelY + item.elevation + item.height / 2, item.y)
+    g.visible = true
+  }
+
+  private beginGizmoDrag(e: PointerEvent): boolean {
+    if (!this.renderer || !this.gizmo?.visible) return false
+    const kind = this.raycastGizmo(e)
+    if (!kind) return false
+    const home = this.store.getHome()
+    const id = home.selection.length === 1 ? home.selection[0] : null
+    const item = id ? home.furniture.find((f) => f.id === id) : undefined
+    if (!item) return false
+    const origin = this.gizmo.position.clone()
+    const axis =
+      kind === 'x'
+        ? new THREE.Vector3(1, 0, 0)
+        : kind === 'y'
+          ? new THREE.Vector3(0, 1, 0)
+          : new THREE.Vector3(0, 0, 1)
+    const normal =
+      kind === 'ring' ? new THREE.Vector3(0, 1, 0) : this.gizmoDragNormal(axis)
+    const start = this.rayPlanePoint(e, origin, normal)
+    if (!start) return false
+    const value0 =
+      kind === 'x' ? item.x : kind === 'y' ? item.elevation : kind === 'z' ? item.y : item.angleDeg
+    this.gizmoDrag = { id: item.id, kind, origin, axis, normal, start, value0 }
+    this.store.beginCompoundEdit()
+    this.controls!.enabled = false
+    this.renderer.domElement.setPointerCapture(e.pointerId)
+    return true
+  }
+
+  private updateGizmoDrag(e: PointerEvent): void {
+    const d = this.gizmoDrag
+    if (!d) return
+    const p = this.rayPlanePoint(e, d.origin, d.normal)
+    if (!p) return
+    if (d.kind === 'ring') {
+      const a0 = Math.atan2(d.start.z - d.origin.z, d.start.x - d.origin.x)
+      const a1 = Math.atan2(p.z - d.origin.z, p.x - d.origin.x)
+      this.model.updateFurniture(d.id, {
+        angleDeg: d.value0 - THREE.MathUtils.radToDeg(a1 - a0),
+      })
+      return
+    }
+    const v = d.value0 + p.sub(d.start).dot(d.axis)
+    if (d.kind === 'x') this.model.updateFurniture(d.id, { x: v })
+    else if (d.kind === 'y') this.model.updateFurniture(d.id, { elevation: v })
+    else this.model.updateFurniture(d.id, { y: v })
+  }
+
+  private raycastGizmo(e: PointerEvent): 'x' | 'y' | 'z' | 'ring' | null {
+    const raycaster = this.pointerRay(e)
+    if (!raycaster || !this.gizmo) return null
+    for (const hit of raycaster.intersectObject(this.gizmo, true)) {
+      for (let o: THREE.Object3D | null = hit.object; o && o !== this.gizmo; o = o.parent) {
+        const kind = o.userData.gizmoKind as 'x' | 'y' | 'z' | 'ring' | undefined
+        if (kind) return kind
+      }
+    }
+    return null
+  }
+
+  private pointerRay(e: PointerEvent): THREE.Raycaster | null {
+    if (!this.renderer) return null
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    const ndc = new THREE.Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1,
+    )
+    const raycaster = new THREE.Raycaster()
+    raycaster.setFromCamera(ndc, this.perspectiveCamera)
+    return raycaster
+  }
+
+  private rayPlanePoint(
+    e: PointerEvent,
+    origin: THREE.Vector3,
+    normal: THREE.Vector3,
+  ): THREE.Vector3 | null {
+    const raycaster = this.pointerRay(e)
+    if (!raycaster) return null
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+      normal.clone().normalize(),
+      origin,
+    )
+    const hit = new THREE.Vector3()
+    return raycaster.ray.intersectPlane(plane, hit) ? hit : null
+  }
+
+  private gizmoDragNormal(axis: THREE.Vector3): THREE.Vector3 {
+    const camDir = new THREE.Vector3()
+    this.perspectiveCamera.getWorldDirection(camDir)
+    const n = camDir.clone().addScaledVector(axis, -camDir.dot(axis))
+    if (n.lengthSq() < 1e-6) return axis.y !== 0 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0)
+    return n.normalize()
+  }
+
+  // ponytail: local snap checks wall endpoints + furniture edges only (no
+  // diagonal-wall projection, fixed 10cm world threshold) — upgrade to
+  // snapFurniturePlacement once View3D can read the plan engine's magnetism flag
+  private snapFloorTarget(
+    item: Furniture,
+    naive: { x: number; y: number },
+  ): { x: number; y: number } {
+    const home = this.store.getHome()
+    const xs: number[] = []
+    const ys: number[] = []
+    for (const w of home.walls) {
+      xs.push(w.xStart, w.xEnd)
+      ys.push(w.yStart, w.yEnd)
+    }
+    for (const f of home.furniture) {
+      if (f.id === item.id || f.visible === false) continue
+      xs.push(f.x - f.width / 2, f.x, f.x + f.width / 2)
+      ys.push(f.y - f.depth / 2, f.y, f.y + f.depth / 2)
+    }
+    const snapAxis = (value: number, half: number, targets: number[]): number => {
+      let best = value
+      let bestDist = FLOOR_DRAG_SNAP_CM
+      for (const t of targets) {
+        for (const cand of [t - half, t, t + half]) {
+          const dist = Math.abs(cand - value)
+          if (dist < bestDist) {
+            bestDist = dist
+            best = cand
+          }
+        }
+      }
+      return best
+    }
+    return {
+      x: snapAxis(naive.x, item.width / 2, xs),
+      y: snapAxis(naive.y, item.depth / 2, ys),
+    }
   }
 
   /** Draw the current scene. Does NOT advance controls (that's the loop). */
