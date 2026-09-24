@@ -17,17 +17,25 @@ type StoreMutators = Pick<HomeStore, 'apply' | 'undo' | 'redo' | 'resetToEmpty' 
  * — verified live (mesh count unchanged after loadHome(), only updated once
  * View3D.rebuild() was called explicitly).
  *
- * patchNonUndoable() is deliberately NOT included: it's also used for
- * high-frequency UI-only state (e.g. engine.ts mirrors every tool switch
- * into home.activeTool this way), and computeSceneUpdates() only diffs
- * walls/furniture/rooms/levels — a patch that touches none of those comes
- * back as zero updates, which onStoreChanged() currently treats as "fall
- * back to a full rebuild". Observing patchNonUndoable as-is would turn every
- * tool-button click into a full 3D scene teardown+rebuild. (It also carries
- * environment/preferences edits — e.g. ground color — that the 3D view
- * already fails to live-refresh; fixing that needs computeSceneUpdates to
- * know about those fields, or the specific call sites to refresh explicitly
- * — left as a follow-up rather than folded into this fix.)
+ * patchNonUndoable() is deliberately NOT observed generically here: it's
+ * also used for high-frequency UI-only state (e.g. engine.ts mirrors every
+ * tool switch into home.activeTool this way), and computeSceneUpdates() only
+ * diffs walls/furniture/rooms/levels — a patch that touches none of those
+ * comes back as zero updates, which onStoreChanged() currently treats as
+ * "fall back to a full rebuild". Observing patchNonUndoable as-is would turn
+ * every tool-button click into a full 3D scene teardown+rebuild.
+ *
+ * Preference-only edits (default wall material, ground color/texture, etc.)
+ * also go through patchNonUndoable, and computeSceneUpdates() has no way to
+ * see them (it only diffs geometry-bearing fields) — MAT-T10C fixes this
+ * with an explicit, opt-in signal instead of blanket observation: see
+ * notifyScenePreferenceChange()/onScenePreferenceChange() below. Preference-
+ * writing call sites call notifyScenePreferenceChange() themselves right
+ * after the patchNonUndoable that changed something scene-relevant; View3D
+ * subscribes once via onScenePreferenceChange() and does a full rebuild()
+ * (there's no incremental delta path for these fields, so a rebuild is the
+ * correct — and, since preference edits are low-frequency, cheap enough —
+ * response).
  */
 export function observeStore(store: HomeStore, listener: StoreListener): () => void {
   const original: StoreMutators = {
@@ -69,4 +77,26 @@ export function observeStore(store: HomeStore, listener: StoreListener): () => v
     patchable.resetToEmpty = original.resetToEmpty
     patchable.loadHome = original.loadHome
   }
+}
+
+/**
+ * Explicit signal channel for scene-relevant preference-only edits (default
+ * wall materials, ground color/texture, floor/ceiling defaults) — see the
+ * observeStore() comment above for why these are NOT folded into the
+ * generic patchNonUndoable observation. Preference-writing code (e.g.
+ * patchHomePreferences() in ui/MaterialsPreferencesPanel.ts, and the ground
+ * color/texture patch in main.ts's openPreferences()) calls
+ * notifyScenePreferenceChange() right after the store patch; View3D
+ * subscribes via onScenePreferenceChange() in its constructor and
+ * unsubscribes in dispose().
+ */
+const scenePreferenceListeners = new Set<StoreListener>()
+
+export function notifyScenePreferenceChange(): void {
+  for (const listener of scenePreferenceListeners) listener()
+}
+
+export function onScenePreferenceChange(listener: StoreListener): () => void {
+  scenePreferenceListeners.add(listener)
+  return () => scenePreferenceListeners.delete(listener)
 }
