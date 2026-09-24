@@ -314,12 +314,15 @@ export interface EnvironmentState {
   groundTextureId?: string | null
 }
 
-interface HomePreferences {
+export interface HomePreferences {
   defaultFloorColor: number
   defaultFloorShininess: number
   defaultCeilingColor: number
   /** Tri-state: true = show, false = hide, undefined = auto (per-view). */
   defaultCeilingVisibility?: boolean
+  /** Tri-state per side: string = texture id, null = no texture, undefined = 'plaster-white'. */
+  defaultInteriorWallTextureId?: string | null
+  defaultExteriorWallTextureId?: string | null
 }
 
 /** Ground textures reuse the same PNG catalog as walls (SH3D parity). */

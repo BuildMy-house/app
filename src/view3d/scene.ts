@@ -6,6 +6,7 @@ import {
   WALL_TEXTURES,
   resolveTextureUrl,
   type Furniture,
+  type HomePreferences,
   type Level,
   type NormalizedHomeState,
   type Room,
@@ -14,7 +15,7 @@ import {
   type WallTextureEntry,
 } from '../core/home'
 import { isArcWall, wallOutlinePoints } from '../core/top-camera-follower'
-import { getWallSideExterior } from '../core/wall-exterior'
+import { getEffectiveWallSideTextureId, getWallSideExterior } from '../core/wall-exterior'
 import { createInstancedMesh, groupFurnitureForInstancing } from './instanced-meshes'
 import { recordModelLoad, recordTextureLoad } from './asset-metrics'
 import { loadViewportQuality } from './viewport-quality'
@@ -242,6 +243,7 @@ export function wallMesh(
   // Not ReadonlyArray: getWallSideExterior() takes RoomPolygon[] (mutable)
   // and wall-exterior.ts is shared with the panel/export paths.
   rooms: Room[],
+  preferences?: HomePreferences,
 ): THREE.Object3D {
   const dx = wall.xEnd - wall.xStart
   const dy = wall.yEnd - wall.yStart
@@ -272,10 +274,16 @@ export function wallMesh(
   // Untextured walls default to the plaster-white PBR set (diffuse/normal/
   // roughness/AO, matte 0.9 roughness) instead of a flat clearcoat-shiny
   // color; the material's color still tints the near-white plaster map.
-  const leftTexture = applyMaterialTextures(leftMaterial, wall.leftSideTextureId ?? 'plaster-white')
+  // Explicit side texture (string or null) wins; omitted sides classify via
+  // room geometry + home preferences. A null resolver result renders as
+  // plaster-white here (matching the previous `?? 'plaster-white'` behavior).
+  const leftTexture = applyMaterialTextures(
+    leftMaterial,
+    getEffectiveWallSideTextureId(wall, 'left', rooms, preferences) ?? 'plaster-white',
+  )
   const rightTexture = applyMaterialTextures(
     rightMaterial,
-    wall.rightSideTextureId ?? wall.leftSideTextureId ?? 'plaster-white',
+    getEffectiveWallSideTextureId(wall, 'right', rooms, preferences) ?? 'plaster-white',
   )
   const wallTexture = leftTexture ?? rightTexture
 
@@ -1472,7 +1480,7 @@ function buildSceneInner(
     const transparency = isBelowActive
       ? Math.max(wallsTransparency, BELOW_LEVEL_WALL_TRANSPARENCY)
       : wallsTransparency
-    const mesh = wallMesh(wall, elev, transparency, home.furniture, home.walls, home.rooms)
+    const mesh = wallMesh(wall, elev, transparency, home.furniture, home.walls, home.rooms, home.preferences)
     // Below-level walls' top caps sit coplanar with the active floor (levels
     // stack) — drop them just under it to avoid z-fighting, same as ceilings.
     if (isBelowActive) mesh.position.y -= BELOW_CEILING_Z_FIGHT_OFFSET_CM

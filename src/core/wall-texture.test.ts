@@ -12,33 +12,33 @@ function makeStore() {
 }
 
 describe('wall texture schema', () => {
-  it('addWall defaults leftSideTextureId to plaster-white when omitted', () => {
+  it('addWall leaves leftSideTextureId undefined when omitted', () => {
     const { model } = makeStore()
     const wall = model.addWall({
       xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7,
     })
-    expect(wall.leftSideTextureId).toBe('plaster-white')
-    expect(wall.rightSideTextureId).toBe('plaster-white')
+    expect(wall.leftSideTextureId).toBeUndefined()
+    expect(wall.rightSideTextureId).toBeUndefined()
   })
 
-  it('addWall defaults leftSideTextureId to plaster-white when omitted but keeps explicit rightSideTextureId', () => {
+  it('addWall leaves leftSideTextureId undefined when omitted but keeps explicit rightSideTextureId', () => {
     const { model } = makeStore()
     const wall = model.addWall({
       xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7,
       rightSideTextureId: 'wood-oak',
     })
-    expect(wall.leftSideTextureId).toBe('plaster-white')
+    expect(wall.leftSideTextureId).toBeUndefined()
     expect(wall.rightSideTextureId).toBe('wood-oak')
   })
 
-  it('addWall defaults rightSideTextureId to plaster-white when omitted but keeps explicit leftSideTextureId', () => {
+  it('addWall leaves rightSideTextureId undefined when omitted but keeps explicit leftSideTextureId', () => {
     const { model } = makeStore()
     const wall = model.addWall({
       xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7,
       leftSideTextureId: 'concrete',
     })
     expect(wall.leftSideTextureId).toBe('concrete')
-    expect(wall.rightSideTextureId).toBe('plaster-white')
+    expect(wall.rightSideTextureId).toBeUndefined()
   })
 
   it('addWall accepts null texture ids without applying default', () => {
@@ -131,7 +131,7 @@ describe('wall texture schema', () => {
 })
 
 describe('automation add_wall texture defaults', () => {
-  it('add_wall with omitted texture ids lands plaster-white in the store (regression: ?? null coercion)', () => {
+  it('add_wall with omitted texture ids leaves both undefined in the store (no baked default)', () => {
     const store = new HomeStore()
     const handler = new HomelyCommandHandler(store)
     const result = handler.execute('add_wall', {
@@ -139,8 +139,8 @@ describe('automation add_wall texture defaults', () => {
     })
     expect(result.ok).toBe(true)
     const wall = store.getHome().walls[0]!
-    expect(wall.leftSideTextureId).toBe('plaster-white')
-    expect(wall.rightSideTextureId).toBe('plaster-white')
+    expect(wall.leftSideTextureId).toBeUndefined()
+    expect(wall.rightSideTextureId).toBeUndefined()
   })
 
   it('add_wall with explicit null texture ids keeps null (no default)', () => {

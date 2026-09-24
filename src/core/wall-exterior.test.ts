@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import {
   deriveWallSideExterior,
+  getEffectiveWallSideTextureId,
   getWallSideExterior,
   wallSideOutwardNormal,
 } from './wall-exterior'
 import type { RoomPolygon } from './wall-exterior'
+import type { HomePreferences } from './home'
 
 // Horizontal wall along +X: right side faces z<0, left side faces z>0
 const wall = { xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15 }
@@ -83,5 +85,63 @@ describe('getWallSideExterior', () => {
     ]
     expect(getWallSideExterior({ ...wall, rightSideExteriorOverride: null }, 'right', rooms)).toBe(false)
     expect(getWallSideExterior(wall, 'right', rooms)).toBe(false)
+  })
+})
+
+describe('getEffectiveWallSideTextureId', () => {
+  // wall's right side sample point (200, -12.5): inside this room → interior;
+  // with no rooms → exterior.
+  const interiorRooms: RoomPolygon[] = [
+    { points: [[0, -200], [400, -200], [400, -5], [0, -5]] },
+  ]
+
+  it('explicit string texture wins regardless of side classification', () => {
+    expect(getEffectiveWallSideTextureId({ ...wall, leftSideTextureId: 'wood-oak' }, 'left', [], undefined)).toBe('wood-oak')
+    expect(
+      getEffectiveWallSideTextureId({ ...wall, rightSideTextureId: 'concrete' }, 'right', interiorRooms, {
+        defaultFloorColor: 0xffffff,
+        defaultFloorShininess: 0,
+        defaultCeilingColor: 0xffffff,
+        defaultInteriorWallTextureId: 'tile-floor',
+      }),
+    ).toBe('concrete')
+  })
+
+  it('explicit null wins over preferences (returns null, not plaster-white)', () => {
+    expect(
+      getEffectiveWallSideTextureId({ ...wall, rightSideTextureId: null }, 'right', [], {
+        defaultFloorColor: 0xffffff,
+        defaultFloorShininess: 0,
+        defaultCeilingColor: 0xffffff,
+        defaultExteriorWallTextureId: 'wood-pine',
+      }),
+    ).toBeNull()
+  })
+
+  it('undefined + no preferences resolves to plaster-white on both classifications', () => {
+    expect(getEffectiveWallSideTextureId(wall, 'right', [], undefined)).toBe('plaster-white')
+    expect(getEffectiveWallSideTextureId(wall, 'right', interiorRooms, undefined)).toBe('plaster-white')
+  })
+
+  it('undefined side falls back to the matching exterior/interior preference', () => {
+    const prefs: HomePreferences = {
+      defaultFloorColor: 0xffffff,
+      defaultFloorShininess: 0,
+      defaultCeilingColor: 0xffffff,
+      defaultExteriorWallTextureId: 'wood-pine',
+      defaultInteriorWallTextureId: 'tile-floor',
+    }
+    expect(getEffectiveWallSideTextureId(wall, 'right', [], prefs)).toBe('wood-pine')
+    expect(getEffectiveWallSideTextureId(wall, 'right', interiorRooms, prefs)).toBe('tile-floor')
+  })
+
+  it('null interior preference passes through as null', () => {
+    const prefs: HomePreferences = {
+      defaultFloorColor: 0xffffff,
+      defaultFloorShininess: 0,
+      defaultCeilingColor: 0xffffff,
+      defaultInteriorWallTextureId: null,
+    }
+    expect(getEffectiveWallSideTextureId(wall, 'right', interiorRooms, prefs)).toBeNull()
   })
 })

@@ -270,8 +270,6 @@ export class HomeModel {
       requireMinimum(input.height, 'height', 1)
     }
     const validTextureIds = new Set(WALL_TEXTURES.map((t) => t.id))
-    if (input.leftSideTextureId === undefined) input.leftSideTextureId = 'plaster-white'
-    if (input.rightSideTextureId === undefined) input.rightSideTextureId = 'plaster-white'
     if (input.windowOverhangCm === undefined) input.windowOverhangCm = 20
     for (const field of ['leftSideTextureId', 'rightSideTextureId'] as const) {
       if (input[field] !== undefined && input[field] !== null) {

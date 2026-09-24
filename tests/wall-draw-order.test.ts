@@ -65,8 +65,6 @@ describe('create_room slice replay (golden id parity)', () => {
         thickness: 7,
         height: 250,
         patternId: 'hatchUp',
-        leftSideTextureId: 'plaster-white',
-        rightSideTextureId: 'plaster-white',
         windowOverhangCm: 20,
       },
       {
@@ -78,8 +76,6 @@ describe('create_room slice replay (golden id parity)', () => {
         thickness: 7,
         height: 250,
         patternId: 'hatchUp',
-        leftSideTextureId: 'plaster-white',
-        rightSideTextureId: 'plaster-white',
         windowOverhangCm: 20,
       },
       {
@@ -91,8 +87,6 @@ describe('create_room slice replay (golden id parity)', () => {
         thickness: 7,
         height: 250,
         patternId: 'hatchUp',
-        leftSideTextureId: 'plaster-white',
-        rightSideTextureId: 'plaster-white',
         windowOverhangCm: 20,
       },
       {
@@ -104,8 +98,6 @@ describe('create_room slice replay (golden id parity)', () => {
         thickness: 7,
         height: 250,
         patternId: 'hatchUp',
-        leftSideTextureId: 'plaster-white',
-        rightSideTextureId: 'plaster-white',
         windowOverhangCm: 20,
       },
     ])

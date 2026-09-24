@@ -1,6 +1,7 @@
 import type { NormalizedHomeState, Wall, Furniture, Level } from '../core/home'
 import { WALL_TEXTURES, resolveTextureUrl } from '../core/home'
 import { wallOutlinePoints } from '../core/top-camera-follower'
+import { getEffectiveWallSideTextureId } from '../core/wall-exterior'
 import { furnitureRotationHandlePos, wallArcHandlePos } from './engine'
 import type { PlanPreview } from './engine'
 
@@ -124,6 +125,7 @@ function resolveTextureImage(
   const url = resolveTextureUrl(tex.file)
   const cached = imageCache.get(url)
   if (cached) return cached
+  if (typeof Image === 'undefined') return null
   const img = new Image()
   img.crossOrigin = 'anonymous'
   img.src = url
@@ -592,7 +594,8 @@ export function drawPlan(
     ctx.closePath()
     ctx.fillStyle = selected.has(wall.id)
       ? SELECTION_COLOR
-      : patternOrNull(ctx, wall.leftSideTextureId) ?? cssColor(wall.leftSideColor, WALL_COLOR)
+      : patternOrNull(ctx, getEffectiveWallSideTextureId(wall, 'left', home.rooms, home.preferences)) ??
+        cssColor(wall.leftSideColor, WALL_COLOR)
     ctx.fill()
 
     // Punch door/window openings through the wall fill.

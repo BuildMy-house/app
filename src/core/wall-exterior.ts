@@ -6,6 +6,8 @@
  * no dependency on concrete home state types.
  */
 
+import type { HomePreferences } from './home'
+
 export type WallSide = 'left' | 'right'
 
 export interface WallSideGeometry {
@@ -87,4 +89,25 @@ export function getWallSideExterior(
   const override = side === 'left' ? wall.leftSideExteriorOverride : wall.rightSideExteriorOverride
   if (typeof override === 'boolean') return override
   return deriveWallSideExterior(wall, side, rooms)
+}
+
+/**
+ * Effective texture id for one wall side: the side's explicit
+ * leftSideTextureId/rightSideTextureId wins (string or null); when omitted,
+ * classify the side via room geometry and fall back to the matching
+ * home preference, defaulting to 'plaster-white' when no preference is set.
+ */
+export function getEffectiveWallSideTextureId(
+  wall: WallSideGeometry &
+    WallSideOverride & { leftSideTextureId?: string | null; rightSideTextureId?: string | null },
+  side: WallSide,
+  rooms: RoomPolygon[],
+  preferences: HomePreferences | undefined,
+): string | null {
+  const explicit = side === 'left' ? wall.leftSideTextureId : wall.rightSideTextureId
+  if (explicit !== undefined) return explicit
+  const pref = getWallSideExterior(wall, side, rooms)
+    ? preferences?.defaultExteriorWallTextureId
+    : preferences?.defaultInteriorWallTextureId
+  return pref === undefined ? 'plaster-white' : pref
 }
