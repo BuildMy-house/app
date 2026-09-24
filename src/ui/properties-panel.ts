@@ -5,6 +5,7 @@ import { WALL_TEXTURES } from '../core/home'
 import { getWallSideExterior, deriveWallSideExterior } from '../core/wall-exterior'
 import { normalizeAngle } from '../core/export'
 import { observeStore } from '../view3d/watch'
+import { patchHomePreferences } from './MaterialsPreferencesPanel'
 
 function num(v: number | null | undefined, fallback = 0): number {
   return typeof v === 'number' && Number.isFinite(v) ? v : fallback
@@ -239,6 +240,27 @@ export class PropertiesPanel {
     }
     const rooms = store.getHome().rooms
 
+    const setDefaultButton = (side: 'left' | 'right', select: HTMLSelectElement, isExterior: boolean): HTMLButtonElement => {
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.textContent = 'Set as default'
+      btn.title = `Use this texture as the default for all other ${isExterior ? 'exterior' : 'interior'} walls that don't have an explicit override.`
+      btn.style.cssText = 'flex:none;white-space:nowrap;font-size:10px'
+      btn.disabled = !select.value
+      btn.addEventListener('click', () => {
+        const textureId = select.value
+        if (!textureId) return
+        const exterior = getWallSideExterior(wall, side, rooms)
+        patchHomePreferences(
+          store,
+          exterior
+            ? { defaultExteriorWallTextureId: textureId }
+            : { defaultInteriorWallTextureId: textureId },
+        )
+      })
+      return btn
+    }
+
     // Start point
     const startGroup = this.group('Start')
     const sxInput = numInput(num(wall.xStart), { step: 0.01 })
@@ -339,7 +361,11 @@ export class PropertiesPanel {
     leftTexture.addEventListener('change', () =>
       commit({ leftSideTextureId: leftTexture.value || null }),
     )
-    body.appendChild(fieldRow('L Texture', leftTexture))
+    const leftTextureWrap = document.createElement('span')
+    leftTextureWrap.style.cssText = 'display:flex;gap:4px;flex:1;min-width:0;align-items:center'
+    leftTextureWrap.appendChild(leftTexture)
+    leftTextureWrap.appendChild(setDefaultButton('left', leftTexture, leftIsExterior))
+    body.appendChild(fieldRow('L Texture', leftTextureWrap))
 
     const leftFacing = document.createElement('select')
     leftFacing.className = 'prop-input'
@@ -388,7 +414,11 @@ export class PropertiesPanel {
     rightTexture.addEventListener('change', () =>
       commit({ rightSideTextureId: rightTexture.value || null }),
     )
-    body.appendChild(fieldRow('R Texture', rightTexture))
+    const rightTextureWrap = document.createElement('span')
+    rightTextureWrap.style.cssText = 'display:flex;gap:4px;flex:1;min-width:0;align-items:center'
+    rightTextureWrap.appendChild(rightTexture)
+    rightTextureWrap.appendChild(setDefaultButton('right', rightTexture, rightIsExterior))
+    body.appendChild(fieldRow('R Texture', rightTextureWrap))
 
     const rightFacing = document.createElement('select')
     rightFacing.className = 'prop-input'

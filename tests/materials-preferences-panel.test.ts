@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import { HomeStore } from '../src/core/store'
-import { MaterialsPreferencesPanel } from '../src/ui/MaterialsPreferencesPanel'
+import { MaterialsPreferencesPanel, patchHomePreferences } from '../src/ui/MaterialsPreferencesPanel'
 
 describe('MaterialsPreferencesPanel', () => {
   it('renders current home defaults (ceiling visibility defaults to auto)', () => {
@@ -72,5 +72,65 @@ describe('MaterialsPreferencesPanel', () => {
     const el2 = document.createElement('div')
     panel.render(el2)
     expect(el2.querySelector<HTMLSelectElement>('#mat-ceiling-visible')!.value).toBe('auto')
+  })
+
+  it('apply() merges into existing preferences instead of replacing them', () => {
+    const store = new HomeStore()
+    patchHomePreferences(store, {
+      defaultInteriorWallTextureId: 'carpet',
+      defaultExteriorWallTextureId: 'concrete',
+    })
+
+    const panel = new MaterialsPreferencesPanel(store)
+    const el = document.createElement('div')
+    panel.render(el)
+    const floor = el.querySelector<HTMLInputElement>('#mat-floor-color')!
+    floor.value = '#ff8800'
+    floor.dispatchEvent(new Event('input'))
+    panel.apply()
+
+    const prefs = store.getHome().preferences!
+    expect(prefs.defaultFloorColor).toBe(0xff8800)
+    expect(prefs.defaultInteriorWallTextureId).toBe('carpet')
+    expect(prefs.defaultExteriorWallTextureId).toBe('concrete')
+  })
+
+  it('wall material selects populate from preferences, filter by usage, and write back', () => {
+    const store = new HomeStore()
+    patchHomePreferences(store, {
+      defaultInteriorWallTextureId: 'carpet',
+      defaultExteriorWallTextureId: 'concrete',
+    })
+
+    const panel = new MaterialsPreferencesPanel(store)
+    const el = document.createElement('div')
+    panel.render(el)
+    const interior = el.querySelector<HTMLSelectElement>('#mat-interior-wall-texture')!
+    const exterior = el.querySelector<HTMLSelectElement>('#mat-exterior-wall-texture')!
+
+    expect(interior.value).toBe('carpet')
+    expect(exterior.value).toBe('concrete')
+
+    const interiorValues = [...interior.options].map((o) => o.value)
+    const exteriorValues = [...exterior.options].map((o) => o.value)
+    expect(interiorValues).toContain('')
+    expect(interiorValues).toContain('none')
+    expect(interiorValues).toContain('carpet')
+    expect(interiorValues).not.toContain('concrete')
+    expect(exteriorValues).toContain('')
+    expect(exteriorValues).toContain('none')
+    expect(exteriorValues).toContain('concrete')
+    expect(exteriorValues).not.toContain('carpet')
+
+    interior.value = ''
+    interior.dispatchEvent(new Event('change'))
+    exterior.value = 'none'
+    exterior.dispatchEvent(new Event('change'))
+    panel.apply()
+
+    const prefs = store.getHome().preferences!
+    expect(prefs.defaultInteriorWallTextureId).toBeUndefined()
+    expect(prefs.defaultExteriorWallTextureId).toBeNull()
+    expect(prefs.defaultFloorColor).toBe(0xf0f0f0)
   })
 })

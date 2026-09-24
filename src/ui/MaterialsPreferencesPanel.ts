@@ -3,6 +3,8 @@ import {
   getDefaultFloorShininess,
   getDefaultCeilingColor,
   getDefaultCeilingVisibility,
+  WALL_TEXTURES,
+  type HomePreferences,
 } from '../core/home'
 import type { HomeStore } from '../core/store'
 import { colorIntToHex, hexToIntColor } from './preferences'
@@ -14,6 +16,20 @@ const DEFAULTS = {
   ceilingVisible: undefined,
 }
 
+export function patchHomePreferences(
+  store: HomeStore,
+  patch: Partial<HomePreferences>,
+): void {
+  store.patchNonUndoable((h) => {
+    const base: HomePreferences = h.preferences ?? {
+      defaultFloorColor: 0xf0f0f0,
+      defaultFloorShininess: 0,
+      defaultCeilingColor: 0xffffff,
+    }
+    h.preferences = { ...base, ...patch }
+  })
+}
+
 export class MaterialsPreferencesPanel {
   private store: HomeStore
   private container: HTMLElement | null = null
@@ -21,6 +37,8 @@ export class MaterialsPreferencesPanel {
   private floorShininess: number
   private ceilingColor: number
   private ceilingVisible: boolean | undefined
+  private interiorWallTextureId: string | null | undefined
+  private exteriorWallTextureId: string | null | undefined
 
   constructor(store: HomeStore) {
     this.store = store
@@ -29,6 +47,8 @@ export class MaterialsPreferencesPanel {
     this.floorShininess = getDefaultFloorShininess(home)
     this.ceilingColor = getDefaultCeilingColor(home)
     this.ceilingVisible = getDefaultCeilingVisibility(home)
+    this.interiorWallTextureId = home.preferences?.defaultInteriorWallTextureId
+    this.exteriorWallTextureId = home.preferences?.defaultExteriorWallTextureId
   }
 
   render(container: HTMLElement): void {
@@ -56,8 +76,39 @@ export class MaterialsPreferencesPanel {
           <option value="hide" ${this.ceilingMode() === 'hide' ? 'selected' : ''}>Always hide</option>
         </select>
       </div>
+      <div class="prefs-row">
+        <label for="mat-interior-wall-texture">Default Interior Wall Material</label>
+        <select id="mat-interior-wall-texture"></select>
+      </div>
+      <div class="prefs-row">
+        <label for="mat-exterior-wall-texture">Default Exterior Wall Material</label>
+        <select id="mat-exterior-wall-texture"></select>
+      </div>
     `
+    this.fillTextureSelect('mat-interior-wall-texture', 'interior', this.interiorWallTextureId)
+    this.fillTextureSelect('mat-exterior-wall-texture', 'exterior', this.exteriorWallTextureId)
     this.wireControls()
+  }
+
+  private fillTextureSelect(id: string, usage: 'interior' | 'exterior', current: string | null | undefined): void {
+    const select = this.container!.querySelector<HTMLSelectElement>(`#${id}`)!
+    const selected = current === undefined ? '' : current === null ? 'none' : current
+    const add = (value: string, label: string) => {
+      const opt = document.createElement('option')
+      opt.value = value
+      opt.textContent = label
+      opt.selected = value === selected
+      select.appendChild(opt)
+    }
+    add('', '(default: plaster-white)')
+    add('none', '— none —')
+    const currentEntry = current ? WALL_TEXTURES.find((t) => t.id === current) : undefined
+    if (currentEntry) add(currentEntry.id, currentEntry.label)
+    for (const t of WALL_TEXTURES) {
+      if (t.id === currentEntry?.id) continue
+      if (t.wallUsage && !t.wallUsage.includes(usage)) continue
+      add(t.id, t.label)
+    }
   }
 
   private ceilingMode(): 'show' | 'hide' | 'auto' {
@@ -71,6 +122,8 @@ export class MaterialsPreferencesPanel {
     const ceilingColorInput = this.container.querySelector<HTMLInputElement>('#mat-ceiling-color')!
     const ceilingVisibleInput = this.container.querySelector<HTMLSelectElement>('#mat-ceiling-visible')!
     const shininessLabel = this.container.querySelector<HTMLSpanElement>('.mat-shininess-label')!
+    const interiorTextureInput = this.container.querySelector<HTMLSelectElement>('#mat-interior-wall-texture')!
+    const exteriorTextureInput = this.container.querySelector<HTMLSelectElement>('#mat-exterior-wall-texture')!
 
     floorColorInput.addEventListener('input', () => {
       this.floorColor = hexToIntColor(floorColorInput.value)
@@ -86,16 +139,24 @@ export class MaterialsPreferencesPanel {
       const mode = ceilingVisibleInput.value
       this.ceilingVisible = mode === 'show' ? true : mode === 'hide' ? false : undefined
     })
+    interiorTextureInput.addEventListener('change', () => {
+      const v = interiorTextureInput.value
+      this.interiorWallTextureId = v === '' ? undefined : v === 'none' ? null : v
+    })
+    exteriorTextureInput.addEventListener('change', () => {
+      const v = exteriorTextureInput.value
+      this.exteriorWallTextureId = v === '' ? undefined : v === 'none' ? null : v
+    })
   }
 
   apply(): void {
-    this.store.patchNonUndoable((h) => {
-      h.preferences = {
-        defaultFloorColor: this.floorColor,
-        defaultFloorShininess: this.floorShininess,
-        defaultCeilingColor: this.ceilingColor,
-        defaultCeilingVisibility: this.ceilingVisible,
-      }
+    patchHomePreferences(this.store, {
+      defaultFloorColor: this.floorColor,
+      defaultFloorShininess: this.floorShininess,
+      defaultCeilingColor: this.ceilingColor,
+      defaultCeilingVisibility: this.ceilingVisible,
+      defaultInteriorWallTextureId: this.interiorWallTextureId,
+      defaultExteriorWallTextureId: this.exteriorWallTextureId,
     })
   }
 
@@ -104,6 +165,8 @@ export class MaterialsPreferencesPanel {
     this.floorShininess = DEFAULTS.floorShininess
     this.ceilingColor = DEFAULTS.ceilingColor
     this.ceilingVisible = DEFAULTS.ceilingVisible
+    this.interiorWallTextureId = undefined
+    this.exteriorWallTextureId = undefined
     if (this.container) this.render(this.container)
   }
 }

@@ -1,5 +1,6 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { validateFinite, validatePositive } from '../src/ui/properties-panel'
+import { PropertiesPanel, validateFinite, validatePositive } from '../src/ui/properties-panel'
 import { normalizeAngle } from '../src/core/export'
 import { HomeModel } from '../src/core/model'
 import { HomeStore } from '../src/core/store'
@@ -259,5 +260,78 @@ describe('roof editing updates the model and is undoable', () => {
     const after = store.getHome().roofs[0]!
     expect(after.pitchDeg).toBe(before.pitchDeg)
     expect(after.overhangCm).toBe(before.overhangCm)
+  })
+})
+
+describe('PropertiesPanel Set as default button', () => {
+  const buttonFor = (panel: PropertiesPanel, rowLabel: string): HTMLButtonElement => {
+    const rows = [...panel.element.querySelectorAll('.prop-row')]
+    const row = rows.find((r) => r.querySelector('.prop-label')?.textContent === rowLabel)
+    expect(row, `row ${rowLabel}`).toBeTruthy()
+    return row!.querySelector('button')!
+  }
+
+  it('routes to the interior/exterior bucket from explicit facing overrides and leaves the wall untouched', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const wall = model.addWall({
+      xStart: 0,
+      yStart: 0,
+      xEnd: 400,
+      yEnd: 0,
+      thickness: 15,
+      leftSideTextureId: 'wood-oak',
+      rightSideTextureId: 'wood-pine',
+      leftSideExteriorOverride: false,
+      rightSideExteriorOverride: true,
+    })
+    model.addRoom([
+      [0, -200],
+      [400, -200],
+      [400, -5],
+      [0, -5],
+    ])
+    model.setSelection([wall.id])
+    const panel = new PropertiesPanel(store, document.createElement('div'))
+
+    buttonFor(panel, 'L Texture').click()
+    expect(store.getHome().preferences!.defaultInteriorWallTextureId).toBe('wood-oak')
+    expect(store.getHome().preferences!.defaultExteriorWallTextureId).toBeUndefined()
+
+    buttonFor(panel, 'R Texture').click()
+    expect(store.getHome().preferences!.defaultExteriorWallTextureId).toBe('wood-pine')
+
+    const wallAfter = store.getHome().walls.find((w) => w.id === wall.id)!
+    expect(wallAfter.leftSideTextureId).toBe('wood-oak')
+    expect(wallAfter.rightSideTextureId).toBe('wood-pine')
+  })
+
+  it('routes to the bucket derived from room geometry when no facing override is set', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const wall = model.addWall({
+      xStart: 0,
+      yStart: 0,
+      xEnd: 400,
+      yEnd: 0,
+      thickness: 15,
+      leftSideTextureId: 'concrete',
+      rightSideTextureId: 'carpet',
+    })
+    model.addRoom([
+      [0, -200],
+      [400, -200],
+      [400, -5],
+      [0, -5],
+    ])
+    model.setSelection([wall.id])
+    const panel = new PropertiesPanel(store, document.createElement('div'))
+
+    buttonFor(panel, 'L Texture').click()
+    expect(store.getHome().preferences!.defaultExteriorWallTextureId).toBe('concrete')
+    expect(store.getHome().preferences!.defaultInteriorWallTextureId).toBeUndefined()
+
+    buttonFor(panel, 'R Texture').click()
+    expect(store.getHome().preferences!.defaultInteriorWallTextureId).toBe('carpet')
   })
 })
