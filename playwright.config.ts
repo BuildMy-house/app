@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { defineConfig } from '@playwright/test'
 
 // E2E_PORT lets parallel git-worktree checkouts run their own dev server
@@ -24,6 +25,15 @@ const port = Number(process.env.E2E_PORT ?? 1420)
 // isn't needed and actively regresses file-upload tests.
 const isCI = !!process.env.CI
 
+// Local runs: force headless Chromium's WebGL onto the NVIDIA dGPU instead of
+// the iGPU. Verified 2026-09-24: ANGLE's GL backend ignores glvnd's
+// __EGL_VENDOR_LIBRARY_FILENAMES (always landed on the Mesa Intel device), so
+// we go through ANGLE's Vulkan backend with VK_* ICD vars pinned to the NVIDIA
+// ICD -- that deterministically selects the RTX GPU. CI runners have no NVIDIA
+// driver and no such ICD file, so they keep the SwiftShader fallback.
+const nvidiaIcd = '/usr/share/vulkan/icd.d/nvidia_icd.json'
+const isNvidia = !isCI && existsSync(nvidiaIcd)
+
 export default defineConfig({
   testDir: 'e2e',
   // 60s wasn't enough headroom either -- the two remaining multi-step-drag
@@ -41,6 +51,16 @@ export default defineConfig({
     baseURL: `http://localhost:${port}`,
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
+    launchOptions: isNvidia
+      ? {
+          args: ['--use-angle=vulkan'],
+          env: {
+            ...process.env,
+            VK_DRIVER_FILES: nvidiaIcd,
+            VK_ICD_FILENAMES: nvidiaIcd,
+          },
+        }
+      : {},
   },
   projects: [
     {
