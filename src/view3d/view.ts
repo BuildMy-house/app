@@ -11,7 +11,7 @@ import { HomeStore } from '../core/store'
 import { DEFAULT_WALL_HEIGHT_CM, type Furniture, type NormalizedHomeState } from '../core/home'
 import { CameraDirector, type CameraPatch, type CameraPresetName } from './cameras'
 import { buildScene, defaultModelUrlResolver, type ModelUrlResolver } from './scene'
-import { observeStore } from './watch'
+import { observeStore, onScenePreferenceChange } from './watch'
 import { computeHomeBounds } from '../core/top-camera-follower'
 import {
   DEFAULT_VIEWPORT_QUALITY,
@@ -82,6 +82,7 @@ export class View3D {
   private renderer: THREE.WebGLRenderer | undefined
   private controls: OrbitControls | undefined
   private readonly unobserve: () => void
+  private readonly unobservePreferences: () => void
   private _isFirstBuild = true
   private _lastSelectionKey = ''
   private _animationFrame: number | undefined
@@ -159,6 +160,12 @@ export class View3D {
     this.perspectiveCamera = new THREE.PerspectiveCamera(63, 4 / 3, 1, 500_000)
     this.perspectiveCamera.rotation.order = 'YXZ'
     this.unobserve = observeStore(store, () => this.onStoreChanged())
+    // See watch.ts: preference-only edits (default wall materials, ground
+    // color/texture) go through patchNonUndoable, which observeStore()
+    // deliberately does not hook generically. Preference-writing call sites
+    // notify this explicit channel instead; there's no incremental delta
+    // path for these fields, so a full rebuild is the correct response.
+    this.unobservePreferences = onScenePreferenceChange(() => this.rebuild())
     this.syncCamera()
 
     // Persisted quality when the caller didn't supply one.
@@ -1184,6 +1191,7 @@ export class View3D {
     if (this._deltaReportTimer) clearTimeout(this._deltaReportTimer)
     if (this._settleTimer) clearTimeout(this._settleTimer)
     this.unobserve()
+    this.unobservePreferences()
     this.controls?.dispose()
     this.resizeObserver?.disconnect()
     if (this.renderer) window.removeEventListener('resize', this.handleResize)

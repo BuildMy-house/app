@@ -280,7 +280,7 @@ function refreshMenus(): void {
       label: 'File',
       items: [
         {
-          label: 'New',
+          label: 'Reset Scene',
           action: async () => {
             if (store.isDirty() && !(await confirmDialog('Unsaved changes will be lost. Continue?'))) return
             store.resetToEmpty()
@@ -411,6 +411,10 @@ function openPreferences(): void {
       h.environment.groundColor = hexToIntColor(prefs.groundColor)
       h.environment.groundTextureId = prefs.groundTextureId ?? null
     })
+    // MAT-T10C: ground color/texture is a patchNonUndoable-only edit that
+    // computeSceneUpdates() never sees (see view3d/watch.ts) — rebuild the
+    // 3D view explicitly instead of waiting on an unrelated structural edit.
+    view3d?.rebuild()
     refreshAll()
   })
   dialog.open()

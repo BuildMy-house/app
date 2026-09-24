@@ -8,6 +8,7 @@ import {
 } from '../core/home'
 import type { HomeStore } from '../core/store'
 import { colorIntToHex, hexToIntColor } from './preferences'
+import { notifyScenePreferenceChange } from '../view3d/watch'
 
 const DEFAULTS = {
   floorColor: 0xf0f0f0,
@@ -28,6 +29,12 @@ export function patchHomePreferences(
     }
     h.preferences = { ...base, ...patch }
   })
+  // MAT-T10C: patchNonUndoable() carries this edit past computeSceneUpdates()
+  // unnoticed (it only diffs walls/furniture/rooms/levels) — the 3D view
+  // would otherwise keep showing the previous defaults until an unrelated
+  // structural edit or a full reload. Explicit signal instead of observing
+  // patchNonUndoable generically (see view3d/watch.ts).
+  notifyScenePreferenceChange()
 }
 
 export class MaterialsPreferencesPanel {
