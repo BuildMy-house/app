@@ -1132,7 +1132,7 @@ export class View3D {
    * is already queued, so there is no recursion.
    */
   private startAnimationLoop(): void {
-    if (this._animationFrame !== undefined) return
+    if (!this.renderer || this._animationFrame !== undefined) return
     const tick = (): void => {
       this._animationFrame = undefined
       const now = performance.now()
