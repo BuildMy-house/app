@@ -147,6 +147,15 @@ describe('buildScene', () => {
     expect(Math.max(...xs)).toBeCloseTo(400)
   })
 
+  it('does not create a roof when a room is closed', () => {
+    const store = new HomeStore()
+    addRoomFixture(store)
+    const scene = buildScene(store.getHome(), { isOutsideView: true })
+
+    expect(countNamed(scene, 'room:')).toBe(1)
+    expect(countNamed(scene, 'roof:')).toBe(0)
+  })
+
   it('renders furniture placeholder boxes with catalog dimensions', () => {
     const store = new HomeStore()
     addRoomFixture(store)

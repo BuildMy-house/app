@@ -2067,7 +2067,7 @@ export class PlanEngine {
     if (home.selection.length === 1) {
       const selectedId = home.selection[0]!
       const sf = home.furniture.find((f) => f.id === selectedId && this.matchesActiveLevel(f.levelRef))
-      if (sf) {
+      if (sf && !(sf.doorOrWindow && sf.wallRef)) {
         const hp = furnitureRotationHandlePos(sf)
         if (distance(point, hp) <= ENDPOINT_HIT_RADIUS) {
           return { kind: 'furniture-rotate', id: sf.id }

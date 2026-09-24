@@ -325,6 +325,23 @@ describe('HomeModel validation', () => {
     expect([movedDoor.x, movedDoor.y, movedDoor.wallOffset]).toEqual([210, 43.5, 180])
   })
 
+  it('keeps attached door rotation aligned with wall edits and preserves reverse', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const wall = model.addWall({ ...wallInput(), xStart: 0, yStart: 0, xEnd: 400, yEnd: 0 })
+    const door = model.addFurniture({
+      name: 'door', x: 100, y: 3.5, angleDeg: 0, width: 90, depth: 7,
+      height: 200, elevation: 0, doorOrWindow: true, wallRef: wall.id, wallOffset: 100,
+    })
+
+    model.updateWall(wall.id, { xEnd: 0, yEnd: 400 })
+    expect(store.getHome().furniture[0]?.angleDeg).toBeCloseTo(90)
+
+    model.updateFurniture(door.id, { angleDeg: -90 })
+    model.setWallEndpoint(wall.id, 'end', 400, 0)
+    expect(store.getHome().furniture[0]?.angleDeg).toBeCloseTo(-180)
+  })
+
   it('removeWall only cascades furniture referencing the deleted wall', () => {
     const store = new HomeStore()
     const model = new HomeModel(store)

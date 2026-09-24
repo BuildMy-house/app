@@ -507,7 +507,7 @@ export class PropertiesPanel {
     body.appendChild(fieldRow('Floor Texture', floorTexture))
   }
 
-  private renderFurniture(body: HTMLDivElement, f: Furniture, _store: HomeStore): void {
+  private renderFurniture(body: HTMLDivElement, f: Furniture, store: HomeStore): void {
     const commit = (patch: Partial<Omit<Furniture, 'id'>>) => {
       this.model.updateFurniture(f.id, patch)
     }
@@ -560,15 +560,26 @@ export class PropertiesPanel {
     sizeGroup.appendChild(fieldRow('H', hInput))
     body.appendChild(sizeGroup)
 
-    // Angle
-    const angleInput = numInput(num(f.angleDeg), { step: 0.01 })
-    angleInput.addEventListener('change', () => {
-      const n = validateFinite(angleInput.value, f.angleDeg)
-      const normalized = normalizeAngle(n)
-      angleInput.value = String(normalized)
-      commit({ angleDeg: normalized })
-    })
-    body.appendChild(fieldRow('Angle', angleInput))
+    const attachedWall = f.doorOrWindow && f.wallRef
+      ? store.getHome().walls.find((wall) => wall.id === f.wallRef)
+      : undefined
+    if (attachedWall) {
+      const wallAngle = Math.atan2(attachedWall.yEnd - attachedWall.yStart, attachedWall.xEnd - attachedWall.xStart) * 180 / Math.PI
+      const reverseCheck = checkboxInput(Math.abs(normalizeAngle(f.angleDeg - wallAngle)) > 90)
+      reverseCheck.addEventListener('change', () =>
+        commit({ angleDeg: normalizeAngle(wallAngle + (reverseCheck.checked ? 180 : 0)) }),
+      )
+      body.appendChild(fieldRow('Reverse on wall', reverseCheck))
+    } else {
+      const angleInput = numInput(num(f.angleDeg), { step: 0.01 })
+      angleInput.addEventListener('change', () => {
+        const n = validateFinite(angleInput.value, f.angleDeg)
+        const normalized = normalizeAngle(n)
+        angleInput.value = String(normalized)
+        commit({ angleDeg: normalized })
+      })
+      body.appendChild(fieldRow('Angle', angleInput))
+    }
 
     // Color
     const colorIn = colorInput(f.color)

@@ -56,6 +56,15 @@ function attachedPosition(item: Furniture, x: number, y: number, wall: Wall): { 
   }
 }
 
+function alignAttachedDoorAngles(furniture: Furniture[], wallId: string, oldAngle: number, wall: Wall): void {
+  const angle = Math.atan2(wall.yEnd - wall.yStart, wall.xEnd - wall.xStart) * 180 / Math.PI
+  for (const item of furniture) {
+    if (!item.doorOrWindow || item.wallRef !== wallId) continue
+    const reversed = Math.abs(normalizeAngle(item.angleDeg - oldAngle)) > 90
+    item.angleDeg = normalizeAngle(angle + (reversed ? 180 : 0))
+  }
+}
+
 function requirePositive(value: unknown, field: string): void {
   assert(
     typeof value === 'number' && Number.isFinite(value) && value > 0,
@@ -288,7 +297,20 @@ export class HomeModel {
   }
 
   updateWall(id: string, patch: Partial<Omit<Wall, 'id'>>): Wall {
-    return this.updateIn('walls', id, patch)
+    const rest = { ...patch }
+    delete (rest as Partial<Wall>).id
+    validatePatch('walls', rest)
+    requireFiniteNumbers(rest)
+    let updated!: Wall
+    this.store.apply((home) => {
+      const wall = home.walls.find((candidate) => candidate.id === id)
+      assert(wall !== undefined, `unknown walls id: ${id}`)
+      const oldAngle = Math.atan2(wall.yEnd - wall.yStart, wall.xEnd - wall.xStart) * 180 / Math.PI
+      Object.assign(wall, rest)
+      updated = wall
+      alignAttachedDoorAngles(home.furniture, id, oldAngle, wall)
+    })
+    return structuredClone(updated)
   }
 
   setWallEndpoint(wallId: string, endpoint: 'start' | 'end', x: number, y: number): void {
@@ -297,6 +319,7 @@ export class HomeModel {
     this.store.apply((h) => {
       const wall = h.walls.find((w) => w.id === wallId)
       assert(wall !== undefined, `unknown wall: ${wallId}`)
+      const oldAngle = Math.atan2(wall.yEnd - wall.yStart, wall.xEnd - wall.xStart) * 180 / Math.PI
       if (endpoint === 'start') {
         wall.xStart = x
         wall.yStart = y
@@ -304,6 +327,7 @@ export class HomeModel {
         wall.xEnd = x
         wall.yEnd = y
       }
+      alignAttachedDoorAngles(h.furniture, wallId, oldAngle, wall)
     })
   }
 
@@ -477,6 +501,13 @@ export class HomeModel {
         levelRef: null,
         ...normalizedInput,
         id: this.store.generateId('furniture'),
+      }
+      const wall = created.doorOrWindow && created.wallRef
+        ? h.walls.find((candidate) => candidate.id === created.wallRef)
+        : undefined
+      if (wall) {
+        const wallAngle = Math.atan2(wall.yEnd - wall.yStart, wall.xEnd - wall.xStart) * 180 / Math.PI
+        alignAttachedDoorAngles([created], wall.id, wallAngle, wall)
       }
       h.furniture.push(created)
     })

@@ -755,7 +755,7 @@ export function drawPlan(
   const selectedFurniture = home.furniture.filter(
     (f) => selected.has(f.id) && matchesLevel(f.levelRef, activeLevelId),
   )
-  if (selectedFurniture.length === 1) {
+  if (selectedFurniture.length === 1 && !(selectedFurniture[0]!.doorOrWindow && selectedFurniture[0]!.wallRef)) {
     const f = selectedFurniture[0]!
     const handle = furnitureRotationHandlePos(f)
     const px = mapper.sx(handle.x)
