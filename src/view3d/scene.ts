@@ -928,10 +928,13 @@ function remapShapeUvs(geometry: THREE.BufferGeometry): void {
  * leaving its origin at the box center (which the parent mesh already places).
  */
 function fitModelToBox(model: THREE.Object3D, item: Furniture): THREE.Object3D {
+  // v1 GLBs were quarter-turned on import, swapping width/depth and leaving
+  // doors facing along their wall. Restore the app's local X-width/Z-depth axes.
+  if (item.modelPath?.includes('orientation-90-v1')) model.rotateY(-Math.PI / 2)
   const box = new THREE.Box3().setFromObject(model)
   const size = box.getSize(new THREE.Vector3())
   if (size.x <= 0 || size.y <= 0 || size.z <= 0) return model
-  const scale = new THREE.Vector3(item.depth / size.x, item.height / size.y, item.width / size.z)
+  const scale = new THREE.Vector3(item.width / size.x, item.height / size.y, item.depth / size.z)
   model.scale.copy(scale)
   const center = box.getCenter(new THREE.Vector3()).multiply(scale)
   model.position.sub(center)

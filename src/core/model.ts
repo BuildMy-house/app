@@ -34,12 +34,26 @@ export function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new ModelError(message)
 }
 
-function wallOffsetAt(x: number, y: number, wall: Wall): number | null {
+function attachedPosition(item: Furniture, x: number, y: number, wall: Wall): { x: number; y: number; wallOffset: number } {
   const dx = wall.xEnd - wall.xStart
   const dy = wall.yEnd - wall.yStart
   const length = Math.hypot(dx, dy)
-  if (length === 0) return null
-  return ((x - wall.xStart) * dx + (y - wall.yStart) * dy) / length
+  if (length === 0) return { x: item.x, y: item.y, wallOffset: item.wallOffset ?? 0 }
+  const ux = dx / length
+  const uy = dy / length
+  const nx = -uy
+  const ny = ux
+  const currentLateral = (item.x - wall.xStart) * nx + (item.y - wall.yStart) * ny
+  const lateral = Math.sign(currentLateral || 1) * item.depth / 2
+  const halfWidth = item.doorOrWindow ? item.width / 2 : 0
+  const wallOffset = length < halfWidth * 2
+    ? length / 2
+    : Math.max(halfWidth, Math.min(length - halfWidth, (x - wall.xStart) * ux + (y - wall.yStart) * uy))
+  return {
+    x: wall.xStart + ux * wallOffset + nx * lateral,
+    y: wall.yStart + uy * wallOffset + ny * lateral,
+    wallOffset,
+  }
 }
 
 function requirePositive(value: unknown, field: string): void {
@@ -478,9 +492,12 @@ export class HomeModel {
       const wallRef = patch.wallRef === undefined ? item?.wallRef : patch.wallRef
       const wall = wallRef ? home.walls.find((w) => w.id === wallRef) : undefined
       if (item && wall) {
+        const target = attachedPosition(item, patch.x ?? item.x, patch.y ?? item.y, wall)
         patch = {
           ...patch,
-          wallOffset: wallOffsetAt(patch.x ?? item.x, patch.y ?? item.y, wall),
+          x: target.x,
+          y: target.y,
+          wallOffset: target.wallOffset,
         }
       }
     }
@@ -744,11 +761,13 @@ export class HomeModel {
       }
       for (const f of h.furniture) {
         if (selection.has(f.id)) {
-          f.x += dx
-          f.y += dy
           if (f.wallRef && !selection.has(f.wallRef)) {
             const wall = h.walls.find((w) => w.id === f.wallRef)
-            if (wall) f.wallOffset = wallOffsetAt(f.x, f.y, wall)
+            if (wall) Object.assign(f, attachedPosition(f, f.x + dx, f.y + dy, wall))
+            else { f.x += dx; f.y += dy }
+          } else {
+            f.x += dx
+            f.y += dy
           }
         } else if (f.wallRef && selection.has(f.wallRef)) {
           f.x += dx

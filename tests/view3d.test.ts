@@ -297,7 +297,7 @@ describe('buildScene', () => {
 })
 
 describe('rotated catalog model dimensions', () => {
-  it('fits quarter-turned door width on its long local axis', () => {
+  it('restores the app width axis for quarter-turned door models', () => {
     const url = 'https://example.test/door.glb?orientation-90-v1'
     __seedModelCache(url, new THREE.Mesh(new THREE.BoxGeometry(15, 200, 90)))
     const mesh = furnitureMesh({
@@ -307,9 +307,9 @@ describe('rotated catalog model dimensions', () => {
     }, 0)
     mesh.updateMatrixWorld(true)
     const size = new THREE.Box3().setFromObject(mesh).getSize(new THREE.Vector3())
-    expect(size.x).toBeCloseTo(15)
+    expect(size.x).toBeCloseTo(90)
     expect(size.y).toBeCloseTo(200)
-    expect(size.z).toBeCloseTo(90)
+    expect(size.z).toBeCloseTo(15)
   })
 })
 

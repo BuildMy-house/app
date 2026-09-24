@@ -309,20 +309,20 @@ describe('HomeModel validation', () => {
     const model = new HomeModel(store)
     const wall = model.addWall({ ...wallInput(), xStart: 0, yStart: 0, xEnd: 400, yEnd: 0 })
     const door = model.addFurniture({
-      name: 'door', x: 100, y: 7, angleDeg: 0, width: 90, depth: 7,
+      name: 'door', x: 100, y: 3.5, angleDeg: 0, width: 90, depth: 7,
       height: 200, elevation: 0, doorOrWindow: true, wallRef: wall.id, wallOffset: 100,
     })
 
-    model.updateFurniture(door.id, { x: 160 })
-    expect(store.getHome().furniture[0]!.wallOffset).toBe(160)
+    model.updateFurniture(door.id, { x: 160, y: 80 })
+    expect(store.getHome().furniture[0]).toMatchObject({ x: 160, y: 3.5, wallOffset: 160 })
     model.setSelection([door.id])
-    model.moveSelection(20, 0)
-    expect(store.getHome().furniture[0]!.wallOffset).toBe(180)
+    model.moveSelection(20, 40)
+    expect(store.getHome().furniture[0]).toMatchObject({ x: 180, y: 3.5, wallOffset: 180 })
 
     model.setSelection([wall.id])
     model.moveSelection(30, 40)
     const movedDoor = store.getHome().furniture[0]!
-    expect([movedDoor.x, movedDoor.y, movedDoor.wallOffset]).toEqual([210, 47, 180])
+    expect([movedDoor.x, movedDoor.y, movedDoor.wallOffset]).toEqual([210, 43.5, 180])
   })
 
   it('removeWall only cascades furniture referencing the deleted wall', () => {
