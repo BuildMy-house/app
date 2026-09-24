@@ -476,6 +476,18 @@ describe('remapExtrudeUvs', () => {
     const avgU = uAtX50.reduce((a, b) => a + b, 0) / uAtX50.length
     expect(avgU).toBeCloseTo(50 / 100, 1)
   })
+
+  it('U follows the wall direction instead of global X', () => {
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute([100, 0, 100, 100, 0, -100], 3))
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 0, 0], 2))
+
+    remapExtrudeUvs(geometry, Math.SQRT1_2, Math.SQRT1_2)
+
+    const uv = geometry.getAttribute('uv')
+    expect(uv.getX(0)).toBeCloseTo(Math.SQRT2)
+    expect(uv.getX(1)).toBeCloseTo(0)
+  })
 })
 
 // ── M56: ceiling mesh Y uses level.height, not level.elevation ──────────────

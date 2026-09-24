@@ -325,7 +325,7 @@ export function wallMesh(
     geometry.rotateX(-Math.PI / 2)
     splitSideFacesByWallSide(geometry, ux, uy)
     if (wallTexture) {
-      remapExtrudeUvs(geometry)
+      remapExtrudeUvs(geometry, ux, -uy)
       if (wallTexture.aoFile) addUv2(geometry)
     }
     const mesh = new THREE.Mesh(geometry, [capMaterial, leftMaterial, rightMaterial])
@@ -349,7 +349,7 @@ export function wallMesh(
     geometry.rotateX(-Math.PI / 2)
     splitSideFacesByWallSide(geometry, ux, uy)
     if (wallTexture) {
-      remapExtrudeUvs(geometry)
+      remapExtrudeUvs(geometry, ux, -uy)
       if (wallTexture.aoFile) addUv2(geometry)
     }
     const mesh = new THREE.Mesh(geometry, [capMaterial, leftMaterial, rightMaterial])
@@ -389,7 +389,7 @@ export function wallMesh(
     geometry.rotateX(-Math.PI / 2)
     splitSideFacesByWallSide(geometry, ux, uy)
     if (wallTexture) {
-      remapExtrudeUvs(geometry)
+      remapExtrudeUvs(geometry, ux, -uy)
       if (wallTexture.aoFile) addUv2(geometry)
     }
     const m = new THREE.Mesh(geometry, [capMaterial, leftMaterial, rightMaterial])
@@ -902,14 +902,14 @@ function applyMaterialTextures(
  * -z. The rotation maps extrude height to geometry y, so Y is the wall
  * height axis (0 … wallHeight) and V is derived from it.
  */
-export function remapExtrudeUvs(geometry: THREE.BufferGeometry): void {
+export function remapExtrudeUvs(geometry: THREE.BufferGeometry, directionX = 1, directionZ = 0): void {
   const posAttr = geometry.getAttribute('position')
   const uvAttr = geometry.getAttribute('uv')
   if (!posAttr || !uvAttr) return
   for (let i = 0; i < posAttr.count; i++) {
-    const x = posAttr.getX(i)
+    const u = posAttr.getX(i) * directionX + posAttr.getZ(i) * directionZ
     const y = posAttr.getY(i)
-    uvAttr.setXY(i, x / TEXTURE_TILE_CM, y / TEXTURE_TILE_CM)
+    uvAttr.setXY(i, u / TEXTURE_TILE_CM, y / TEXTURE_TILE_CM)
   }
   uvAttr.needsUpdate = true
 }
