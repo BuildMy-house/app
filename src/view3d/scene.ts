@@ -788,6 +788,12 @@ function loadTextureFile(
       pendingTextureReady.delete(url)
     })
     pendingTextureReady.set(url, [])
+    // Without this, textureCache.get(url) never hits (only failures write to
+    // it), so every wall/room requesting the same material file gets its own
+    // TextureLoader.load() + GPU upload instead of sharing one — the cause of
+    // GPU texture counts multiplying with wall/room count instead of staying
+    // proportional to unique materials.
+    textureCache.set(url, tex)
     tex.wrapS = THREE.RepeatWrapping
     tex.wrapT = THREE.RepeatWrapping
     tex.colorSpace = colorSpace
