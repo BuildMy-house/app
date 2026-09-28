@@ -325,7 +325,7 @@ export function wallMesh(
     geometry.rotateX(-Math.PI / 2)
     splitSideFacesByWallSide(geometry, ux, uy)
     if (wallTexture) {
-      remapExtrudeUvs(geometry, ux, -uy)
+      remapExtrudeUvs(geometry, ux, uy)
       if (wallTexture.aoFile) addUv2(geometry)
     }
     const mesh = new THREE.Mesh(geometry, [capMaterial, leftMaterial, rightMaterial])
@@ -349,7 +349,7 @@ export function wallMesh(
     geometry.rotateX(-Math.PI / 2)
     splitSideFacesByWallSide(geometry, ux, uy)
     if (wallTexture) {
-      remapExtrudeUvs(geometry, ux, -uy)
+      remapExtrudeUvs(geometry, ux, uy)
       if (wallTexture.aoFile) addUv2(geometry)
     }
     const mesh = new THREE.Mesh(geometry, [capMaterial, leftMaterial, rightMaterial])
@@ -389,7 +389,7 @@ export function wallMesh(
     geometry.rotateX(-Math.PI / 2)
     splitSideFacesByWallSide(geometry, ux, uy)
     if (wallTexture) {
-      remapExtrudeUvs(geometry, ux, -uy)
+      remapExtrudeUvs(geometry, ux, uy)
       if (wallTexture.aoFile) addUv2(geometry)
     }
     const m = new THREE.Mesh(geometry, [capMaterial, leftMaterial, rightMaterial])
