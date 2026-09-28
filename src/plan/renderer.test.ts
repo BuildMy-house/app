@@ -311,3 +311,30 @@ describe('drawPlan door swing arcs', () => {
     expect(arcCountAfter).toBe(arcCountBefore)
   })
 })
+
+describe('drawPlan wall measurement preview', () => {
+  it('draws the live segment and its length above the line', () => {
+    const ctx = new MockContext()
+    drawPlan(createEmptyHome(), {
+      tool: 'wall',
+      phase: 'drawing',
+      chainStart: { x: 0, y: 0 },
+      pendingWalls: [],
+      wallLine: {
+        start: { x: 0, y: 0 },
+        end: { x: 125, y: 0 },
+        length: 125,
+      },
+      roomPoints: [],
+      polylinePoints: [],
+      dimensionLine: null,
+      marquee: null,
+      closurePolygon: null,
+      closureTooltip: null,
+      snapLock: null,
+    }, ctx, IDENTITY_VIEW)
+
+    expect(ctx.ops.some(op => op.type === 'lineTo' && op.args?.[0] === 125 && op.args?.[1] === 0)).toBe(true)
+    expect(ctx.ops.some(op => op.type === 'fillText' && op.args?.[0] === '1.25 m' && Number(op.args?.[2]) < 0)).toBe(true)
+  })
+})

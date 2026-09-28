@@ -971,6 +971,7 @@ canvas.addEventListener('pointermove', (event) => {
   const coords = canvasPixelCoords(event)
   const pt = new ViewMapper(currentView).toModel(coords.px, coords.py)
   statusCursor.textContent = `x: ${pt.x.toFixed(1)}  y: ${pt.y.toFixed(1)}`
+  if (engine.getTool() === 'wall') engine.moveMouse(pt.x, pt.y)
 
   // Cursor management for selection tool
   if (engine.getTool() === 'selection' && !isPanning && !pointer.down) {

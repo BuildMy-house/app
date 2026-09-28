@@ -831,6 +831,34 @@ export function drawPlan(
       ctx.stroke()
     }
     ctx.setLineDash([])
+    if (preview.wallLine && preview.wallLine.length > 0) {
+      const { start, end, length } = preview.wallLine
+      const x1 = mapper.sx(start.x)
+      const y1 = mapper.sy(start.y)
+      const x2 = mapper.sx(end.x)
+      const y2 = mapper.sy(end.y)
+      const lineLength = Math.hypot(x2 - x1, y2 - y1)
+      ctx.beginPath()
+      ctx.moveTo(x1, y1)
+      ctx.lineTo(x2, y2)
+      ctx.lineWidth = 1.5
+      ctx.strokeStyle = PREVIEW_COLOR
+      ctx.setLineDash([6, 4])
+      ctx.stroke()
+      ctx.setLineDash([])
+
+      let normalX = -(y2 - y1) / lineLength
+      let normalY = (x2 - x1) / lineLength
+      if (normalY > 0) {
+        normalX *= -1
+        normalY *= -1
+      }
+      ctx.fillStyle = PREVIEW_COLOR
+      ctx.font = '11px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(formatLength(length), (x1 + x2) / 2 + normalX * 12, (y1 + y2) / 2 + normalY * 12)
+    }
     // Snap-lock indicator: filled dot + ring on the endpoint the cursor is
     // locked onto — the click will join there (closure or chain continue).
     if (preview.snapLock) {

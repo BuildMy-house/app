@@ -47,6 +47,19 @@ function wallGraph(store: HomeStore): Array<[number, number, number, number]> {
 }
 
 describe('wall tool state machine', () => {
+  it('previews the live segment length from the last point to the cursor', () => {
+    const { engine, click } = setup()
+    engine.setTool('wall')
+    click(0, 0)
+    engine.moveMouse(125, 80)
+
+    expect(engine.getPreview().wallLine).toEqual({
+      start: { x: 0, y: 0 },
+      end: { x: 125, y: 80 },
+      length: Math.hypot(125, 80),
+    })
+  })
+
   it('chains clicked segments and commits them as ONE undo step on escape', () => {
     const { engine, click, store } = setup()
     engine.setTool('wall')

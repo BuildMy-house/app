@@ -133,6 +133,7 @@ export interface PlanPreview {
   phase: 'idle' | 'drawing'
   chainStart: Point | null
   pendingWalls: Array<Segment>
+  wallLine: { start: Point; end: Point; length: number } | null
   roomPoints: Array<[number, number]>
   polylinePoints: Array<[number, number]>
   dimensionLine: { start: Point; end: Point; length: number } | null
@@ -533,6 +534,14 @@ export class PlanEngine {
       // Walls enter the home at each click (SH3D WallDrawingState), so the
       // renderer draws them from the store snapshot; nothing stays pending.
       pendingWalls: [],
+      wallLine:
+        this.tool === 'wall' && this.phase === 'drawing' && this.chainStart && this.lastMove
+          ? {
+              start: this.chainStart,
+              end: this.lastMove,
+              length: distance(this.chainStart, this.lastMove),
+            }
+          : null,
       roomPoints: this.roomPoints.map(([x, y]) => [x, y] as [number, number]),
       polylinePoints: this.polylinePoints.map(([x, y]) => [x, y] as [number, number]),
       dimensionLine: dim,
