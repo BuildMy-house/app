@@ -228,7 +228,7 @@ body {
 .menu-dropdown {
   display: none;
   position: absolute;
-  bottom: 100%;
+  top: 100%;
   left: 0;
   min-width: 180px;
   background: var(--panel-bg);
