@@ -91,7 +91,10 @@ export class View3D {
   private _frameSamples: number[] = []
   private _frameLastTime = 0
   private _frameReportTimer: ReturnType<typeof setTimeout> | undefined
-  // Rendering metrics: sampled every 30 frames, latest snapshot reported with the 30s frame-time report.
+  // Rendering metrics: sampled every 5 frames, latest snapshot reported with the 30s frame-time report.
+  // (Was 30 frames — brief camera drags rarely sustained 30 frames of continuous
+  // movement, so _lastMetrics was almost always undefined when the report timer
+  // fired, leaving perf.rendering_metrics with near-zero real-world coverage.)
   private _metricsFrameCount = 0
   private _lastMetrics: RenderingMetrics | undefined
   // Delta metrics: 60s aggregation window, reported via telemetry.sceneDeltaMetrics.
@@ -1152,7 +1155,6 @@ export class View3D {
             telemetry.frameTime(this._frameSamples)
             if (this._lastMetrics) telemetry.renderingMetrics(this._lastMetrics)
             this._frameSamples = []
-            this._lastMetrics = undefined
             this._frameReportTimer = undefined
           }, 30_000)
         }
@@ -1170,7 +1172,7 @@ export class View3D {
       const moving = this.controls ? this.controls.update() : false
       this.draw()
       this._metricsFrameCount++
-      if (this._metricsFrameCount >= 30) {
+      if (this._metricsFrameCount >= 5) {
         this._metricsFrameCount = 0
         this._lastMetrics = this.collectRenderingMetrics()
       }
