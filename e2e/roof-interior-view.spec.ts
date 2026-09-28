@@ -108,8 +108,8 @@ test.describe('roof visibility in default (interior) app state', () => {
     const assertInsideState = async () => {
       // Default state (no level selected): roofs never render in interior view.
       expect(await roofMeshCount(page)).toBe(0)
-      // Auto ceiling hidden; forced-on shown exactly once (no duplicates); forced-off hidden.
-      expect(await namedMeshCount(page, 'ceiling:')).toBe(1)
+      // Inside view always hides ceilings, including forced-on rooms.
+      expect(await namedMeshCount(page, 'ceiling:')).toBe(0)
     }
     const assertOutsideState = async () => {
       // Outside view: the roof renders exactly once, forced-off ceiling stays hidden.
