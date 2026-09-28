@@ -603,7 +603,7 @@ function applyRoomUpdate(
     floor = roomMesh(room, elev)
     root.add(floor)
   }
-  if (shouldShowCeiling(room, { isOutsideView, isBelowActiveLevel: isBelowActive })) {
+  if (shouldShowCeiling(room, { isOutsideView })) {
     ceiling = ceilingMesh(room, elev, home.levels)
     if (isBelowActive) ceiling.position.y -= BELOW_CEILING_Z_FIGHT_OFFSET_CM
     root.add(ceiling)

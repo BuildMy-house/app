@@ -466,22 +466,14 @@ export const BELOW_LEVEL_WALL_TRANSPARENCY = 0.75
 export interface CeilingVisibilityContext {
   /** Viewing the whole model from outside (no single floor being edited). */
   isOutsideView: boolean
-  /** This room is on the level directly below the currently active level. */
-  isBelowActiveLevel: boolean
 }
 
 /**
- * A room's ceiling is hidden by default so the active floor stays open to
- * work in, except: an explicit per-room override always wins (lets a top
- * floor opt into a visible/styled ceiling); otherwise it shows in the
- * outside/whole-model view, or when the room is the floor below the one the
- * user is editing (its ceiling doubles as the surface the active floor
- * stands on).
+ * Room ceilings are hidden in Inside view. Outside view shows them unless a
+ * room explicitly hides its ceiling.
  */
 export function shouldShowCeiling(room: Room, ctx: CeilingVisibilityContext): boolean {
-  if (room.ceilingVisible === true) return true
-  if (room.ceilingVisible === false) return false
-  return ctx.isOutsideView || ctx.isBelowActiveLevel
+  return ctx.isOutsideView && room.ceilingVisible !== false
 }
 
 export function ceilingMesh(room: Room, elevation: number, levels: Level[]): THREE.Mesh {
@@ -1501,7 +1493,7 @@ function buildSceneInner(
     if (isActive && room.floorVisible !== false) root.add(roomMesh(room, elev))
     else if (isBelowActive) root.add(roomMesh(room, elev, { opacity: BELOW_LEVEL_FLOOR_OPACITY }))
     else if (isOutsideView && room.floorVisible !== false) root.add(roomMesh(room, elev))
-    if (shouldShowCeiling(room, { isOutsideView, isBelowActiveLevel: isBelowActive })) {
+    if (shouldShowCeiling(room, { isOutsideView })) {
       const ceiling = ceilingMesh(room, elev, home.levels)
       if (isBelowActive) ceiling.position.y -= BELOW_CEILING_Z_FIGHT_OFFSET_CM
       root.add(ceiling)

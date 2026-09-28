@@ -241,10 +241,7 @@ describe('interior-view roof hiding', () => {
   })
 })
 
-// Interpretation (a) of the "closed rooms are back" report: the ceiling
-// tri-state (8fcc503) must still auto-hide the active level's ceiling in
-// interior view — only below-level ghost ceilings and outside view show one.
-describe('interior-view ceiling auto-hide (tri-state default)', () => {
+describe('ceiling visibility by view mode', () => {
   function homeWithRoom(): ReturnType<typeof createEmptyHome> {
     const home = createEmptyHome()
     home.levels.push({
@@ -1569,30 +1566,29 @@ describe('ceiling visibility tri-state', () => {
     expect(ceilingMeshes(outside).length).toBe(1)
   })
 
-  it('explicit ceilingVisible=true shows the ceiling even in interior view', () => {
+  it('hides the ceiling in interior view even when explicitly enabled', () => {
     const home = groundLevelHome()
     home.rooms.push({ id: 'r1', points: square, levelRef: 'L0', ceilingVisible: true })
-    expect(ceilingMeshes(buildScene(home)).length).toBe(1)
+    expect(ceilingMeshes(buildScene(home)).length).toBe(0)
+    expect(ceilingMeshes(buildScene(home, { isOutsideView: true })).length).toBe(1)
   })
 
   describe('shouldShowCeiling', () => {
-    const interior = { isOutsideView: false, isBelowActiveLevel: false }
-    const outside = { isOutsideView: true, isBelowActiveLevel: false }
-    const below = { isOutsideView: false, isBelowActiveLevel: true }
+    const interior = { isOutsideView: false }
+    const outside = { isOutsideView: true }
     const room = (ceilingVisible: boolean | undefined) => ({
       id: 'r1',
       points: square,
       ceilingVisible,
     })
 
-    it('undefined (auto): hidden in interior, shown outside and below active level', () => {
+    it('auto ceilings show outside only', () => {
       expect(shouldShowCeiling(room(undefined), interior)).toBe(false)
       expect(shouldShowCeiling(room(undefined), outside)).toBe(true)
-      expect(shouldShowCeiling(room(undefined), below)).toBe(true)
     })
 
-    it('true is always shown, false is always hidden', () => {
-      expect(shouldShowCeiling(room(true), interior)).toBe(true)
+    it('an explicit show setting applies outside, never inside', () => {
+      expect(shouldShowCeiling(room(true), interior)).toBe(false)
       expect(shouldShowCeiling(room(true), outside)).toBe(true)
       expect(shouldShowCeiling(room(false), interior)).toBe(false)
       expect(shouldShowCeiling(room(false), outside)).toBe(false)
@@ -1600,7 +1596,7 @@ describe('ceiling visibility tri-state', () => {
   })
 })
 
-describe('below-level ghost ceiling vs active floor (z-fighting regression)', () => {
+describe('below-level ceilings stay hidden in Inside view', () => {
   function stackedHome(): ReturnType<typeof createEmptyHome> {
     const home = createEmptyHome()
     home.levels.push(
@@ -1616,16 +1612,13 @@ describe('below-level ghost ceiling vs active floor (z-fighting regression)', ()
     return home
   }
 
-  it('drops the below-level ceiling just under the active floor, never coplanar', () => {
+  it('does not render the below-level ceiling over the active floor', () => {
     const scene = buildScene(stackedHome(), { activeLevel: 'level-2', isOutsideView: false })
     const floor = scene.getObjectByName('room:room-level-2') as THREE.Mesh
     const ceiling = scene.getObjectByName('ceiling:room-level-1') as THREE.Mesh
     expect(floor).toBeTruthy()
-    expect(ceiling).toBeTruthy()
-    // Levels stack: below ceiling would land at exactly the active floor's Y
-    // and z-fight. It must sit BELOW_CEILING_Z_FIGHT_OFFSET_CM lower instead.
+    expect(ceiling).toBeUndefined()
     expect(floor.position.y).toBe(250)
-    expect(ceiling.position.y).toBe(250 - BELOW_CEILING_Z_FIGHT_OFFSET_CM)
   })
 
   it('leaves unrelated (non-below) ceilings at their level-top elevation', () => {
