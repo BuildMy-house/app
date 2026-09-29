@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 import { HomelyCommandHandler } from '../src/automation/homely-handler'
 import { HomeModel, ModelError } from '../src/core/model'
 import { HomeStore } from '../src/core/store'
@@ -169,7 +169,7 @@ describe('buildScene', () => {
     expect(table.position.x).toBeCloseTo(100)
     expect(table.position.y).toBeCloseTo(25 + 37.5)
     expect(table.position.z).toBeCloseTo(100)
-    expect(table.rotation.y).toBeCloseTo(rad(90))
+    expect(table.rotation.y).toBeCloseTo(-rad(90))
   })
 
   it('renders a colored box when furniture has no modelPath (backward compat)', () => {

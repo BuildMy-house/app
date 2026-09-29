@@ -71,7 +71,10 @@ export function createInstancedMesh(
     const x = item.x
     const y = item.y
     const z = elevOf(item.levelRef) + (item.elevation ?? 0)
-    const angle = THREE.MathUtils.degToRad(item.angleDeg ?? 0)
+    // Negated: angleDeg is a plan-space (x right, y down) rotation, but Three.js's
+    // right-handed Y-axis rotation has the opposite sign — negating keeps the
+    // visual rotation direction identical to the 2D plan view.
+    const angle = -THREE.MathUtils.degToRad(item.angleDeg ?? 0)
 
     // Compose transformation: translate + rotate
     const quaternion = new THREE.Quaternion()

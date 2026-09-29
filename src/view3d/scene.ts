@@ -1103,7 +1103,10 @@ export function furnitureMesh(
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = `furniture:${item.id}`
   mesh.position.set(item.x, elevation + item.elevation + item.height / 2, item.y)
-  mesh.rotation.y = THREE.MathUtils.degToRad(item.angleDeg)
+  // Negated: angleDeg is a plan-space (x right, y down) rotation, but Three.js's
+  // right-handed Y-axis rotation has the opposite sign — negating keeps the
+  // visual rotation direction identical to the 2D plan view.
+  mesh.rotation.y = -THREE.MathUtils.degToRad(item.angleDeg)
   // M60: mirror furniture along the local X (width) axis when modelMirrored.
   // Three.js WebGLRenderer auto-flips gl.frontFace for negative-determinant
   // world matrices, so face culling and lighting stay correct without manual

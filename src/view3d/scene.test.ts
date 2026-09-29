@@ -655,7 +655,22 @@ describe('furniture mirror (M60)', () => {
     const meshes = furnitureMeshes(scene)
     const mesh = meshes[0]!
     expect(mesh.scale.x).toBe(-1)
-    expect(mesh.rotation.y).toBeCloseTo(Math.PI / 2, 10)
+    expect(mesh.rotation.y).toBeCloseTo(-Math.PI / 2, 10)
+  })
+
+  it('furniture rotation sign is negated to match plan-space convention', () => {
+    const home = createEmptyHome()
+    home.furniture.push({
+      id: 'f1', name: 'Chair',
+      x: 50, y: 50, angleDeg: 90,
+      width: 60, depth: 60, height: 80,
+      elevation: 0,
+    })
+    const scene = buildScene(home)
+    const mesh = furnitureMeshes(scene)[0]!
+    // angleDeg is a plan-space (x right, y down) rotation; Three.js's right-handed
+    // Y-axis rotation must use the negated angle to match the 2D plan direction.
+    expect(mesh.rotation.y).toBe(-THREE.MathUtils.degToRad(home.furniture[0]!.angleDeg))
   })
 })
 
@@ -1102,7 +1117,7 @@ describe('instanced furniture rendering (T1)', () => {
       expect(pos.y).toBeCloseTo(0, 6) // level 0 + elevation 0; half-height is baked in geometry
       expect(pos.z).toBeCloseTo(0, 6)
       expect(quat.angleTo(
-        new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(i * 30)),
+        new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -THREE.MathUtils.degToRad(i * 30)),
       )).toBeCloseTo(0, 6)
       // Geometry carries the half-height lift: box spans [0, height] in Y.
       const geomBox = new THREE.Box3().setFromBufferAttribute(
@@ -1362,7 +1377,7 @@ describe('delta updates (T2)', () => {
     expect(before.geometry).toBe(geometryBefore) // no geometry rebuild
     expect(before.position.x).toBe(300)
     expect(before.position.z).toBe(250)
-    expect(before.rotation.y).toBeCloseTo(Math.PI / 4, 10)
+    expect(before.rotation.y).toBeCloseTo(-Math.PI / 4, 10)
   })
 
   it('moving an instanced group member rewrites only its instance matrix', () => {

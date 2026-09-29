@@ -414,7 +414,9 @@ function applyFurnitureMatrixUpdate(
   const individual = scene.getObjectByName(`furniture:${id}`)
   if (individual) {
     individual.position.set(item.x, elev + (item.elevation ?? 0) + item.height / 2, item.y)
-    individual.rotation.y = THREE.MathUtils.degToRad(item.angleDeg)
+    // Negated: plan-space y-down angle vs Three.js right-handed Y rotation
+    // (same convention as scene.ts furniture placement) — keeps 2D/3D in sync.
+    individual.rotation.y = -THREE.MathUtils.degToRad(item.angleDeg)
     return true
   }
 
@@ -432,7 +434,9 @@ function applyFurnitureMatrixUpdate(
     }
   })
   if (!owner) return false
-  scratchQuat.setFromAxisAngle(scratchAxis, THREE.MathUtils.degToRad(item.angleDeg))
+  // Negated: plan-space y-down angle vs Three.js right-handed Y rotation
+  // (same convention as scene.ts furniture placement) — keeps 2D/3D in sync.
+  scratchQuat.setFromAxisAngle(scratchAxis, -THREE.MathUtils.degToRad(item.angleDeg))
   scratchMatrix.compose(
     scratchPos.set(item.x, elev + (item.elevation ?? 0), item.y),
     scratchQuat,
