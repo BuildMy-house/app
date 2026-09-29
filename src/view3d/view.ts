@@ -564,9 +564,14 @@ export class View3D {
       composer.addPass(ssao)
     }
 
-    // Bloom — subtle glow on bright surfaces.
+    // Bloom — subtle glow on bright surfaces. Threshold 1.2 (was 0.85):
+    // at 0.85, combined with ACES tonemapping exposure 1.1 and HDRI IBL,
+    // ordinary ACES-lit walls/ceiling (not just emissive surfaces) cleared
+    // the threshold and bloomed/clipped toward white. 1.2 keeps bloom
+    // restricted to genuinely bright/near-emissive surfaces (window glass,
+    // light fixtures, sky) under the current exposure/HDRI combination.
     if (bloom) {
-      const bloomPass = new UnrealBloomPass(size, 0.4, 0.5, 0.85)
+      const bloomPass = new UnrealBloomPass(size, 0.4, 0.5, 1.2)
       this._bloomPass = bloomPass
       composer.addPass(bloomPass)
     }
