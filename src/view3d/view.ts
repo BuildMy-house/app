@@ -1182,7 +1182,15 @@ export class View3D {
           this.exitInteractionMode()
         }, 250)
       }
-      if (moving) this._animationFrame = requestAnimationFrame(tick)
+      if (moving) {
+        this._animationFrame = requestAnimationFrame(tick)
+      } else {
+        // The loop is stopping: clear the previous-frame timestamp so the next
+        // startAnimationLoop() (any of the load/selection callbacks can fire
+        // long after the last orbit ended) doesn't count the whole idle gap as
+        // one frame's dt in the fps/frameTimeP95Ms metrics.
+        this._frameLastTime = 0
+      }
     }
     this._animationFrame = requestAnimationFrame(tick)
   }
@@ -1209,6 +1217,9 @@ export class View3D {
     if (this._animationFrame !== undefined) {
       cancelAnimationFrame(this._animationFrame)
       this._animationFrame = undefined
+      // Same sentinel reset as the natural stop in tick(): a cancelled loop
+      // must not leak its last frame timestamp into the next restart's dt.
+      this._frameLastTime = 0
     }
   }
 

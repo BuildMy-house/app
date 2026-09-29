@@ -685,3 +685,81 @@ describe('automation camera commands', () => {
     if (!badPreset.ok) expect(badPreset.code).toBe('INVALID_PARAMS')
   })
 })
+
+describe('rendering metrics frame sampling', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  /**
+   * The animation loop stops whenever OrbitControls stops moving, but many
+   * other callbacks (texture loads, selection changes) restart it long after.
+   * The first tick of a restart must not count the whole idle gap as one
+   * frame's dt — that single bogus sample was corrupting fps/frameTimeP95Ms
+   * in prod telemetry (frameTimeP95Ms ≈ 2000ms vs renderCpuMs ≈ 65ms).
+   */
+  it('does not attribute idle time between loop restarts as frame time', () => {
+    const view = new View3D(new HomeStore())
+    const v = view as unknown as Record<string, unknown>
+
+    // Manual clock + rAF capture so each tick runs at a chosen timestamp.
+    let now = 1_000
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+    let queued: FrameRequestCallback | undefined
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback): number => {
+      queued = cb
+      return 1
+    })
+    vi.stubGlobal('cancelAnimationFrame', () => {})
+
+    // Minimal fakes for the renderer/controls the loop touches (private fields).
+    v.renderer = {
+      info: {
+        autoReset: true,
+        reset: () => {},
+        render: { calls: 1, triangles: 1 },
+        memory: { textures: 0 },
+      },
+      render: () => {},
+      getPixelRatio: () => 1,
+      dispose: () => {},
+    }
+    let moving = false
+    v.controls = { update: (): boolean => moving, dispose: () => {} }
+
+    const startLoop = (): void => (v.startAnimationLoop as () => void)()
+    const tick = (): void => {
+      const cb = queued
+      queued = undefined
+      cb?.(now)
+    }
+
+    // First restart of the session: prime the loop, run one idle tick (dt is
+    // skipped via the _frameLastTime === 0 sentinel), loop stops (moving=false).
+    startLoop()
+    tick()
+    expect(v._frameSamples as number[]).toEqual([])
+
+    // Long idle gap (2 minutes) with the loop stopped, then a texture-load-style
+    // restart and two moving ticks: post-gap first frame must be skipped, and
+    // only the genuine 16ms inter-frame delta may be recorded.
+    now += 120_000
+    moving = true
+    startLoop()
+    tick() // post-restart first frame: sentinel reset → no sample
+    now += 16
+    tick() // genuine frame
+    expect(v._frameSamples as number[]).toEqual([16])
+
+    // Metrics derived from the samples stay in a sane range (pre-fix, the
+    // 120s gap was recorded as a frame: frameTimeP95Ms ≈ 120000, fps ≈ 0.008).
+    const metrics = (v.collectRenderingMetrics as () => { fps: number; frameTimeP95Ms: number })()
+    expect(metrics.fps).toBeGreaterThan(30)
+    expect(metrics.frameTimeP95Ms).toBeLessThan(1000)
+
+    // dispose() touches window (node test env has none).
+    vi.stubGlobal('window', { removeEventListener: () => {}, addEventListener: () => {} })
+    view.dispose()
+  })
+})
