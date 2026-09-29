@@ -758,8 +758,9 @@ describe('rendering metrics frame sampling', () => {
     expect(metrics.fps).toBeGreaterThan(30)
     expect(metrics.frameTimeP95Ms).toBeLessThan(1000)
 
-    // dispose() touches window (node test env has none).
+    // dispose() touches window/document (node test env has neither).
     vi.stubGlobal('window', { removeEventListener: () => {}, addEventListener: () => {} })
+    vi.stubGlobal('document', { removeEventListener: () => {}, addEventListener: () => {} })
     view.dispose()
   })
 })

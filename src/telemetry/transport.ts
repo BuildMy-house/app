@@ -69,7 +69,11 @@ export async function flush(): Promise<void> {
 
 /** Flush on page unload. */
 export function registerUnload(): void {
-  window.addEventListener('visibilitychange', () => {
+  // 'visibilitychange' fires only on Document, never on Window (verified live
+  // in Chromium 2026-09-29 -- registering this on `window` silently never
+  // fired, so backgrounding a tab without fully closing it never flushed the
+  // buffer at all; only the separate `pagehide` listener below ever ran).
+  document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') void flush()
   })
   window.addEventListener('pagehide', () => void flush())

@@ -108,6 +108,16 @@ export class View3D {
   private _lastMetrics: RenderingMetrics | undefined
   // Delta metrics: 60s aggregation window, reported via telemetry.sceneDeltaMetrics.
   private _deltaReportTimer: ReturnType<typeof setTimeout> | undefined
+  // Best-effort snapshot on backgrounding/close: the 30s/60s timers above
+  // never fire for a session that ends before their window elapses (closed
+  // tab, navigated away, backgrounded). visibilitychange('hidden')/pagehide
+  // fire reliably before that, so reportMetricsNow() reuses the same fields
+  // those timers report, giving any session -- however short -- at least one
+  // real perf.rendering_metrics/perf.scene_delta_metrics row instead of zero.
+  private readonly handleVisibilityHidden = (): void => {
+    if (document.visibilityState === 'hidden') this.reportMetricsNow()
+  }
+  private readonly handlePageHide = (): void => this.reportMetricsNow()
   private readonly handleResize = (): void => {
     const container = this.domElement?.parentElement
     if (!container) return
@@ -248,6 +258,17 @@ export class View3D {
       })
 
       window.addEventListener('resize', this.handleResize)
+
+      // See handleVisibilityHidden/handlePageHide + reportMetricsNow() above:
+      // only the real interactive viewport (has a container/renderer) should
+      // report on unload -- the headless automation/capture View3D has no
+      // container and must not double-report the same window-level events.
+      // 'visibilitychange' fires only on Document, never on Window (verified
+      // live in Chromium 2026-09-29 -- window.addEventListener('visibilitychange',
+      // ...) silently never fires). 'pagehide' is the opposite: a Window-only
+      // page-lifecycle event. Each listener must be registered on its real target.
+      document.addEventListener('visibilitychange', this.handleVisibilityHidden)
+      window.addEventListener('pagehide', this.handlePageHide)
 
       // Resize the canvas whenever the container box changes — covers divider
       // drags, panel show/hide, catalog collapse, and window resize in one
@@ -1255,6 +1276,33 @@ export class View3D {
     this._animationFrame = requestAnimationFrame(tick)
   }
 
+  /**
+   * Best-effort perf snapshot fired from handleVisibilityHidden/handlePageHide.
+   * Mirrors exactly what the 30s frame-time/60s scene-delta timers in tick()
+   * report, but on demand -- so a session that ends (tab closed, navigated
+   * away, backgrounded) before either timer elapses still leaves one real
+   * row in perf.rendering_metrics/perf.scene_delta_metrics instead of zero.
+   * Does not touch the pending timers: if the tab comes back to the
+   * foreground, they continue arming/firing on their own normal schedule.
+   */
+  private reportMetricsNow(): void {
+    if (this._frameSamples.length > 0) {
+      telemetry.frameTime(this._frameSamples)
+      this._frameSamples = []
+    }
+    const metrics = this._lastMetrics ?? this.collectRenderingMetrics()
+    if (metrics) telemetry.renderingMetrics(metrics)
+    const deltaMetrics = snapshotDeltaMetrics()
+    if (deltaMetrics.deltaUpdatesCount + deltaMetrics.fullRebuildsCount > 0) {
+      telemetry.sceneDeltaMetrics(deltaMetrics)
+    }
+    // Best-effort: push what we just reported out over the wire immediately
+    // rather than waiting for transport's own visibilitychange/pagehide flush
+    // listener (registerUnload() in telemetry/transport.ts) -- both listeners
+    // fire for the same event, so this just avoids depending on handler order.
+    void telemetry.flush()
+  }
+
   dispose(): void {
     this.cancelAnimation()
     if (this._frameReportTimer) clearTimeout(this._frameReportTimer)
@@ -1265,6 +1313,10 @@ export class View3D {
     this.controls?.dispose()
     this.resizeObserver?.disconnect()
     if (this.renderer) window.removeEventListener('resize', this.handleResize)
+    if (this.renderer) {
+      document.removeEventListener('visibilitychange', this.handleVisibilityHidden)
+      window.removeEventListener('pagehide', this.handlePageHide)
+    }
     this.environment?.dispose()
     this.environment = undefined
     this._composer?.dispose()
