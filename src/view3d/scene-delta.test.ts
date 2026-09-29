@@ -115,6 +115,114 @@ describe('computeSceneUpdates furniture batch add', () => {
   })
 })
 
+describe('computeSceneUpdates single add', () => {
+  it('takes the delta path for a single new wall', () => {
+    const old = createEmptyHome()
+    const next = createEmptyHome()
+    next.walls.push(WA)
+    const updates = computeSceneUpdates(old, next)
+    expect(updates).toEqual([{ type: 'wall-add', wallId: 'wA', wall: WA }])
+  })
+
+  it('takes the delta path for a single new room', () => {
+    const room: Room = { id: 'r1', points: [[0, 0], [100, 0], [100, 100]] }
+    const old = createEmptyHome()
+    const next = createEmptyHome()
+    next.rooms.push(room)
+    const updates = computeSceneUpdates(old, next)
+    expect(updates).toEqual([{ type: 'room-add', roomId: 'r1', room }])
+  })
+})
+
+describe('applySceneUpdate wall-add', () => {
+  it('adds the wall mesh and re-meshes the neighbor joined at its endpoint', () => {
+    const old = createEmptyHome()
+    old.walls.push(WA)
+    const next = createEmptyHome()
+    next.walls.push(WA, WB)
+    const scene = buildScene(old)
+    expect(scene.getObjectByName('wall:WB')).toBeUndefined()
+
+    const ok = applySceneUpdate(scene, { type: 'wall-add', wallId: 'wB', wall: WB }, next, old)
+
+    expect(ok).toBe(true)
+    expect(scene.getObjectByName('wall:wB')).toBeDefined()
+    // WA shares WB's (100,0) endpoint → miter changed → must be rebuilt too.
+    expect(scene.getObjectByName('wall:wA')).toBeDefined()
+    expect(scene.getObjectByName('wall-edge:wB')).toBeUndefined()
+  })
+
+  it('skips the mesh when the wall is outside the active level filter', () => {
+    const level = {
+      id: 'level-1', name: 'Ground', elevation: 0, floorThickness: 5,
+      height: 250, visible: true, viewable: true,
+    }
+    const old = createEmptyHome()
+    old.levels.push(level)
+    const next = createEmptyHome()
+    next.levels.push(level)
+    next.walls.push({ ...WA, levelRef: 'level-1' })
+    const scene = buildScene(old)
+
+    const ok = applySceneUpdate(
+      scene,
+      { type: 'wall-add', wallId: 'wA', wall: { ...WA, levelRef: 'level-1' } },
+      next,
+      old,
+      { activeLevel: 'some-other-level' },
+    )
+
+    expect(ok).toBe(true)
+    expect(scene.getObjectByName('wall:wA')).toBeUndefined()
+  })
+})
+
+describe('applySceneUpdate room-add', () => {
+  it('adds floor + ceiling and re-meshes walls whose side classification flipped', () => {
+    const room: Room = { id: 'r1', points: [[0, 0], [100, 0], [100, 100]] }
+    const old = createEmptyHome()
+    old.walls.push(WA)
+    const next = createEmptyHome()
+    next.walls.push(WA)
+    next.rooms.push(room)
+    const scene = buildScene(old)
+    // Standalone wall: both sides exterior. LEFT samples (50,+12.5) — inside
+    // the new triangle once r1 exists — so LEFT must flip to interior.
+    const before = scene.getObjectByName('wall:wA')
+    expect(before?.userData.leftSideExterior).toBe(true)
+    expect(before?.userData.rightSideExterior).toBe(true)
+
+    // Ceilings render only in the outside view (same as buildScene).
+    const ok = applySceneUpdate(scene, { type: 'room-add', roomId: 'r1', room }, next, old, {
+      isOutsideView: true,
+    })
+
+    expect(ok).toBe(true)
+    expect(scene.getObjectByName('room:r1')).toBeDefined()
+    expect(scene.getObjectByName('ceiling:r1')).toBeDefined()
+    const after = scene.getObjectByName('wall:wA')
+    expect(after?.userData.leftSideExterior).toBe(false)
+    expect(after?.userData.rightSideExterior).toBe(true)
+  })
+
+  it('leaves walls alone when no classification flips (room far away)', () => {
+    const room: Room = { id: 'r1', points: [[5000, 5000], [5100, 5000], [5100, 5100]] }
+    const old = createEmptyHome()
+    old.walls.push(WA)
+    const next = createEmptyHome()
+    next.walls.push(WA)
+    next.rooms.push(room)
+    const scene = buildScene(old)
+    const before = scene.getObjectByName('wall:wA')
+
+    const ok = applySceneUpdate(scene, { type: 'room-add', roomId: 'r1', room }, next, old)
+
+    expect(ok).toBe(true)
+    expect(scene.getObjectByName('room:r1')).toBeDefined()
+    expect(scene.getObjectByName('wall:wA')).toBe(before)
+  })
+})
+
 describe('applySceneUpdate wall-delete', () => {
   it('removes the wall and re-meshes the joined neighbor', () => {
     const old = createEmptyHome()

@@ -106,6 +106,70 @@ describe('scene vs scene-delta elevation parity', () => {
   }
 })
 
+describe('scene vs scene-delta add-path parity', () => {
+  /** Build `home` from `old` purely via add deltas and compare fingerprints. */
+  function expectAddParity(
+    home: NormalizedHomeState,
+    old: NormalizedHomeState,
+    expectedUpdates: Array<{ type: string }>,
+    isOutsideView: boolean,
+  ): void {
+    const opts = { activeLevel: 'level-t', isOutsideView }
+    const full = buildScene(home, opts)
+    const delta = buildScene(old, opts)
+    const updates = computeSceneUpdates(old, home)
+    expect(updates.map((u) => u.type)).toEqual(expectedUpdates.map((u) => u.type))
+    for (const update of updates) {
+      expect(applySceneUpdate(delta, update, home, old, opts), update.type).toBe(true)
+    }
+    for (const name of MESH_NAMES) {
+      expect(fingerprint(delta, name), `${name} via ${updateTypes(updates)}`).toBe(
+        fingerprint(full, name),
+      )
+    }
+  }
+
+  for (const isOutsideView of [false, true]) {
+    it(`single new wall agrees: isOutsideView=${isOutsideView}`, () => {
+      const home = makeHome('level-t')
+      const old = structuredClone(home)
+      old.walls.length = 0
+      expectAddParity(home, old, [{ type: 'wall-add' }], isOutsideView)
+    })
+
+    it(`single new room agrees (wall side flips): isOutsideView=${isOutsideView}`, () => {
+      const home = makeHome('level-t')
+      const old = structuredClone(home)
+      old.rooms.length = 0
+      expectAddParity(home, old, [{ type: 'room-add' }], isOutsideView)
+    })
+
+    it(`room-draw batch (4 walls + room) agrees: isOutsideView=${isOutsideView}`, () => {
+      const home = makeHome('level-t')
+      home.walls.push(
+        { id: 'w2', xStart: 400, yStart: 0, xEnd: 400, yEnd: 200, thickness: 15, levelRef: 'level-t' },
+        { id: 'w3', xStart: 400, yStart: 200, xEnd: 0, yEnd: 200, thickness: 15, levelRef: 'level-t' },
+        { id: 'w4', xStart: 0, yStart: 200, xEnd: 0, yEnd: 0, thickness: 15, levelRef: 'level-t' },
+      )
+      const old = structuredClone(home)
+      old.walls.length = 0
+      old.rooms.length = 0
+      expectAddParity(
+        home,
+        old,
+        [
+          { type: 'wall-add' },
+          { type: 'wall-add' },
+          { type: 'wall-add' },
+          { type: 'wall-add' },
+          { type: 'room-add' },
+        ],
+        isOutsideView,
+      )
+    })
+  }
+})
+
 describe('roof changes fall back to full rebuild', () => {
   const ROOF = {
     id: 'roof-1',

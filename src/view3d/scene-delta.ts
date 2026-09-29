@@ -14,6 +14,7 @@
 
 import * as THREE from 'three'
 import type { Wall, Furniture, Room, Roof, NormalizedHomeState } from '../core/home'
+import { getWallSideExterior } from '../core/wall-exterior'
 import {
   BELOW_CEILING_Z_FIGHT_OFFSET_CM,
   BELOW_LEVEL_FLOOR_OPACITY,
@@ -33,11 +34,13 @@ import {
 } from './scene'
 
 export type SceneUpdateType =
+  | 'wall-add'
   | 'wall-update'
   | 'wall-delete'
   | 'furniture-add'
   | 'furniture-update'
   | 'furniture-delete'
+  | 'room-add'
   | 'room-update'
   | 'room-delete'
   | 'level-change'
@@ -86,8 +89,13 @@ export function computeSceneUpdates(
   for (const [id, newWall] of newWalls) {
     const oldWall = oldWalls.get(id)
     if (!oldWall) {
-      // New wall — would need full rebuild if complex, but rare in practice
-      return [{ type: 'full-rebuild', reason: 'new wall detected' }]
+      // New wall: a wall's geometry depends only on itself and the walls
+      // sharing its endpoints (miters, see wallOutlinePoints), so the
+      // wall-update treatment (self + joined neighbors) covers it exactly.
+      // Interactive wall drawing adds one wall at a time — forcing a full
+      // scene rebuild here made every drawn wall a ~70-130ms hitch.
+      updates.push({ type: 'wall-add', wallId: id, wall: newWall })
+      continue
     }
     if (!wallsEqual(oldWall, newWall)) {
       updates.push({ type: 'wall-update', wallId: id, wall: newWall })
@@ -137,7 +145,13 @@ export function computeSceneUpdates(
   for (const [id, newRoom] of newRooms) {
     const oldRoom = oldRooms.get(id)
     if (!oldRoom) {
-      return [{ type: 'full-rebuild', reason: 'new room detected' }]
+      // New room: floor/ceiling take the room-update path. The one
+      // cross-object effect — wall-side interior/exterior classification
+      // flipping near the new polygon — is handled exactly by comparing
+      // per-wall classification between the old and new room sets
+      // (see applyRoomAdd).
+      updates.push({ type: 'room-add', roomId: id, room: newRoom })
+      continue
     }
     if (!roomsEqual(oldRoom, newRoom)) {
       updates.push({ type: 'room-update', roomId: id, room: newRoom })
@@ -338,10 +352,13 @@ function applySceneUpdateCase(
       }
       return applyFurnitureMatrixUpdate(scene, update, home)
     }
+    case 'wall-add':
     case 'wall-update':
       return applyWallUpdate(scene, update, home, oldHome, opts)
     case 'wall-delete':
       return applyWallDelete(scene, update, home, oldHome, opts)
+    case 'room-add':
+      return applyRoomAdd(scene, update, home, oldHome, opts)
     case 'room-update':
       return applyRoomUpdate(scene, update, home, opts)
     case 'room-delete':
@@ -615,6 +632,48 @@ function applyRoomUpdate(
   if (home.selection.includes(room.id)) {
     if (floor) tintEmissive(floor)
     if (ceiling) tintEmissive(ceiling)
+  }
+  return true
+}
+
+/**
+ * room-add: room-update's floor/ceiling path, plus re-meshing any wall whose
+ * interior/exterior side classification flips because of the new polygon
+ * (wall sides are classified by point-in-room tests, see
+ * deriveWallSideExterior — a side's texture depends on whether it faces a
+ * room). The comparison is exact: a wall is re-meshed only when one of its
+ * sides actually flips between oldHome.rooms and home.rooms, so unrelated
+ * walls are left untouched. Without oldHome the flips can't be detected →
+ * conservative fallback.
+ */
+function applyRoomAdd(
+  scene: THREE.Scene,
+  update: SceneUpdate,
+  home: NormalizedHomeState,
+  oldHome?: NormalizedHomeState | null,
+  opts?: ApplySceneUpdateOptions,
+): boolean {
+  const room = update.room
+  if (!room || !update.roomId) return false
+  if (!applyRoomUpdate(scene, update, home, opts)) return false
+  if (!oldHome) return false
+
+  const level = room.levelRef ?? null
+  const flipped = home.walls.filter((w) => {
+    // deriveWallSideExterior only consults rooms on the wall's level.
+    if ((w.levelRef ?? null) !== level) return false
+    return (
+      getWallSideExterior(w, 'left', oldHome.rooms) !== getWallSideExterior(w, 'left', home.rooms) ||
+      getWallSideExterior(w, 'right', oldHome.rooms) !== getWallSideExterior(w, 'right', home.rooms)
+    )
+  })
+
+  const root = scene.getObjectByName('home')
+  if (!root) return false
+  const elevations = levelElevations(home)
+  const wallsTransparency = home.environment.wallsAlpha ?? 0
+  for (const w of flipped) {
+    remeshWall(scene, root, w, home, elevations, wallsTransparency, opts)
   }
   return true
 }
