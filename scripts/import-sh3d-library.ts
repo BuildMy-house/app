@@ -20,6 +20,9 @@
  *                                                       # for re-ingesting already-live assets after
  *                                                       # a pipeline fix. Combine with --limit=N to
  *                                                       # do a small dry-run batch first.
+ *   tsx scripts/import-sh3d-library.ts --only=<ids>    # scope to a comma-separated list of
+ *                                                       # catalogIds (intersected with
+ *                                                       # --live-catalog when both are given).
  *
  * R2 credentials come from env (R2_ACCOUNT_ID/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY/
  * R2_S3_ENDPOINT/R2_BUCKET_NAME/R2_PUBLIC_URL) — never hardcoded.
@@ -44,8 +47,10 @@ async function main(): Promise<void> {
     service.mergeCatalog()
     return
   }
-  const catalogIds = process.argv.includes('--live-catalog') ? liveCatalogIds() : undefined
-  if (catalogIds) console.log(`[import] --live-catalog: scoping to ${catalogIds.length} catalogIds from catalog.json`)
+  const only = process.argv.find((a) => a.startsWith('--only='))?.split('=')[1]?.split(',').map((s) => s.trim()).filter(Boolean)
+  const liveIds = process.argv.includes('--live-catalog') ? liveCatalogIds() : undefined
+  const catalogIds = only && liveIds ? liveIds.filter((id) => only.includes(id)) : (only ?? liveIds)
+  if (catalogIds) console.log(`[import] scoping to ${catalogIds.length} catalogIds`)
   const options = { limit, catalogIds }
   if (process.argv.includes('--upload-only')) await service.uploadBatch(options)
   else if (process.argv.includes('--skip-upload')) await service.convertBatch(options)

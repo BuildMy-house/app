@@ -91,4 +91,53 @@ describe('convertPhongToStandard', () => {
     const standard = convertPhongToStandard(phong, info)
     expect(standard.roughness).toBeCloseTo(0.99, 5)
   })
+
+  it('recovers zero-signal exact-named glass: glossy band + forced transparency', () => {
+    // DianaWindow/Glass MTL: Kd 0 0 0, Ks 0 0 0, illum 1, no d — renders
+    // solid opaque black without the name-based fallback.
+    const phong = new THREE.MeshPhongMaterial({ name: 'Glass', shininess: 10 })
+    const standard = convertPhongToStandard(phong)
+    expect(standard.roughness).toBeLessThanOrEqual(0.3)
+    expect(standard.transparent).toBe(true)
+    expect(standard.opacity).toBe(0.5)
+  })
+
+  it('recovers cabinet glass (illum 2, Ns 129, no d) the same way', () => {
+    // 1/2GlassDoorCabinet "glass" MTL: Kd 0.1328 0.15272 0.166, Ns 129, illum 2.
+    const phong = new THREE.MeshPhongMaterial({
+      name: 'glass',
+      color: new THREE.Color(0.1328, 0.15272, 0.166),
+      shininess: 129,
+    })
+    const standard = convertPhongToStandard(phong)
+    expect(standard.roughness).toBeLessThanOrEqual(0.3)
+    expect(standard.transparent).toBe(true)
+    expect(standard.opacity).toBe(0.5)
+  })
+
+  it('respects explicit d even when it is fully opaque', () => {
+    // window_stain_glass/Glass sets d 1.0 — author intent, never overridden.
+    const phong = new THREE.MeshPhongMaterial({ name: 'Glass', shininess: 10 })
+    const info = { d: '1' } as unknown as Parameters<typeof convertPhongToStandard>[1]
+    const standard = convertPhongToStandard(phong, info)
+    expect(standard.transparent).toBe(false)
+    expect(standard.opacity).toBe(1)
+    expect(standard.roughness).toBeLessThanOrEqual(0.3)
+  })
+
+  it('clamps mirror roughness but never forces transparency on mirrors', () => {
+    // ceiling_lamp_globo_feria/Mirror: Ns 96, no d — mirrors are opaque.
+    const phong = new THREE.MeshPhongMaterial({ name: 'Mirror', shininess: 96 })
+    const standard = convertPhongToStandard(phong)
+    expect(standard.roughness).toBeLessThanOrEqual(0.3)
+    expect(standard.transparent).toBe(false)
+  })
+
+  it('ignores glass-like names that are not exactly glass/mirror', () => {
+    // doorGlassPanels "Door_GlassPanels_1" is a textured door lock, not glass.
+    const phong = new THREE.MeshPhongMaterial({ name: 'Door_GlassPanels_1', shininess: 10 })
+    const standard = convertPhongToStandard(phong)
+    expect(standard.roughness).toBeCloseTo(0.99, 5)
+    expect(standard.transparent).toBe(false)
+  })
 })

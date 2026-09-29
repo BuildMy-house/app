@@ -476,8 +476,18 @@ export function convertPhongToStandard(
   standard.side = material.side
   standard.vertexColors = material.vertexColors
   standard.flatShading = material.flatShading
-  standard.roughness = roughnessFromPhong(material.shininess, material.opacity, materialInfo)
+  standard.roughness = roughnessFromPhong(material.shininess, material.opacity, material.name, materialInfo)
   standard.metalness = metalnessFromPhong(material.specular, material.color)
+  // Some MTL authors name a material "glass" but omit every numeric
+  // transparency signal (no d/Tr, illum <= 2): MTLLoader then yields an
+  // opaque MeshPhongMaterial and glass panes render as solid black.
+  // Exact-named glass with no explicit author-set dissolve gets the pack's
+  // modal glass opacity (d 0.5); an explicit d/tr always wins.
+  const explicitDissolve = 'd' in (materialInfo ?? {}) || 'tr' in (materialInfo ?? {})
+  if (/^glass$/i.test(material.name) && !explicitDissolve && material.opacity >= TRANSPARENT_OPACITY_MAX) {
+    standard.transparent = true
+    standard.opacity = 0.5
+  }
   return standard
 }
 
@@ -486,14 +496,17 @@ export function convertPhongToStandard(
  * MTLLoader already surfaces low dissolve (d/Tr) as opacity < 1, and raw MTL
  * illum 3-9 marks reflection/raytrace/glass models. Glass is optically smooth
  * regardless of what Ns the author set, so clamp it into the glossy band
- * instead of trusting a weak/absent Ns.
+ * instead of trusting a weak/absent Ns. Exact names "glass"/"mirror" also
+ * qualify: the library contains glass/mirror materials with no numeric
+ * signal at all (and substring matching would wrongly catch non-glass
+ * materials like "Door_GlassPanels_1", a textured door lock).
  */
-function roughnessFromPhong(shininess: number, opacity: number, materialInfo?: MtlMaterialInfo): number {
+function roughnessFromPhong(shininess: number, opacity: number, name?: string, materialInfo?: MtlMaterialInfo): number {
   let roughness = Math.min(1, Math.max(0.05, 1 - Math.min(shininess / 1000, 1)))
   // `illum` is not in MTLLoader's typed MaterialInfo but is present at runtime
   // (lowercased key, string value).
   const illum = parseFloat(String((materialInfo as { illum?: unknown } | undefined)?.illum))
-  const reflective = opacity < TRANSPARENT_OPACITY_MAX || (illum >= 3 && illum <= 9)
+  const reflective = opacity < TRANSPARENT_OPACITY_MAX || (illum >= 3 && illum <= 9) || /^(glass|mirror)$/i.test(name ?? '')
   if (reflective) roughness = Math.min(roughness, GLASS_ROUGHNESS)
   return roughness
 }
