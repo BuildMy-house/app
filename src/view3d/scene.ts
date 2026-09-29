@@ -1537,7 +1537,6 @@ function buildSceneInner(
     grid.name = 'ground-grid'
     grid.material.transparent = true
     grid.material.opacity = 0.55
-    grid.material.depthTest = false
     grid.renderOrder = 1
     grid.frustumCulled = false
     scene.add(grid)
