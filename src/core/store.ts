@@ -46,6 +46,21 @@ export class HomeStore {
     return clone
   }
 
+  /** Live, read-only view — for queries only. Callers must never mutate this; use apply() for writes. */
+  peek(): Readonly<NormalizedHomeState> {
+    return this.home
+  }
+
+  /** Content counts for telemetry — read directly off live state, no clone. */
+  getContentCounts(): { walls: number; furniture: number; rooms: number; levels: number } {
+    return {
+      walls: this.home.walls.length,
+      furniture: this.home.furniture.length,
+      rooms: this.home.rooms.length,
+      levels: this.home.levels.length,
+    }
+  }
+
   /**
    * Run a mutation against a private draft of the current state and record it
    * as one undo step — only if the mutation completes without throwing, so a

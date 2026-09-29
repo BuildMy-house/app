@@ -232,8 +232,8 @@ export class PlanEngine {
     return { heightCm: this.wallHeightCm, thicknessCm: this.wallThicknessCm }
   }
 
-  private homeSnapshot(): NormalizedHomeState {
-    return this.model.getStore().getHome()
+  private homeSnapshot(): Readonly<NormalizedHomeState> {
+    return this.model.getStore().peek()
   }
 
   getTool(): PlanTool {

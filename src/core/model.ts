@@ -243,7 +243,7 @@ export class HomeModel {
   }
 
   removeLevel(id: string): boolean {
-    const snapshot = this.store.getHome()
+    const snapshot = this.store.peek()
     assert(snapshot.levels.some((level) => level.id === id), `unknown level: ${id}`)
     const cascadeIds = new Set<string>()
     for (const key of ['walls', 'rooms', 'polylines', 'furniture', 'dimensionLines', 'labels', 'roofs'] as const) {
@@ -332,7 +332,7 @@ export class HomeModel {
   }
 
   removeWall(id: string): boolean {
-    const snapshot = this.store.getHome()
+    const snapshot = this.store.peek()
     assert(snapshot.walls.some((w) => w.id === id), `unknown wall id: ${id}`)
     this.store.apply((h) => {
       const index = h.walls.findIndex((w) => w.id === id)
@@ -516,7 +516,7 @@ export class HomeModel {
 
   updateFurniture(id: string, patch: Partial<Omit<Furniture, 'id'>>): Furniture {
     if ((patch.x !== undefined || patch.y !== undefined) && patch.wallOffset === undefined) {
-      const home = this.store.getHome()
+      const home = this.store.peek()
       const item = home.furniture.find((f) => f.id === id)
       const wallRef = patch.wallRef === undefined ? item?.wallRef : patch.wallRef
       const wall = wallRef ? home.walls.find((w) => w.id === wallRef) : undefined
@@ -625,7 +625,7 @@ export class HomeModel {
 
   setSelection(ids: string[]): string[] {
     assert(Array.isArray(ids), 'selection must be an array of ids')
-    const snapshot = this.store.getHome()
+    const snapshot = this.store.peek()
     // A no-op selection change must not consume an undo step.
     if (
       snapshot.selection.length === ids.length &&
@@ -707,7 +707,7 @@ export class HomeModel {
   }
 
   private removeFrom(key: CollectionKey, id: string, label: string): boolean {
-    const snapshot = this.store.getHome()
+    const snapshot = this.store.peek()
     const exists = (snapshot[key] as IdLike[]).some((item) => item.id === id)
     assert(exists, `unknown ${label} id: ${id}`)
     this.store.apply((h) => {
@@ -724,7 +724,7 @@ export class HomeModel {
   removeItems(ids: string[]): boolean {
     assert(Array.isArray(ids) && ids.length > 0, 'removeItems needs at least one id')
     const wanted = new Set(ids)
-    const snapshot = this.store.getHome()
+    const snapshot = this.store.peek()
     const found = new Set<string>()
     for (const key of ['levels', 'walls', 'rooms', 'polylines', 'furniture', 'dimensionLines', 'labels', 'roofs'] as const) {
       for (const item of snapshot[key] as IdLike[]) {
@@ -770,7 +770,7 @@ export class HomeModel {
   moveSelection(dx: number, dy: number): boolean {
     requireFinite(dx, 'dx')
     requireFinite(dy, 'dy')
-    const selection = new Set(this.store.getHome().selection)
+    const selection = new Set(this.store.peek().selection)
     if (selection.size === 0) return false
     this.store.apply((h) => {
       for (const wall of h.walls) {

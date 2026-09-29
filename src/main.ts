@@ -1046,7 +1046,7 @@ canvas.addEventListener('pointerup', (event) => {
     const raw = engine.isGridSnapEnabled() ? engine.snapToGrid(point.x, point.y) : point
     const snap = item
       ? snapFurniturePlacement({
-          walls: store.getHome().walls,
+          walls: store.peek().walls,
           point: raw,
           depthCm: item.depth,
           magnetismEnabled: engine.isMagnetismEnabled(),
@@ -1390,8 +1390,8 @@ function getLastFrameTime(): number {
 
 /** Scene complexity = wall + furniture + room + level counts (ticket A4). */
 function getSceneComplexity(): number {
-  const home = store.getHome()
-  return home.walls.length + home.furniture.length + home.rooms.length + home.levels.length
+  const counts = store.getContentCounts()
+  return counts.walls + counts.furniture + counts.rooms + counts.levels
 }
 
 function doFit(): void {
