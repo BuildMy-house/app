@@ -901,6 +901,7 @@ interface PointerState {
   shift: boolean
   button: number
   rotationId: string | null
+  furnitureMoveId: string | null
   wallDrawing: boolean
 }
 
@@ -914,8 +915,10 @@ const pointer: PointerState = {
   shift: false,
   button: 0,
   rotationId: null,
+  furnitureMoveId: null,
   wallDrawing: false,
 }
+let pendingFurnitureMovePoint: { x: number; y: number } | null = null
 
 function eventModelPoint(event: PointerEvent | MouseEvent): { x: number; y: number } {
   const rect = canvas.getBoundingClientRect()
@@ -972,6 +975,8 @@ canvas.addEventListener('pointerdown', (event) => {
   const hit = engine.hitTestPoint(point)
   if (hit?.kind === 'furniture-rotate' && engine.beginFurnitureRotation(hit.id, point)) {
     pointer.rotationId = hit.id
+  } else if (hit?.kind === 'furniture' && engine.getTool() === 'selection' && engine.beginFurnitureMove(hit.id, point)) {
+    pointer.furnitureMoveId = hit.id
   } else if (engine.getTool() === 'wall') {
     pointer.wallDrawing = true
     void traceAction('wall.click', () => {
@@ -1032,6 +1037,10 @@ canvas.addEventListener('pointermove', (event) => {
     if (pointer.moved) engine.rotateFurnitureTo(pointer.rotationId, point)
     return
   }
+  if (pointer.furnitureMoveId) {
+    pendingFurnitureMovePoint = pointer.moved ? point : null
+    return
+  }
 })
 
 canvas.addEventListener('pointerup', (event) => {
@@ -1047,6 +1056,15 @@ canvas.addEventListener('pointerup', (event) => {
     if (pointer.moved) engine.rotateFurnitureTo(pointer.rotationId, point)
     engine.endFurnitureRotation()
     pointer.rotationId = null
+    refreshToolbar()
+    refreshStatus()
+    return
+  }
+  if (pointer.furnitureMoveId) {
+    pendingFurnitureMovePoint = null
+    if (pointer.moved) engine.moveFurnitureTo(point)
+    engine.endFurnitureMove()
+    pointer.furnitureMoveId = null
     refreshToolbar()
     refreshStatus()
     return
@@ -1120,6 +1138,11 @@ canvas.addEventListener('pointercancel', () => {
   if (pointer.rotationId) {
     engine.endFurnitureRotation()
     pointer.rotationId = null
+  }
+  if (pointer.furnitureMoveId) {
+    pendingFurnitureMovePoint = null
+    engine.endFurnitureMove()
+    pointer.furnitureMoveId = null
   }
   pointer.wallDrawing = false
   pointer.down = false
@@ -1380,6 +1403,10 @@ function frame(ts: number): void {
   if (prevFrameTs > 0) lastFrameMs = ts - prevFrameTs
   prevFrameTs = ts
 
+  if (pendingFurnitureMovePoint && pointer.furnitureMoveId) {
+    engine.moveFurnitureTo(pendingFurnitureMovePoint)
+    pendingFurnitureMovePoint = null
+  }
   const preview = engine.getPreview()
   const revision = store.getRevision()
   const needsRender =

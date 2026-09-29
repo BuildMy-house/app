@@ -758,6 +758,27 @@ export function drawPlan(
     ctx.strokeStyle = SELECTION_COLOR
     ctx.lineWidth = 2
     ctx.stroke()
+    // Clockwise arrow on the ring makes its rotation purpose obvious.
+    const ax = px + ringRadiusPx * Math.SQRT1_2
+    const ay = py - ringRadiusPx * Math.SQRT1_2
+    ctx.beginPath()
+    ctx.moveTo(ax - 5, ay - 5)
+    ctx.lineTo(ax + 5, ay + 5)
+    ctx.lineTo(ax - 1, ay + 4)
+    ctx.moveTo(ax + 5, ay + 5)
+    ctx.lineTo(ax + 4, ay - 1)
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 5
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(ax - 5, ay - 5)
+    ctx.lineTo(ax + 5, ay + 5)
+    ctx.lineTo(ax - 1, ay + 4)
+    ctx.moveTo(ax + 5, ay + 5)
+    ctx.lineTo(ax + 4, ay - 1)
+    ctx.strokeStyle = SELECTION_COLOR
+    ctx.lineWidth = 2
+    ctx.stroke()
   }
 
   // Dimension lines.
