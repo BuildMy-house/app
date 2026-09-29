@@ -763,4 +763,72 @@ describe('rendering metrics frame sampling', () => {
     vi.stubGlobal('document', { removeEventListener: () => {}, addEventListener: () => {} })
     view.dispose()
   })
+
+  /**
+   * The app renders on demand: most redraws are a single-frame burst (store
+   * edit, selection, camera command), not a continuous orbit. A single-frame
+   * burst never produces an inter-frame dt, so _frameSamples stayed empty and
+   * every burst-end collectRenderingMetrics() overwrote _lastMetrics with
+   * fps=0 / frameTimeP95Ms=0 — prod telemetry reported zeros for every
+   * rendering_metrics row. The burst must contribute the frame's own
+   * production time as its sample instead.
+   */
+  it('records a frame-time sample for single-frame edit bursts', () => {
+    const view = new View3D(new HomeStore())
+    const v = view as unknown as Record<string, unknown>
+
+    // Manual clock + rAF capture (same harness as the idle-gap test above).
+    let now = 1_000
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+    let queued: FrameRequestCallback | undefined
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback): number => {
+      queued = cb
+      return 1
+    })
+    vi.stubGlobal('cancelAnimationFrame', () => {})
+
+    // The fake draw costs 12ms: advancing the clock inside render() is the
+    // work duration the loop measures as the frame's production time.
+    v.renderer = {
+      info: {
+        autoReset: true,
+        reset: () => {},
+        render: { calls: 1, triangles: 1 },
+        memory: { textures: 0 },
+      },
+      render: (): void => {
+        now += 12
+      },
+      getPixelRatio: () => 1,
+      dispose: () => {},
+    }
+    v.controls = { update: (): boolean => false, dispose: () => {} }
+
+    const startLoop = (): void => (v.startAnimationLoop as () => void)()
+    const tick = (): void => {
+      const cb = queued
+      queued = undefined
+      cb?.(now)
+    }
+
+    // Three single-frame bursts (three edits), seconds of idle between them.
+    // Each burst contributes exactly one 12ms sample; the idle gaps — which
+    // the loop never spans — must not appear.
+    for (let i = 0; i < 3; i++) {
+      startLoop()
+      tick()
+      now += 2_000
+    }
+    expect(v._frameSamples as number[]).toEqual([12, 12, 12])
+
+    // Pre-fix this was fps=0 / frameTimeP95Ms=0 (no samples at all).
+    const metrics = (v.collectRenderingMetrics as () => { fps: number; frameTimeP95Ms: number })()
+    expect(metrics.fps).toBeCloseTo(1000 / 12, 0)
+    expect(metrics.frameTimeP95Ms).toBe(12)
+
+    // dispose() touches window/document (node test env has neither).
+    vi.stubGlobal('window', { removeEventListener: () => {}, addEventListener: () => {} })
+    vi.stubGlobal('document', { removeEventListener: () => {}, addEventListener: () => {} })
+    view.dispose()
+  })
 })

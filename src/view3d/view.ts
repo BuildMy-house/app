@@ -1243,6 +1243,7 @@ export class View3D {
           this._deltaReportTimer = undefined
         }, 60_000)
       }
+      const firstFrameOfBurst = this._frameLastTime <= 0
       if (this._frameLastTime > 0) {
         const dt = now - this._frameLastTime
         this._frameSamples.push(dt)
@@ -1251,6 +1252,20 @@ export class View3D {
       this._frameLastTime = now
       const moving = this.controls ? this.controls.update() : false
       this.draw()
+      // Single-frame bursts (the app's dominant redraw: store edits,
+      // selection, camera commands) produce no inter-frame dt, so without
+      // this they left _frameSamples empty and the burst-end
+      // collectRenderingMetrics() overwrote _lastMetrics with fps=0 /
+      // frameTimeP95Ms=0 -- prod reported zeros for every session. The
+      // frame's own production time is the honest sample; it cannot
+      // swallow the following idle gap because the loop stops right here.
+      if (!moving && firstFrameOfBurst) {
+        const frameMs = performance.now() - now
+        if (frameMs > 0) {
+          this._frameSamples.push(frameMs)
+          if (this._frameSamples.length > 100) this._frameSamples.shift()
+        }
+      }
       this._metricsFrameCount++
       // `|| !moving` also collects at burst end so single-frame bursts (edits)
       // leave a real snapshot for the 30s report instead of staying undefined.
