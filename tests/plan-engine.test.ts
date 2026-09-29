@@ -877,23 +877,29 @@ describe('furniture rotation handle', () => {
   it('hitTest near the handle returns furniture-rotate', () => {
     const { engine, furniture } = makeFurniture()
     const hp = furnitureRotationHandlePos(furniture)
-    const hit = engine.hitTestPoint(hp)
+    const hit = engine.hitTestPoint({ x: hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, y: hp.y })
     expect(hit).not.toBeNull()
     expect(hit!.kind).toBe('furniture-rotate')
     expect((hit as Extract<HitResult, { kind: 'furniture-rotate' }>).id).toBe(furniture.id)
   })
 
+  it('clicking just outside the furniture selects its padded hit area', () => {
+    const { engine, furniture } = makeFurniture()
+    const hit = engine.hitTestPoint({ x: furniture.x + furniture.width / 2 + 5, y: furniture.y })
+    expect(hit?.kind).toBe('furniture')
+  })
+
   it('dragging the handle east of center sets angleDeg to 90', () => {
     const { drag, store, furniture } = makeFurniture()
     const hp = furnitureRotationHandlePos(furniture)
-    drag(hp.x, hp.y, furniture.x + 100, furniture.y)
+    drag(hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, hp.y, furniture.x + 100, furniture.y)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(90)
   })
 
   it('dragging the handle south of center sets angleDeg to 0', () => {
     const { drag, store, furniture } = makeFurniture()
     const hp = furnitureRotationHandlePos(furniture)
-    drag(hp.x, hp.y, furniture.x, furniture.y - 100)
+    drag(hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, hp.y, furniture.x, furniture.y - 100)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(0)
   })
 
@@ -901,7 +907,7 @@ describe('furniture rotation handle', () => {
     const { drag, store, furniture } = makeFurniture()
     const originalAngle = store.getHome().furniture[0]!.angleDeg
     const hp = furnitureRotationHandlePos(furniture)
-    drag(hp.x, hp.y, furniture.x + 100, furniture.y)
+    drag(hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, hp.y, furniture.x + 100, furniture.y)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(90)
     expect(store.undo()).toBe(true)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(originalAngle)
@@ -1002,7 +1008,7 @@ describe('furniture drag wall-snap', () => {
     drag(origX, origY, origX, 20)
 
     const placed = store.getHome().furniture[0]!
-    expect(placed.y).toBeCloseTo(30, 0)
+    expect(placed.y).toBeCloseTo(30 + NEW_WALL_THICKNESS_CM / 2, 5)
     expect(placed.angleDeg).toBe(0)
   })
 
@@ -1026,7 +1032,7 @@ describe('furniture drag wall-snap', () => {
 
     drag(origX, origY, origX, 20)
 
-    expect(store.getHome().furniture[0]!.y).toBeCloseTo(30, 0)
+    expect(store.getHome().furniture[0]!.y).toBeCloseTo(30 + NEW_WALL_THICKNESS_CM / 2, 5)
     expect(store.undo()).toBe(true)
     const reverted = store.getHome().furniture[0]!
     expect(reverted.x).toBe(origX)
@@ -1398,7 +1404,7 @@ describe('grid snap', () => {
     // multiple), but wall magnetism overrides it and flushes the furniture to
     // the wall at y=30 — proving magnetism wins over the plain grid-snap.
     engine.drag({ fromX: f.x, fromY: f.y, toX: f.x, toY: 20 })
-    expect(store.getHome().furniture[0]!.y).toBeCloseTo(30, 0)
+    expect(store.getHome().furniture[0]!.y).toBeCloseTo(30 + NEW_WALL_THICKNESS_CM / 2, 5)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(0)
   })
 })

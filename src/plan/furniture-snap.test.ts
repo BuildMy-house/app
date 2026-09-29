@@ -42,8 +42,21 @@ describe('snapFurniturePlacement', () => {
     expect(r.wallOffset).toBeCloseTo(50) // midpoint of 0→100
   })
 
+  it('chooses the closest of four wall alignments and clears wall thickness', () => {
+    const r = snapFurniturePlacement({
+      walls: [{ ...wallH, thickness: 10 }],
+      point: { x: 50, y: 5 },
+      widthCm: 80,
+      depthCm: 40,
+      angleDeg: 90,
+      magnetismEnabled: true,
+    })
+    expect(r.angleDeg).toBe(90)
+    expect(r.y).toBe(45) // width edge (40) + half wall (5)
+  })
+
   it('snaps onto a vertical wall from either side', () => {
-    const r = snapFurniturePlacement({ walls: [wallV], point: { x: 58, y: 0 }, depthCm: 20, magnetismEnabled: true })
+    const r = snapFurniturePlacement({ walls: [wallV], point: { x: 58, y: 0 }, depthCm: 20, angleDeg: 90, magnetismEnabled: true })
     expect(r.x).toBeCloseTo(60) // wall x=50 + half depth on +x side
     expect(r.y).toBeCloseTo(0)
     // Vertical wall runs along +y → angle 90.

@@ -761,23 +761,17 @@ export function drawPlan(
     const px = mapper.sx(handle.x)
     const py = mapper.sy(handle.y)
     ctx.beginPath()
-    ctx.arc(px, py, ROTATION_HANDLE_RADIUS, -Math.PI * 0.7, Math.PI * 1.05)
+    const ringRadius = Math.hypot(f.width / 2, f.depth / 2) + 12
+    const ringRadiusPx = ringRadius * (mapper.sx(1) - mapper.sx(0))
+    ctx.arc(px, py, ringRadiusPx, 0, Math.PI * 2)
     ctx.strokeStyle = '#ffffff'
     ctx.lineWidth = 4
     ctx.stroke()
     ctx.beginPath()
-    ctx.arc(px, py, ROTATION_HANDLE_RADIUS, -Math.PI * 0.7, Math.PI * 1.05)
+    ctx.arc(px, py, ringRadiusPx, 0, Math.PI * 2)
     ctx.strokeStyle = SELECTION_COLOR
     ctx.lineWidth = 2
     ctx.stroke()
-    const tip = -Math.PI * 0.7
-    ctx.beginPath()
-    ctx.moveTo(px + Math.cos(tip) * ROTATION_HANDLE_RADIUS, py + Math.sin(tip) * ROTATION_HANDLE_RADIUS)
-    ctx.lineTo(px + Math.cos(tip + 0.9) * 4, py + Math.sin(tip + 0.9) * 4)
-    ctx.lineTo(px + Math.cos(tip - 0.9) * 4, py + Math.sin(tip - 0.9) * 4)
-    ctx.closePath()
-    ctx.fillStyle = SELECTION_COLOR
-    ctx.fill()
   }
 
   // Dimension lines.

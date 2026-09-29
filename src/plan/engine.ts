@@ -48,6 +48,10 @@ export function furnitureRotationHandlePos(f: { x: number; y: number }): Point {
   return { x: f.x, y: f.y }
 }
 
+function furnitureRotationRadius(f: { width: number; depth: number }): number {
+  return Math.hypot(f.width / 2, f.depth / 2) + 12
+}
+
 /** Perpendicular unit vector to a wall's chord (points in the CCW bulge direction). */
 function wallChordNormal(wall: { xStart: number; yStart: number; xEnd: number; yEnd: number }): { x: number; y: number } {
   const dx = wall.xEnd - wall.xStart
@@ -784,7 +788,9 @@ export class PlanEngine {
           const snap = snapFurniturePlacement({
             walls: home.walls,
             point: naive,
+            widthCm: f.width,
             depthCm: f.depth,
+            angleDeg: f.angleDeg,
             magnetismEnabled: this.magnetismEnabled,
           })
           const snapped =
@@ -2078,7 +2084,7 @@ export class PlanEngine {
       const sf = home.furniture.find((f) => f.id === selectedId && this.matchesActiveLevel(f.levelRef))
       if (sf && !(sf.doorOrWindow && sf.wallRef)) {
         const hp = furnitureRotationHandlePos(sf)
-        if (distance(point, hp) <= ENDPOINT_HIT_RADIUS) {
+        if (Math.abs(distance(point, hp) - furnitureRotationRadius(sf)) <= ENDPOINT_HIT_RADIUS) {
           return { kind: 'furniture-rotate', id: sf.id }
         }
       }
@@ -2088,12 +2094,12 @@ export class PlanEngine {
     for (let i = home.furniture.length - 1; i >= 0; i--) {
       const f = home.furniture[i]!
       if (!this.matchesActiveLevel(f.levelRef)) continue
-      if (
-        point.x >= f.x - f.width / 2 &&
-        point.x <= f.x + f.width / 2 &&
-        point.y >= f.y - f.depth / 2 &&
-        point.y <= f.y + f.depth / 2
-      ) {
+      const angle = (f.angleDeg * Math.PI) / 180
+      const dx = point.x - f.x
+      const dy = point.y - f.y
+      const localX = dx * Math.cos(angle) + dy * Math.sin(angle)
+      const localY = -dx * Math.sin(angle) + dy * Math.cos(angle)
+      if (Math.abs(localX) <= f.width / 2 + 10 && Math.abs(localY) <= f.depth / 2 + 10) {
         return { kind: 'furniture', id: f.id }
       }
     }

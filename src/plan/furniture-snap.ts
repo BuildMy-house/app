@@ -19,13 +19,16 @@ export interface WallLike {
   yStart: number
   xEnd: number
   yEnd: number
+  thickness?: number
 }
 
 export interface FurnitureSnapInput {
   walls: ReadonlyArray<WallLike>
   point: Point
-  /** Furniture depth (cm). Half of it is the back-edge offset from the wall. */
+  /** Furniture dimensions and current orientation, in cm/degrees. */
+  widthCm?: number
   depthCm: number
+  angleDeg?: number
   magnetismEnabled: boolean
 }
 
@@ -92,10 +95,16 @@ export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnap
 
   // Place on the side of the wall the click came from (the room interior).
   const side = (point.x - best.point.x) * nx + (point.y - best.point.y) * ny >= 0 ? 1 : -1
-  const offset = depthCm / 2
+  const wallAngle = (Math.atan2(dy, dx) * 180) / Math.PI
+  const currentAngle = input.angleDeg ?? wallAngle
+  const angleDeg = [0, 90, 180, 270]
+    .map((turn) => normalizeAngle180(wallAngle + turn))
+    .sort((a, b) => Math.abs(normalizeAngle180(a - currentAngle)) - Math.abs(normalizeAngle180(b - currentAngle)))[0]!
+  const relative = ((angleDeg - wallAngle) * Math.PI) / 180
+  const halfExtent = (Math.abs(Math.sin(relative)) * (input.widthCm ?? depthCm) + Math.abs(Math.cos(relative)) * depthCm) / 2
+  const offset = halfExtent + (best.wall.thickness ?? 0) / 2
   const x = best.point.x + nx * side * offset
   const y = best.point.y + ny * side * offset
-  const angleDeg = normalizeAngle180((Math.atan2(dy, dx) * 180) / Math.PI)
 
   const wallRef = best.wall.id ?? null
   const wallOffset = best.t * len
