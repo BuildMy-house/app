@@ -1029,7 +1029,6 @@ canvas.addEventListener('pointerup', (event) => {
       ? snapFurniturePlacement({
           walls: store.getHome().walls,
           point: raw,
-          widthCm: item.width,
           depthCm: item.depth,
           magnetismEnabled: engine.isMagnetismEnabled(),
         })
@@ -1477,7 +1476,6 @@ view3d = new View3D(store, {
     const snap = snapFurniturePlacement({
       walls: store.getHome().walls,
       point: raw,
-      widthCm: item.width,
       depthCm: item.depth,
       magnetismEnabled: engine.isMagnetismEnabled(),
     })
