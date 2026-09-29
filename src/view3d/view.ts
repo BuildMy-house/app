@@ -243,6 +243,7 @@ export class View3D {
       renderer.domElement.addEventListener('webglcontextlost', () => telemetry.webglContextLost())
 
       this.controls = new OrbitControls(this.perspectiveCamera, renderer.domElement)
+      this.controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN
       this.controls.enableDamping = true
       this.controls.dampingFactor = 0.1
       this.controls.target.set(0, 0, 0)
