@@ -4,7 +4,7 @@ import { DEFAULT_WALL_HEIGHT_CM, getDefaultFloorColor, getDefaultCeilingVisibili
 import type { NormalizedHomeState } from '../core/home'
 import { normalizeAngle } from '../core/export'
 import type { WallLoop } from '../core/wall-loop-detector'
-import { detectClosedLoops } from '../core/wall-loop-detector'
+import { detectClosedLoops, wallCenterlinePoints } from '../core/wall-loop-detector'
 import { AutoFloorDialog } from '../ui/AutoFloorDialog'
 import { pointWithAngleMagnetism, wallPointMagnetism } from './magnetism'
 import { snapFurniturePlacement } from './furniture-snap'
@@ -365,6 +365,7 @@ export class PlanEngine {
       yStart: number
       xEnd: number
       yEnd: number
+      arcExtent?: number | null
       levelRef?: string | null
     }>,
     activeLevelId?: string | null,
@@ -381,6 +382,7 @@ export class PlanEngine {
       id: w.id,
       start: { x: w.xStart, y: w.yStart },
       end: { x: w.xEnd, y: w.yEnd },
+      arcExtent: w.arcExtent,
     }))
 
     return detectClosedLoops(detectorWalls)
@@ -472,6 +474,7 @@ export class PlanEngine {
         id: w.id,
         start: { x: w.xStart, y: w.yStart },
         end: { x: w.xEnd, y: w.yEnd },
+        arcExtent: w.arcExtent,
       })),
       closingWall,
     ]
@@ -844,6 +847,7 @@ export class PlanEngine {
             id: w.id,
             start: { x: w.xStart, y: w.yStart },
             end: { x: w.xEnd, y: w.yEnd },
+            arcExtent: w.arcExtent,
             levelRef: w.levelRef ?? null,
           })),
         ).find((candidate) => this.findRoomByVertices(candidate.vertices, home)?.id === room.id)
@@ -1354,6 +1358,7 @@ export class PlanEngine {
       id: w.id,
       start: { x: w.xStart, y: w.yStart },
       end: { x: w.xEnd, y: w.yEnd },
+      arcExtent: w.arcExtent,
     }))
 
     const loops = detectClosedLoops(detectorWalls)
@@ -1466,10 +1471,11 @@ export class PlanEngine {
     const levelWalls = before.walls.filter((w) => this.matchesActiveLevel(w.levelRef))
     if (levelWalls.length < 3) return
 
-    const toDetector = (w: { id: string; xStart: number; yStart: number; yEnd: number; xEnd: number; levelRef?: string | null }) => ({
+    const toDetector = (w: { id: string; xStart: number; yStart: number; yEnd: number; xEnd: number; arcExtent?: number | null; levelRef?: string | null }) => ({
       id: w.id,
       start: { x: w.xStart, y: w.yStart },
       end: { x: w.xEnd, y: w.yEnd },
+      arcExtent: w.arcExtent,
       levelRef: w.levelRef ?? null,
     })
 
@@ -2107,11 +2113,13 @@ export class PlanEngine {
     for (let i = home.walls.length - 1; i >= 0; i--) {
       const wall = home.walls[i]!
       if (!this.matchesActiveLevel(wall.levelRef)) continue
-      const dist = distToSegment(
-        point,
-        { x: wall.xStart, y: wall.yStart },
-        { x: wall.xEnd, y: wall.yEnd },
-      )
+      const points = wallCenterlinePoints({
+        id: wall.id,
+        start: { x: wall.xStart, y: wall.yStart },
+        end: { x: wall.xEnd, y: wall.yEnd },
+        arcExtent: wall.arcExtent,
+      })
+      const dist = Math.min(...points.slice(1).map((p, i) => distToSegment(point, points[i]!, p)))
       if (dist <= Math.max(wall.thickness / 2, 2) + 2) {
         return { kind: 'wall-body', id: wall.id }
       }

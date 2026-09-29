@@ -9,8 +9,32 @@ export interface Wall {
   id: string
   start: { x: number; y: number }
   end: { x: number; y: number }
+  arcExtent?: number | null
   /** Owning level id; null/undefined = unassigned. T12: walls only loop within their level. */
   levelRef?: string | null
+}
+
+/** Centerline samples used by both room outlines and plan hit testing. */
+export function wallCenterlinePoints(wall: Wall): Array<{ x: number; y: number }> {
+  const extent = wall.arcExtent
+  const dx = wall.end.x - wall.start.x
+  const dy = wall.end.y - wall.start.y
+  if (typeof extent !== 'number' || !Number.isFinite(extent) || Math.abs(extent) < 1e-6 || dx * dx + dy * dy < 1e-10) {
+    return [wall.start, wall.end]
+  }
+  const distance = Math.hypot(dx, dy)
+  const offset = distance / (2 * Math.tan(extent / 2))
+  const center = {
+    x: (wall.start.x + wall.end.x) / 2 + offset * dy / distance,
+    y: (wall.start.y + wall.end.y) / 2 - offset * dx / distance,
+  }
+  const radius = Math.hypot(wall.start.x - center.x, wall.start.y - center.y)
+  const startAngle = Math.atan2(wall.start.y - center.y, wall.start.x - center.x)
+  const count = Math.max(2, Math.ceil(Math.abs(extent) * Math.sqrt(radius) / 3))
+  return Array.from({ length: count + 1 }, (_, i) => {
+    const angle = startAngle - extent * i / count
+    return { x: center.x + radius * Math.cos(angle), y: center.y + radius * Math.sin(angle) }
+  })
 }
 
 export interface WallLoop {
@@ -255,9 +279,11 @@ export function detectClosedLoops(walls: Wall[], tolerance = 0.01): WallLoop[] {
         endpointsMatch(curr.end, next.start, toleranceSq) ||
         endpointsMatch(curr.end, next.end, toleranceSq)
       ) {
-        vertices.push({ x: curr.start.x, y: curr.start.y })
+        const points = wallCenterlinePoints(curr)
+        vertices.push(...points.slice(0, -1))
       } else {
-        vertices.push({ x: curr.end.x, y: curr.end.y })
+        const points = wallCenterlinePoints(curr).reverse()
+        vertices.push(...points.slice(0, -1))
       }
     }
 
