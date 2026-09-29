@@ -7,7 +7,7 @@ import type { WallLoop } from '../core/wall-loop-detector'
 import { detectClosedLoops, wallCenterlinePoints } from '../core/wall-loop-detector'
 import { AutoFloorDialog } from '../ui/AutoFloorDialog'
 import { pointWithAngleMagnetism, wallPointMagnetism } from './magnetism'
-import { snapFurniturePlacement } from './furniture-snap'
+import { snapFurniturePlacement, snapFurnitureRotation } from './furniture-snap'
 import {
   closestPointOnSegment,
   distance,
@@ -193,7 +193,7 @@ export class PlanEngine {
   private dimensionStart: Point | null = null
   private vertexDrag: { wallId: string; endpoint: 'start' | 'end'; startX: number; startY: number; connectedWalls: Array<{ wallId: string; endpoint: 'start' | 'end' }> } | null = null
   private roomVertexDrag: { roomId: string; vertexIndex: number; startX: number; startY: number } | null = null
-  private furnitureRotateDrag: { id: string } | null = null
+  private furnitureRotateDrag: { id: string; angleDeg: number; pointerAngleDeg: number; x: number; y: number } | null = null
   private wallArcDrag: { id: string } | null = null
   private activeLevelId: string | null = null
   /** T12: rooms whose boundary loop dissolved (wall deleted/moved apart).
@@ -566,6 +566,41 @@ export class PlanEngine {
     return this.hitTest(this.homeSnapshot(), point)
   }
 
+  beginFurnitureRotation(id: string, pointer: Point): boolean {
+    const f = this.homeSnapshot().furniture.find((item) => item.id === id)
+    if (!f || this.furnitureRotateDrag) return false
+    if (!this.homeSnapshot().selection.includes(id)) this.model.setSelection([id])
+    this.furnitureRotateDrag = {
+      id,
+      angleDeg: f.angleDeg,
+      pointerAngleDeg: (Math.atan2(pointer.x - f.x, -(pointer.y - f.y)) * 180) / Math.PI,
+      x: f.x,
+      y: f.y,
+    }
+    this.model.getStore().beginCompoundEdit()
+    return true
+  }
+
+  rotateFurnitureTo(id: string, point: Point): void {
+    if (this.furnitureRotateDrag?.id !== id) return
+    const home = this.homeSnapshot()
+    const f = home.furniture.find((item) => item.id === id)
+    if (!f) return
+    const drag = this.furnitureRotateDrag
+    const pointerAngleDeg = (Math.atan2(point.x - drag.x, -(point.y - drag.y)) * 180) / Math.PI
+    const angleDeg = drag.angleDeg + normalizeAngle(pointerAngleDeg - drag.pointerAngleDeg)
+    const snap = this.magnetismEnabled
+      ? snapFurnitureRotation({ walls: home.walls, point: { x: drag.x, y: drag.y }, widthCm: f.width, depthCm: f.depth, angleDeg })
+      : { x: f.x, y: f.y, angleDeg }
+    this.model.updateFurniture(id, { x: snap.x, y: snap.y, angleDeg: normalizeAngle(snap.angleDeg) })
+  }
+
+  endFurnitureRotation(): void {
+    if (!this.furnitureRotateDrag) return
+    this.furnitureRotateDrag = null
+    this.model.getStore().endCompoundEdit()
+  }
+
   isVertexDragging(): boolean {
     return this.vertexDrag !== null
   }
@@ -763,18 +798,10 @@ export class PlanEngine {
         return
       }
       if (hit.kind === 'furniture-rotate') {
-        if (!this.furnitureRotateDrag) {
-          this.furnitureRotateDrag = { id: hit.id }
-          if (!home.selection.includes(hit.id)) {
-            this.model.setSelection([hit.id])
-          }
+        if (this.beginFurnitureRotation(hit.id, from)) {
+          this.rotateFurnitureTo(hit.id, to)
+          this.endFurnitureRotation()
         }
-        const f = home.furniture.find((f) => f.id === hit.id)
-        if (!f) return
-        const angleRad = Math.atan2(to.x - f.x, -(to.y - f.y))
-        const angleDeg = (angleRad * 180) / Math.PI
-        this.model.updateFurniture(hit.id, { angleDeg: normalizeAngle(angleDeg) })
-        this.furnitureRotateDrag = null
         return
       }
       if (hit.kind === 'furniture') {

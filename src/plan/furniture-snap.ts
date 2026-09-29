@@ -44,6 +44,7 @@ export interface FurnitureSnapResult {
 
 /** Max distance (cm) from a wall within which a placement magnetizes to it. */
 export const FURNITURE_SNAP_DISTANCE_CM = 25
+export const FURNITURE_ROTATION_SNAP_ANGLE_DEG = 8
 
 export function closestPointOnSegment(
   p: Point,
@@ -110,4 +111,52 @@ export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnap
   const wallOffset = best.t * len
 
   return { x, y, angleDeg, wallRef, wallOffset }
+}
+
+export function snapFurnitureRotation(input: Omit<FurnitureSnapInput, 'magnetismEnabled'>): FurnitureSnapResult {
+  const { walls, point, widthCm = input.depthCm, depthCm, angleDeg = 0 } = input
+  let best: { wall: WallLike; point: Point; dist: number; side: number } | null = null
+  for (const wall of walls) {
+    const a = { x: wall.xStart, y: wall.yStart }
+    const b = { x: wall.xEnd, y: wall.yEnd }
+    const projected = closestPointOnSegment(point, a, b).point
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const len = Math.hypot(dx, dy) || 1
+    const nx = -dy / len
+    const ny = dx / len
+    const side = (point.x - projected.x) * nx + (point.y - projected.y) * ny >= 0 ? 1 : -1
+    const wallAngle = (Math.atan2(dy, dx) * 180) / Math.PI
+    const relative = ((angleDeg - wallAngle) * Math.PI) / 180
+    const extent = (Math.abs(Math.sin(relative)) * widthCm + Math.abs(Math.cos(relative)) * depthCm) / 2
+    const dist = distance(point, projected) - extent - (wall.thickness ?? 0) / 2
+    if (!best || Math.abs(dist) < Math.abs(best.dist)) best = { wall, point: projected, dist, side }
+  }
+  if (!best || Math.abs(best.dist) > FURNITURE_SNAP_DISTANCE_CM) {
+    return { x: point.x, y: point.y, angleDeg, wallRef: null, wallOffset: null }
+  }
+
+  const a = { x: best.wall.xStart, y: best.wall.yStart }
+  const b = { x: best.wall.xEnd, y: best.wall.yEnd }
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const len = Math.hypot(dx, dy) || 1
+  const nx = -dy / len
+  const ny = dx / len
+  const wallAngle = (Math.atan2(dy, dx) * 180) / Math.PI
+  const alignedAngle = [0, 90, 180, 270]
+    .map((turn) => normalizeAngle180(wallAngle + turn))
+    .sort((a, b) => Math.abs(normalizeAngle180(a - angleDeg)) - Math.abs(normalizeAngle180(b - angleDeg)))[0]!
+  const snapped = Math.abs(normalizeAngle180(alignedAngle - angleDeg)) <= FURNITURE_ROTATION_SNAP_ANGLE_DEG
+  const resultAngle = snapped ? alignedAngle : angleDeg
+  const relative = ((resultAngle - wallAngle) * Math.PI) / 180
+  const extent = (Math.abs(Math.sin(relative)) * widthCm + Math.abs(Math.cos(relative)) * depthCm) / 2
+  const offset = extent + (best.wall.thickness ?? 0) / 2
+  return {
+    x: best.point.x + nx * best.side * offset,
+    y: best.point.y + ny * best.side * offset,
+    angleDeg: resultAngle,
+    wallRef: best.wall.id ?? null,
+    wallOffset: null,
+  }
 }

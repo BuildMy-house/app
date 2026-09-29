@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   snapFurniturePlacement,
+  snapFurnitureRotation,
   closestPointOnSegment,
   FURNITURE_SNAP_DISTANCE_CM,
 } from './furniture-snap'
@@ -92,5 +93,24 @@ describe('snapFurniturePlacement', () => {
     const justOutside = FURNITURE_SNAP_DISTANCE_CM + 1
     const r = snapFurniturePlacement({ walls: [wallH], point: { x: 50, y: justOutside }, depthCm: 10, magnetismEnabled: true })
     expect(r.y).toBeCloseTo(justOutside)
+  })
+})
+
+describe('snapFurnitureRotation', () => {
+  it.each([[1, 0], [91, 90], [181, 180], [271, -90]])('snaps rotation %i° to wall alignment %i°', (angleDeg, expected) => {
+    const r = snapFurnitureRotation({
+      walls: [{ ...wallH, thickness: 10 }],
+      point: { x: 50, y: 15 },
+      widthCm: 40,
+      depthCm: 20,
+      angleDeg,
+    })
+    expect(r.angleDeg).toBe(expected)
+    expect(r.y).toBeCloseTo(expected === 90 || expected === -90 ? 25 : 15)
+  })
+
+  it('does not snap rotation when no wall is close to the furniture edge', () => {
+    const r = snapFurnitureRotation({ walls: [wallH], point: { x: 50, y: 100 }, widthCm: 40, depthCm: 20, angleDeg: 3 })
+    expect(r).toMatchObject({ x: 50, y: 100, angleDeg: 3, wallRef: null })
   })
 })

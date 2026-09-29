@@ -889,17 +889,17 @@ describe('furniture rotation handle', () => {
     expect(hit?.kind).toBe('furniture')
   })
 
-  it('dragging the handle east of center sets angleDeg to 90', () => {
+  it('dragging a quarter turn around the ring sets angleDeg to 90', () => {
     const { drag, store, furniture } = makeFurniture()
     const hp = furnitureRotationHandlePos(furniture)
-    drag(hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, hp.y, furniture.x + 100, furniture.y)
+    drag(hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, hp.y, furniture.x, furniture.y + 100)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(90)
   })
 
-  it('dragging the handle south of center sets angleDeg to 0', () => {
+  it('dragging back to the start angle leaves angleDeg at 0', () => {
     const { drag, store, furniture } = makeFurniture()
     const hp = furnitureRotationHandlePos(furniture)
-    drag(hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, hp.y, furniture.x, furniture.y - 100)
+    drag(hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, hp.y, furniture.x + 100, furniture.y)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(0)
   })
 
@@ -907,7 +907,7 @@ describe('furniture rotation handle', () => {
     const { drag, store, furniture } = makeFurniture()
     const originalAngle = store.getHome().furniture[0]!.angleDeg
     const hp = furnitureRotationHandlePos(furniture)
-    drag(hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, hp.y, furniture.x + 100, furniture.y)
+    drag(hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, hp.y, furniture.x, furniture.y + 100)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(90)
     expect(store.undo()).toBe(true)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(originalAngle)

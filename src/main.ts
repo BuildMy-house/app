@@ -900,6 +900,7 @@ interface PointerState {
   moved: boolean
   shift: boolean
   button: number
+  rotationId: string | null
 }
 
 const pointer: PointerState = {
@@ -911,6 +912,7 @@ const pointer: PointerState = {
   moved: false,
   shift: false,
   button: 0,
+  rotationId: null,
 }
 
 function eventModelPoint(event: PointerEvent | MouseEvent): { x: number; y: number } {
@@ -965,6 +967,10 @@ canvas.addEventListener('pointerdown', (event) => {
   pointer.startY = point.y
   pointer.lastX = point.x
   pointer.lastY = point.y
+  const hit = engine.hitTestPoint(point)
+  if (hit?.kind === 'furniture-rotate' && engine.beginFurnitureRotation(hit.id, point)) {
+    pointer.rotationId = hit.id
+  }
 })
 
 canvas.addEventListener('pointermove', (event) => {
@@ -1009,6 +1015,10 @@ canvas.addEventListener('pointermove', (event) => {
   if (dxPx > 2 || dyPx > 2) pointer.moved = true
   pointer.lastX = point.x
   pointer.lastY = point.y
+  if (pointer.rotationId) {
+    if (pointer.moved) engine.rotateFurnitureTo(pointer.rotationId, point)
+    return
+  }
 })
 
 canvas.addEventListener('pointerup', (event) => {
@@ -1019,6 +1029,15 @@ canvas.addEventListener('pointerup', (event) => {
   if (!pointer.down) return
   pointer.down = false
   const point = eventModelPoint(event)
+
+  if (pointer.rotationId) {
+    if (pointer.moved) engine.rotateFurnitureTo(pointer.rotationId, point)
+    engine.endFurnitureRotation()
+    pointer.rotationId = null
+    refreshToolbar()
+    refreshStatus()
+    return
+  }
 
   // Catalog place mode: a plain click commits the armed piece at the point,
   // snapped to the nearest wall when magnetism is on.
@@ -1070,6 +1089,13 @@ canvas.addEventListener('pointerup', (event) => {
   }
   refreshToolbar()
   refreshStatus()
+})
+
+canvas.addEventListener('pointercancel', () => {
+  if (!pointer.rotationId) return
+  engine.endFurnitureRotation()
+  pointer.rotationId = null
+  pointer.down = false
 })
 
 canvas.addEventListener('dblclick', (event) => {
