@@ -62,4 +62,33 @@ describe('convertPhongToStandard', () => {
     expect(standard.opacity).toBe(0.7)
     expect(standard.side).toBe(THREE.DoubleSide)
   })
+
+  it('classifies transparent glass with weak Ns as glossy', () => {
+    // Window glass MTL: d 0.5 (MTLLoader -> opacity 0.5), author left Ns low.
+    const phong = new THREE.MeshPhongMaterial({ transparent: true, opacity: 0.5, shininess: 10 })
+    const standard = convertPhongToStandard(phong)
+    expect(standard.roughness).toBeLessThanOrEqual(0.3)
+  })
+
+  it('clamps roughness into the glossy band when raw MTL illum marks glass', () => {
+    // illum 4 = "transparency: glass on" per the MTL spec; MTLLoader does not
+    // surface illum, so it arrives via the raw materialsInfo entry.
+    const phong = new THREE.MeshPhongMaterial({ shininess: 10 })
+    const info = { illum: '4', d: '1' } as unknown as Parameters<typeof convertPhongToStandard>[1]
+    const standard = convertPhongToStandard(phong, info)
+    expect(standard.roughness).toBeLessThanOrEqual(0.3)
+  })
+
+  it('keeps the Ns-derived roughness when opacity is only near-opaque and illum is absent', () => {
+    const phong = new THREE.MeshPhongMaterial({ shininess: 10, opacity: 0.97 })
+    const standard = convertPhongToStandard(phong)
+    expect(standard.roughness).toBeCloseTo(0.99, 5)
+  })
+
+  it('keeps the Ns-derived roughness for illum 0-2 (no reflection/transparency model)', () => {
+    const phong = new THREE.MeshPhongMaterial({ shininess: 10 })
+    const info = { illum: '2' } as unknown as Parameters<typeof convertPhongToStandard>[1]
+    const standard = convertPhongToStandard(phong, info)
+    expect(standard.roughness).toBeCloseTo(0.99, 5)
+  })
 })

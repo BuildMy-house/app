@@ -43,6 +43,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 /** Not a named export of the three types — derive it from MTLLoader.parse. */
 type MaterialCreator = ReturnType<MTLLoader['parse']>
+type MtlMaterialInfo = MaterialCreator['materialsInfo'][string]
 
 const DEFAULT_SCRATCH_ROOT = join(ROOT, '.sh3d-scratch')
 const CATALOG_PATH = join(ROOT, 'assets', 'catalog', 'catalog.json')
@@ -428,6 +429,10 @@ function textureMapsOf(material: THREE.Material): THREE.Texture[] {
  *   roughness = clamp(1 - min(shininess / 1000, 1), 0.05, 1)
  *     MTL Ns (shininess) mapped to PBR roughness; the 0.05 floor avoids
  *     PBR renderer artifacts at roughness exactly 0.
+ *     Glass/reflective materials (opacity < 0.95 from MTL d/Tr, or raw illum
+ *     3-9: reflection/raytrace/glass models) are optically smooth regardless
+ *     of what Ns the author set, so their roughness is clamped to 0.25 —
+ *     at/below the glossy classification threshold (<= 0.3).
  *
  *   metalness = specularStrength x tintMatch x tintChroma   (continuous 0..1)
  *     Rec.709 luminance L = 0.2126r + 0.7152g + 0.0722b.
@@ -442,7 +447,15 @@ function textureMapsOf(material: THREE.Material): THREE.Texture[] {
  *
  * Base color, map and other shared properties carry over unchanged.
  */
-export function convertPhongToStandard(material: THREE.MeshPhongMaterial): THREE.MeshStandardMaterial {
+/** Roughness ceiling keeping glass/reflective surfaces inside the glossy band (<= 0.3). */
+const GLASS_ROUGHNESS = 0.25
+/** Opacity below this reads as real transparency (MTL d < 1 / Tr > 0), not rounding noise. */
+const TRANSPARENT_OPACITY_MAX = 0.95
+
+export function convertPhongToStandard(
+  material: THREE.MeshPhongMaterial,
+  materialInfo?: MtlMaterialInfo,
+): THREE.MeshStandardMaterial {
   const standard = new THREE.MeshStandardMaterial()
   standard.name = material.name
   standard.color.copy(material.color)
@@ -455,9 +468,26 @@ export function convertPhongToStandard(material: THREE.MeshPhongMaterial): THREE
   standard.side = material.side
   standard.vertexColors = material.vertexColors
   standard.flatShading = material.flatShading
-  standard.roughness = Math.min(1, Math.max(0.05, 1 - Math.min(material.shininess / 1000, 1)))
+  standard.roughness = roughnessFromPhong(material.shininess, material.opacity, materialInfo)
   standard.metalness = metalnessFromPhong(material.specular, material.color)
   return standard
+}
+
+/**
+ * Ns -> roughness, with a glossy override for glass/reflective sources:
+ * MTLLoader already surfaces low dissolve (d/Tr) as opacity < 1, and raw MTL
+ * illum 3-9 marks reflection/raytrace/glass models. Glass is optically smooth
+ * regardless of what Ns the author set, so clamp it into the glossy band
+ * instead of trusting a weak/absent Ns.
+ */
+function roughnessFromPhong(shininess: number, opacity: number, materialInfo?: MtlMaterialInfo): number {
+  let roughness = Math.min(1, Math.max(0.05, 1 - Math.min(shininess / 1000, 1)))
+  // `illum` is not in MTLLoader's typed MaterialInfo but is present at runtime
+  // (lowercased key, string value).
+  const illum = parseFloat(String((materialInfo as { illum?: unknown } | undefined)?.illum))
+  const reflective = opacity < TRANSPARENT_OPACITY_MAX || (illum >= 3 && illum <= 9)
+  if (reflective) roughness = Math.min(roughness, GLASS_ROUGHNESS)
+  return roughness
 }
 
 const rec709Luminance = (c: THREE.Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
@@ -964,9 +994,11 @@ export class AssetIngestionService {
   private convertToGroup(item: LibraryItem): { group: THREE.Group; transformCheck: TransformCheck } {
     const objText = readFileSync(item.objPath, 'utf8')
     const objLoader = new OBJLoader()
+    let materialsInfo: MaterialCreator['materialsInfo'] = {}
     if (item.mtlPath) {
       const materialCreator: MaterialCreator = new MTLLoader().parse(sanitizeMtlText(item.mtlPath), dirname(item.mtlPath) + '/')
       materialCreator.preload()
+      materialsInfo = materialCreator.materialsInfo
       objLoader.setMaterials(materialCreator)
     }
     const group = objLoader.parse(objText)
@@ -989,9 +1021,9 @@ export class AssetIngestionService {
         const mesh = child as THREE.Mesh
         if (!mesh.isMesh) return
         if (Array.isArray(mesh.material)) {
-          mesh.material = mesh.material.map((mat) => (mat instanceof THREE.MeshPhongMaterial ? convertPhongToStandard(mat) : mat))
+          mesh.material = mesh.material.map((mat) => (mat instanceof THREE.MeshPhongMaterial ? convertPhongToStandard(mat, materialsInfo[mat.name]) : mat))
         } else if (mesh.material instanceof THREE.MeshPhongMaterial) {
-          mesh.material = convertPhongToStandard(mesh.material)
+          mesh.material = convertPhongToStandard(mesh.material, materialsInfo[mesh.material.name])
         }
       })
     }
