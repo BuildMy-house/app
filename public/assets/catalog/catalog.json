@@ -20,7 +20,14 @@
       "pbrClassification": [
         {
           "tags": [
-            "matte"
+            "glossy"
+          ],
+          "hasBaseColorTexture": false,
+          "hasMetallicRoughnessTexture": false
+        },
+        {
+          "tags": [
+            "glossy"
           ],
           "hasBaseColorTexture": false,
           "hasMetallicRoughnessTexture": false
@@ -29,13 +36,6 @@
           "tags": [
             "matte"
           ],
-          "hasBaseColorTexture": false,
-          "hasMetallicRoughnessTexture": false
-        },
-        {
-          "tags": [
-            "matte"
-          ],
           "hasBaseColorTexture": true,
           "hasMetallicRoughnessTexture": false
         },
@@ -86,27 +86,6 @@
             "matte"
           ],
           "hasBaseColorTexture": true,
-          "hasMetallicRoughnessTexture": false
-        },
-        {
-          "tags": [
-            "matte"
-          ],
-          "hasBaseColorTexture": false,
-          "hasMetallicRoughnessTexture": false
-        },
-        {
-          "tags": [
-            "matte"
-          ],
-          "hasBaseColorTexture": false,
-          "hasMetallicRoughnessTexture": false
-        },
-        {
-          "tags": [
-            "matte"
-          ],
-          "hasBaseColorTexture": false,
           "hasMetallicRoughnessTexture": false
         },
         {
@@ -162,7 +141,21 @@
           "tags": [
             "matte"
           ],
-          "hasBaseColorTexture": true,
+          "hasBaseColorTexture": false,
+          "hasMetallicRoughnessTexture": false
+        },
+        {
+          "tags": [
+            "matte"
+          ],
+          "hasBaseColorTexture": false,
+          "hasMetallicRoughnessTexture": false
+        },
+        {
+          "tags": [
+            "matte"
+          ],
+          "hasBaseColorTexture": false,
           "hasMetallicRoughnessTexture": false
         },
         {
@@ -189,6 +182,13 @@
         {
           "tags": [
             "matte"
+          ],
+          "hasBaseColorTexture": true,
+          "hasMetallicRoughnessTexture": false
+        },
+        {
+          "tags": [
+            "glossy"
           ],
           "hasBaseColorTexture": false,
           "hasMetallicRoughnessTexture": false
@@ -5034,7 +5034,7 @@
         },
         {
           "tags": [
-            "matte"
+            "glossy"
           ],
           "hasBaseColorTexture": false,
           "hasMetallicRoughnessTexture": false
@@ -5132,7 +5132,7 @@
         },
         {
           "tags": [
-            "matte"
+            "glossy"
           ],
           "hasBaseColorTexture": false,
           "hasMetallicRoughnessTexture": false
@@ -5522,7 +5522,7 @@
         },
         {
           "tags": [
-            "matte"
+            "glossy"
           ],
           "hasBaseColorTexture": false,
           "hasMetallicRoughnessTexture": false
