@@ -49,4 +49,14 @@ test('plan furniture rotates continuously during drag and stays undoable as one 
   const revertedAngle = await page.evaluate((furnitureId) =>
     (window as any).__model.getStore().getHome().furniture.find((f: any) => f.id === furnitureId).angleDeg, id)
   expect(revertedAngle).toBe(0)
+
+  await page.mouse.move(cx, cy)
+  await page.mouse.down()
+  await page.mouse.move(cx + 35, cy + 25, { steps: 5 })
+  const movingPosition = await page.evaluate((furnitureId) => {
+    const f = (window as any).__model.getStore().getHome().furniture.find((item: any) => item.id === furnitureId)
+    return { x: f.x, y: f.y }
+  }, id)
+  expect(movingPosition.x).toBeGreaterThan(center.x)
+  await page.mouse.up()
 })

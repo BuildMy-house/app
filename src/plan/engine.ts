@@ -1,7 +1,7 @@
 import type { HomeModel } from '../core/model'
 import { ModelError, NEW_WALL_PATTERN_ID, NEW_WALL_THICKNESS_CM } from '../core/model'
 import { DEFAULT_WALL_HEIGHT_CM, getDefaultFloorColor, getDefaultCeilingVisibility } from '../core/home'
-import type { NormalizedHomeState } from '../core/home'
+import type { Furniture, NormalizedHomeState, Wall } from '../core/home'
 import { normalizeAngle } from '../core/export'
 import type { WallLoop } from '../core/wall-loop-detector'
 import { detectClosedLoops, wallCenterlinePoints } from '../core/wall-loop-detector'
@@ -195,6 +195,7 @@ export class PlanEngine {
   private vertexDrag: { wallId: string; endpoint: 'start' | 'end'; startX: number; startY: number; connectedWalls: Array<{ wallId: string; endpoint: 'start' | 'end' }> } | null = null
   private roomVertexDrag: { roomId: string; vertexIndex: number; startX: number; startY: number } | null = null
   private furnitureRotateDrag: { id: string; angleDeg: number; pointerAngleDeg: number; x: number; y: number } | null = null
+  private furnitureMoveDrag: { id: string; start: Point; furniture: Furniture; walls: Wall[] } | null = null
   private wallArcDrag: { id: string } | null = null
   private activeLevelId: string | null = null
   /** T12: rooms whose boundary loop dissolved (wall deleted/moved apart).
@@ -599,6 +600,42 @@ export class PlanEngine {
   endFurnitureRotation(): void {
     if (!this.furnitureRotateDrag) return
     this.furnitureRotateDrag = null
+    this.model.getStore().endCompoundEdit()
+  }
+
+  beginFurnitureMove(id: string, point: Point): boolean {
+    const home = this.homeSnapshot()
+    const furniture = home.furniture.find((item) => item.id === id)
+    if (!furniture || this.furnitureMoveDrag) return false
+    if (!home.selection.includes(id)) this.model.setSelection([id])
+    this.furnitureMoveDrag = { id, start: point, furniture, walls: home.walls }
+    this.model.getStore().beginCompoundEdit()
+    return true
+  }
+
+  moveFurnitureTo(point: Point): void {
+    const drag = this.furnitureMoveDrag
+    if (!drag) return
+    let target = { x: drag.furniture.x + point.x - drag.start.x, y: drag.furniture.y + point.y - drag.start.y }
+    if (this.gridSnapEnabled) target = this.snapToGrid(target.x, target.y)
+    const snap = snapFurniturePlacement({
+      walls: drag.walls, point: target, widthCm: drag.furniture.width, depthCm: drag.furniture.depth,
+      angleDeg: drag.furniture.angleDeg, magnetismEnabled: this.magnetismEnabled,
+    })
+    this.model.updateFurniture(drag.id, {
+      x: snap.x,
+      y: snap.y,
+      ...(snap.wallRef ? {
+        wallRef: snap.wallRef,
+        wallOffset: snap.wallOffset,
+        angleDeg: normalizeAngle(snap.angleDeg),
+      } : {}),
+    })
+  }
+
+  endFurnitureMove(): void {
+    if (!this.furnitureMoveDrag) return
+    this.furnitureMoveDrag = null
     this.model.getStore().endCompoundEdit()
   }
 

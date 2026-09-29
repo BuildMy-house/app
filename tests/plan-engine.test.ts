@@ -932,6 +932,19 @@ describe('furniture rotation handle', () => {
     expect(store.undo()).toBe(true)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(originalAngle)
   })
+
+  it('moves furniture on each drag update and keeps the move in one undo step', () => {
+    const { engine, store, furniture } = makeFurniture()
+    expect(engine.beginFurnitureMove(furniture.id, { x: 100, y: 200 })).toBe(true)
+    engine.moveFurnitureTo({ x: 110, y: 205 })
+    engine.moveFurnitureTo({ x: 130, y: 220 })
+    expect(store.peek().furniture[0]!.x).toBe(130)
+    expect(store.peek().furniture[0]!.y).toBe(220)
+    engine.endFurnitureMove()
+    expect(store.undo()).toBe(true)
+    expect(store.peek().furniture[0]!.x).toBe(100)
+    expect(store.peek().furniture[0]!.y).toBe(200)
+  })
 })
 
 describe('wall round-wall (arc) handle', () => {
