@@ -592,11 +592,16 @@ export function drawPlan(
       ctx.lineTo(mapper.sx(outline[i]![0]), mapper.sy(outline[i]![1]))
     }
     ctx.closePath()
-    ctx.fillStyle = selected.has(wall.id)
-      ? SELECTION_COLOR
-      : patternOrNull(ctx, getEffectiveWallSideTextureId(wall, 'left', home.rooms, home.preferences)) ??
-        cssColor(wall.leftSideColor, WALL_COLOR)
+    const wallColor = cssColor(wall.leftSideColor, WALL_COLOR)
+    const wallTexture = selected.has(wall.id)
+      ? null
+      : patternOrNull(ctx, getEffectiveWallSideTextureId(wall, 'left', home.rooms, home.preferences))
+    ctx.fillStyle = selected.has(wall.id) ? SELECTION_COLOR : wallColor
     ctx.fill()
+    if (wallTexture) {
+      ctx.fillStyle = wallTexture
+      ctx.fill()
+    }
 
     // Punch door/window openings through the wall fill.
     const openings = wallOpenings(wall, home.furniture)
