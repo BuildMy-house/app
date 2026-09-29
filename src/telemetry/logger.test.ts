@@ -27,6 +27,8 @@ const METRICS = {
   frameTimeP95Ms: 19.6,
   renderCpuMs: 4.8,
   renderCpuP95Ms: 7.2,
+  sceneUpdateMs: 9.3,
+  sceneUpdatePath: 'delta' as const,
   pixelRatio: 1,
   qualityPreset: 'medium',
   ao: 'none' as const,
@@ -58,6 +60,8 @@ describe('telemetry.renderingMetrics', () => {
       textureMemoryMB: 64,
       fps: 58.5,
       renderCpuMs: 4.8,
+      sceneUpdateMs: 9.3,
+      sceneUpdatePath: 'delta',
       pixelRatio: 1,
       renderer: 'Test GPU',
       os: 'linux',
@@ -72,6 +76,58 @@ describe('telemetry.renderingMetrics', () => {
     const { telemetry } = await import('./logger')
 
     telemetry.renderingMetrics(METRICS)
+
+    expect(enqueue).not.toHaveBeenCalled()
+  })
+})
+
+describe('telemetry.sceneDeltaMetrics', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    enqueue.mockClear()
+    vi.unstubAllEnvs()
+    vi.stubEnv('DATABASE_URL', undefined)
+  })
+
+  it('emits perf.scene_delta_metrics as tier 1 with reason breakdown passthrough', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token')
+    const { telemetry } = await import('./logger')
+
+    telemetry.sceneDeltaMetrics({
+      deltaUpdatesCount: 6,
+      fullRebuildsCount: 2,
+      avgDeltaDurationMs: 1.5,
+      avgRebuildDurationMs: 44.2,
+      deltaRatio: 0.75,
+      windowDurationMs: 60_000,
+      deltaCountByType: { 'wall-add': 5, 'furniture-update': 1 },
+      rebuildCountByReason: { initial: 1, 'roof change detected': 1 },
+    })
+
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
+      event: 'perf.scene_delta_metrics',
+      tier: 1,
+      fullRebuildsCount: 2,
+      rebuildCountByReason: { initial: 1, 'roof change detected': 1 },
+      deltaCountByType: { 'wall-add': 5, 'furniture-update': 1 },
+    }))
+  })
+
+  it('is a no-op when telemetry disabled', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', '')
+    const { telemetry } = await import('./logger')
+
+    telemetry.sceneDeltaMetrics({
+      deltaUpdatesCount: 0,
+      fullRebuildsCount: 0,
+      avgDeltaDurationMs: 0,
+      avgRebuildDurationMs: 0,
+      deltaRatio: 0,
+      windowDurationMs: 60_000,
+      deltaCountByType: {},
+      rebuildCountByReason: {},
+    })
 
     expect(enqueue).not.toHaveBeenCalled()
   })

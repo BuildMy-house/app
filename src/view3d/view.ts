@@ -138,6 +138,10 @@ export class View3D {
   private readonly _onFurnitureModelReady?: () => void
   private _lastHome: NormalizedHomeState | null = null
   private _lastDeltaMs = 0
+  // Scene-graph update phase timings, surfaced via collectRenderingMetrics().
+  // Rebuild and delta batches are mutually exclusive per store change.
+  private _lastSceneUpdateMs = 0
+  private _lastSceneUpdatePath: RenderingMetrics['sceneUpdatePath'] = 'none'
   private _activeLevel: string | null = null
   private _isOutsideView = false
   private _showRoof = true
@@ -182,7 +186,7 @@ export class View3D {
     // deliberately does not hook generically. Preference-writing call sites
     // notify this explicit channel instead; there's no incremental delta
     // path for these fields, so a full rebuild is the correct response.
-    this.unobservePreferences = onScenePreferenceChange(() => this.rebuild())
+    this.unobservePreferences = onScenePreferenceChange(() => this.rebuild('scene-preference-change'))
     this.syncCamera()
 
     // Persisted quality when the caller didn't supply one.
@@ -351,7 +355,7 @@ export class View3D {
   setActiveLevel(id: string | null): void {
     if (this._activeLevel === id) return
     this._activeLevel = id
-    this.rebuild()
+    this.rebuild('active-level-change')
   }
 
   get isOutsideView(): boolean {
@@ -366,7 +370,7 @@ export class View3D {
   setOutsideView(value: boolean): void {
     if (this._isOutsideView === value) return
     this._isOutsideView = value
-    this.rebuild()
+    this.rebuild('outside-view-toggle')
   }
 
   get showRoof(): boolean {
@@ -382,7 +386,7 @@ export class View3D {
   setRoofVisible(value: boolean): void {
     if (this._showRoof === value) return
     this._showRoof = value
-    this.rebuild()
+    this.rebuild('roof-visible-toggle')
   }
 
   get lightIntensity(): number {
@@ -398,12 +402,17 @@ export class View3D {
   setLightIntensity(value: number): void {
     if (this._lightIntensity === value) return
     this._lightIntensity = value
-    this.rebuild()
+    this.rebuild('light-intensity-change')
   }
 
   /** Wall-clock ms of the last delta-applied store change (0 after a rebuild). */
   get lastDeltaMs(): number {
     return this._lastDeltaMs
+  }
+
+  /** Outcome of the last scene-graph update (delta batch or full rebuild). */
+  get lastSceneUpdate(): { ms: number; path: RenderingMetrics['sceneUpdatePath'] } {
+    return { ms: this._lastSceneUpdateMs, path: this._lastSceneUpdatePath }
   }
 
   /** Switch which preset the viewport shows ("top" | "observer"). */
@@ -652,8 +661,14 @@ export class View3D {
       })
   }
 
-  /** Rebuild the whole scene graph from current store state. */
-  rebuild(): void {
+  /**
+   * Rebuild the whole scene graph from current store state. `reason` labels
+   * the rebuild in perf.scene_delta_metrics' rebuildCountByReason; all
+   * internal call sites pass one derived from their existing trigger.
+   * Optional only for the two out-of-file callers (main.ts ground-pref patch,
+   * automation capture) — they report as 'external-rebuild'.
+   */
+  rebuild(reason = 'external-rebuild'): void {
     const t0 = performance.now()
     let savedTarget: THREE.Vector3 | undefined
     let savedPosition: THREE.Vector3 | undefined
@@ -691,7 +706,10 @@ export class View3D {
 
     this._isFirstBuild = false
     this.render()
-    recordFullRebuild(performance.now() - t0)
+    const rebuildMs = performance.now() - t0
+    this._lastSceneUpdateMs = rebuildMs
+    this._lastSceneUpdatePath = 'rebuild'
+    recordFullRebuild(rebuildMs, reason)
   }
 
   /**
@@ -738,6 +756,8 @@ export class View3D {
       }
       if (applied) {
         for (const { type, ms } of deltaTimings) recordSceneDelta(type, ms)
+        this._lastSceneUpdateMs = performance.now() - batchStart
+        this._lastSceneUpdatePath = 'delta'
         this.startAnimationLoop()
       }
       this._lastDeltaMs = applied ? performance.now() - batchStart : 0
@@ -745,7 +765,13 @@ export class View3D {
       // is off, so force one shadow pass to pick it up.
       if (applied && this.renderer) this.renderer.shadowMap.needsUpdate = true
     }
-    if (!applied) this.rebuild()
+    if (!applied) {
+      // Reuse computeSceneUpdates' reason verbatim when it demanded the
+      // rebuild; 'delta-apply-failed' when a batch was rejected mid-apply.
+      this.rebuild(
+        updates.find((u) => u.type === 'full-rebuild')?.reason ?? 'delta-apply-failed',
+      )
+    }
 
     this._lastHome = { ...home } // Shallow copy for next frame
 
@@ -1171,33 +1197,42 @@ export class View3D {
     const tick = (): void => {
       this._animationFrame = undefined
       const now = performance.now()
+      // Report timers arm on ANY animation frame — including single-frame
+      // bursts (wall draws, furniture placements). Arming used to sit inside
+      // the `_frameLastTime > 0` guard, i.e. required a 2+-frame burst, but
+      // single-frame bursts reset _frameLastTime to 0 on stop — so edit-only
+      // sessions never armed the 30s/60s report timers at all. Measured
+      // 2026-09-29: 35s after a two-wall edit-only session, zero perf.* events
+      // had fired (matches prod's 2-10 scene_delta_metrics rows over 7 days).
+      if (!this._frameReportTimer) {
+        this._frameReportTimer = setTimeout(() => {
+          telemetry.frameTime(this._frameSamples)
+          if (this._lastMetrics) telemetry.renderingMetrics(this._lastMetrics)
+          this._frameSamples = []
+          this._frameReportTimer = undefined
+        }, 30_000)
+      }
+      if (!this._deltaReportTimer) {
+        this._deltaReportTimer = setTimeout(() => {
+          const metrics = snapshotDeltaMetrics()
+          if (metrics.deltaUpdatesCount + metrics.fullRebuildsCount > 0) {
+            telemetry.sceneDeltaMetrics(metrics)
+          }
+          this._deltaReportTimer = undefined
+        }, 60_000)
+      }
       if (this._frameLastTime > 0) {
         const dt = now - this._frameLastTime
         this._frameSamples.push(dt)
         if (this._frameSamples.length > 100) this._frameSamples.shift()
-        if (!this._frameReportTimer) {
-          this._frameReportTimer = setTimeout(() => {
-            telemetry.frameTime(this._frameSamples)
-            if (this._lastMetrics) telemetry.renderingMetrics(this._lastMetrics)
-            this._frameSamples = []
-            this._frameReportTimer = undefined
-          }, 30_000)
-        }
-        if (!this._deltaReportTimer) {
-          this._deltaReportTimer = setTimeout(() => {
-            const metrics = snapshotDeltaMetrics()
-            if (metrics.deltaUpdatesCount + metrics.fullRebuildsCount > 0) {
-              telemetry.sceneDeltaMetrics(metrics)
-            }
-            this._deltaReportTimer = undefined
-          }, 60_000)
-        }
       }
       this._frameLastTime = now
       const moving = this.controls ? this.controls.update() : false
       this.draw()
       this._metricsFrameCount++
-      if (this._metricsFrameCount >= 5) {
+      // `|| !moving` also collects at burst end so single-frame bursts (edits)
+      // leave a real snapshot for the 30s report instead of staying undefined.
+      if (this._metricsFrameCount >= 5 || !moving) {
         this._metricsFrameCount = 0
         this._lastMetrics = this.collectRenderingMetrics()
       }
@@ -1286,6 +1321,8 @@ export class View3D {
       frameTimeP95Ms: Math.round(p95(frameSamples) * 100) / 100,
       renderCpuMs: Math.round(renderAvg * 100) / 100,
       renderCpuP95Ms: Math.round(p95(renderSamples) * 100) / 100,
+      sceneUpdateMs: Math.round(this._lastSceneUpdateMs * 100) / 100,
+      sceneUpdatePath: this._lastSceneUpdatePath,
       pixelRatio: renderer.getPixelRatio(),
       qualityPreset: this._quality.preset,
       ao: this._quality.ao,

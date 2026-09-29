@@ -8,7 +8,7 @@
  *   telemetry.frameTime([16, 18, 22, 45, 120])
  */
 
-import type { RenderingMetrics, TelemetryEvent, TelemetryTier } from './events'
+import type { RenderingMetrics, SceneDeltaMetrics, TelemetryEvent, TelemetryTier } from './events'
 import { getTelemetryConfig, initTelemetryConfig, setTelemetryTier2 } from './config'
 import { getDeviceContext, getSessionId, getVersion, initContext } from './context'
 import { enqueue, flush, registerUnload } from './transport'
@@ -142,14 +142,7 @@ export const telemetry = {
   },
 
   /** Report scene delta-vs-rebuild ratio for the last 60s window. */
-  sceneDeltaMetrics(metrics: {
-    deltaUpdatesCount: number
-    fullRebuildsCount: number
-    avgDeltaDurationMs: number
-    avgRebuildDurationMs: number
-    deltaRatio: number
-    windowDurationMs: number
-  }): void {
+  sceneDeltaMetrics(metrics: SceneDeltaMetrics): void {
     emit('perf.scene_delta_metrics', 1, { ...metrics })
   },
 

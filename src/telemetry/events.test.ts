@@ -15,6 +15,8 @@ describe('RenderingMetricsEvent', () => {
       frameTimeP95Ms: 19.1,
       renderCpuMs: 4.2,
       renderCpuP95Ms: 8.4,
+      sceneUpdateMs: 12.5,
+      sceneUpdatePath: 'delta',
       pixelRatio: 0.75,
       qualityPreset: 'medium',
       ao: 'none',
@@ -40,6 +42,8 @@ describe('RenderingMetricsEvent', () => {
     expect(event.textureMemoryMB).toBe(64)
     expect(event.fps).toBe(59.94)
     expect(event.renderCpuMs).toBe(4.2)
+    expect(event.sceneUpdateMs).toBe(12.5)
+    expect(event.sceneUpdatePath).toBe('delta')
     expect(event.pixelRatio).toBe(0.75)
     expect(event.interacting).toBe(true)
 

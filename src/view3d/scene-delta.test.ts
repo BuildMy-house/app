@@ -31,7 +31,7 @@ describe('snapshotDeltaMetrics', () => {
     recordSceneDelta('wall-update', 1)
     recordSceneDelta('room-update', 1)
     recordSceneDelta('furniture-update', 1)
-    recordFullRebuild(1)
+    recordFullRebuild(1, 'initial')
     const m = snapshotDeltaMetrics()
     expect(m.deltaUpdatesCount).toBe(4)
     expect(m.fullRebuildsCount).toBe(1)
@@ -50,8 +50,8 @@ describe('snapshotDeltaMetrics', () => {
   it('averages durations independently per outcome', () => {
     recordSceneDelta('wall-update', 10)
     recordSceneDelta('wall-update', 20)
-    recordFullRebuild(100)
-    recordFullRebuild(200)
+    recordFullRebuild(100, 'roof change detected')
+    recordFullRebuild(200, 'structural change detected')
     const m = snapshotDeltaMetrics()
     expect(m.avgDeltaDurationMs).toBe(15)
     expect(m.avgRebuildDurationMs).toBe(150)
@@ -65,14 +65,35 @@ describe('snapshotDeltaMetrics', () => {
     expect(m.deltaCountByType).toEqual({ 'furniture-update': 2, 'wall-update': 1 })
   })
 
+  it('tracks rebuild counts per verbatim reason label', () => {
+    recordFullRebuild(10, 'initial')
+    recordFullRebuild(10, 'initial')
+    recordFullRebuild(10, 'roof change detected')
+    recordFullRebuild(10, 'structural change detected')
+    const m = snapshotDeltaMetrics()
+    expect(m.fullRebuildsCount).toBe(4)
+    expect(m.rebuildCountByReason).toEqual({
+      initial: 2,
+      'roof change detected': 1,
+      'structural change detected': 1,
+    })
+  })
+
+  it('leaves rebuildCountByReason empty for pure-delta windows', () => {
+    recordSceneDelta('wall-add', 1)
+    const m = snapshotDeltaMetrics()
+    expect(m.rebuildCountByReason).toEqual({})
+  })
+
   it('resets all accumulators after a snapshot', () => {
     recordSceneDelta('furniture-update', 5)
-    recordFullRebuild(50)
+    recordFullRebuild(50, 'initial')
     snapshotDeltaMetrics()
     const m = snapshotDeltaMetrics()
     expect(m.deltaUpdatesCount).toBe(0)
     expect(m.fullRebuildsCount).toBe(0)
     expect(m.deltaCountByType).toEqual({})
+    expect(m.rebuildCountByReason).toEqual({})
   })
 })
 

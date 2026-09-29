@@ -13,6 +13,7 @@
  */
 
 import * as THREE from 'three'
+import type { SceneDeltaMetrics } from '../telemetry/events'
 import type { Wall, Furniture, Room, Roof, NormalizedHomeState } from '../core/home'
 import { getWallSideExterior } from '../core/wall-exterior'
 import {
@@ -752,16 +753,6 @@ function applyFurnitureAdd(
 // telemetry window. view.ts samples snapshotDeltaMetrics() every 60s and
 // reports via telemetry.sceneDeltaMetrics(); sampling resets the window.
 
-export interface SceneDeltaWindowSnapshot {
-  deltaUpdatesCount: number
-  fullRebuildsCount: number
-  avgDeltaDurationMs: number
-  avgRebuildDurationMs: number
-  deltaRatio: number // 0-1, share of applied deltas vs total scene updates
-  windowDurationMs: number
-  deltaCountByType: Record<string, number> // delta counts per operation type
-}
-
 const METRICS_WINDOW_MS = 60_000
 const deltaWindow = {
   deltaCount: 0,
@@ -769,6 +760,7 @@ const deltaWindow = {
   rebuildCount: 0,
   rebuildMs: 0,
   byType: new Map<string, { count: number; ms: number }>(),
+  byReason: new Map<string, number>(),
 }
 
 /** Record one applied delta operation (any type the delta path handled). */
@@ -781,22 +773,26 @@ export function recordSceneDelta(type: SceneUpdateType, durationMs: number): voi
   deltaWindow.byType.set(type, t)
 }
 
-/** Record one full-scene rebuild (delta-path fallback or manual rebuild). */
-export function recordFullRebuild(durationMs: number): void {
+/** Record one full-scene rebuild, labeled with why the delta path was skipped. */
+export function recordFullRebuild(durationMs: number, reason: string): void {
   deltaWindow.rebuildCount++
   deltaWindow.rebuildMs += durationMs
+  deltaWindow.byReason.set(reason, (deltaWindow.byReason.get(reason) ?? 0) + 1)
 }
 
 /** Return the current window's metrics and reset all accumulators. */
-export function snapshotDeltaMetrics(): SceneDeltaWindowSnapshot {
-  const { deltaCount, deltaMs, rebuildCount, rebuildMs, byType } = deltaWindow
+export function snapshotDeltaMetrics(): SceneDeltaMetrics {
+  const { deltaCount, deltaMs, rebuildCount, rebuildMs, byType, byReason } = deltaWindow
   deltaWindow.deltaCount = 0
   deltaWindow.deltaMs = 0
   deltaWindow.rebuildCount = 0
   deltaWindow.rebuildMs = 0
   deltaWindow.byType = new Map()
+  deltaWindow.byReason = new Map()
   const deltaCountByType: Record<string, number> = {}
   for (const [type, t] of byType) deltaCountByType[type] = t.count
+  const rebuildCountByReason: Record<string, number> = {}
+  for (const [reason, count] of byReason) rebuildCountByReason[reason] = count
   const total = deltaCount + rebuildCount
   return {
     deltaUpdatesCount: deltaCount,
@@ -806,5 +802,6 @@ export function snapshotDeltaMetrics(): SceneDeltaWindowSnapshot {
     deltaRatio: total > 0 ? deltaCount / total : 0,
     windowDurationMs: METRICS_WINDOW_MS,
     deltaCountByType,
+    rebuildCountByReason,
   }
 }

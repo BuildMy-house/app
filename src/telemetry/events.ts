@@ -114,6 +114,12 @@ export interface RenderingMetrics {
   frameTimeP95Ms: number
   renderCpuMs: number
   renderCpuP95Ms: number
+  /** Scene-graph update phase: duration of the last full rebuild or delta
+   *  batch (they are mutually exclusive per store change). 0 = none yet. */
+  sceneUpdateMs: number
+  /** Which scene-graph update phase sceneUpdateMs measures. Draw-call CPU
+   *  time is already covered by renderCpuMs/renderCpuP95Ms. */
+  sceneUpdatePath: 'rebuild' | 'delta' | 'none'
   pixelRatio: number
   qualityPreset: string
   ao: 'none' | 'ssao' | 'gtao'
@@ -123,6 +129,26 @@ export interface RenderingMetrics {
 
 export interface RenderingMetricsEvent extends BaseEvent, RenderingMetrics {
   event: 'perf.rendering_metrics'
+  tier: 1
+}
+
+/** Payload for the 60s scene delta-vs-rebuild aggregation window. */
+export interface SceneDeltaMetrics {
+  deltaUpdatesCount: number
+  fullRebuildsCount: number
+  avgDeltaDurationMs: number
+  avgRebuildDurationMs: number
+  /** 0-1, share of applied deltas vs total scene updates. */
+  deltaRatio: number
+  windowDurationMs: number
+  /** Delta counts per operation type. */
+  deltaCountByType: Record<string, number>
+  /** Full-rebuild counts per reason label (why the delta path was skipped). */
+  rebuildCountByReason: Record<string, number>
+}
+
+export interface SceneDeltaMetricsEvent extends BaseEvent, SceneDeltaMetrics {
+  event: 'perf.scene_delta_metrics'
   tier: 1
 }
 
@@ -166,6 +192,7 @@ export type TelemetryEvent =
   | AppLifecycleEvent
   | AutomationEvent
   | RenderingMetricsEvent
+  | SceneDeltaMetricsEvent
   | ToolUsageEvent
   | FeatureUsageEvent
   | UserActionMetricsEvent
