@@ -30,7 +30,7 @@ import { saveDraft, loadDraft } from './services/adapters/local-draft'
 import { ProfileWidget } from './ui/profile-widget'
 
 import { View3D, type CameraPresetName } from './view3d'
-import { configureGltfLoader } from './view3d/scene'
+import { configureGltfLoader, getFurnitureMaterialSlots } from './view3d/scene'
 import { HDRI_PRESETS } from './view3d/hdri-environment'
 import { PropertiesPanel } from './ui/properties-panel'
 
@@ -1029,6 +1029,7 @@ canvas.addEventListener('pointerup', (event) => {
       ? snapFurniturePlacement({
           walls: store.getHome().walls,
           point: raw,
+          widthCm: item.width,
           depthCm: item.depth,
           magnetismEnabled: engine.isMagnetismEnabled(),
         })
@@ -1257,7 +1258,7 @@ window.addEventListener('keydown', (event) => {
   else if (event.key === 'ArrowDown') key = 'arrow-down'
   else if (event.key === 'ArrowLeft') key = 'arrow-left'
   else if (event.key === 'ArrowRight') key = 'arrow-right'
-  else if (event.key === ']') { propsPanel.toggle(); return }
+  else if (event.key === ']') { propsPanel?.toggle(); return }
   if (key === null) return
   event.preventDefault()
   engine.key(key, event.shiftKey)
@@ -1453,9 +1454,18 @@ window.addEventListener('beforeunload', () => {
 })
 
 // 3D view — creates its own renderer inside #view3d
+// propsPanel is created after view3d (it needs a live View3D reference for
+// the material-slot picker), so onFurnitureModelReady closes over this
+// forward-declared binding rather than reordering the two constructions.
+let propsPanel: PropertiesPanel | null = null
 view3d = new View3D(store, {
   container: root.querySelector<HTMLDivElement>('#view3d')!,
   modelUrlResolver,
+  // Ticket 4: per-slot material picker options come from the live scene
+  // graph, which is empty until an async GLB finishes loading — refresh the
+  // panel once it does so a freshly-selected item's picker doesn't stay
+  // stuck empty.
+  onFurnitureModelReady: () => propsPanel?.refresh(),
   // Placement in the 3D view: when a catalog piece is armed, a click on the
   // floor places it (snapped to walls), mirroring the 2D plan flow.
   isPlacing: () => catalogPanel?.isArmed() ?? false,
@@ -1467,6 +1477,7 @@ view3d = new View3D(store, {
     const snap = snapFurniturePlacement({
       walls: store.getHome().walls,
       point: raw,
+      widthCm: item.width,
       depthCm: item.depth,
       magnetismEnabled: engine.isMagnetismEnabled(),
     })
@@ -1488,7 +1499,12 @@ view3d = new View3D(store, {
 
 // Properties panel — right sidebar
 const mainArea = root.querySelector<HTMLDivElement>('#main-area')!
-const propsPanel = new PropertiesPanel(store, mainArea, () => setSidebarTab('properties'))
+propsPanel = new PropertiesPanel(
+  store,
+  mainArea,
+  () => setSidebarTab('properties'),
+  (item) => (view3d ? getFurnitureMaterialSlots(view3d.scene, item.id) : []),
+)
 if (window.matchMedia('(max-width: 799px)').matches) setMobileTab('plan')
 
 // Pending snap wall-ref data set before catalogPanel.place() and consumed in
@@ -1552,7 +1568,7 @@ const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
     },
   })
   catalogHost.appendChild(catalogPanel.element)
-  catalogHost.appendChild(propsPanel.element)
+  catalogHost.appendChild(propsPanel!.element)
   catalogHost.insertAdjacentHTML('afterbegin', `
     <div class="sidebar-tabs" role="tablist" aria-label="Furniture sidebar">
       <button type="button" role="tab" aria-selected="true" data-sidebar-tab="furniture">Furniture</button>

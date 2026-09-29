@@ -66,6 +66,15 @@ export interface View3DOptions {
   isPlacing?: () => boolean
   /** Called with the model-space floor point of a placement click. */
   onFloorClick?: (point: { x: number; y: number }) => void
+  /**
+   * Called every time an async (cache-miss) furniture GLB finishes loading.
+   * The properties panel's per-slot material-override picker (Ticket 4)
+   * needs this: its material-slot list comes from the live scene graph
+   * (getFurnitureMaterialSlots), which is empty until the model has
+   * actually loaded, so a caller subscribing here can re-render once real
+   * slot names exist instead of only reacting to home-store changes.
+   */
+  onFurnitureModelReady?: () => void
 }
 
 /**
@@ -126,6 +135,7 @@ export class View3D {
   } | null = null
   private readonly isPlacing?: () => boolean
   private readonly onFloorClick?: (point: { x: number; y: number }) => void
+  private readonly _onFurnitureModelReady?: () => void
   private _lastHome: NormalizedHomeState | null = null
   private _lastDeltaMs = 0
   private _activeLevel: string | null = null
@@ -150,9 +160,13 @@ export class View3D {
     this.modelUrlResolver = options.modelUrlResolver ?? defaultModelUrlResolver
     this.isPlacing = options.isPlacing
     this.onFloorClick = options.onFloorClick
+    this._onFurnitureModelReady = options.onFurnitureModelReady
     this._scene = buildScene(store.getHome(), {
       modelUrlResolver: this.modelUrlResolver,
-      onModelReady: () => this.startAnimationLoop(),
+      onModelReady: () => {
+        this.startAnimationLoop()
+        this._onFurnitureModelReady?.()
+      },
       onTextureReady: () => this.startAnimationLoop(),
       activeLevel: this._activeLevel,
       isOutsideView: this._isOutsideView,
@@ -653,7 +667,10 @@ export class View3D {
     this.disposeSceneObjects(this._scene)
     this._scene = buildScene(this.store.getHome(), {
       modelUrlResolver: this.modelUrlResolver,
-      onModelReady: () => this.startAnimationLoop(),
+      onModelReady: () => {
+        this.startAnimationLoop()
+        this._onFurnitureModelReady?.()
+      },
       onTextureReady: () => this.startAnimationLoop(),
       activeLevel: this._activeLevel,
       isOutsideView: this._isOutsideView,
@@ -705,7 +722,10 @@ export class View3D {
         const t0 = performance.now()
         const ok = applySceneUpdate(this._scene, update, home, this._lastHome, {
           modelUrlResolver: this.modelUrlResolver,
-          onModelReady: () => this.startAnimationLoop(),
+          onModelReady: () => {
+            this.startAnimationLoop()
+            this._onFurnitureModelReady?.()
+          },
           onTextureReady: () => this.startAnimationLoop(),
           activeLevel: this._activeLevel,
           isOutsideView: this._isOutsideView,

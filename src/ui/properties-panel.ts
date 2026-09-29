@@ -122,14 +122,23 @@ function roomPerimeter(room: Room): number {
 export class PropertiesPanel {
   private readonly root: HTMLDivElement
   private readonly model: HomeModel
+  private readonly store: HomeStore
   private readonly unobserve: () => void
   private readonly onSelection: () => void
+  private readonly getFurnitureMaterialSlots: (item: Furniture) => string[]
   private previousSelection: string | null = null
   private visible = true
 
-  constructor(store: HomeStore, parent: HTMLElement, onSelection: () => void = () => {}) {
+  constructor(
+    store: HomeStore,
+    parent: HTMLElement,
+    onSelection: () => void = () => {},
+    getFurnitureMaterialSlots: (item: Furniture) => string[] = () => [],
+  ) {
     this.model = new HomeModel(store)
+    this.store = store
     this.onSelection = onSelection
+    this.getFurnitureMaterialSlots = getFurnitureMaterialSlots
     this.root = document.createElement('div')
     this.root.id = 'properties-panel'
     this.root.className = 'properties-panel'
@@ -140,6 +149,18 @@ export class PropertiesPanel {
 
   get element(): HTMLDivElement {
     return this.root
+  }
+
+  /**
+   * Re-render the current selection's fields without waiting for a
+   * home-store change. Needed for the furniture per-slot material picker
+   * (Ticket 4): its options come from getFurnitureMaterialSlots(), which
+   * reads the live 3D scene graph and is empty until an async GLB finishes
+   * loading — a store-only observer would leave a first-time picker stuck
+   * empty even after the model becomes available a moment later.
+   */
+  refresh(): void {
+    this.render(this.store)
   }
 
   toggle(): void {
@@ -604,6 +625,39 @@ export class PropertiesPanel {
       commit({ textureId: textureSelect.value || null }),
     )
     body.appendChild(fieldRow('Texture', textureSelect))
+
+    // Per-slot material overrides (Ticket 4): only meaningful for
+    // GLB-backed furniture with more than one named material slot in the
+    // actually-loaded model — single-material and box-fallback furniture
+    // fall through unaffected, same as before this feature existed.
+    const materialSlots = this.getFurnitureMaterialSlots(f)
+    if (materialSlots.length > 1) {
+      const overridesGroup = this.group('Material overrides')
+      for (const slotName of materialSlots) {
+        const slotSelect = document.createElement('select')
+        slotSelect.className = 'prop-input'
+        const none = document.createElement('option')
+        none.value = ''
+        none.textContent = '— model default —'
+        slotSelect.appendChild(none)
+        const current = f.materialOverrides?.[slotName]
+        for (const t of WALL_TEXTURES) {
+          const opt = document.createElement('option')
+          opt.value = t.id
+          opt.textContent = t.label
+          if (current === t.id) opt.selected = true
+          slotSelect.appendChild(opt)
+        }
+        slotSelect.addEventListener('change', () => {
+          const nextOverrides = { ...(f.materialOverrides ?? {}) }
+          if (slotSelect.value) nextOverrides[slotName] = slotSelect.value
+          else delete nextOverrides[slotName]
+          commit({ materialOverrides: nextOverrides })
+        })
+        overridesGroup.appendChild(fieldRow(slotName, slotSelect))
+      }
+      body.appendChild(overridesGroup)
+    }
 
     // Elevation
     const elevInput = numInput(num(f.elevation), { step: 0.01 })

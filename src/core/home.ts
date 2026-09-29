@@ -252,6 +252,17 @@ export interface Furniture {
   renderModelPath?: string | null
   levelRef?: string | null
   modelMirrored?: boolean
+  /**
+   * Per-slot texture overrides for GLB-backed furniture, keyed by the glTF
+   * material name (confirmed to survive the OBJ->glTF asset-ingestion export
+   * reliably and meaningfully across the real catalog, so no index-based
+   * fallback key is needed). A key's value is a WALL_TEXTURES texture id to
+   * apply to just that material slot, or null to explicitly clear an
+   * override back to the model's baked-in material. Absent/undefined =>
+   * every slot renders with its original imported material (backward
+   * compat). Has no effect on box-fallback furniture (no modelPath).
+   */
+  materialOverrides?: Record<string, string | null>
 }
 
 export interface DimensionLine {

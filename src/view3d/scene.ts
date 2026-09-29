@@ -980,6 +980,62 @@ function fitModelToBox(model: THREE.Object3D, item: Furniture): THREE.Object3D {
  * caller can trigger a re-render — without it the swapped-in model would sit
  * un-drawn until the next camera move / store change.
  */
+/**
+ * Apply a per-slot Furniture.materialOverrides entry (Ticket 4) to one
+ * cloned model material, keyed by the glTF material name that survives the
+ * OBJ->glTF asset-ingestion export. Only MeshStandardMaterial can carry the
+ * catalog's diffuse+PBR map pipeline (applyMaterialTextures' signature), so
+ * non-standard imported materials (rare — GLTFLoader emits
+ * MeshStandardMaterial for glTF's pbrMetallicRoughness by default) are left
+ * untouched rather than silently replaced with a different material class.
+ * A `null` override value explicitly clears back to the model's own baked
+ * diffuse map/color instead of leaving a stale override applied.
+ */
+function applyMaterialOverride(
+  material: THREE.Material,
+  item: Furniture,
+  geometry: THREE.BufferGeometry,
+): void {
+  const overrides = item.materialOverrides
+  if (!overrides || !material.name) return
+  if (!Object.prototype.hasOwnProperty.call(overrides, material.name)) return
+  const textureId = overrides[material.name]
+  const std = material as THREE.MeshStandardMaterial
+  if (!std.isMeshStandardMaterial) return
+  if (textureId === null || textureId === undefined) {
+    std.map = null
+    std.needsUpdate = true
+    return
+  }
+  const entry = applyMaterialTextures(std, textureId)
+  if (entry?.aoFile) addUv2(geometry)
+}
+
+/**
+ * List the material-slot names of a furniture item's actually-loaded 3D
+ * model (Ticket 4), for the properties panel's per-slot override picker.
+ * Reads live off the scene graph (mesh named `furniture:<id>`, per
+ * furnitureMesh()) rather than the static catalog, so it reflects exactly
+ * what swapInModel() put there — including box-fallback furniture (no
+ * model yet loaded / load failed), which correctly yields an empty list
+ * since there is nothing to override per-slot. Names are de-duplicated and
+ * empty/unnamed slots are skipped (nothing for materialOverrides to key on).
+ */
+export function getFurnitureMaterialSlots(scene: THREE.Scene, itemId: string): string[] {
+  const mesh = scene.getObjectByName(`furniture:${itemId}`)
+  if (!mesh) return []
+  const names = new Set<string>()
+  mesh.traverse((o) => {
+    const m = o as THREE.Mesh
+    if (!m.isMesh) return
+    const mats = Array.isArray(m.material) ? m.material : [m.material]
+    for (const mat of mats) {
+      if (mat?.name) names.add(mat.name)
+    }
+  })
+  return Array.from(names)
+}
+
 function swapInModel(
   mesh: THREE.Mesh,
   item: Furniture,
@@ -1001,9 +1057,11 @@ function swapInModel(
         if (Array.isArray(m.material)) {
           m.material.forEach(applyAnisotropyToMaterial)
           m.material = m.material.map((mat) => mat.clone())
+          m.material.forEach((mat) => applyMaterialOverride(mat, item, m.geometry))
         } else {
           applyAnisotropyToMaterial(m.material)
           m.material = m.material.clone()
+          applyMaterialOverride(m.material, item, m.geometry)
         }
       }
       o.userData.shared = true
