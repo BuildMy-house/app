@@ -7,7 +7,7 @@ import { HomeStore } from './core/store'
 import { HomeModel } from './core/model'
 import { HomelyCommandHandler } from './automation/homely-handler'
 import { FurnitureCatalog } from './core/catalog'
-import { loadDefaultCatalog } from './core/catalog-service'
+import { catalogFromManifest, loadDefaultCatalog, readCachedManifest } from './core/catalog-service'
 import { isMultiLevelEnabled } from './config/feature-flags'
 import { CatalogPanel } from './ui/catalog-panel'
 import { PlanEngine, type PlanPreview, type PlanTool } from './plan/engine'
@@ -1571,7 +1571,15 @@ let userCatalog: import('./core/user-catalog').UserCatalog | null = null
 let catalogUnavailable = false
 
 const catalogLoadStart = performance.now()
-const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
+// Cache-first (stale-while-revalidate): a previous session's manifest renders
+// the panel instantly instead of waiting on the ~300-680ms network fetch the
+// bundled 260KB manifest costs on every cold start; the fresh fetch below only
+// revalidates in the background and swaps the catalog if the manifest changed.
+const cachedManifest = readCachedManifest()
+const catalogReady = (cachedManifest
+  ? Promise.resolve({ catalog: catalogFromManifest(cachedManifest), manifest: cachedManifest })
+  : loadDefaultCatalog()
+).then(async ({ catalog, manifest }) => {
   const { UserCatalog, InMemoryModelStore } = await import('./core/user-catalog')
   sharedCatalog = catalog
   // Merge user-imported items on top of the bundled defaults. The store is
@@ -1633,6 +1641,21 @@ const catalogReady = loadDefaultCatalog().then(async ({ catalog }) => {
   }
   setSidebarTab(catalogHost.classList.contains('show-properties') ? 'properties' : 'furniture')
   telemetry.catalogLoad(performance.now() - catalogLoadStart, sharedCatalog.size)
+  if (cachedManifest && userCatalog) {
+    // Background revalidation: replace the cached copy only when the bundled
+    // manifest actually changed, keeping this session's panel fully usable.
+    const uc = userCatalog
+    void loadDefaultCatalog()
+      .then(({ manifest: fresh }) => {
+        if (JSON.stringify(fresh) === JSON.stringify(manifest)) return
+        uc.setBundled(catalogFromManifest(fresh))
+        sharedCatalog = uc.merged
+        catalogPanel?.setCatalog(sharedCatalog)
+      })
+      .catch(() => {
+        // ponytail: revalidation failure is fine — the cached catalog stays
+      })
+  }
 }).catch((err) => {
   console.error('[catalog] failed to load catalog:', err)
   catalogUnavailable = true

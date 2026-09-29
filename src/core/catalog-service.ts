@@ -15,6 +15,43 @@ export interface CatalogLoadResult {
   catalog: FurnitureCatalog
   /** Source the manifest was read from (e.g. "/catalog/catalog.json"). */
   source: string
+  /** The validated manifest as fetched (used for cache-change detection). */
+  manifest: CatalogManifest
+}
+
+/** Sort + wrap a validated manifest into a FurnitureCatalog. */
+export function catalogFromManifest(manifest: CatalogManifest): FurnitureCatalog {
+  // Keep ordinary furniture first so the default placement action is useful;
+  // doors/windows still remain searchable and available in the catalog.
+  const items = [...manifest.items].sort((a, b) => Number(a.doorOrWindow === true) - Number(b.doorOrWindow === true))
+  return new FurnitureCatalog(items)
+}
+
+const CATALOG_CACHE_KEY = 'buildmyhouse.catalog-manifest.v1'
+
+/**
+ * Read the manifest cached by a previous session from localStorage.
+ * Returns null when absent or corrupt — callers fall back to the network.
+ */
+export function readCachedManifest(): CatalogManifest | null {
+  try {
+    const raw = localStorage.getItem(CATALOG_CACHE_KEY)
+    if (!raw) return null
+    const manifest = JSON.parse(raw) as CatalogManifest
+    validateManifest(manifest)
+    return manifest
+  } catch {
+    return null
+  }
+}
+
+/** Best-effort persist a freshly-fetched manifest for next-session instant load. */
+export function cacheManifest(manifest: CatalogManifest): void {
+  try {
+    localStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify(manifest))
+  } catch {
+    // ponytail: quota/private-mode failures just mean next session re-fetches
+  }
 }
 
 /** Fetch a catalog manifest (browser fetch; also works under node with a base). */
@@ -33,10 +70,8 @@ export async function loadDefaultCatalog(): Promise<CatalogLoadResult> {
   // Vite copies public/ to dist/ at the bundle root: /assets/catalog/catalog.json
   const source = 'assets/catalog/catalog.json'
   const manifest = await loadCatalogFromUrl(source)
-  // Keep ordinary furniture first so the default placement action is useful;
-  // doors/windows still remain searchable and available in the catalog.
-  const items = [...manifest.items].sort((a, b) => Number(a.doorOrWindow === true) - Number(b.doorOrWindow === true))
-  return { catalog: new FurnitureCatalog(items), source }
+  cacheManifest(manifest)
+  return { catalog: catalogFromManifest(manifest), source, manifest }
 }
 
 /** Minimal structural validation; throws a descriptive Error on bad manifests. */

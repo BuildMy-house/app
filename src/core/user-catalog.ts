@@ -181,6 +181,15 @@ export class UserCatalog {
     return this.bundled
   }
 
+  /**
+   * Swap the bundled catalog after a background revalidation (stale-while-
+   * revalidate). The model store and already-listed user items are untouched;
+   * `merged` recomputes from the new bundled catalog on next access.
+   */
+  setBundled(bundled: FurnitureCatalog): void {
+    this.bundled = bundled
+  }
+
   /** Merged catalog: bundled + user items. */
   get merged(): FurnitureCatalog {
     const all = [...this.bundled.list(), ...this.userItems]

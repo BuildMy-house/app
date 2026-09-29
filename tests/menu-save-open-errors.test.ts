@@ -11,6 +11,8 @@ document.body.appendChild(root)
 
 vi.mock('../src/core/catalog-service', () => ({
   loadDefaultCatalog: vi.fn(() => Promise.resolve({ categories: [] })),
+  readCachedManifest: vi.fn(() => null),
+  catalogFromManifest: vi.fn(() => null),
 }))
 
 vi.mock('../src/view3d', () => ({
