@@ -5,6 +5,7 @@ import type { NormalizedHomeState } from '../core/home'
 import { normalizeAngle } from '../core/export'
 import type { WallLoop } from '../core/wall-loop-detector'
 import { detectClosedLoops, wallCenterlinePoints } from '../core/wall-loop-detector'
+import { buildWallEndpointIndex } from '../core/wall-endpoint-index'
 import { AutoFloorDialog } from '../ui/AutoFloorDialog'
 import { pointWithAngleMagnetism, wallPointMagnetism } from './magnetism'
 import { snapFurniturePlacement, snapFurnitureRotation } from './furniture-snap'
@@ -2027,6 +2028,7 @@ export class PlanEngine {
   ): Point | null {
     let best: Point | null = null
     let bestDist = margin
+    const endpointIndex = buildWallEndpointIndex(home.walls)
     const candidates: Array<{ p: Point; occupied: boolean }> = []
     for (const wall of home.walls) {
       // Committed walls (including ones from the open drawing session) are
@@ -2034,11 +2036,11 @@ export class PlanEngine {
       candidates.push(
         {
           p: { x: wall.xStart, y: wall.yStart },
-          occupied: this.hasOtherWallAt(home, wall.id, { x: wall.xStart, y: wall.yStart }),
+          occupied: endpointIndex.matchesAt(wall.xStart, wall.yStart, wall.id).length > 0,
         },
         {
           p: { x: wall.xEnd, y: wall.yEnd },
-          occupied: this.hasOtherWallAt(home, wall.id, { x: wall.xEnd, y: wall.yEnd }),
+          occupied: endpointIndex.matchesAt(wall.xEnd, wall.yEnd, wall.id).length > 0,
         },
       )
     }
@@ -2051,19 +2053,6 @@ export class PlanEngine {
       }
     }
     return best
-  }
-
-  private hasOtherWallAt(
-    home: NormalizedHomeState,
-    wallId: string,
-    point: Point,
-  ): boolean {
-    return home.walls.some(
-      (other) =>
-        other.id !== wallId &&
-        (samePoint(point, { x: other.xStart, y: other.yStart }) ||
-          samePoint(point, { x: other.xEnd, y: other.yEnd })),
-    )
   }
 
   private findConnectedWalls(

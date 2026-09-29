@@ -159,6 +159,26 @@ describe('wall tool state machine', () => {
     expect(wallGraph(store)).toContainEqual([50, 0, 50, 50])
   })
 
+  it('chain start skips a nearer shared (2-way) endpoint in favor of a farther free one', () => {
+    const { engine, click } = setup()
+    engine.setTool('wall')
+    engine.setMagnetism(false)
+    engine.setGridSnap(false)
+    click(0, 0)
+    click(100, 0)
+    click(200, 0) // chained: (100,0) is now shared by two walls
+    engine.key('escape')
+    click(110, 0)
+    click(200, 0) // (110,0) stays a free endpoint
+    engine.key('escape')
+
+    // Cursor (103,0): the SHARED endpoint (100,0) is nearer (3 < 7 < margin 10)
+    // but occupied endpoints are never offered — the free (110,0) must win.
+    click(103, 0)
+    expect(engine.getPreview().chainStart).toEqual({ x: 110, y: 0 })
+    engine.key('escape')
+  })
+
   it('escape with an empty chain returns to the selection tool', () => {
     const { engine, click } = setup()
     engine.setTool('wall')

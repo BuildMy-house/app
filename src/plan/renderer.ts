@@ -1,6 +1,7 @@
 import type { NormalizedHomeState, Wall, Furniture, Level } from '../core/home'
 import { WALL_TEXTURES, resolveTextureUrl } from '../core/home'
 import { wallOutlinePoints } from '../core/top-camera-follower'
+import { buildWallEndpointIndex } from '../core/wall-endpoint-index'
 import { getEffectiveWallSideTextureId } from '../core/wall-exterior'
 import { furnitureRotationHandlePos, wallArcHandlePos } from './engine'
 import type { PlanPreview } from './engine'
@@ -49,7 +50,6 @@ const PREVIEW_COLOR = '#999999'
 const CLOSURE_PREVIEW_FILL = 'rgba(100, 180, 100, 0.18)'
 const CLOSURE_PREVIEW_STROKE = 'rgba(80, 160, 80, 0.7)'
 const FURNITURE_FILL = 'rgba(160, 160, 90, 0.5)'
-const POLYLINE_FILL = 'rgba(120, 160, 200, 0.25)'
 const ROTATION_HANDLE_RADIUS = 8
 
 // Grid colors per theme — minor lines must stay low-contrast vs canvas bg
@@ -380,6 +380,8 @@ export function drawPlan(
   if (ctx.canvas) installCursorTracking(ctx.canvas)
   const mapper = new ViewMapper(view)
   const selected = new Set(home.selection)
+  // One endpoint index per paint, shared by every wall-outline lookup below.
+  const wallIndex = buildWallEndpointIndex(home.walls)
 
   if (canvasWidth != null && canvasHeight != null) {
     drawGrid(ctx, view, canvasWidth, canvasHeight)
@@ -409,7 +411,7 @@ export function drawPlan(
       // Ghost walls as filled thick shapes.
       for (const wall of home.walls) {
         if (!matchesLevelId(wall.levelRef, refLevelId)) continue
-        const outline = wallOutlinePoints(wall, home.walls)
+        const outline = wallOutlinePoints(wall, home.walls, wallIndex)
         if (outline.length === 0) continue
         ctx.beginPath()
         ctx.moveTo(mapper.sx(outline[0]![0]), mapper.sy(outline[0]![1]))
@@ -473,27 +475,6 @@ export function drawPlan(
       ctx.textAlign = 'start'
       ctx.textBaseline = 'alphabetic'
     }
-  }
-
-  // Polylines — closed shapes get a filled interior; open ones are stroke-only.
-  for (const pl of home.polylines) {
-    if (!matchesLevel(pl.levelRef, activeLevelId)) continue
-    if (pl.points.length < 2) continue
-    ctx.beginPath()
-    pl.points.forEach(([x, y], index) => {
-      if (index === 0) ctx.moveTo(mapper.sx(x), mapper.sy(y))
-      else ctx.lineTo(mapper.sx(x), mapper.sy(y))
-    })
-    if (pl.closed && pl.points.length >= 3) {
-      ctx.closePath()
-      ctx.fillStyle = cssColor(pl.color, POLYLINE_FILL)
-      ctx.fill()
-    }
-    ctx.strokeStyle = selected.has(pl.id)
-      ? SELECTION_COLOR
-      : cssColor(pl.color, '#666666')
-    ctx.lineWidth = pl.thickness != null ? pl.thickness / 10 : (selected.has(pl.id) ? 2 : 1)
-    ctx.stroke()
   }
 
   // Roofs (dashed outline polygon).
@@ -565,7 +546,7 @@ export function drawPlan(
     const strokeColor = cssColor(polyline.color, WALL_COLOR)
     const lineW = selected.has(polyline.id) ? 2 : (polyline.thickness ?? 2)
 
-    if (polyline.closed) {
+    if (polyline.closed && polyline.points.length >= 3) {
       ctx.closePath()
       ctx.fillStyle = polyline.color != null ? colorWithAlpha(polyline.color, 0.15) : ROOM_FILL
       ctx.fill()
@@ -584,7 +565,7 @@ export function drawPlan(
     const wLen = Math.hypot(wDx, wDy)
     const wUx = wLen > 0 ? wDx / wLen : 0
     const wUy = wLen > 0 ? wDy / wLen : 0
-    const outline = wallOutlinePoints(wall, home.walls)
+    const outline = wallOutlinePoints(wall, home.walls, wallIndex)
     if (outline.length === 0) continue
     ctx.beginPath()
     ctx.moveTo(mapper.sx(outline[0]![0]), mapper.sy(outline[0]![1]))

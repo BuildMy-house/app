@@ -1,5 +1,7 @@
 import type { Furniture, Level, NormalizedHomeState, Wall } from './home'
 import { DEFAULT_WALL_HEIGHT_CM } from './home'
+import type { WallEndpointIndex } from './wall-endpoint-index'
+import { buildWallEndpointIndex } from './wall-endpoint-index'
 
 /**
  * SH3D HomeController3D$TopCameraState port (behaviour contract:
@@ -15,8 +17,6 @@ import { DEFAULT_WALL_HEIGHT_CM } from './home'
 const AERIAL_MIN_BOX_CM = 100
 const AERIAL_MIN_HEIGHT_CM = 20
 
-/** Endpoints closer than this count as joined for wall mitering. */
-const JOIN_EPSILON = 1e-6
 const PARALLEL_EPSILON = 1e-9
 
 export interface Bounds3D {
@@ -157,27 +157,19 @@ function arcWallOutlinePoints(wall: Wall): Pt[] {
   return angleDelta > 0 ? [...exterior, ...interior.reverse()] : [...interior, ...exterior.reverse()]
 }
 
-function samePoint(a: Pt, b: Pt): boolean {
-  return Math.abs(a[0] - b[0]) < JOIN_EPSILON && Math.abs(a[1] - b[1]) < JOIN_EPSILON
-}
-
 function endpoint(wall: Wall, atStart: boolean): Pt {
   return atStart ? [wall.xStart, wall.yStart] : [wall.xEnd, wall.yEnd]
 }
 
 /** First other wall sharing this exact endpoint (chained drawing never makes >2-way joints). */
 function findJoin(
-  allWalls: Wall[],
+  index: WallEndpointIndex,
   self: Wall,
   atStart: boolean,
 ): { other: Wall; otherAtStart: boolean } | undefined {
   const point = endpoint(self, atStart)
-  for (const other of allWalls) {
-    if (other.id === self.id) continue
-    if (samePoint(point, endpoint(other, true))) return { other, otherAtStart: true }
-    if (samePoint(point, endpoint(other, false))) return { other, otherAtStart: false }
-  }
-  return undefined
+  const match = index.matchesAt(point[0], point[1], self.id)[0]
+  return match ? { other: match.wall, otherAtStart: match.atStart } : undefined
 }
 
 function lineIntersect(p1: Pt, p2: Pt, p3: Pt, p4: Pt): Pt | null {
@@ -370,12 +362,20 @@ function miterArcEnd(
  * endpoint (geometric equivalent of SH3D wallAtStart/wallAtEnd outlines).
  * Round walls (nonzero arcExtent) also have their end-cap straight segment
  * mitered against straight or arc neighbors (M53c).
+ *
+ * Pass `precomputedIndex` when outlining many walls of the same array (one
+ * O(W) index build instead of one per wall).
  */
-export function wallOutlinePoints(wall: Wall, allWalls: Wall[]): Pt[] {
+export function wallOutlinePoints(
+  wall: Wall,
+  allWalls: Wall[],
+  precomputedIndex?: WallEndpointIndex,
+): Pt[] {
+  const index = precomputedIndex ?? buildWallEndpointIndex(allWalls)
   if (isArcWall(wall)) {
     const pts = arcWallOutlinePoints(wall)
     for (const atStart of [true, false]) {
-      const join = findJoin(allWalls, wall, atStart)
+      const join = findJoin(index, wall, atStart)
       if (!join) continue
       const theirPts = isArcWall(join.other) ? arcWallOutlinePoints(join.other) : unjoinedCorners(join.other)
       const limit = 2 * Math.max(wall.thickness, join.other.thickness)
@@ -386,7 +386,7 @@ export function wallOutlinePoints(wall: Wall, allWalls: Wall[]): Pt[] {
 
   const pts = unjoinedCorners(wall)
   for (const atStart of [true, false]) {
-    const join = findJoin(allWalls, wall, atStart)
+    const join = findJoin(index, wall, atStart)
     if (!join) continue
     if (isArcWall(join.other)) {
       const theirPts = arcWallOutlinePoints(join.other)
@@ -418,6 +418,7 @@ export function computeHomeBounds(home: NormalizedHomeState): Bounds3D {
   }
 
   let containsVisibleWalls = false
+  const wallIndex = buildWallEndpointIndex(home.walls)
   for (const wall of home.walls) {
     const level = levelOf(home, wall.levelRef)
     if (!atVisibleLevel(level)) continue
@@ -425,7 +426,7 @@ export function computeHomeBounds(home: NormalizedHomeState): Bounds3D {
     const elevation = level?.elevation ?? 0
     let maxZ = elevation + (wall.height ?? DEFAULT_WALL_HEIGHT_CM)
     if (wall.heightAtEnd != null) maxZ = Math.max(maxZ, elevation + wall.heightAtEnd)
-    for (const [x, y] of wallOutlinePoints(wall, home.walls)) add(x, y, 0, maxZ)
+    for (const [x, y] of wallOutlinePoints(wall, home.walls, wallIndex)) add(x, y, 0, maxZ)
   }
 
   for (const piece of home.furniture) {
