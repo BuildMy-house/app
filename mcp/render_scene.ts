@@ -123,8 +123,9 @@ async function renderPlan(home: NormalizedHomeState, width: number, height: numb
     const sin = Math.sin(angleRad)
     const hw = item.width / 2
     const hd = item.depth / 2
-    const corners: Point[] = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]].map(
-      ([ox, oz]) => [item.x + ox * cos - oz * sin, item.y + ox * sin + oz * cos],
+    const offsets: Point[] = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]]
+    const corners: Point[] = offsets.map(
+      ([ox, oz]): Point => [item.x + ox * cos - oz * sin, item.y + ox * sin + oz * cos],
     )
     polygon(pixels, width, height, corners.map((c) => planPoint(c, bounds)), color('#9b8068'))
   }
