@@ -118,10 +118,15 @@ async function renderPlan(home: NormalizedHomeState, width: number, height: numb
   const bounds = { minX, minY, scale, x: (width - (maxX - minX) * scale) / 2, y: (height - (maxY - minY) * scale) / 2 }
   for (const room of home.rooms) polygon(pixels, width, height, room.points.map((p) => planPoint(p as Point, bounds)), color('#e8e4dc'))
   for (const item of home.furniture) if (!item.doorOrWindow) {
-    const p = planPoint([item.x, item.y], bounds)
-    const sx = item.width * scale / 2
-    const sy = item.depth * scale / 2
-    polygon(pixels, width, height, [[p[0] - sx, p[1] - sy], [p[0] + sx, p[1] - sy], [p[0] + sx, p[1] + sy], [p[0] - sx, p[1] + sy]], color('#9b8068'))
+    const angleRad = (item.angleDeg * Math.PI) / 180
+    const cos = Math.cos(angleRad)
+    const sin = Math.sin(angleRad)
+    const hw = item.width / 2
+    const hd = item.depth / 2
+    const corners: Point[] = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]].map(
+      ([ox, oz]) => [item.x + ox * cos - oz * sin, item.y + ox * sin + oz * cos],
+    )
+    polygon(pixels, width, height, corners.map((c) => planPoint(c, bounds)), color('#9b8068'))
   }
   for (const wall of home.walls) line(pixels, width, height, planPoint([wall.xStart, wall.yStart], bounds), planPoint([wall.xEnd, wall.yEnd], bounds), color('#444444'), Math.max(1, Math.round((wall.thickness ?? 7) * scale)))
   return png(width, height, pixels)
