@@ -901,6 +901,7 @@ interface PointerState {
   shift: boolean
   button: number
   rotationId: string | null
+  wallDrawing: boolean
 }
 
 const pointer: PointerState = {
@@ -913,6 +914,7 @@ const pointer: PointerState = {
   shift: false,
   button: 0,
   rotationId: null,
+  wallDrawing: false,
 }
 
 function eventModelPoint(event: PointerEvent | MouseEvent): { x: number; y: number } {
@@ -970,6 +972,17 @@ canvas.addEventListener('pointerdown', (event) => {
   const hit = engine.hitTestPoint(point)
   if (hit?.kind === 'furniture-rotate' && engine.beginFurnitureRotation(hit.id, point)) {
     pointer.rotationId = hit.id
+  } else if (engine.getTool() === 'wall') {
+    pointer.wallDrawing = true
+    void traceAction('wall.click', () => {
+      engine.click({
+        x: point.x,
+        y: point.y,
+        dbl: false,
+        shift: event.shiftKey,
+        altOrMeta: event.altKey || event.metaKey,
+      })
+    })
   }
 })
 
@@ -1039,6 +1052,18 @@ canvas.addEventListener('pointerup', (event) => {
     return
   }
 
+  if (pointer.wallDrawing) {
+    if (pointer.moved) {
+      void traceAction('wall.click', () => {
+        engine.click({ x: point.x, y: point.y, dbl: false, shift: pointer.shift })
+      })
+    }
+    pointer.wallDrawing = false
+    refreshToolbar()
+    refreshStatus()
+    return
+  }
+
   // Catalog place mode: a plain click commits the armed piece at the point,
   // snapped to the nearest wall when magnetism is on.
   if (!pointer.moved && catalogPanel?.isArmed()) {
@@ -1092,9 +1117,11 @@ canvas.addEventListener('pointerup', (event) => {
 })
 
 canvas.addEventListener('pointercancel', () => {
-  if (!pointer.rotationId) return
-  engine.endFurnitureRotation()
-  pointer.rotationId = null
+  if (pointer.rotationId) {
+    engine.endFurnitureRotation()
+    pointer.rotationId = null
+  }
+  pointer.wallDrawing = false
   pointer.down = false
 })
 

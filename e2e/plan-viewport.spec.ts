@@ -77,6 +77,29 @@ test.describe('plan (canvas) viewport', () => {
     await expect(page.locator('#status-zoom')).toHaveText('zoom: 100%')
   })
 
+  test('wall tool draws by click-drag-release and keeps click chaining', async ({ page }) => {
+    const canvas = page.locator('#plan-canvas')
+    const box = await canvas.boundingBox()
+    expect(box).not.toBeNull()
+    const y = box!.y + box!.height * 0.5
+    const x0 = box!.x + box!.width * 0.3
+    const x1 = box!.x + box!.width * 0.7
+    await page.locator('button[data-tool="wall"]').click()
+
+    await page.mouse.move(x0, y)
+    await page.mouse.down()
+    await page.mouse.move(x1, y, { steps: 8 })
+    await page.mouse.up()
+
+    const dragWalls = await page.evaluate(() => (window as any).__model.getStore().getHome().walls)
+    expect(dragWalls).toHaveLength(1)
+    expect(dragWalls[0].xEnd).not.toBe(dragWalls[0].xStart)
+
+    await page.mouse.click(x1, y - 60)
+    const chainedWalls = await page.evaluate(() => (window as any).__model.getStore().getHome().walls)
+    expect(chainedWalls).toHaveLength(2)
+  })
+
   test('dragging a wall midpoint handle bulges it into a curved wall (M53a)', async ({ page }) => {
     const canvas = page.locator('#plan-canvas')
     const box = await canvas.boundingBox()
