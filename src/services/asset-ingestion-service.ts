@@ -112,6 +112,12 @@ export interface Checkpoint {
   items: Record<string, CheckpointEntry>
 }
 
+export interface MaterialClassification {
+  tags: string[]
+  hasBaseColorTexture: boolean
+  hasMetallicRoughnessTexture: boolean
+}
+
 export interface CatalogEntry {
   catalogId: string
   name: string
@@ -125,6 +131,7 @@ export interface CatalogEntry {
   tags: string[]
   modelPath: string
   renderModelPath: string
+  pbrClassification?: MaterialClassification[]
 }
 
 export interface CatalogManifest {
@@ -764,7 +771,7 @@ export class AssetIngestionService {
           else uploaded++
         }
         if (state.verified || mode.skipUpload) {
-          state.entry = buildEntry(item)
+          state.entry = buildEntry(item, buffer)
           delete state.error
         }
       } catch (err) {
@@ -1070,8 +1077,8 @@ function exportGlb(group: THREE.Object3D): Promise<Buffer> {
   })
 }
 
-function buildEntry(item: LibraryItem): CatalogEntry {
-  return {
+function buildEntry(item: LibraryItem, buffer?: Buffer): CatalogEntry {
+  const entry: CatalogEntry = {
     catalogId: item.catalogId,
     name: item.name,
     category: item.category,
@@ -1085,6 +1092,11 @@ function buildEntry(item: LibraryItem): CatalogEntry {
     modelPath: `${r2PublicUrl()}/${R2_KEY_PREFIX}/${item.slug}.glb?v=${ASSET_TRANSFORM_VERSION}`,
     renderModelPath: `${r2PublicUrl()}/${R2_KEY_PREFIX}/${item.slug}/model.obj`,
   }
+  if (buffer) {
+    const classification = classifyGlbMaterials(buffer)
+    if (classification) entry.pbrClassification = classification
+  }
+  return entry
 }
 
 async function uploadGlb(s3: S3Client, item: LibraryItem, buffer: Buffer): Promise<boolean> {
@@ -1106,6 +1118,36 @@ function extractGlbMaterials(buffer: Buffer): { materials: unknown[] } | null {
   } catch {
     return null
   }
+}
+
+/**
+ * Classify each material in an exported GLB per the glTF metallic-roughness
+ * convention: metallicFactor >= 0.5 → "metallic"; roughnessFactor <= 0.3 →
+ * "glossy"; roughnessFactor >= 0.7 → "matte"; roughness in between gets no
+ * matte/glossy tag (ambiguous by design). Texture presence is always recorded.
+ *
+ * Per glTF spec, metallicFactor/roughnessFactor default to 1.0 when missing
+ * (or when pbrMetallicRoughness is absent entirely), so such materials are
+ * classified "metallic"+"matte" — that is the correct spec default, not a bug.
+ * Returns null if the buffer is not a parseable GLB.
+ */
+export function classifyGlbMaterials(buffer: Buffer): MaterialClassification[] | null {
+  const parsed = extractGlbMaterials(buffer)
+  if (!parsed) return null
+  return parsed.materials.map((material) => {
+    const pbr = (material as { pbrMetallicRoughness?: Record<string, unknown> }).pbrMetallicRoughness ?? {}
+    const metallic = typeof pbr.metallicFactor === 'number' ? pbr.metallicFactor : 1.0
+    const roughness = typeof pbr.roughnessFactor === 'number' ? pbr.roughnessFactor : 1.0
+    const tags: string[] = []
+    if (metallic >= 0.5) tags.push('metallic')
+    if (roughness <= 0.3) tags.push('glossy')
+    if (roughness >= 0.7) tags.push('matte')
+    return {
+      tags,
+      hasBaseColorTexture: Boolean(pbr.baseColorTexture),
+      hasMetallicRoughnessTexture: Boolean(pbr.metallicRoughnessTexture),
+    }
+  })
 }
 
 async function uploadRenderBundle(s3: S3Client, item: LibraryItem): Promise<boolean> {
