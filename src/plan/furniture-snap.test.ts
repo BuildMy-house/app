@@ -84,15 +84,75 @@ describe('snapFurniturePlacement', () => {
       depthCm: 10,
       magnetismEnabled: true,
     })
-    // Closest is the vertical wall (x≈50), snaps to x=55, y≈5.
-    expect(near.x).toBeCloseTo(55)
-    expect(Math.abs(near.angleDeg)).toBeCloseTo(90)
+    // The footprint touches the horizontal wall and is separated from the
+    // intersecting vertical wall without passing through either.
+    expect(near).toMatchObject({ x: 55, y: 5, angleDeg: 0 })
   })
 
   it('respects the snap distance threshold', () => {
-    const justOutside = FURNITURE_SNAP_DISTANCE_CM + 1
+    const justOutside = FURNITURE_SNAP_DISTANCE_CM + 1 + 5 // 5cm half-depth
     const r = snapFurniturePlacement({ walls: [wallH], point: { x: 50, y: justOutside }, depthCm: 10, magnetismEnabled: true })
     expect(r.y).toBeCloseTo(justOutside)
+  })
+
+  it('snaps an overlapping wide footprint even when its center is beyond the snap range', () => {
+    const result = snapFurniturePlacement({
+      walls: [{ id: 'wall-1', xStart: 0, yStart: 0, xEnd: 200, yEnd: 0, thickness: 10 }],
+      point: { x: 100, y: 40 },
+      widthCm: 100,
+      depthCm: 20,
+      angleDeg: 90,
+      magnetismEnabled: true,
+    })
+
+    expect(result).toMatchObject({ x: 100, y: 55, angleDeg: 90, wallRef: 'wall-1', wallOffset: 100 })
+  })
+
+  it('pulls an overlapping footprint back out even when it crossed deeply through a wall', () => {
+    const result = snapFurniturePlacement({
+      walls: [{ xStart: 0, yStart: 0, xEnd: 200, yEnd: 0, thickness: 10 }],
+      point: { x: 100, y: 100 },
+      widthCm: 300,
+      depthCm: 20,
+      angleDeg: 90,
+      magnetismEnabled: true,
+    })
+    const rotated = snapFurnitureRotation({
+      walls: [{ xStart: 0, yStart: 0, xEnd: 200, yEnd: 0, thickness: 10 }],
+      point: { x: 100, y: 100 },
+      widthCm: 300,
+      depthCm: 20,
+      angleDeg: 90,
+    })
+
+    expect(result.y).toBe(155)
+    expect(rotated.y).toBe(155)
+  })
+
+  it('clears intersecting walls at corners and at wall endpoints', () => {
+    const cornerWalls = [
+      { xStart: 0, yStart: 0, xEnd: 200, yEnd: 0, thickness: 10 },
+      { xStart: 0, yStart: 0, xEnd: 0, yEnd: 200, thickness: 10 },
+    ]
+    const corner = snapFurniturePlacement({
+      walls: cornerWalls,
+      point: { x: 30, y: 30 },
+      widthCm: 100,
+      depthCm: 20,
+      angleDeg: 90,
+      magnetismEnabled: true,
+    })
+    const endpoint = snapFurniturePlacement({
+      walls: [{ ...wallH, thickness: 10 }],
+      point: { x: -49, y: 0 },
+      widthCm: 100,
+      depthCm: 20,
+      angleDeg: 0,
+      magnetismEnabled: true,
+    })
+
+    expect(corner).toMatchObject({ x: 15, y: 55 })
+    expect(endpoint.y).toBe(15)
   })
 })
 

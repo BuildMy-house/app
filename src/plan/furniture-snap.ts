@@ -5,8 +5,7 @@ import { distance } from './geometry'
  * Furniture placement snapping (ticket U9).
  *
  * When magnetism is on, a placement point snaps to the nearest wall: the piece
- * is offset by half its depth along the wall normal so its back edge rests
- * against the wall, and its angle aligns with the wall direction — SH3D parity.
+ * aligns to the wall and its projected footprint clears the wall face.
  * Without magnetism the raw point is returned unchanged.
  *
  * Works identically for 2D plan clicks and 3D floor clicks because both feed a
@@ -73,13 +72,30 @@ export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnap
     return { x: point.x, y: point.y, angleDeg: 0, wallRef: null, wallOffset: null }
   }
 
-  let best: { dist: number; point: Point; wall: WallLike; t: number } | null = null
+  let best: { dist: number; point: Point; wall: WallLike; t: number; side: number; angleDeg: number } | null = null
   for (const wall of walls) {
     const a = { x: wall.xStart, y: wall.yStart }
     const b = { x: wall.xEnd, y: wall.yEnd }
     const seg = closestPointOnSegment(point, a, b)
-    const dist = distance(point, seg.point)
-    if (!best || dist < best.dist) best = { dist, point: seg.point, wall, t: seg.t }
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const len = Math.hypot(dx, dy) || 1
+    const nx = -dy / len
+    const ny = dx / len
+    const side = (point.x - seg.point.x) * nx + (point.y - seg.point.y) * ny >= 0 ? 1 : -1
+    const wallAngle = (Math.atan2(dy, dx) * 180) / Math.PI
+    const currentAngle = input.angleDeg ?? wallAngle
+    const angleDeg = [0, 90, 180, 270]
+      .map((turn) => normalizeAngle180(wallAngle + turn))
+      .sort((a, b) => Math.abs(normalizeAngle180(a - currentAngle)) - Math.abs(normalizeAngle180(b - currentAngle)))[0]!
+    const relative = ((angleDeg - wallAngle) * Math.PI) / 180
+    const width = input.widthCm ?? depthCm
+    const halfExtent = (Math.abs(Math.sin(relative)) * width + Math.abs(Math.cos(relative)) * depthCm) / 2
+    const endExtent = Math.hypot(width / 2, depthCm / 2)
+    const clearance = distance(point, seg.point) - (seg.t === 0 || seg.t === 1 ? endExtent : halfExtent) - (wall.thickness ?? 0) / 2
+    if (!best || Math.abs(clearance) < Math.abs(best.dist)) {
+      best = { dist: clearance, point: seg.point, wall, t: seg.t, side, angleDeg }
+    }
   }
 
   if (!best || best.dist > FURNITURE_SNAP_DISTANCE_CM) {
@@ -93,24 +109,64 @@ export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnap
   const len = Math.hypot(dx, dy) || 1
   const nx = -dy / len
   const ny = dx / len
-
-  // Place on the side of the wall the click came from (the room interior).
-  const side = (point.x - best.point.x) * nx + (point.y - best.point.y) * ny >= 0 ? 1 : -1
   const wallAngle = (Math.atan2(dy, dx) * 180) / Math.PI
-  const currentAngle = input.angleDeg ?? wallAngle
-  const angleDeg = [0, 90, 180, 270]
-    .map((turn) => normalizeAngle180(wallAngle + turn))
-    .sort((a, b) => Math.abs(normalizeAngle180(a - currentAngle)) - Math.abs(normalizeAngle180(b - currentAngle)))[0]!
+  const side = best.side
+  const angleDeg = best.angleDeg
   const relative = ((angleDeg - wallAngle) * Math.PI) / 180
   const halfExtent = (Math.abs(Math.sin(relative)) * (input.widthCm ?? depthCm) + Math.abs(Math.cos(relative)) * depthCm) / 2
   const offset = halfExtent + (best.wall.thickness ?? 0) / 2
   const x = best.point.x + nx * side * offset
   const y = best.point.y + ny * side * offset
+  const separated = separateFurnitureFromWalls(
+    { x, y }, walls, input.widthCm ?? depthCm, depthCm, angleDeg,
+  )
 
   const wallRef = best.wall.id ?? null
   const wallOffset = best.t * len
 
-  return { x, y, angleDeg, wallRef, wallOffset }
+  return { x: separated.x, y: separated.y, angleDeg, wallRef, wallOffset }
+}
+
+function separateFurnitureFromWalls(
+  point: Point,
+  walls: ReadonlyArray<WallLike>,
+  widthCm: number,
+  depthCm: number,
+  angleDeg: number,
+): Point {
+  let { x, y } = point
+  // ponytail: cap relaxation at 8 sweeps; this handles room corners without
+  // spending unbounded work on malformed or tightly intersecting wall knots.
+  for (let pass = 0; pass < 8; pass++) {
+    let moved = false
+    for (const wall of walls) {
+      const dx = wall.xEnd - wall.xStart
+      const dy = wall.yEnd - wall.yStart
+      const length = Math.hypot(dx, dy)
+      if (!length) continue
+      const tx = dx / length
+      const ty = dy / length
+      const nx = -ty
+      const ny = tx
+      const wallAngle = (Math.atan2(dy, dx) * 180) / Math.PI
+      const relative = ((angleDeg - wallAngle) * Math.PI) / 180
+      const halfNormal = (Math.abs(Math.sin(relative)) * widthCm + Math.abs(Math.cos(relative)) * depthCm) / 2
+      const halfTangent = (Math.abs(Math.cos(relative)) * widthCm + Math.abs(Math.sin(relative)) * depthCm) / 2
+      const along = (x - wall.xStart) * tx + (y - wall.yStart) * ty
+      if (along < -halfTangent || along > length + halfTangent) continue
+      const normal = (x - wall.xStart) * nx + (y - wall.yStart) * ny
+      const side = normal < 0 ? -1 : 1
+      const clearance = Math.abs(normal) - halfNormal - (wall.thickness ?? 0) / 2
+      if (clearance < 0) {
+        const shift = -clearance * side
+        x += nx * shift
+        y += ny * shift
+        moved = true
+      }
+    }
+    if (!moved) break
+  }
+  return { x, y }
 }
 
 export function snapFurnitureRotation(input: Omit<FurnitureSnapInput, 'magnetismEnabled'>): FurnitureSnapResult {
@@ -119,7 +175,8 @@ export function snapFurnitureRotation(input: Omit<FurnitureSnapInput, 'magnetism
   for (const wall of walls) {
     const a = { x: wall.xStart, y: wall.yStart }
     const b = { x: wall.xEnd, y: wall.yEnd }
-    const projected = closestPointOnSegment(point, a, b).point
+    const projection = closestPointOnSegment(point, a, b)
+    const projected = projection.point
     const dx = b.x - a.x
     const dy = b.y - a.y
     const len = Math.hypot(dx, dy) || 1
@@ -129,10 +186,12 @@ export function snapFurnitureRotation(input: Omit<FurnitureSnapInput, 'magnetism
     const wallAngle = (Math.atan2(dy, dx) * 180) / Math.PI
     const relative = ((angleDeg - wallAngle) * Math.PI) / 180
     const extent = (Math.abs(Math.sin(relative)) * widthCm + Math.abs(Math.cos(relative)) * depthCm) / 2
-    const dist = distance(point, projected) - extent - (wall.thickness ?? 0) / 2
+    const tangentExtent = (Math.abs(Math.cos(relative)) * widthCm + Math.abs(Math.sin(relative)) * depthCm) / 2
+    const endpointExtent = Math.hypot(extent, tangentExtent)
+    const dist = distance(point, projected) - (projection.t === 0 || projection.t === 1 ? endpointExtent : extent) - (wall.thickness ?? 0) / 2
     if (!best || Math.abs(dist) < Math.abs(best.dist)) best = { wall, point: projected, dist, side }
   }
-  if (!best || Math.abs(best.dist) > FURNITURE_SNAP_DISTANCE_CM) {
+  if (!best || best.dist > FURNITURE_SNAP_DISTANCE_CM) {
     return { x: point.x, y: point.y, angleDeg, wallRef: null, wallOffset: null }
   }
 
@@ -152,9 +211,13 @@ export function snapFurnitureRotation(input: Omit<FurnitureSnapInput, 'magnetism
   const relative = ((resultAngle - wallAngle) * Math.PI) / 180
   const extent = (Math.abs(Math.sin(relative)) * widthCm + Math.abs(Math.cos(relative)) * depthCm) / 2
   const offset = extent + (best.wall.thickness ?? 0) / 2
+  const separated = separateFurnitureFromWalls(
+    { x: best.point.x + nx * best.side * offset, y: best.point.y + ny * best.side * offset },
+    walls, widthCm, depthCm, resultAngle,
+  )
   return {
-    x: best.point.x + nx * best.side * offset,
-    y: best.point.y + ny * best.side * offset,
+    x: separated.x,
+    y: separated.y,
     angleDeg: resultAngle,
     wallRef: best.wall.id ?? null,
     wallOffset: null,
