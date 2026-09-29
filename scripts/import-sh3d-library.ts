@@ -14,11 +14,28 @@
  *   tsx scripts/import-sh3d-library.ts --upload-only   # upload+verify already-converted GLBs
  *   tsx scripts/import-sh3d-library.ts --merge-catalog # merge completed entries into assets/catalog/catalog.json
  *   tsx scripts/import-sh3d-library.ts --limit=5       # process at most 5 uncompleted items
+ *   tsx scripts/import-sh3d-library.ts --live-catalog  # re-process exactly the catalogIds
+ *                                                       # currently in assets/catalog/catalog.json,
+ *                                                       # bypassing the checkpoint skip check —
+ *                                                       # for re-ingesting already-live assets after
+ *                                                       # a pipeline fix. Combine with --limit=N to
+ *                                                       # do a small dry-run batch first.
  *
  * R2 credentials come from env (R2_ACCOUNT_ID/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY/
  * R2_S3_ENDPOINT/R2_BUCKET_NAME/R2_PUBLIC_URL) — never hardcoded.
  */
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import { AssetIngestionService } from '../src/services/asset-ingestion-service.js'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+function liveCatalogIds(): string[] {
+  const path = join(__dirname, '../public/assets/catalog/catalog.json')
+  const catalog = JSON.parse(readFileSync(path, 'utf8')) as { items: { catalogId: string }[] }
+  return catalog.items.map((item) => item.catalogId)
+}
 
 async function main(): Promise<void> {
   const limit = Math.max(0, Number(process.argv.find((a) => a.startsWith('--limit='))?.split('=')[1] ?? 0))
@@ -27,7 +44,9 @@ async function main(): Promise<void> {
     service.mergeCatalog()
     return
   }
-  const options = { limit }
+  const catalogIds = process.argv.includes('--live-catalog') ? liveCatalogIds() : undefined
+  if (catalogIds) console.log(`[import] --live-catalog: scoping to ${catalogIds.length} catalogIds from catalog.json`)
+  const options = { limit, catalogIds }
   if (process.argv.includes('--upload-only')) await service.uploadBatch(options)
   else if (process.argv.includes('--skip-upload')) await service.convertBatch(options)
   else await service.processBatch(options)

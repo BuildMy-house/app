@@ -151,6 +151,14 @@ export interface ProgressInfo {
 export interface ProcessBatchOptions {
   /** Max pending items to process this call (0 / undefined = all pending). */
   limit?: number
+  /**
+   * Restrict processing to exactly these catalogIds, re-processing them even
+   * if already converted/verified (bypasses the checkpoint's skip check).
+   * Use this for a scoped re-ingest of specific live catalog items — without
+   * it, "pending" includes every not-yet-verified item in the full library,
+   * which can be unrelated in-progress work.
+   */
+  catalogIds?: string[]
   /** Progress callback; the service also logs to console. */
   onProgress?: (progress: ProgressInfo) => void
 }
@@ -751,7 +759,7 @@ export class AssetIngestionService {
     options: ProcessBatchOptions,
     mode: { skipUpload: boolean; uploadOnly: boolean },
   ): Promise<BatchResult> {
-    const { limit = 0, onProgress } = options
+    const { limit = 0, catalogIds, onProgress } = options
     const report = (stage: ProgressInfo['stage'], done: number, total: number, current?: string, message?: string) => {
       onProgress?.({ stage, done, total, current, message })
     }
@@ -759,8 +767,11 @@ export class AssetIngestionService {
     mkdirSync(this.modelsOut, { recursive: true })
     const checkpoint = this.loadCheckpoint()
     const items = this.parseLibrary()
+    const scopeIds = catalogIds ? new Set(catalogIds) : null
 
     const pending = items.filter((item) => {
+      if (scopeIds && !scopeIds.has(item.catalogId)) return false
+      if (scopeIds) return true // explicit scope always reprocesses, bypassing the checkpoint skip check
       const state = checkpoint.items[item.catalogId]
       if (mode.uploadOnly) return state?.converted === true && state?.verified !== true
       return !(state?.converted && (mode.skipUpload || state.verified))
@@ -778,7 +789,7 @@ export class AssetIngestionService {
       try {
         const glbPath = join(this.modelsOut, `${item.slug}.glb`)
         let buffer: Buffer
-        if (state.converted && existsSync(glbPath)) {
+        if (!scopeIds && state.converted && existsSync(glbPath)) {
           buffer = readFileSync(glbPath)
         } else {
           installNodeGlbPolyfills()
@@ -793,7 +804,7 @@ export class AssetIngestionService {
           state.bytes = buffer.length
           converted++
         }
-        if (s3 && !state.verified) {
+        if (s3 && (scopeIds || !state.verified)) {
           report('upload', done, queue.length, item.catalogId)
           state.uploaded = await uploadGlb(s3, item, buffer)
           state.verified = state.uploaded
