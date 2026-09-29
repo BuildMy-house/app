@@ -31,14 +31,24 @@ export interface Bounds3D {
 type Pt = [number, number]
 
 /** Everything but cameras — camera-only steps must not re-trigger placement. */
+// ponytail: keyed by home object identity — store.apply() clones per edit, so
+// consecutive applies share the previous object. Safe only while nothing
+// mutates walls/furniture/rooms/dimensionLines/levels in place (patchNonUndoable
+// doesn't today). If that changes, invalidate or drop this cache.
+const fingerprintCache = new WeakMap<NormalizedHomeState, string>()
+
 function contentFingerprint(home: NormalizedHomeState): string {
-  return JSON.stringify([
+  const cached = fingerprintCache.get(home)
+  if (cached !== undefined) return cached
+  const fingerprint = JSON.stringify([
     home.walls,
     home.furniture,
     home.rooms,
     home.dimensionLines,
     home.levels,
   ])
+  fingerprintCache.set(home, fingerprint)
+  return fingerprint
 }
 
 function levelOf(home: NormalizedHomeState, levelRef?: string | null): Level | undefined {

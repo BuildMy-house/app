@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { NEW_WALL_THICKNESS_CM, HomeModel } from '../src/core/model'
 import { HomeStore } from '../src/core/store'
 import {
   computeHomeBounds,
   wallOutlinePoints,
+  followTopCamera,
   type Bounds3D,
 } from '../src/core/top-camera-follower'
 import { PlanEngine } from '../src/plan/engine'
@@ -403,5 +404,29 @@ describe('wall arc mitering (M53c)', () => {
     expect(aEndExt[1]).toBeCloseTo(sStartR[1], 6)
     expect(aEndInt[0]).toBeCloseTo(sStartL[0], 6)
     expect(aEndInt[1]).toBeCloseTo(sStartL[1], 6)
+  })
+})
+
+describe('top camera follower — contentFingerprint memoization', () => {
+  it('computes each home fingerprint once by object identity', () => {
+    const store = new HomeStore()
+    const first = store.getHome()
+    const second = structuredClone(first)
+    const stringify = vi.spyOn(JSON, 'stringify')
+
+    try {
+      followTopCamera(second, first)
+      // Both homes are new to the cache: one stringify per fingerprint.
+      expect(stringify).toHaveBeenCalledTimes(2)
+
+      stringify.mockClear()
+      const third = structuredClone(second)
+      followTopCamera(third, second)
+      // `second` was fingerprinted as the previous call's `next` — cache hit,
+      // only `third` is stringified. store.apply() hits this path every edit.
+      expect(stringify).toHaveBeenCalledTimes(1)
+    } finally {
+      stringify.mockRestore()
+    }
   })
 })
