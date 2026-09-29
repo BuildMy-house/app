@@ -414,6 +414,61 @@ function textureMapsOf(material: THREE.Material): THREE.Texture[] {
 }
 
 /**
+ * Convert an MTLLoader MeshPhongMaterial to MeshStandardMaterial so GLTFExporter
+ * exports the source MTL's real PBR signal instead of hardcoding
+ * metallicFactor 0 / roughnessFactor 1 for non-PBR material types:
+ *
+ *   roughness = clamp(1 - min(shininess / 1000, 1), 0.05, 1)
+ *     MTL Ns (shininess) mapped to PBR roughness; the 0.05 floor avoids
+ *     PBR renderer artifacts at roughness exactly 0.
+ *
+ *   metalness = specularStrength x tintMatch x tintChroma   (continuous 0..1)
+ *     Rec.709 luminance L = 0.2126r + 0.7152g + 0.0722b.
+ *     - specularStrength = clamp(specularLuminance / 0.5, 0, 1):
+ *       weak/near-black specular => dielectric (metalness 0).
+ *     - tintMatch: closeness of the luminance-normalized specular tint to the
+ *       diffuse tint; near-black diffuse falls back to the specular tint alone.
+ *     - tintChroma = min(1, 2 x (max-min) of the specular tint): white/grey
+ *       specular is the dielectric norm (chroma 0 => metalness 0); only a
+ *       specular tinted close to the diffuse reads as metal.
+ *     MTL illum is not exposed by MTLLoader, so Ks/Kd alone drive the score.
+ *
+ * Base color, map and other shared properties carry over unchanged.
+ */
+export function convertPhongToStandard(material: THREE.MeshPhongMaterial): THREE.MeshStandardMaterial {
+  const standard = new THREE.MeshStandardMaterial()
+  standard.name = material.name
+  standard.color.copy(material.color)
+  standard.map = material.map
+  standard.alphaMap = material.alphaMap
+  standard.emissive.copy(material.emissive)
+  standard.emissiveMap = material.emissiveMap
+  standard.transparent = material.transparent
+  standard.opacity = material.opacity
+  standard.side = material.side
+  standard.vertexColors = material.vertexColors
+  standard.flatShading = material.flatShading
+  standard.roughness = Math.min(1, Math.max(0.05, 1 - Math.min(material.shininess / 1000, 1)))
+  standard.metalness = metalnessFromPhong(material.specular, material.color)
+  return standard
+}
+
+const rec709Luminance = (c: THREE.Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
+
+function metalnessFromPhong(specular: THREE.Color, diffuse: THREE.Color): number {
+  const ksLum = rec709Luminance(specular)
+  if (ksLum <= 0.05) return 0
+  const ksTint = [specular.r / ksLum, specular.g / ksLum, specular.b / ksLum]
+  const kdLum = rec709Luminance(diffuse)
+  const kdTint = kdLum > 0.05 ? [diffuse.r / kdLum, diffuse.g / kdLum, diffuse.b / kdLum] : ksTint
+  const tintDist = (Math.abs(ksTint[0]! - kdTint[0]!) + Math.abs(ksTint[1]! - kdTint[1]!) + Math.abs(ksTint[2]! - kdTint[2]!)) / 2
+  const tintMatch = Math.max(0, 1 - tintDist)
+  const tintChroma = Math.min(1, (Math.max(...ksTint) - Math.min(...ksTint)) * 2)
+  const specularStrength = Math.min(ksLum / 0.5, 1)
+  return Math.min(1, Math.max(0, specularStrength * tintMatch * tintChroma))
+}
+
+/**
  * Prepare every texture for glTF export: sniff real bytes to set the correct
  * mimeType, and switch to flipY=false (images are exported unflipped), which
  * requires inverting the V coordinate of the consuming geometry.
@@ -917,6 +972,20 @@ export class AssetIngestionService {
       })
       group.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).material = flatMaterial
+      })
+    } else {
+      // MTLLoader.parse() always yields MeshPhongMaterial, which GLTFExporter
+      // exports with hardcoded metallicFactor 0 / roughnessFactor 1 — losing
+      // the source MTL's PBR signal. Convert to MeshStandardMaterial before
+      // export; sanitizeTextures below handles Standard materials unchanged.
+      group.traverse((child) => {
+        const mesh = child as THREE.Mesh
+        if (!mesh.isMesh) return
+        if (Array.isArray(mesh.material)) {
+          mesh.material = mesh.material.map((mat) => (mat instanceof THREE.MeshPhongMaterial ? convertPhongToStandard(mat) : mat))
+        } else if (mesh.material instanceof THREE.MeshPhongMaterial) {
+          mesh.material = convertPhongToStandard(mesh.material)
+        }
       })
     }
     applyModelRotation(group, item.rotation)
