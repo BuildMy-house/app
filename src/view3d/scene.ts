@@ -2,6 +2,8 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js'
 import {
+  DEFAULT_PBR_METALNESS,
+  DEFAULT_PBR_ROUGHNESS,
   DEFAULT_WALL_HEIGHT_CM,
   WALL_TEXTURES,
   resolveTextureUrl,
@@ -293,8 +295,8 @@ export function wallMesh(
   // so a wall's top edge reads as a cut slab surface, not cladding.
   const capMaterial = new THREE.MeshStandardMaterial({
     color: DEFAULT_CEILING_COLOR,
-    roughness: 0.7,
-    metalness: 0.0,
+    roughness: DEFAULT_PBR_ROUGHNESS,
+    metalness: DEFAULT_PBR_METALNESS,
   })
   if (wallsTransparency > 0) {
     capMaterial.transparent = true
@@ -428,8 +430,8 @@ export function roomMesh(room: Room, elevation: number, opts?: { opacity?: numbe
   const material = new THREE.MeshStandardMaterial({
     color: room.floorColor ?? DEFAULT_FLOOR_COLOR,
     side: THREE.DoubleSide,
-    roughness: 0.7,
-    metalness: 0.0,
+    roughness: DEFAULT_PBR_ROUGHNESS,
+    metalness: DEFAULT_PBR_METALNESS,
   })
   if (opts?.opacity !== undefined) {
     material.transparent = true
@@ -489,9 +491,16 @@ export function ceilingMesh(room: Room, elevation: number, levels: Level[]): THR
   const material = new THREE.MeshStandardMaterial({
     color: DEFAULT_CEILING_COLOR,
     side: THREE.DoubleSide,
-    roughness: 0.7,
-    metalness: 0.0,
+    roughness: DEFAULT_PBR_ROUGHNESS,
+    metalness: DEFAULT_PBR_METALNESS,
   })
+  const ceilingTexture = room.ceilingTextureId
+    ? applyMaterialTextures(material, room.ceilingTextureId)
+    : null
+  if (ceilingTexture) {
+    remapShapeUvs(geometry)
+    if (ceilingTexture.aoFile) addUv2(geometry)
+  }
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = `ceiling:${room.id}`
   mesh.position.y = elevation + levelHeight
@@ -546,13 +555,27 @@ function roofMesh(roof: Roof, elevation: number, levelHeight: number): THREE.Mes
   }
   const geometry = new THREE.BufferGeometry()
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
+  // Roof triangles are built ad hoc above (no THREE.Shape/ExtrudeGeometry to
+  // derive UVs from), so texture mapping needs its own UVs. Project onto the
+  // horizontal footprint (x, z) and scale by the same TEXTURE_TILE_CM
+  // convention as walls/floors — not a physically exact unwrap along sloped
+  // faces, but consistent tiling density and good enough for a roof texture
+  // (matches how remapShapeUvs treats floors).
+  const uvs = new Float32Array((vertices.length / 3) * 2)
+  for (let i = 0, v = 0; i < vertices.length; i += 3, v += 2) {
+    uvs[v] = (vertices[i] ?? 0) / TEXTURE_TILE_CM
+    uvs[v + 1] = (vertices[i + 2] ?? 0) / TEXTURE_TILE_CM
+  }
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
   geometry.computeVertexNormals()
   const material = new THREE.MeshStandardMaterial({
     color: roof.color ?? 0x8b5a3c,
-    roughness: 0.8,
-    metalness: 0,
+    roughness: DEFAULT_PBR_ROUGHNESS,
+    metalness: DEFAULT_PBR_METALNESS,
     side: THREE.DoubleSide,
   })
+  const roofTexture = roof.textureId ? applyMaterialTextures(material, roof.textureId) : null
+  if (roofTexture?.aoFile) addUv2(geometry)
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = `roof:${roof.id}`
   mesh.castShadow = true

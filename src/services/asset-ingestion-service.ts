@@ -29,6 +29,7 @@ import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import * as THREE from 'three'
+import { DEFAULT_PBR_METALNESS, DEFAULT_PBR_ROUGHNESS } from '../core/home'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
@@ -909,7 +910,11 @@ export class AssetIngestionService {
     const group = objLoader.parse(objText)
     const rawSize = new THREE.Box3().setFromObject(group).getSize(new THREE.Vector3())
     if (!item.mtlPath) {
-      const flatMaterial = new THREE.MeshStandardMaterial({ color: 0xc0c0c0, roughness: 0.8, metalness: 0.05 })
+      const flatMaterial = new THREE.MeshStandardMaterial({
+        color: 0xc0c0c0,
+        roughness: DEFAULT_PBR_ROUGHNESS,
+        metalness: DEFAULT_PBR_METALNESS,
+      })
       group.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).material = flatMaterial
       })

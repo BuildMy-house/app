@@ -11,6 +11,18 @@ const SCHEMA_VERSION = 1
 /** Default wall height in cm (SH3D UserPreferences default). */
 export const DEFAULT_WALL_HEIGHT_CM = 250
 
+/**
+ * Single source of truth for the PBR roughness/metalness applied to any
+ * surface that has no explicit material data of its own (wall caps, room
+ * floors/ceilings, roofs, and imported-asset fallback materials). Roughness
+ * 0.55 reads as a slightly-worn matte surface under the app's ACES tonemap +
+ * HDRI IBL — flat enough to avoid specular blowout, textured enough to not
+ * look chalk-flat. Metalness 0.0 because none of these surfaces are metal by
+ * default; explicit materials/textures override both per-surface as needed.
+ */
+export const DEFAULT_PBR_ROUGHNESS = 0.55
+export const DEFAULT_PBR_METALNESS = 0.0
+
 /** Stable export ids for the two SH3D cameras (driver IdAssigner parity). */
 const TOP_CAMERA_ID = 'camera-top-1'
 const OBSERVER_CAMERA_ID = 'camera-observer-1'
@@ -193,6 +205,8 @@ export interface Room {
   floorColor?: number | null
   floorTextureId?: string | null
   ceilingVisible?: boolean
+  /** Texture id (from WALL_TEXTURES) applied to this room's ceiling mesh, mirroring floorTextureId. */
+  ceilingTextureId?: string | null
   levelRef?: string | null
 }
 
@@ -268,6 +282,8 @@ export interface Roof {
   points: Array<[number, number]>
   name?: string | null
   color?: number | null
+  /** Texture id (from WALL_TEXTURES) applied to this roof's mesh, mirroring Room.floorTextureId. */
+  textureId?: string | null
   levelRef?: string | null
   style: 'gable' | 'hip' | 'shed' | 'flat'
   pitchDeg: number

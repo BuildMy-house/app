@@ -191,7 +191,7 @@ describe('PBR map wiring (MAT-T2)', () => {
     expect(mat.normalMap).toBeNull()
     expect(mat.roughnessMap).toBeNull()
     expect(mat.aoMap).toBeNull()
-    expect(mat.roughness).toBe(0.7)
+    expect(mat.roughness).toBe(0.55) // DEFAULT_PBR_ROUGHNESS (home.ts)
   })
 
   it('a texture whose URL fails to load never assigns an empty Texture to the material', () => {
