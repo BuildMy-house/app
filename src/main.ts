@@ -973,9 +973,9 @@ canvas.addEventListener('pointerdown', (event) => {
   pointer.lastX = point.x
   pointer.lastY = point.y
   const hit = engine.hitTestPoint(point)
-  if (hit?.kind === 'furniture-rotate' && engine.beginFurnitureRotation(hit.id, point)) {
+  if (!catalogPanel?.isArmed() && hit?.kind === 'furniture-rotate' && engine.beginFurnitureRotation(hit.id, point)) {
     pointer.rotationId = hit.id
-  } else if (hit?.kind === 'furniture' && engine.getTool() === 'selection' && engine.beginFurnitureMove(hit.id, point)) {
+  } else if (!catalogPanel?.isArmed() && hit?.kind === 'furniture' && engine.getTool() === 'selection' && engine.beginFurnitureMove(hit.id, point)) {
     pointer.furnitureMoveId = hit.id
   } else if (engine.getTool() === 'wall') {
     pointer.wallDrawing = true
@@ -1607,6 +1607,10 @@ const catalogReady = (cachedManifest
   ? Promise.resolve({ catalog: catalogFromManifest(cachedManifest), manifest: cachedManifest })
   : loadDefaultCatalog()
 ).then(async ({ catalog, manifest }) => {
+  // Measure catalog availability (cache-or-network) here, before the
+  // unrelated user-catalog dynamic import/merge — their variable cost would
+  // otherwise dominate a warm cache-hit load and hide the real cache signal.
+  telemetry.catalogLoad(performance.now() - catalogLoadStart, catalog.size)
   const { UserCatalog, InMemoryModelStore } = await import('./core/user-catalog')
   sharedCatalog = catalog
   // Merge user-imported items on top of the bundled defaults. The store is
@@ -1667,7 +1671,6 @@ const catalogReady = (cachedManifest
     })
   }
   setSidebarTab(catalogHost.classList.contains('show-properties') ? 'properties' : 'furniture')
-  telemetry.catalogLoad(performance.now() - catalogLoadStart, sharedCatalog.size)
   if (cachedManifest && userCatalog) {
     // Background revalidation: replace the cached copy only when the bundled
     // manifest actually changed, keeping this session's panel fully usable.
