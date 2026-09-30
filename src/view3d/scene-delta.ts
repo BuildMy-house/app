@@ -27,6 +27,7 @@ import {
   roomMesh,
   shouldRenderAtElevation,
   shouldShowCeiling,
+  clearEmissive,
   tintEmissive,
   wallMesh,
   withModelUrlResolver,
@@ -45,6 +46,7 @@ export type SceneUpdateType =
   | 'room-update'
   | 'room-delete'
   | 'level-change'
+  | 'selection-update'
   | 'full-rebuild' // Fallback when delta isn't applicable
 
 export interface SceneUpdate {
@@ -176,6 +178,20 @@ export function computeSceneUpdates(
     })
   if (roofsChanged) {
     return [{ type: 'full-rebuild', reason: 'roof change detected' }]
+  }
+
+  // Selection changes are scene-irrelevant to every check above (walls/
+  // furniture/rooms/roofs never encode selection) but DO need a cheap
+  // emissive-tint delta so a pure selection click doesn't fall through to
+  // the 'structural change detected' full-rebuild below. Compare by Set
+  // membership, not array order.
+  const oldSelection = new Set(oldHome.selection)
+  const newSelection = new Set(newHome.selection)
+  const selectionChanged =
+    oldSelection.size !== newSelection.size ||
+    [...newSelection].some((id) => !oldSelection.has(id))
+  if (selectionChanged) {
+    updates.push({ type: 'selection-update', reason: 'selection changed' })
   }
 
   // If no updates detected but we have a change, something structural changed
@@ -346,6 +362,8 @@ function applySceneUpdateCase(
   opts?: ApplySceneUpdateOptions,
 ): boolean {
   switch (update.type) {
+    case 'selection-update':
+      return applySelectionUpdate(scene, home, oldHome)
     case 'furniture-update': {
       const old = oldHome?.furniture.find((f) => f.id === update.furnitureId)
       if (!old || !update.furniture || !isTransformOnlyFurnitureChange(old, update.furniture)) {
@@ -412,6 +430,53 @@ const scratchPos = new THREE.Vector3()
 const scratchAxis = new THREE.Vector3(0, 1, 0)
 const unitScale = new THREE.Vector3(1, 1, 1)
 const scratchQuat = new THREE.Quaternion()
+
+/**
+ * Cheap in-place selection-tint delta: walks the scene once and sets
+ * emissive tint/clear on every named object (`furniture:<id>`,
+ * `wall:<id>`, `room:<id>`, `roof:<id>`, `ceiling:<id>`) whose selection
+ * state changed, instead of tearing down and rebuilding the whole scene.
+ *
+ * Bails (returns false, forcing the caller's full-rebuild fallback) if any
+ * changed id is currently part of an InstancedMesh instance batch —
+ * InstancedMesh has one shared material per batch, so there is no safe
+ * per-instance tint; only a full rebuild can correctly re-partition the
+ * item out to an individual mesh. See the module doc / addFurnitureMeshes
+ * in scene.ts for why selected items are never instanced.
+ */
+function applySelectionUpdate(
+  scene: THREE.Scene,
+  home: NormalizedHomeState,
+  oldHome?: NormalizedHomeState | null,
+): boolean {
+  if (!oldHome) return false
+  const oldSelection = new Set(oldHome.selection)
+  const newSelection = new Set(home.selection)
+  const changed = new Set<string>()
+  for (const id of oldSelection) if (!newSelection.has(id)) changed.add(id)
+  for (const id of newSelection) if (!oldSelection.has(id)) changed.add(id)
+  if (changed.size === 0) return true
+
+  let blockedByInstancing = false
+  scene.traverse((object) => {
+    if (blockedByInstancing) return
+    if (object instanceof THREE.InstancedMesh && object.name.startsWith('furniture-instanced-')) {
+      const ids = object.userData.instanceFurnitureIds as string[] | undefined
+      if (ids?.some((id) => changed.has(id))) blockedByInstancing = true
+    }
+  })
+  if (blockedByInstancing) return false
+
+  scene.traverse((object) => {
+    const colonIdx = object.name.indexOf(':')
+    if (colonIdx < 0) return
+    const id = object.name.slice(colonIdx + 1)
+    if (!changed.has(id)) return
+    if (newSelection.has(id)) tintEmissive(object)
+    else clearEmissive(object)
+  })
+  return true
+}
 
 /**
  * furniture-update: matrix-only. Sets translation (x/y/elevation) and Y

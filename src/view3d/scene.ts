@@ -1291,7 +1291,7 @@ export function tintEmissive(object: THREE.Object3D): void {
   })
 }
 
-function clearEmissive(object: THREE.Object3D): void {
+export function clearEmissive(object: THREE.Object3D): void {
   object.traverse((child) => {
     if ('material' in child) {
       const mesh = child as THREE.Mesh

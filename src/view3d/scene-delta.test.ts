@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   applySceneUpdate,
@@ -7,7 +8,7 @@ import {
   snapshotDeltaMetrics,
   type SceneUpdate,
 } from './scene-delta'
-import { buildScene } from './scene'
+import { buildScene, SELECTION_EMISSIVE_COLOR } from './scene'
 import { createEmptyHome, type Furniture, type Wall, type Room } from '../core/home'
 
 /** Fresh 60s window for every test — snapshotDeltaMetrics resets accumulators. */
@@ -350,5 +351,233 @@ describe('applySceneUpdate furniture-add', () => {
 
     expect(ok).toBe(true)
     expect(scene.getObjectByName('furniture:f3')).toBeUndefined()
+  })
+})
+
+// ── SCENE-DELTA-2: in-place selection-tint delta ─────────────────────────────
+
+/** Read emissive state from every material under a named object. */
+function emissivesOf(scene: THREE.Scene, name: string): Array<{ hex: number; intensity: number }> {
+  const obj = scene.getObjectByName(name)
+  expect(obj, `expected object ${name}`).toBeDefined()
+  const out: Array<{ hex: number; intensity: number }> = []
+  obj!.traverse((child) => {
+    const mesh = child as THREE.Mesh
+    if (!('material' in mesh)) return
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    for (const m of mats) {
+      if ('emissive' in m) {
+        const std = m as THREE.MeshStandardMaterial
+        out.push({ hex: std.emissive.getHex(), intensity: std.emissiveIntensity })
+      }
+    }
+  })
+  expect(out.length).toBeGreaterThan(0)
+  return out
+}
+
+function expectTinted(scene: THREE.Scene, name: string): void {
+  for (const m of emissivesOf(scene, name)) expect(m.hex).toBe(SELECTION_EMISSIVE_COLOR)
+}
+
+/** Fresh build, never tinted: black emissive, but default intensity (1). */
+function expectUntinted(scene: THREE.Scene, name: string): void {
+  for (const m of emissivesOf(scene, name)) expect(m.hex).toBe(0x000000)
+}
+
+/** After clearEmissive: black AND intensity explicitly reset to 0. */
+function expectCleared(scene: THREE.Scene, name: string): void {
+  for (const m of emissivesOf(scene, name)) {
+    expect(m.hex).toBe(0x000000)
+    expect(m.intensity).toBe(0)
+  }
+}
+
+/** Two furniture items with different colors → different instancing groups → never instanced. */
+function twoSofasHome() {
+  const home = createEmptyHome()
+  home.furniture.push(chair('A', { color: 0xff0000, x: 100 }), chair('B', { color: 0x00ff00, x: 400 }))
+  return home
+}
+
+describe('applySceneUpdate selection-update', () => {
+  it('single-select: returns only selection-update (not full-rebuild) and tints just A', () => {
+    const old = twoSofasHome()
+    const next = { ...old, selection: ['A'] }
+    const scene = buildScene(old)
+    expectUntinted(scene, 'furniture:A')
+    expectUntinted(scene, 'furniture:B')
+
+    const updates = computeSceneUpdates(old, next)
+    expect(updates).toEqual([{ type: 'selection-update', reason: 'selection changed' }])
+
+    const ok = applySceneUpdate(scene, updates[0]!, next, old)
+    expect(ok).toBe(true)
+    expectTinted(scene, 'furniture:A')
+    expectUntinted(scene, 'furniture:B')
+  })
+
+  it('multi-select: tints both selected items', () => {
+    const old = twoSofasHome()
+    const next = { ...old, selection: ['A', 'B'] }
+    const scene = buildScene(old)
+
+    const updates = computeSceneUpdates(old, next)
+    expect(updates).toEqual([{ type: 'selection-update', reason: 'selection changed' }])
+
+    expect(applySceneUpdate(scene, updates[0]!, next, old)).toBe(true)
+    expectTinted(scene, 'furniture:A')
+    expectTinted(scene, 'furniture:B')
+  })
+
+  it('deselect: clears the previously-tinted furniture back to black/intensity 0', () => {
+    const old = { ...twoSofasHome(), selection: ['A'] }
+    const next = { ...old, selection: [] }
+    const scene = buildScene(old)
+    expectTinted(scene, 'furniture:A')
+
+    const updates = computeSceneUpdates(old, next)
+    expect(updates).toEqual([{ type: 'selection-update', reason: 'selection changed' }])
+
+    expect(applySceneUpdate(scene, updates[0]!, next, old)).toBe(true)
+    expectCleared(scene, 'furniture:A')
+    expectUntinted(scene, 'furniture:B')
+  })
+
+  it('wall select then deselect is cleared in place (asymmetry fix: non-furniture clear)', () => {
+    const old = createEmptyHome()
+    old.walls.push(WA)
+    const scene = buildScene(old)
+    expectUntinted(scene, 'wall:wA')
+
+    // Select the wall via the delta path.
+    const selected = { ...old, selection: ['wA'] }
+    const selUpdates = computeSceneUpdates(old, selected)
+    expect(selUpdates).toEqual([{ type: 'selection-update', reason: 'selection changed' }])
+    expect(applySceneUpdate(scene, selUpdates[0]!, selected, old)).toBe(true)
+    expectTinted(scene, 'wall:wA')
+
+    // Deselect: applySelectionHighlight's clearEmissive only special-cases
+    // `furniture:` — the delta path must clear walls too, or a previously
+    // tinted wall would stay tinted forever on the reused scene.
+    const deselected = { ...selected, selection: [] }
+    const delUpdates = computeSceneUpdates(selected, deselected)
+    expect(delUpdates).toEqual([{ type: 'selection-update', reason: 'selection changed' }])
+    expect(applySceneUpdate(scene, delUpdates[0]!, deselected, selected)).toBe(true)
+    expectCleared(scene, 'wall:wA')
+  })
+
+  it('room select then deselect is cleared in place via the delta path', () => {
+    const old = createEmptyHome()
+    old.rooms.push({ id: 'r1', points: [[0, 0], [100, 0], [100, 100]] })
+    const scene = buildScene(old)
+    expectUntinted(scene, 'room:r1')
+
+    const selected = { ...old, selection: ['r1'] }
+    const selUpdates = computeSceneUpdates(old, selected)
+    expect(selUpdates).toEqual([{ type: 'selection-update', reason: 'selection changed' }])
+    expect(applySceneUpdate(scene, selUpdates[0]!, selected, old)).toBe(true)
+    expectTinted(scene, 'room:r1')
+
+    const deselected = { ...selected, selection: [] }
+    const delUpdates = computeSceneUpdates(selected, deselected)
+    expect(delUpdates).toEqual([{ type: 'selection-update', reason: 'selection changed' }])
+    expect(applySceneUpdate(scene, delUpdates[0]!, deselected, selected)).toBe(true)
+    expectCleared(scene, 'room:r1')
+  })
+
+  it('bails (returns false) when the changed id lives in an InstancedMesh batch', () => {
+    // 3 identical chairs → one InstancedMesh (mirror of scene.test.ts T1).
+    const old = createEmptyHome()
+    for (let i = 0; i < 3; i++) old.furniture.push(chair(`c${i}`, { x: i * 60, color: 0xff0000, catalogId: 'chair-a' }))
+    const scene = buildScene(old)
+    let instanced: THREE.InstancedMesh | undefined
+    scene.traverse((o) => {
+      if (o instanceof THREE.InstancedMesh && o.name.startsWith('furniture-instanced-')) instanced = o
+    })
+    expect(instanced).toBeDefined()
+    expect(instanced!.count).toBe(3)
+
+    const next = { ...old, selection: ['c1'] }
+    const updates = computeSceneUpdates(old, next)
+    expect(updates).toEqual([{ type: 'selection-update', reason: 'selection changed' }])
+
+    // Must refuse: tinting the shared batch material would highlight all 3.
+    expect(applySceneUpdate(scene, updates[0]!, next, old)).toBe(false)
+  })
+
+  it('bundles a selection change with a furniture move and both apply', () => {
+    const old = twoSofasHome()
+    const moved = { ...old.furniture[0]!, x: 300, y: 250 }
+    const next = {
+      ...old,
+      furniture: [moved, old.furniture[1]!],
+      selection: ['A'],
+    }
+    const scene = buildScene(old)
+    const before = scene.getObjectByName('furniture:A') as THREE.Mesh
+
+    const updates = computeSceneUpdates(old, next)
+    expect(updates.length).toBe(2)
+    expect(updates).toEqual(expect.arrayContaining([
+      { type: 'furniture-update', furnitureId: 'A', furniture: moved },
+      { type: 'selection-update', reason: 'selection changed' },
+    ]))
+
+    const ok = updates.every((u) => applySceneUpdate(scene, u, next, old))
+    expect(ok).toBe(true)
+    // Neither update reverted the other: moved AND tinted, same mesh object.
+    expect(scene.getObjectByName('furniture:A')).toBe(before)
+    expect(before.position.x).toBe(300)
+    expect(before.position.z).toBe(250)
+    expectTinted(scene, 'furniture:A')
+  })
+
+  it('no-op when selection is identical (still falls back to structural rebuild)', () => {
+    const old = { ...twoSofasHome(), selection: ['A'] }
+    const next = { ...old, selection: ['A'] }
+    expect(computeSceneUpdates(old, next)).toEqual([
+      { type: 'full-rebuild', reason: 'structural change detected' },
+    ])
+  })
+})
+
+// ── SCENE-DELTA-2 benchmark ──────────────────────────────────────────────────
+//
+// Baseline: before the selection diff existed, `selection` was never compared,
+// so a pure selection change produced zero updates and fell into the final
+// `structural change detected` branch — i.e. all 50/50 of these calls would
+// have returned full-rebuild (mathematically obvious from the pre-fix
+// computeSceneUpdates: selection never appeared in any diff). After the fix,
+// 0/50.
+
+describe('SCENE-DELTA-2 benchmark', () => {
+  it('50 pure selection changes: 0 full-rebuilds, 50 tint applies in <5ms total', () => {
+    const home = twoSofasHome()
+    const scene = buildScene(home)
+
+    const pairs: Array<{ updates: SceneUpdate[]; prev: ReturnType<typeof createEmptyHome>; cur: ReturnType<typeof createEmptyHome> }> = []
+    let prev = home
+    let rebuilds = 0
+    let selectionUpdates = 0
+    for (let i = 0; i < 50; i++) {
+      const cur = { ...prev, selection: i % 2 === 0 ? ['A'] : ['B'] }
+      const updates = computeSceneUpdates(prev, cur)
+      if (updates.some((u) => u.type === 'full-rebuild')) rebuilds++
+      if (updates.length === 1 && updates[0]!.type === 'selection-update') selectionUpdates++
+      pairs.push({ updates, prev, cur })
+      prev = cur
+    }
+    expect(rebuilds).toBe(0) // before the fix: 50/50
+    expect(selectionUpdates).toBe(50)
+
+    // Warm once, then measure the 50 in-place tint applies.
+    for (const { updates, prev: p, cur } of pairs) applySceneUpdate(scene, updates[0]!, cur, p)
+    const t0 = performance.now()
+    for (const { updates, prev: p, cur } of pairs) {
+      expect(applySceneUpdate(scene, updates[0]!, cur, p)).toBe(true)
+    }
+    const elapsed = performance.now() - t0
+    expect(elapsed).toBeLessThan(5)
   })
 })
