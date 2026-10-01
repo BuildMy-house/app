@@ -37,6 +37,7 @@ import {
   type SceneUpdateType,
 } from './scene-delta'
 import { exportViewportAsImage } from '../export/quick-preview'
+import { applyFurnitureLod } from './furniture-lod'
 
 // Per-texture memory estimate for the telemetry textureMemoryMB figure (1024×1024 RGBA).
 const ESTIMATED_TEXTURE_MB = 1
@@ -164,6 +165,11 @@ export class View3D {
   private _renderSamples: number[] = []
   private _composer: EffectComposer | undefined
   private _bloomPass: UnrealBloomPass | undefined
+  // Furniture objects currently hidden by the distance LOD pass (below). A
+  // WeakSet survives scene rebuilds without leaking: rebuilt scenes swap in
+  // fresh objects, and only objects IN the set are ever unhidden, so stale
+  // entries for disposed objects are simply never revisited.
+  private readonly _lodHidden = new WeakSet<THREE.Object3D>()
 
   constructor(
     private readonly store: HomeStore,
@@ -1157,6 +1163,23 @@ export class View3D {
   private draw(): void {
     const renderer = this.renderer
     if (!renderer) return
+    // Distance LOD: hide sub-threshold furniture, restore re-approached
+    // furniture. Runs in the render-on-demand funnel (draw() is the single
+    // path every render goes through) rather than a persistent per-frame
+    // timer — idle frames cost nothing, and every camera move/edit already
+    // triggers a draw, which is exactly when distances change. The height
+    // is the drawing buffer (CSS × pixel ratio), so interaction-mode's
+    // reduced pixel ratio culls slightly more mid-gesture, where it helps.
+    // Stubbed renderers (metrics tests) have no canvas: skip the pass.
+    if (renderer.domElement) {
+      applyFurnitureLod(
+        this._scene,
+        this.perspectiveCamera,
+        renderer.domElement.height,
+        this._quality.lodCullPixelThreshold,
+        this._lodHidden,
+      )
+    }
     const info = renderer.info
     info.autoReset = false
     info.reset()

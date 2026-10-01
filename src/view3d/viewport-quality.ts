@@ -31,6 +31,13 @@ export interface ViewportQuality {
   bloom: boolean
   /** Ambient occlusion technique. 'ssao' is cheaper, 'gtao' is higher quality. */
   ao: 'none' | 'ssao' | 'gtao'
+  /**
+   * Distance-cull furniture whose estimated on-screen size falls below this
+   * many pixels (see furniture-lod.ts). 0 disables furniture LOD culling.
+   * Lower presets cull more aggressively (8px) to keep weak GPUs fed;
+   * higher presets cull less (3-4px) to keep distant detail.
+   */
+  lodCullPixelThreshold: number
 }
 
 export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = {
@@ -43,6 +50,7 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
     maxAnisotropy: 1,
     bloom: false,
     ao: 'none',
+    lodCullPixelThreshold: 8,
   },
   medium: {
     preset: 'medium',
@@ -53,6 +61,7 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
     maxAnisotropy: 4,
     bloom: true,
     ao: 'none',
+    lodCullPixelThreshold: 8,
   },
   high: {
     preset: 'high',
@@ -63,6 +72,7 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
     maxAnisotropy: 8,
     bloom: true,
     ao: 'ssao',
+    lodCullPixelThreshold: 4,
   },
   ultra: {
     preset: 'ultra',
@@ -77,6 +87,7 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
     maxAnisotropy: 16,
     bloom: true,
     ao: 'gtao',
+    lodCullPixelThreshold: 3,
   },
 }
 
@@ -102,6 +113,7 @@ export function loadViewportQuality(storage: Pick<Storage, 'getItem'> = localSto
       ao: (['none', 'ssao', 'gtao'] as const).includes(parsed.ao as 'none' | 'ssao' | 'gtao')
         ? (parsed.ao as 'none' | 'ssao' | 'gtao')
         : base.ao,
+      lodCullPixelThreshold: clampNum(parsed.lodCullPixelThreshold, 0, 64, base.lodCullPixelThreshold),
     }
   } catch {
     return { ...DEFAULT_VIEWPORT_QUALITY }
