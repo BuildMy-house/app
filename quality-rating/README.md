@@ -23,12 +23,27 @@ npm run quality:rate -- --grep "ultra"      # narrow: one tier
 3. Grades each capture with pure heuristics (`heuristics.ts`, unit-tested in
    `heuristics.test.ts` under `npm run test`).
 4. Optional vision tier: every fail/borderline + ~10% random sample of passes
-   is sent to `claude-haiku-4-5` for a defect look-over (`vision-judge.ts`).
-   Set `ANTHROPIC_API_KEY` to enable; without it the tier prints one warning
-   line and skips — never a hard failure.
+   is judged by `claude-haiku-4-5` for defects (`vision-judge.ts`). The tier
+   shells out to the local `claude` CLI in non-interactive mode — no separate
+   API key — so `claude` must be authenticated (`claude auth status` or
+   equivalent) in whatever environment runs this. If `claude` is missing,
+   fails, or replies with unparseable output, the tier prints one warning line
+   and skips — never a hard failure.
 5. Writes per-record JSON + screenshots to `quality-rating/reports/<run-id>/`,
    then `summary.json` there and a copy to `quality-rating/reports/latest.json`.
    `reports/` is gitignored.
+
+## Vision-judge cost/latency
+
+Measured from a real test dispatch, not an estimate: one batched
+`claude --print` call costs roughly **$0.05–0.09 total per `quality:rate`
+run**, regardless of how many records are judged in that batch — the cost is
+dominated by Claude Code's fixed per-process system-prompt/tool overhead
+(grading 2 images in one call cost ~$0.053 vs ~$0.05 for 1). The tier
+therefore issues **one process per run, not one per screenshot**. Each dispatch
+takes several seconds; for a typical run judging the usual fail/borderline +
+~10% of passes (a handful of the full 24 records), expect one extra **~5–10 s**
+step adding **well under $0.10** to the run.
 
 ## Heuristic thresholds
 
