@@ -1230,7 +1230,8 @@ export function furnitureMesh(
  * GLB-backed furniture instancing (perf1): unlike the box path, GLB items
  * group by RESOLVED model URL (item.modelPath, or derived from catalogId —
  * the same resolution swapInModel uses) plus dimensions and material setup,
- * so one InstancedMesh serves every visually-identical copy of a model.
+ * so one InstancedMesh (per material slot — see GlbInstanceData) serves
+ * every visually-identical copy of a model.
  * Mirrors the box path's exclusions (hidden, selected) and additionally
  * excludes windows (per-item glass material) and modelMirrored items
  * (per-item X-flip a shared geometry cannot carry).
@@ -1286,15 +1287,26 @@ function groupGlbFurnitureForInstancing(
 }
 
 /**
- * Cached (merged-geometry, base-material) pair for instancing one GLB model
- * at one footprint, keyed by url + dimensions because the fit-to-box scale
- * and floor lift are baked into the shared geometry. null = this model
- * cannot be instanced (multi-material-slot GLB, unmergeable attribute sets,
- * degenerate bounds) or is not in the model cache yet — both render
- * individually via furnitureMesh(); the async load populates the cache so
- * the next rebuild instances.
+ * One merged-geometry slot = one material of a GLB model, ready to back an
+ * InstancedMesh.
  */
-type GlbInstanceData = { geometry: THREE.BufferGeometry; material: THREE.MeshStandardMaterial }
+type GlbInstanceSlot = { geometry: THREE.BufferGeometry; material: THREE.MeshStandardMaterial }
+
+/**
+ * Cached per-material-slot pairs for instancing one GLB model at one
+ * footprint, keyed by url + dimensions because the fit-to-box scale and
+ * floor lift are baked into the shared geometries. rt3d-1 implementation
+ * decision: the cached value grew from a single {geometry, material} pair to
+ * an ARRAY of slots (one per material) rather than keying the cache by
+ * material — slot count and slot order are a property of the model itself,
+ * discovered once per url+footprint here and reproduced identically by every
+ * rebuild, so one cache entry stays enough. null = this model cannot be
+ * instanced (material-array meshes, unmergeable attribute sets, degenerate
+ * bounds) or is not in the model cache yet — both render individually via
+ * furnitureMesh(); the async load populates the cache so the next rebuild
+ * instances.
+ */
+type GlbInstanceData = GlbInstanceSlot[]
 const glbInstanceCache = new Map<string, GlbInstanceData | null>()
 
 function glbInstanceDataFor(url: string, item: Furniture): GlbInstanceData | null {
@@ -1309,56 +1321,84 @@ function glbInstanceDataFor(url: string, item: Furniture): GlbInstanceData | nul
 function buildGlbInstanceData(url: string, item: Furniture): GlbInstanceData | null {
   const cachedModel = getCachedModel(url)
   if (!cachedModel) return null
-  // Only single-material-slot models can instance: one material serves every
-  // instance, so multi-slot furniture (e.g. the multi-material door GLBs)
-  // keeps rendering individually. Documented scope decision for perf1.
-  const nodes: THREE.Object3D[] = []
-  cachedModel.traverse((o) => nodes.push(o))
-  const meshes: THREE.Mesh[] = []
-  let material: THREE.MeshStandardMaterial | null = null
-  for (const node of nodes) {
-    const m = node as THREE.Mesh
-    if (!m.isMesh) continue
-    const mats = Array.isArray(m.material) ? m.material : [m.material]
-    if (mats.length !== 1) return null
-    const std = mats[0] as THREE.MeshStandardMaterial
-    if (!std.isMeshStandardMaterial || (material !== null && material !== std)) return null
-    material = std
-    meshes.push(m)
-  }
-  if (!material || meshes.length === 0) return null
   cachedModel.updateMatrixWorld(true)
-  const parts = meshes.map((m) => {
-    const g = m.geometry.clone()
-    g.applyMatrix4(m.matrixWorld)
-    return g
+  // Bucket the model's meshes by material identity: one bucket = one
+  // material slot = one downstream InstancedMesh. GLTFLoader emits exactly
+  // one material per Mesh (one Mesh per glTF primitive), so a mesh still
+  // carrying a material ARRAY has no loader path producing it today — index
+  // surgery on such a mesh would be untested dead code, so it keeps the old
+  // bail and renders individually via furnitureMesh().
+  const buckets = new Map<THREE.MeshStandardMaterial, THREE.BufferGeometry[]>()
+  let unsupported = false
+  cachedModel.traverse((o) => {
+    if (unsupported) return
+    const m = o as THREE.Mesh
+    if (!m.isMesh) return
+    const mats = Array.isArray(m.material) ? m.material : [m.material]
+    if (mats.length !== 1) {
+      unsupported = true
+      return
+    }
+    const std = mats[0] as THREE.MeshStandardMaterial
+    if (!std.isMeshStandardMaterial) {
+      unsupported = true
+      return
+    }
+    const part = m.geometry.clone()
+    part.applyMatrix4(m.matrixWorld)
+    if (item.modelPath?.includes('orientation-90-v1')) part.rotateY(-Math.PI / 2)
+    const bucket = buckets.get(std)
+    if (bucket) bucket.push(part)
+    else buckets.set(std, [part])
   })
-  const merged = mergeGeometries(parts, false)
-  for (const part of parts) part.dispose()
-  if (!merged) return null
-  // Bake fitModelToBox's transform (including the orientation-90-v1 quarter
-  // turn) plus the half-height floor lift the box instancing path also bakes
-  // in (createInstancedMesh places instance origins at the floor) into the
-  // shared geometry.
-  if (item.modelPath?.includes('orientation-90-v1')) merged.rotateY(-Math.PI / 2)
-  merged.computeBoundingBox()
-  const box = merged.boundingBox!
-  const size = box.getSize(new THREE.Vector3())
+  if (unsupported || buckets.size === 0) {
+    for (const parts of buckets.values()) for (const part of parts) part.dispose()
+    return null
+  }
+  // Fit transform from the UNION of every slot's bounds, applied identically
+  // to each slot: slots are sub-parts of one model, so scaling each from its
+  // own bounds would pull the pieces of the same furniture apart (a single-
+  // slot model degenerates to exactly the old whole-model bbox fit).
+  const union = new THREE.Box3()
+  for (const parts of buckets.values()) {
+    for (const part of parts) {
+      part.computeBoundingBox()
+      union.union(part.boundingBox!)
+    }
+  }
+  const size = union.getSize(new THREE.Vector3())
   if (size.x <= 0 || size.y <= 0 || size.z <= 0) {
-    merged.dispose()
+    for (const parts of buckets.values()) for (const part of parts) part.dispose()
     return null
   }
   const scale = new THREE.Vector3(item.width / size.x, item.height / size.y, item.depth / size.z)
-  const center = box.getCenter(new THREE.Vector3())
+  const center = union.getCenter(new THREE.Vector3())
   const fit = new THREE.Matrix4().makeScale(scale.x, scale.y, scale.z)
   fit.setPosition(-center.x * scale.x, -center.y * scale.y + item.height / 2, -center.z * scale.z)
-  merged.applyMatrix4(fit)
-  // One cloned base material per url+dims; per-item overrides/textureId are
-  // applied to the clone by the caller (applyFurnitureItemMaterial) so the
-  // cached pair stays pristine.
-  const base = material.clone()
-  applyAnisotropyToMaterial(base)
-  return { geometry: merged, material: base }
+  // Bake fitModelToBox's transform (including the orientation-90-v1 quarter
+  // turn, already applied per part above) plus the half-height floor lift the
+  // box instancing path also bakes in (createInstancedMesh places instance
+  // origins at the floor) into each shared slot geometry.
+  const slots: GlbInstanceData = []
+  for (const [material, parts] of buckets) {
+    const merged = mergeGeometries(parts, false)
+    for (const part of parts) part.dispose()
+    if (!merged) {
+      for (const slot of slots) {
+        slot.geometry.dispose()
+        slot.material.dispose()
+      }
+      return null
+    }
+    merged.applyMatrix4(fit)
+    // One cloned base material per slot + url+dims; per-item overrides/
+    // textureId are applied to the clone by the caller
+    // (applyFurnitureItemMaterial) so the cached slots stay pristine.
+    const base = material.clone()
+    applyAnisotropyToMaterial(base)
+    slots.push({ geometry: merged, material: base })
+  }
+  return slots
 }
 
 /**
@@ -1369,7 +1409,8 @@ function buildGlbInstanceData(url: string, item: Furniture): GlbInstanceData | n
  * selected piece must stay an individual mesh). Box-fallback pieces group via
  * groupFurnitureForInstancing; GLB-backed pieces (the common case) group by
  * resolved model URL + material setup via groupGlbFurnitureForInstancing,
- * rendering one InstancedMesh per model once its GLB is in the model cache.
+ * rendering one InstancedMesh PER MATERIAL SLOT (the model's meshes merged
+ * per material) once its GLB is in the model cache.
  */
 function addFurnitureMeshes(
   root: THREE.Group,
@@ -1424,27 +1465,32 @@ function addFurnitureMeshes(
     root.add(mesh)
   }
   // GLB-backed furniture (the common case): items sharing one resolved model
-  // URL, footprint and material setup batch into ONE InstancedMesh whose
-  // geometry is the model's meshes merged into a single-material buffer.
-  // Cache misses fall through to furnitureMesh(), whose async load populates
-  // the model cache, so the next rebuild instances them.
+  // URL, footprint and material setup batch into one InstancedMesh PER
+  // MATERIAL SLOT — every slot carries the same instance list, transforms and
+  // elevations; only the merged geometry and base material differ. Cache
+  // misses fall through to furnitureMesh(), whose async load populates the
+  // model cache, so the next rebuild instances them.
   for (const group of groupGlbFurnitureForInstancing(furniture, selectionSet, instancedIds)) {
     const first = group.items[0]!
-    const data = glbInstanceDataFor(group.url, first)
-    if (!data) continue
-    const material = data.material.clone()
-    applyFurnitureItemMaterial(material, first, data.geometry)
-    const mesh = createInstancedMesh(
-      { modelPath: group.modelPath, color: group.color, items: group.items },
-      data.geometry,
-      material,
-      elevations,
-    )
-    // Same ':'-free name convention as the box path above.
-    mesh.name = `furniture-instanced-${group.modelPath}`
-    mesh.userData.instanceFurnitureIds = group.items.map((it) => it.id)
+    const slots = glbInstanceDataFor(group.url, first)
+    if (!slots) continue
+    for (const slot of slots) {
+      const material = slot.material.clone()
+      applyFurnitureItemMaterial(material, first, slot.geometry)
+      const mesh = createInstancedMesh(
+        { modelPath: group.modelPath, color: group.color, items: group.items },
+        slot.geometry,
+        material,
+        elevations,
+      )
+      // Same ':'-free name convention as the box path above. Every slot of
+      // one group shares the name — consumers match by prefix and by
+      // userData.instanceFurnitureIds, never by unique name.
+      mesh.name = `furniture-instanced-${group.modelPath}`
+      mesh.userData.instanceFurnitureIds = group.items.map((it) => it.id)
+      root.add(mesh)
+    }
     for (const it of group.items) instancedIds.add(it.id)
-    root.add(mesh)
   }
   for (const item of furniture) {
     if (item.visible === false) continue

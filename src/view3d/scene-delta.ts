@@ -503,20 +503,20 @@ function applyFurnitureMatrixUpdate(
     return true
   }
 
-  // Instanced group member: find the owning InstancedMesh via its id list.
-  let owner: THREE.InstancedMesh | undefined
-  let index = -1
+  // Instanced group member: find EVERY owning InstancedMesh via its id list.
+  // Multi-material-slot models render as one InstancedMesh per material slot
+  // with the same instance order in each (rt3d-1), so the id's instance index
+  // is the same across slots — updating only the first match would leave the
+  // other material slots behind at the old transform.
+  const owners: { mesh: THREE.InstancedMesh; index: number }[] = []
   scene.traverse((o) => {
-    if (owner || !(o instanceof THREE.InstancedMesh)) return
+    if (!(o instanceof THREE.InstancedMesh)) return
     const ids = o.userData.instanceFurnitureIds as string[] | undefined
     if (!ids) return
     const i = ids.indexOf(id)
-    if (i >= 0) {
-      owner = o
-      index = i
-    }
+    if (i >= 0) owners.push({ mesh: o, index: i })
   })
-  if (!owner) return false
+  if (owners.length === 0) return false
   // Negated: plan-space y-down angle vs Three.js right-handed Y rotation
   // (same convention as scene.ts furniture placement) — keeps 2D/3D in sync.
   scratchQuat.setFromAxisAngle(scratchAxis, -THREE.MathUtils.degToRad(item.angleDeg))
@@ -525,8 +525,10 @@ function applyFurnitureMatrixUpdate(
     scratchQuat,
     unitScale,
   )
-  owner.setMatrixAt(index, scratchMatrix)
-  owner.instanceMatrix.needsUpdate = true
+  for (const owner of owners) {
+    owner.mesh.setMatrixAt(owner.index, scratchMatrix)
+    owner.mesh.instanceMatrix.needsUpdate = true
+  }
   return true
 }
 

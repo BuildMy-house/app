@@ -1354,7 +1354,137 @@ describe('furniture selection material isolation (M66)', () => {
   })
 })
 
-// ── T2: delta updates ────────────────────────────────────────────────────────
+// ── rt3d-1: multi-material-slot GLB furniture instancing ─────────────────────
+
+describe('multi-material-slot GLB instancing (rt3d-1)', () => {
+  const MODEL_URL = 'assets/models/dual-slot-test.glb'
+
+  /**
+   * Two sibling meshes with two distinct materials — exactly what GLTFLoader
+   * emits for a two-primitive glTF. The pre-rt3d-1 single-material bail
+   * rejected this model and fell back to individual furnitureMesh() rendering.
+   */
+  function dualSlotModel(): THREE.Group {
+    const group = new THREE.Group()
+    group.add(
+      new THREE.Mesh(
+        new THREE.BoxGeometry(1, 2, 0.5),
+        new THREE.MeshStandardMaterial({ name: 'panel', color: 0x884422 }),
+      ),
+    )
+    group.add(
+      new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.2, 0.6),
+        new THREE.MeshStandardMaterial({ name: 'handle', color: 0xcccccc }),
+      ),
+    )
+    return group
+  }
+
+  function dualSlotItem(id: string, x: number): Furniture {
+    return {
+      id,
+      name: 'Door',
+      modelPath: 'models/dual-slot-test.glb',
+      x,
+      y: 0,
+      angleDeg: 0,
+      width: 90,
+      depth: 10,
+      height: 210,
+      elevation: 0,
+    }
+  }
+
+  it('yields one InstancedMesh per material slot instead of individual furnitureMesh()', () => {
+    __seedModelCache(MODEL_URL, dualSlotModel())
+    const home = createEmptyHome()
+    home.furniture.push(dualSlotItem('d1', 0), dualSlotItem('d2', 300))
+    const scene = buildScene(home, { modelUrlResolver: (p) => `assets/${p}` })
+
+    const instanced = instancedFurnitureMeshes(scene)
+    expect(instanced.length).toBe(2)
+    for (const mesh of instanced) {
+      expect(mesh.name).toBe('furniture-instanced-models/dual-slot-test.glb')
+      expect(mesh.count).toBe(2)
+      expect(mesh.userData.instanceFurnitureIds).toEqual(['d1', 'd2'])
+    }
+    // The two slots must not share geometry or material.
+    expect(instanced[0]!.geometry).not.toBe(instanced[1]!.geometry)
+    expect(instanced[0]!.material).not.toBe(instanced[1]!.material)
+    // ...and no individual fallback meshes at all.
+    expect(furnitureMeshes(scene).length).toBe(0)
+    expect(scene.getObjectByName('furniture:d1')).toBeUndefined()
+
+    // Union fit: every slot shares ONE fit transform computed from the union
+    // of the model's bounds, so the 0.2-tall handle keeps its place inside
+    // the 210-tall door (0.2/2.0 of the height → y ≈ 94.5..115.5, height 21)
+    // instead of being stretched to the full 210 the way a per-slot bbox fit
+    // would. The panel slot spans the full item height.
+    const heights = instanced
+      .map((mesh) => {
+        const bbox = new THREE.Box3().setFromObject(mesh)
+        return Math.round(bbox.max.y - bbox.min.y)
+      })
+      .sort((a, b) => a - b)
+    expect(heights).toEqual([21, 210])
+  })
+
+  it('keeps excluded items (selected / mirrored / hidden) out of the slots', () => {
+    __seedModelCache(MODEL_URL, dualSlotModel())
+    const home = createEmptyHome()
+    home.furniture.push(
+      dualSlotItem('d1', 0),
+      dualSlotItem('d2', 300),
+      dualSlotItem('d3', 600),
+      { ...dualSlotItem('d4', 900), modelMirrored: true },
+      { ...dualSlotItem('d5', 1200), visible: false },
+    )
+    home.selection = ['d3']
+    const scene = buildScene(home, { modelUrlResolver: (p) => `assets/${p}` })
+
+    // d1 + d2 still batch into the two material slots (count 2 each) — d3,
+    // d4 and d5 would all have joined the group otherwise...
+    const instanced = instancedFurnitureMeshes(scene)
+    expect(instanced.length).toBe(2)
+    for (const mesh of instanced) {
+      expect(mesh.count).toBe(2)
+      expect(mesh.userData.instanceFurnitureIds).toEqual(['d1', 'd2'])
+    }
+    // ...the selected and modelMirrored items render individually instead,
+    // and the hidden one does not render at all.
+    expect(scene.getObjectByName('furniture:d3')).toBeInstanceOf(THREE.Mesh)
+    expect(scene.getObjectByName('furniture:d4')).toBeInstanceOf(THREE.Mesh)
+    expect(scene.getObjectByName('furniture:d5')).toBeUndefined()
+  })
+
+  it('a delta move rewrites the instance matrix on every material slot', () => {
+    __seedModelCache(MODEL_URL, dualSlotModel())
+    const home = createEmptyHome()
+    home.furniture.push(dualSlotItem('d1', 0), dualSlotItem('d2', 300))
+    const scene = buildScene(home, { modelUrlResolver: (p) => `assets/${p}` })
+    const slots = instancedFurnitureMeshes(scene)
+    expect(slots.length).toBe(2)
+
+    const moved = { ...home.furniture[0]!, x: 700, y: 250, angleDeg: 45 }
+    const newHome = { ...home, furniture: home.furniture.map((f) => (f.id === 'd1' ? moved : f)) }
+    const updates = computeSceneUpdates(home, newHome)
+    expect(updates.length).toBe(1)
+    expect(applySceneUpdate(scene, updates[0]!, newHome, home)).toBe(true)
+
+    // Both slots must have moved — stopping at the first matching
+    // InstancedMesh would strand the other material slot at the old
+    // transform (visible tearing).
+    const matrix = new THREE.Matrix4()
+    const pos = new THREE.Vector3()
+    for (const mesh of slots) {
+      mesh.getMatrixAt(0, matrix)
+      matrix.decompose(pos, new THREE.Quaternion(), new THREE.Vector3())
+      expect(pos.x).toBe(700)
+      expect(pos.z).toBe(250)
+    }
+  })
+})
 
 describe('delta updates (T2)', () => {
   function sofa(id: string, x: number, y: number, overrides: Partial<Furniture> = {}): Furniture {
