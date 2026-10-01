@@ -117,6 +117,10 @@ export interface MaterialClassification {
   tags: string[]
   hasBaseColorTexture: boolean
   hasMetallicRoughnessTexture: boolean
+  /** metallicFactor was explicitly present in the GLB JSON (not the spec default). */
+  metallicFactorAuthored: boolean
+  /** roughnessFactor was explicitly present in the GLB JSON (not the spec default). */
+  roughnessFactorAuthored: boolean
 }
 
 export interface CatalogEntry {
@@ -471,6 +475,14 @@ export function convertPhongToStandard(
   standard.alphaMap = material.alphaMap
   standard.emissive.copy(material.emissive)
   standard.emissiveMap = material.emissiveMap
+  // MTL `norm` -> Phong normalMap, `map_Bump`/`bump` -> Phong bumpMap
+  // (MTLLoader.parse). Forward both so GLTFExporter emits normalTexture /
+  // EXT_materials_bump for furniture GLBs too; MTL has no AO/metallic/
+  // roughness map statements, so there is nothing else to wire.
+  standard.normalMap = material.normalMap
+  standard.normalScale.copy(material.normalScale)
+  standard.bumpMap = material.bumpMap
+  standard.bumpScale = material.bumpScale
   standard.transparent = material.transparent
   standard.opacity = material.opacity
   standard.side = material.side
@@ -1183,8 +1195,11 @@ function extractGlbMaterials(buffer: Buffer): { materials: unknown[] } | null {
  * matte/glossy tag (ambiguous by design). Texture presence is always recorded.
  *
  * Per glTF spec, metallicFactor/roughnessFactor default to 1.0 when missing
- * (or when pbrMetallicRoughness is absent entirely), so such materials are
- * classified "metallic"+"matte" — that is the correct spec default, not a bug.
+ * (or when pbrMetallicRoughness is absent entirely). Spec defaults are NOT
+ * treated as authored values: tags describe only explicitly authored factors,
+ * and metallicFactorAuthored/roughnessFactorAuthored record whether each
+ * factor was present at all — so unauthored materials are detectable instead
+ * of being silently mislabeled "metallic"+"matte".
  * Returns null if the buffer is not a parseable GLB.
  */
 export function classifyGlbMaterials(buffer: Buffer): MaterialClassification[] | null {
@@ -1192,16 +1207,20 @@ export function classifyGlbMaterials(buffer: Buffer): MaterialClassification[] |
   if (!parsed) return null
   return parsed.materials.map((material) => {
     const pbr = (material as { pbrMetallicRoughness?: Record<string, unknown> }).pbrMetallicRoughness ?? {}
-    const metallic = typeof pbr.metallicFactor === 'number' ? pbr.metallicFactor : 1.0
-    const roughness = typeof pbr.roughnessFactor === 'number' ? pbr.roughnessFactor : 1.0
+    const metallicAuthored = typeof pbr.metallicFactor === 'number'
+    const roughnessAuthored = typeof pbr.roughnessFactor === 'number'
+    const metallic = metallicAuthored ? (pbr.metallicFactor as number) : 1.0
+    const roughness = roughnessAuthored ? (pbr.roughnessFactor as number) : 1.0
     const tags: string[] = []
-    if (metallic >= 0.5) tags.push('metallic')
-    if (roughness <= 0.3) tags.push('glossy')
-    if (roughness >= 0.7) tags.push('matte')
+    if (metallicAuthored && metallic >= 0.5) tags.push('metallic')
+    if (roughnessAuthored && roughness <= 0.3) tags.push('glossy')
+    if (roughnessAuthored && roughness >= 0.7) tags.push('matte')
     return {
       tags,
       hasBaseColorTexture: Boolean(pbr.baseColorTexture),
       hasMetallicRoughnessTexture: Boolean(pbr.metallicRoughnessTexture),
+      metallicFactorAuthored: metallicAuthored,
+      roughnessFactorAuthored: roughnessAuthored,
     }
   })
 }

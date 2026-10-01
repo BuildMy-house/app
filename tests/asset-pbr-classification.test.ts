@@ -20,7 +20,13 @@ describe('classifyGlbMaterials', () => {
   it('tags metallicFactor >= 0.5 as metallic', () => {
     const glb = buildGlb({ materials: [{ pbrMetallicRoughness: { metallicFactor: 1, roughnessFactor: 0.4 } }] })
     expect(classifyGlbMaterials(glb)).toEqual([
-      { tags: ['metallic'], hasBaseColorTexture: false, hasMetallicRoughnessTexture: false },
+      {
+        tags: ['metallic'],
+        hasBaseColorTexture: false,
+        hasMetallicRoughnessTexture: false,
+        metallicFactorAuthored: true,
+        roughnessFactorAuthored: true,
+      },
     ])
   })
 
@@ -38,19 +44,43 @@ describe('classifyGlbMaterials', () => {
     expect(result?.[2]?.tags).toEqual([])
   })
 
-  it('defaults missing pbrMetallicRoughness to spec defaults (metallic=1, roughness=1) => metallic+matte', () => {
+  it('flags missing factors as unauthored instead of tagging spec defaults', () => {
     // Per glTF 2.0 spec, metallicFactor/roughnessFactor default to 1.0 when
-    // absent, so a material with no pbrMetallicRoughness at all classifies
-    // as metallic+matte. Surprising but correct.
+    // absent — but the spec default is not an authored value. Such materials
+    // get no PBR tags and are flagged via the *Authored booleans so an
+    // unauthored material is detectable instead of mislabeled metallic+matte.
     const glb = buildGlb({ materials: [{ name: 'unlit' }] })
     expect(classifyGlbMaterials(glb)).toEqual([
-      { tags: ['metallic', 'matte'], hasBaseColorTexture: false, hasMetallicRoughnessTexture: false },
+      {
+        tags: [],
+        hasBaseColorTexture: false,
+        hasMetallicRoughnessTexture: false,
+        metallicFactorAuthored: false,
+        roughnessFactorAuthored: false,
+      },
     ])
   })
 
-  it('treats non-numeric factor values as spec defaults', () => {
+  it('distinguishes explicit metallicFactor 1.0 from an absent factor', () => {
+    const glb = buildGlb({
+      materials: [
+        { pbrMetallicRoughness: { metallicFactor: 1.0 } },
+        { pbrMetallicRoughness: {} },
+      ],
+    })
+    const result = classifyGlbMaterials(glb)!
+    // authored 1.0 is a real full-metal signal
+    expect(result[0]).toMatchObject({ tags: ['metallic'], metallicFactorAuthored: true, roughnessFactorAuthored: false })
+    // absent factor is the spec default, not an authored value
+    expect(result[1]).toMatchObject({ tags: [], metallicFactorAuthored: false, roughnessFactorAuthored: false })
+  })
+
+  it('treats non-numeric factor values as unauthored', () => {
     const glb = buildGlb({ materials: [{ pbrMetallicRoughness: { metallicFactor: null, roughnessFactor: 'oops' } }] })
-    expect(classifyGlbMaterials(glb)?.[0]?.tags).toEqual(['metallic', 'matte'])
+    const result = classifyGlbMaterials(glb)![0]!
+    expect(result.tags).toEqual([])
+    expect(result.metallicFactorAuthored).toBe(false)
+    expect(result.roughnessFactorAuthored).toBe(false)
   })
 
   it('records texture presence per material', () => {
@@ -66,8 +96,20 @@ describe('classifyGlbMaterials', () => {
       ],
     })
     expect(classifyGlbMaterials(glb)).toEqual([
-      { tags: ['metallic', 'matte'], hasBaseColorTexture: true, hasMetallicRoughnessTexture: true },
-      { tags: ['metallic', 'matte'], hasBaseColorTexture: true, hasMetallicRoughnessTexture: false },
+      {
+        tags: [],
+        hasBaseColorTexture: true,
+        hasMetallicRoughnessTexture: true,
+        metallicFactorAuthored: false,
+        roughnessFactorAuthored: false,
+      },
+      {
+        tags: [],
+        hasBaseColorTexture: true,
+        hasMetallicRoughnessTexture: false,
+        metallicFactorAuthored: false,
+        roughnessFactorAuthored: false,
+      },
     ])
   })
 
