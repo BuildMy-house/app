@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import {
   DEFAULT_PBR_METALNESS,
   DEFAULT_PBR_ROUGHNESS,
@@ -641,7 +642,9 @@ export function configureGltfLoader(
   return loader
 }
 
-/** Shared GLTFLoader instance (lazy so the import cost is paid only when used). */
+/** Shared GLTFLoader singleton. GLB-backed furniture is the common case
+ * (deriveModelPath maps most catalog furniture to GLBs), so the static import
+ * at the top of this file is always paid — a dynamic import would save nothing. */
 let sharedModelLoader: GLTFLoader | null = null
 
 function modelLoader(): GLTFLoader {
@@ -990,24 +993,48 @@ function fitModelToBox(model: THREE.Object3D, item: Furniture): THREE.Object3D {
  * untouched rather than silently replaced with a different material class.
  * A `null` override value explicitly clears back to the model's own baked
  * diffuse map/color instead of leaving a stale override applied.
+ *
+ * Returns true when an override existed for this material (it was consumed),
+ * false when the caller should fall back to the item-level textureId.
  */
 function applyMaterialOverride(
   material: THREE.Material,
   item: Furniture,
   geometry: THREE.BufferGeometry,
-): void {
+): boolean {
   const overrides = item.materialOverrides
-  if (!overrides || !material.name) return
-  if (!Object.prototype.hasOwnProperty.call(overrides, material.name)) return
+  if (!overrides || !material.name) return false
+  if (!Object.prototype.hasOwnProperty.call(overrides, material.name)) return false
   const textureId = overrides[material.name]
   const std = material as THREE.MeshStandardMaterial
-  if (!std.isMeshStandardMaterial) return
+  if (!std.isMeshStandardMaterial) return false
   if (textureId === null || textureId === undefined) {
     std.map = null
     std.needsUpdate = true
-    return
+    return true
   }
   const entry = applyMaterialTextures(std, textureId)
+  if (entry?.aoFile) addUv2(geometry)
+  return true
+}
+
+/**
+ * Apply one furniture item's material setup to a single cloned model
+ * material: a per-slot materialOverrides entry (applyMaterialOverride) wins;
+ * otherwise the item-level textureId wires the catalog diffuse+PBR-map
+ * pipeline — the same applyMaterialTextures path the box fallback uses, which
+ * GLB-backed furniture previously only reached through per-slot overrides.
+ * Non-standard imported materials are left untouched.
+ */
+function applyFurnitureItemMaterial(
+  mat: THREE.Material,
+  item: Furniture,
+  geometry: THREE.BufferGeometry,
+): void {
+  if (applyMaterialOverride(mat, item, geometry)) return
+  const std = mat as THREE.MeshStandardMaterial
+  if (!std.isMeshStandardMaterial || !item.textureId) return
+  const entry = applyMaterialTextures(std, item.textureId)
   if (entry?.aoFile) addUv2(geometry)
 }
 
@@ -1057,11 +1084,11 @@ function swapInModel(
         if (Array.isArray(m.material)) {
           m.material.forEach(applyAnisotropyToMaterial)
           m.material = m.material.map((mat) => mat.clone())
-          m.material.forEach((mat) => applyMaterialOverride(mat, item, m.geometry))
+          m.material.forEach((mat) => applyFurnitureItemMaterial(mat, item, m.geometry))
         } else {
           applyAnisotropyToMaterial(m.material)
           m.material = m.material.clone()
-          applyMaterialOverride(m.material, item, m.geometry)
+          applyFurnitureItemMaterial(m.material, item, m.geometry)
         }
       }
       o.userData.shared = true
@@ -1200,12 +1227,149 @@ export function furnitureMesh(
 }
 
 /**
+ * GLB-backed furniture instancing (perf1): unlike the box path, GLB items
+ * group by RESOLVED model URL (item.modelPath, or derived from catalogId —
+ * the same resolution swapInModel uses) plus dimensions and material setup,
+ * so one InstancedMesh serves every visually-identical copy of a model.
+ * Mirrors the box path's exclusions (hidden, selected) and additionally
+ * excludes windows (per-item glass material) and modelMirrored items
+ * (per-item X-flip a shared geometry cannot carry).
+ */
+type GlbInstanceGroup = {
+  url: string
+  modelPath: string
+  color: number
+  items: Furniture[]
+}
+
+function groupGlbFurnitureForInstancing(
+  furniture: readonly Furniture[],
+  selectionSet: Set<string>,
+  alreadyInstanced: Set<string>,
+): GlbInstanceGroup[] {
+  const groups = new Map<
+    string,
+    { url: string; modelPath: string; color: number; items: Furniture[] }
+  >()
+  for (const item of furniture) {
+    if (item.visible === false) continue
+    if (selectionSet.has(item.id) || alreadyInstanced.has(item.id)) continue
+    if (isWindowFurniture(item)) continue
+    if (item.modelMirrored) continue
+    const modelPath = item.modelPath || deriveModelPath(item.catalogId)
+    if (!modelPath) continue
+    const url = activeModelUrlResolver(modelPath)
+    const key = [
+      url,
+      item.width,
+      item.height,
+      item.depth,
+      item.textureId ?? '',
+      JSON.stringify(item.materialOverrides ?? null),
+    ].join('|')
+    const existing = groups.get(key)
+    if (existing) existing.items.push(item)
+    else {
+      groups.set(key, {
+        url,
+        modelPath,
+        color: item.color ?? DEFAULT_FURNITURE_COLOR,
+        items: [item],
+      })
+    }
+  }
+  const result: GlbInstanceGroup[] = []
+  for (const group of groups.values()) {
+    if (group.items.length >= 2) result.push(group)
+  }
+  return result
+}
+
+/**
+ * Cached (merged-geometry, base-material) pair for instancing one GLB model
+ * at one footprint, keyed by url + dimensions because the fit-to-box scale
+ * and floor lift are baked into the shared geometry. null = this model
+ * cannot be instanced (multi-material-slot GLB, unmergeable attribute sets,
+ * degenerate bounds) or is not in the model cache yet — both render
+ * individually via furnitureMesh(); the async load populates the cache so
+ * the next rebuild instances.
+ */
+type GlbInstanceData = { geometry: THREE.BufferGeometry; material: THREE.MeshStandardMaterial }
+const glbInstanceCache = new Map<string, GlbInstanceData | null>()
+
+function glbInstanceDataFor(url: string, item: Furniture): GlbInstanceData | null {
+  const key = `${url}|${item.width}x${item.height}x${item.depth}`
+  const cached = glbInstanceCache.get(key)
+  if (cached !== undefined) return cached
+  const built = buildGlbInstanceData(url, item)
+  glbInstanceCache.set(key, built)
+  return built
+}
+
+function buildGlbInstanceData(url: string, item: Furniture): GlbInstanceData | null {
+  const cachedModel = getCachedModel(url)
+  if (!cachedModel) return null
+  // Only single-material-slot models can instance: one material serves every
+  // instance, so multi-slot furniture (e.g. the multi-material door GLBs)
+  // keeps rendering individually. Documented scope decision for perf1.
+  const nodes: THREE.Object3D[] = []
+  cachedModel.traverse((o) => nodes.push(o))
+  const meshes: THREE.Mesh[] = []
+  let material: THREE.MeshStandardMaterial | null = null
+  for (const node of nodes) {
+    const m = node as THREE.Mesh
+    if (!m.isMesh) continue
+    const mats = Array.isArray(m.material) ? m.material : [m.material]
+    if (mats.length !== 1) return null
+    const std = mats[0] as THREE.MeshStandardMaterial
+    if (!std.isMeshStandardMaterial || (material !== null && material !== std)) return null
+    material = std
+    meshes.push(m)
+  }
+  if (!material || meshes.length === 0) return null
+  cachedModel.updateMatrixWorld(true)
+  const parts = meshes.map((m) => {
+    const g = m.geometry.clone()
+    g.applyMatrix4(m.matrixWorld)
+    return g
+  })
+  const merged = mergeGeometries(parts, false)
+  for (const part of parts) part.dispose()
+  if (!merged) return null
+  // Bake fitModelToBox's transform (including the orientation-90-v1 quarter
+  // turn) plus the half-height floor lift the box instancing path also bakes
+  // in (createInstancedMesh places instance origins at the floor) into the
+  // shared geometry.
+  if (item.modelPath?.includes('orientation-90-v1')) merged.rotateY(-Math.PI / 2)
+  merged.computeBoundingBox()
+  const box = merged.boundingBox!
+  const size = box.getSize(new THREE.Vector3())
+  if (size.x <= 0 || size.y <= 0 || size.z <= 0) {
+    merged.dispose()
+    return null
+  }
+  const scale = new THREE.Vector3(item.width / size.x, item.height / size.y, item.depth / size.z)
+  const center = box.getCenter(new THREE.Vector3())
+  const fit = new THREE.Matrix4().makeScale(scale.x, scale.y, scale.z)
+  fit.setPosition(-center.x * scale.x, -center.y * scale.y + item.height / 2, -center.z * scale.z)
+  merged.applyMatrix4(fit)
+  // One cloned base material per url+dims; per-item overrides/textureId are
+  // applied to the clone by the caller (applyFurnitureItemMaterial) so the
+  // cached pair stays pristine.
+  const base = material.clone()
+  applyAnisotropyToMaterial(base)
+  return { geometry: merged, material: base }
+}
+
+/**
  * Add furniture meshes to the scene root, using instanced rendering where it
  * is visually identical: pieces grouped by groupFurnitureForInstancing render
  * as ONE InstancedMesh only when every member shares the same dimensions and
- * effective color, has no GLB model (models swap in as per-mesh children),
- * and is not selected (highlight tint is per-material, so a selected piece
- * must stay an individual mesh).
+ * effective color and is not selected (highlight tint is per-material, so a
+ * selected piece must stay an individual mesh). Box-fallback pieces group via
+ * groupFurnitureForInstancing; GLB-backed pieces (the common case) group by
+ * resolved model URL + material setup via groupGlbFurnitureForInstancing,
+ * rendering one InstancedMesh per model once its GLB is in the model cache.
  */
 function addFurnitureMeshes(
   root: THREE.Group,
@@ -1257,6 +1421,29 @@ function addFurnitureMeshes(
     mesh.name = `furniture-instanced-${group.modelPath}`
     mesh.userData.instanceFurnitureIds = candidates.map((it) => it.id)
     for (const it of candidates) instancedIds.add(it.id)
+    root.add(mesh)
+  }
+  // GLB-backed furniture (the common case): items sharing one resolved model
+  // URL, footprint and material setup batch into ONE InstancedMesh whose
+  // geometry is the model's meshes merged into a single-material buffer.
+  // Cache misses fall through to furnitureMesh(), whose async load populates
+  // the model cache, so the next rebuild instances them.
+  for (const group of groupGlbFurnitureForInstancing(furniture, selectionSet, instancedIds)) {
+    const first = group.items[0]!
+    const data = glbInstanceDataFor(group.url, first)
+    if (!data) continue
+    const material = data.material.clone()
+    applyFurnitureItemMaterial(material, first, data.geometry)
+    const mesh = createInstancedMesh(
+      { modelPath: group.modelPath, color: group.color, items: group.items },
+      data.geometry,
+      material,
+      elevations,
+    )
+    // Same ':'-free name convention as the box path above.
+    mesh.name = `furniture-instanced-${group.modelPath}`
+    mesh.userData.instanceFurnitureIds = group.items.map((it) => it.id)
+    for (const it of group.items) instancedIds.add(it.id)
     root.add(mesh)
   }
   for (const item of furniture) {

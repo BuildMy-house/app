@@ -1230,29 +1230,34 @@ function allFurnitureEmissives(scene: THREE.Scene): Map<string, Array<{ hex: num
   return map
 }
 
-function furnitureWithModel(id: string, modelPath: string) {
+function furnitureWithModel(id: string, modelPath: string, overrides: Partial<Furniture> = {}) {
   return {
     id, name: 'Bookshelf', modelPath,
     x: 0, y: 0, angleDeg: 0,
     width: 100, depth: 40, height: 200,
     elevation: 0,
+    ...overrides,
   }
 }
 
 describe('furniture selection material isolation (M66)', () => {
   const MODEL_URL = 'assets/bookshelf.glb'
 
-  function makeScenes(selected: string[]) {
+  function makeScenes(selected: string[], widthB = 100) {
     const home = createEmptyHome()
     home.furniture.push(furnitureWithModel('A', 'bookshelf.glb'))
-    home.furniture.push(furnitureWithModel('B', 'bookshelf.glb'))
+    home.furniture.push(furnitureWithModel('B', 'bookshelf.glb', { width: widthB }))
     home.selection = selected
     return buildScene(home, { modelUrlResolver: (p) => `assets/${p}` })
   }
 
+  // Distinct dimensions keep A and B on the individual furnitureMesh() path:
+  // identical unselected GLB items batch into one InstancedMesh instead
+  // (covered by the GLB instancing test below), which has no per-instance
+  // materials to isolate.
   it('clones cached model materials per-instance (no shared mutation)', () => {
     __seedModelCache(MODEL_URL, fakeCatalogModel())
-    const scene = makeScenes([])
+    const scene = makeScenes([], 120)
     const emissives = allFurnitureEmissives(scene)
     expect(emissives.size).toBe(2)
 
@@ -1266,7 +1271,7 @@ describe('furniture selection material isolation (M66)', () => {
 
   it('child sub-mesh material references differ between instances', () => {
     __seedModelCache(MODEL_URL, fakeCatalogModel())
-    const scene = makeScenes([])
+    const scene = makeScenes([], 120)
     const matsA: THREE.Material[] = []
     const matsB: THREE.Material[] = []
     scene.traverse((obj) => {
@@ -1291,6 +1296,23 @@ describe('furniture selection material isolation (M66)', () => {
     }
   })
 
+  it('batches identical unselected GLB furniture into one InstancedMesh', () => {
+    __seedModelCache(MODEL_URL, fakeCatalogModel())
+    const scene = makeScenes([])
+    const batched = scene.getObjectByName('furniture-instanced-bookshelf.glb')
+    expect(batched).toBeInstanceOf(THREE.InstancedMesh)
+    const instanced = batched as THREE.InstancedMesh
+    expect(instanced.count).toBe(2)
+    expect(instanced.userData.instanceFurnitureIds).toEqual(['A', 'B'])
+    // No individual duplicates remain next to the batched mesh.
+    expect(scene.getObjectByName('furniture:A')).toBeUndefined()
+    expect(scene.getObjectByName('furniture:B')).toBeUndefined()
+    // The shared geometry is the cached model's merged box+sphere, fitted to
+    // the items' 100x200x40 box with its half-height floor lift baked in.
+    const bbox = new THREE.Box3().setFromObject(instanced)
+    expect(Math.round(bbox.max.y - bbox.min.y)).toBe(200)
+  })
+
   it("selecting one instance leaves the other exactly black", () => {
     __seedModelCache(MODEL_URL, fakeCatalogModel())
     const scene = makeScenes(['A'])
@@ -1308,7 +1330,7 @@ describe('furniture selection material isolation (M66)', () => {
     __seedModelCache(MODEL_URL, fakeCatalogModel())
     let scene = makeScenes(['A'])
     expect(allFurnitureEmissives(scene).get('A')![0]!.hex).toBe(SELECTION_EMISSIVE_COLOR)
-    scene = makeScenes([])
+    scene = makeScenes([], 120)
     for (const [, mats] of allFurnitureEmissives(scene)) {
       for (const m of mats) {
         expect(m.hex).toBe(0x000000)
