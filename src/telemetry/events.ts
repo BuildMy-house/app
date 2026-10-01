@@ -175,6 +175,36 @@ export interface SceneDeltaMetricsEvent extends BaseEvent, SceneDeltaMetrics {
   tier: 1
 }
 
+/** Per-asset catalog-ingestion payload (pipeline-side; emitted by the SH3D
+ *  import pipeline, not the browser). Feeds the parked asset_quality_scores
+ *  proposal with raw per-asset quality metadata. */
+export interface AssetIngestionMetrics {
+  catalogId: string
+  /** Total triangles across all mesh primitives. */
+  triangleCount: number
+  meshCount: number
+  textureCount: number
+  /** One entry per material-referenced texture (deduped by texture index). */
+  textures: { slot: string; width: number; height: number }[]
+  /** PBR map slots present on at least one material (OR-aggregated). */
+  pbrMapSlots: {
+    baseColor: boolean
+    normal: boolean
+    ao: boolean
+    metalnessRoughness: boolean
+    emissive: boolean
+  }
+  /** true only when EVERY material's factor was explicitly authored. */
+  metallicFactorAuthored: boolean
+  /** true only when EVERY material's factor was explicitly authored. */
+  roughnessFactorAuthored: boolean
+}
+
+export interface AssetIngestionEvent extends BaseEvent, AssetIngestionMetrics {
+  event: 'perf.asset_ingestion'
+  tier: 1
+}
+
 // ── Tier 2: User Interaction (opt-out) ──────────────────────────────────────
 
 interface ToolUsageEvent extends BaseEvent {
@@ -218,6 +248,7 @@ export type TelemetryEvent =
   | AutomationEvent
   | RenderingMetricsEvent
   | SceneDeltaMetricsEvent
+  | AssetIngestionEvent
   | ToolUsageEvent
   | FeatureUsageEvent
   | UserActionMetricsEvent

@@ -38,6 +38,7 @@ import { getR2S3Client, r2PublicUrl, uploadR2Object } from './r2-client'
 import { THUMBNAIL_RENDER_SIZE } from '../view3d/thumbnail-camera'
 import { chromium } from '@playwright/test'
 import { build } from 'esbuild'
+import type { AssetIngestionEvent, AssetIngestionMetrics } from '../telemetry/events'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -165,6 +166,13 @@ export interface ProcessBatchOptions {
   catalogIds?: string[]
   /** Progress callback; the service also logs to console. */
   onProgress?: (progress: ProgressInfo) => void
+  /**
+   * Per-asset telemetry hook, invoked once per successfully ingested item
+   * (entry built) with metrics derived from its GLB. Returns null → not
+   * called. Callers forward to the telemetry transport (see
+   * scripts/import-sh3d-library.ts wiring via EventBatcher).
+   */
+  onIngestionMetrics?: (catalogId: string, metrics: Omit<AssetIngestionMetrics, 'catalogId'>) => void
 }
 
 export interface BatchResult {
@@ -784,7 +792,7 @@ export class AssetIngestionService {
     options: ProcessBatchOptions,
     mode: { skipUpload: boolean; uploadOnly: boolean },
   ): Promise<BatchResult> {
-    const { limit = 0, catalogIds, onProgress } = options
+    const { limit = 0, catalogIds, onProgress, onIngestionMetrics } = options
     const report = (stage: ProgressInfo['stage'], done: number, total: number, current?: string, message?: string) => {
       onProgress?.({ stage, done, total, current, message })
     }
@@ -838,6 +846,8 @@ export class AssetIngestionService {
         }
         if (state.verified || mode.skipUpload) {
           state.entry = buildEntry(item, buffer)
+          const metrics = collectIngestionMetrics(buffer)
+          if (metrics) onIngestionMetrics?.(item.catalogId, metrics)
           delete state.error
         }
       } catch (err) {
@@ -1223,6 +1233,144 @@ export function classifyGlbMaterials(buffer: Buffer): MaterialClassification[] |
       roughnessFactorAuthored: roughnessAuthored,
     }
   })
+}
+
+function parseGlbDocument(buffer: Buffer): Record<string, unknown> | null {
+  if (buffer.toString('ascii', 0, 4) !== 'glTF') return null
+  const jsonLength = buffer.readUInt32LE(12)
+  try {
+    return JSON.parse(buffer.subarray(20, 20 + jsonLength).toString('utf8'))
+  } catch {
+    return null
+  }
+}
+
+/** Offset of the GLB binary (BIN) chunk payload, or null when absent. */
+function glbBinaryChunk(buffer: Buffer): number | null {
+  if (buffer.toString('ascii', 0, 4) !== 'glTF') return null
+  const jsonLength = buffer.readUInt32LE(12)
+  const headerAt = 20 + jsonLength
+  if (headerAt + 8 > buffer.length) return null
+  if (buffer.readUInt32LE(headerAt + 4) !== 0x004e4942) return null // 'BIN\0'
+  return headerAt + 8
+}
+
+function pngDimensions(buffer: Buffer): { width: number; height: number } | null {
+  if (buffer.length < 24 || buffer.readUInt32BE(0) !== 0x89504e47) return null
+  return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) }
+}
+
+function jpegDimensions(buffer: Buffer): { width: number; height: number } | null {
+  let i = 2
+  while (i + 9 < buffer.length) {
+    if (buffer[i] !== 0xff) {
+      i++
+      continue
+    }
+    const marker = buffer[i + 1]!
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd9)) {
+      i += 2
+      continue
+    }
+    if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+      return { height: buffer.readUInt16BE(i + 5), width: buffer.readUInt16BE(i + 7) }
+    }
+    i += 2 + buffer.readUInt16BE(i + 2)
+  }
+  return null
+}
+
+/**
+ * Derive per-asset quality metadata from an ingested GLB: triangle count,
+ * texture count + resolutions, PBR map-slot coverage, and whether metallic/
+ * roughness factors were explicitly authored (aggregated across materials —
+ * true only when every material authored the factor). Returns null if the
+ * buffer is not a parseable GLB.
+ */
+export function collectIngestionMetrics(buffer: Buffer): Omit<AssetIngestionMetrics, 'catalogId'> | null {
+  const doc = parseGlbDocument(buffer)
+  if (!doc) return null
+  const materials = (doc.materials ?? []) as Record<string, unknown>[]
+  const meshes = (doc.meshes ?? []) as Record<string, unknown>[]
+  const accessors = (doc.accessors ?? []) as Record<string, unknown>[]
+  const gltfTextures = (doc.textures ?? []) as { image?: number }[]
+  const images = (doc.images ?? []) as { bufferView?: number }[]
+  const bufferViews = (doc.bufferViews ?? []) as { byteOffset?: number; byteLength?: number }[]
+
+  let triangleCount = 0
+  for (const mesh of meshes) {
+    for (const prim of (mesh.primitives ?? []) as { indices?: number; attributes?: Record<string, number> }[]) {
+      const indices = prim.indices
+      const position = prim.attributes?.POSITION
+      if (typeof indices === 'number') triangleCount += (accessors[indices]?.count as number ?? 0) / 3
+      else if (typeof position === 'number') triangleCount += (accessors[position]?.count as number ?? 0) / 3
+    }
+  }
+
+  const slots = { baseColor: false, normal: false, ao: false, metalnessRoughness: false, emissive: false }
+  const slotByTextureIndex = new Map<number, string>()
+  for (const material of materials) {
+    const pbr = (material.pbrMetallicRoughness ?? {}) as Record<string, unknown>
+    const refs: [keyof typeof slots, unknown][] = [
+      ['baseColor', pbr.baseColorTexture],
+      ['metalnessRoughness', pbr.metallicRoughnessTexture],
+      ['normal', material.normalTexture],
+      ['ao', material.occlusionTexture],
+      ['emissive', material.emissiveTexture],
+    ]
+    for (const [slot, ref] of refs) {
+      const index = (ref as { index?: number } | undefined)?.index
+      if (typeof index !== 'number') continue
+      slots[slot] = true
+      if (!slotByTextureIndex.has(index)) slotByTextureIndex.set(index, slot)
+    }
+  }
+
+  const binStart = glbBinaryChunk(buffer)
+  const textures: AssetIngestionMetrics['textures'] = []
+  for (const [textureIndex, slot] of slotByTextureIndex) {
+    let width = 0
+    let height = 0
+    const image = typeof gltfTextures[textureIndex]?.image === 'number' ? images[gltfTextures[textureIndex]!.image!] : undefined
+    const view = image && typeof image.bufferView === 'number' ? bufferViews[image.bufferView] : undefined
+    if (view && binStart !== null) {
+      const start = binStart + (view.byteOffset ?? 0)
+      const bytes = buffer.subarray(start, start + (view.byteLength ?? 0))
+      const dims = pngDimensions(bytes) ?? jpegDimensions(bytes)
+      width = dims?.width ?? 0
+      height = dims?.height ?? 0
+    }
+    textures.push({ slot, width, height })
+  }
+
+  const classes = classifyGlbMaterials(buffer)
+  return {
+    triangleCount,
+    meshCount: meshes.length,
+    textureCount: textures.length,
+    textures,
+    pbrMapSlots: slots,
+    metallicFactorAuthored: classes?.every((c) => c.metallicFactorAuthored) ?? false,
+    roughnessFactorAuthored: classes?.every((c) => c.roughnessFactorAuthored) ?? false,
+  }
+}
+
+/** Wrap collected metrics in a full Tier-1 telemetry event envelope. */
+export function buildAssetIngestionEvent(
+  catalogId: string,
+  metrics: Omit<AssetIngestionMetrics, 'catalogId'>,
+  base: { sid: string; ver: string },
+): AssetIngestionEvent {
+  return {
+    event: 'perf.asset_ingestion',
+    tier: 1,
+    ts: new Date().toISOString(),
+    sid: base.sid,
+    app: 'buildmy-house',
+    ver: base.ver,
+    catalogId,
+    ...metrics,
+  }
 }
 
 async function uploadRenderBundle(s3: S3Client, item: LibraryItem): Promise<boolean> {

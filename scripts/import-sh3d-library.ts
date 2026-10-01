@@ -27,12 +27,33 @@
  * R2 credentials come from env (R2_ACCOUNT_ID/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY/
  * R2_S3_ENDPOINT/R2_BUCKET_NAME/R2_PUBLIC_URL) — never hardcoded.
  */
+import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { AssetIngestionService } from '../src/services/asset-ingestion-service.js'
+import { AssetIngestionService, buildAssetIngestionEvent, type AssetIngestionMetrics } from '../src/services/asset-ingestion-service.js'
+import { EventBatcher } from '../server/src/telemetry/transport.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+
+// Telemetry: reuse the existing server-side EventBatcher → Axiom transport.
+// Credentials via env only (VITE_AXIOM_* proven-working ingest trio); events
+// go to the same dataset as the browser's perf.* events.
+let batcher: EventBatcher | null = null
+if (process.env.VITE_AXIOM_TOKEN && process.env.VITE_AXIOM_ENDPOINT) {
+  batcher = new EventBatcher({
+    axiomToken: process.env.VITE_AXIOM_TOKEN,
+    axiomDataset: process.env.VITE_AXIOM_DATASET,
+    axiomUrl: process.env.VITE_AXIOM_ENDPOINT,
+  })
+} else {
+  console.log('[telemetry] disabled: VITE_AXIOM_TOKEN/VITE_AXIOM_ENDPOINT unset')
+}
+const telemetrySid = randomUUID()
+const telemetryVer = (JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8')) as { version?: string }).version ?? '0'
+const onIngestionMetrics = (catalogId: string, metrics: Omit<AssetIngestionMetrics, 'catalogId'>) => {
+  batcher?.addEvent(buildAssetIngestionEvent(catalogId, metrics, { sid: telemetrySid, ver: telemetryVer }))
+}
 
 function liveCatalogIds(): string[] {
   const path = join(__dirname, '../public/assets/catalog/catalog.json')
@@ -51,10 +72,12 @@ async function main(): Promise<void> {
   const liveIds = process.argv.includes('--live-catalog') ? liveCatalogIds() : undefined
   const catalogIds = only && liveIds ? liveIds.filter((id) => only.includes(id)) : (only ?? liveIds)
   if (catalogIds) console.log(`[import] scoping to ${catalogIds.length} catalogIds`)
-  const options = { limit, catalogIds }
+  const options = { limit, catalogIds, onIngestionMetrics }
   if (process.argv.includes('--upload-only')) await service.uploadBatch(options)
   else if (process.argv.includes('--skip-upload')) await service.convertBatch(options)
   else await service.processBatch(options)
 }
 
-void main()
+void main().finally(() => {
+  void batcher?.flush()
+})
