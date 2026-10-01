@@ -22,6 +22,7 @@
  */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { copyFileSync, readdirSync, statSync } from 'node:fs'
+import type { Stats } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -113,6 +114,20 @@ function validateCatalog(): void {
   console.log(`[assets] catalog ok (${manifest.items.length} items)`)
 }
 
+/** Cheap mtime+size check: true when the destination already matches the source. */
+function isUnchanged(from: string, to: string): boolean {
+  let dest: Stats
+  try {
+    dest = statSync(to)
+  } catch {
+    return false
+  }
+  if (!dest.isFile()) return false
+  const src = statSync(from)
+  // `<=` tolerates clock skew: a newer destination is treated as fresh.
+  return src.size === dest.size && src.mtimeMs <= dest.mtimeMs
+}
+
 function copyDirContents(src: string, dest: string): void {
   if (!existsSync(src)) return
   mkdirSync(dest, { recursive: true })
@@ -124,7 +139,7 @@ function copyDirContents(src: string, dest: string): void {
     const to = join(dest, entry)
     if (statSync(from).isDirectory()) {
       copyDirContents(from, to)
-    } else {
+    } else if (!isUnchanged(from, to)) {
       copyFileSync(from, to)
     }
   }
