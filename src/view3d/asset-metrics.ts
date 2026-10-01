@@ -20,6 +20,8 @@ export interface AssetMetricsSnapshot {
   textureCount: number
   modelLoadCount: number
   avgModelLoadDurationMs: number
+  /** 0-1, how many model loads were cache reuses vs network+decode misses. */
+  modelCacheHitRate: number
   totalAssetBundleSizeMB: number
   cacheHitRate: number
   loadedTextureIds: string[]
@@ -35,6 +37,7 @@ let texMissDurationMs = 0
 let texIds = new Set<string>()
 let windowAssetUrls = new Set<string>()
 let modelLoads = 0
+let modelHits = 0
 let modelMissDurationMs = 0
 
 /**
@@ -59,10 +62,14 @@ export function recordTextureLoad(
   if (!textureRegistry.has(id)) textureRegistry.set(id, texture)
 }
 
-/** Record one model load operation. Cache hits are only counted for hit rate. */
+/** Record one model load. Cache hits count toward modelCacheHitRate; misses
+ *  also carry the network+decode duration for the average. */
 export function recordModelLoad(durationMs: number, cacheHit: boolean, url?: string): void {
   ensureReporting()
-  if (cacheHit) return
+  if (cacheHit) {
+    modelHits++
+    return
+  }
   modelLoads++
   modelMissDurationMs += durationMs
   if (url) windowAssetUrls.add(url)
@@ -104,6 +111,8 @@ export function collectAssetMetrics(): AssetMetricsSnapshot {
     textureCount: textureRegistry.size,
     modelLoadCount: modelLoads,
     avgModelLoadDurationMs: modelLoads > 0 ? round2(modelMissDurationMs / modelLoads) : 0,
+    modelCacheHitRate:
+      modelLoads + modelHits > 0 ? Math.round((modelHits / (modelLoads + modelHits)) * 1000) / 1000 : 0,
     totalAssetBundleSizeMB: round2(estimateBundleSizeBytes(windowAssetUrls) / (1024 * 1024)),
     cacheHitRate: texLoads > 0 ? Math.round((texHits / texLoads) * 1000) / 1000 : 0,
     loadedTextureIds: [...texIds],
@@ -114,6 +123,7 @@ export function collectAssetMetrics(): AssetMetricsSnapshot {
   texIds = new Set()
   windowAssetUrls = new Set()
   modelLoads = 0
+  modelHits = 0
   modelMissDurationMs = 0
   return snapshot
 }
@@ -150,5 +160,6 @@ export function resetAssetMetricsForTesting(): void {
   texIds = new Set()
   windowAssetUrls = new Set()
   modelLoads = 0
+  modelHits = 0
   modelMissDurationMs = 0
 }

@@ -189,6 +189,71 @@ describe('telemetry.userActionMetrics', () => {
   })
 })
 
+describe('telemetry.appBoot / chunkLoad / catalogLoad', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    enqueue.mockClear()
+    vi.unstubAllEnvs()
+    vi.stubEnv('DATABASE_URL', undefined)
+  })
+
+  it('emits perf.app_boot as tier 1 with boot + navigation timings', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token')
+    const { telemetry } = await import('./logger')
+
+    telemetry.appBoot({ bootMs: 42, dclMs: 312, ttfbMs: 88 })
+
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
+      event: 'perf.app_boot',
+      tier: 1,
+      bootMs: 42,
+      dclMs: 312,
+      ttfbMs: 88,
+    }))
+  })
+
+  it('emits perf.chunk_load as tier 1 with name and duration', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token')
+    const { telemetry } = await import('./logger')
+
+    telemetry.chunkLoad('user-catalog', 7)
+
+    expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
+      event: 'perf.chunk_load',
+      tier: 1,
+      name: 'user-catalog',
+      durationMs: 7,
+    }))
+  })
+
+  it('emits perf.catalog_load with the cache-hit flag', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token')
+    const { telemetry } = await import('./logger')
+
+    telemetry.catalogLoad(0.5, 260, true)
+
+    expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
+      event: 'perf.catalog_load',
+      tier: 1,
+      durationMs: 0.5,
+      itemCount: 260,
+      cacheHit: true,
+    }))
+  })
+
+  it('is a no-op when telemetry disabled', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', '')
+    const { telemetry } = await import('./logger')
+
+    telemetry.appBoot({ bootMs: 1, dclMs: null, ttfbMs: null })
+    telemetry.chunkLoad('user-catalog', 1)
+    telemetry.catalogLoad(1, 1, false)
+
+    expect(enqueue).not.toHaveBeenCalled()
+  })
+})
+
 describe('telemetry.track (generic escape hatch)', () => {
   beforeEach(() => {
     vi.resetModules()

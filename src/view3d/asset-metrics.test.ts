@@ -48,6 +48,17 @@ describe('asset metrics (A3)', () => {
     expect(snap.avgModelLoadDurationMs).toBe(200)
   })
 
+  it('counts model cache hits in modelCacheHitRate', () => {
+    recordModelLoad(100, false, 'assets/m1.glb')
+    recordModelLoad(0, true, 'assets/m1.glb')
+    recordModelLoad(0, true, 'assets/m2.glb')
+    recordModelLoad(0, true, 'assets/m3.glb')
+    const snap = collectAssetMetrics()
+    expect(snap.modelLoadCount).toBe(1)
+    expect(snap.modelCacheHitRate).toBe(0.75)
+    expect(collectAssetMetrics().modelCacheHitRate).toBe(0)
+  })
+
   it('resets the reporting window on collect but keeps the texture registry', () => {
     recordTextureLoad('t', fakeTexture(10, 10), 7, false)
     collectAssetMetrics()

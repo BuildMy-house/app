@@ -62,6 +62,8 @@ interface CatalogLoadEvent extends BaseEvent {
   tier: 1
   durationMs: number
   itemCount: number
+  /** True when served from the cached manifest instead of a network fetch. */
+  cacheHit: boolean
 }
 
 interface FileIoEvent extends BaseEvent {
@@ -82,11 +84,32 @@ interface AssetMetricsEvent extends BaseEvent {
   textureCount: number
   modelLoadCount: number
   avgModelLoadDurationMs: number
+  /** 0-1, how many model loads were cache reuses vs network+decode misses. */
+  modelCacheHitRate: number
   totalAssetBundleSizeMB: number
   /** 0-1, how many texture loads were cache reuses vs newly loaded. */
   cacheHitRate: number
   /** Texture ids seen this reporting window (for cache tracking). */
   loadedTextureIds: string[]
+}
+
+interface AppBootEvent extends BaseEvent {
+  event: 'perf.app_boot'
+  tier: 1
+  /** main.ts module body execution (DOM shell + UI construction). */
+  bootMs: number
+  /** DOMContentLoaded, ms since navigation start (null if unavailable). */
+  dclMs: number | null
+  /** Time to first byte, ms since navigation start (null if unavailable). */
+  ttfbMs: number | null
+}
+
+interface ChunkLoadEvent extends BaseEvent {
+  event: 'perf.chunk_load'
+  tier: 1
+  /** Dynamic-chunk identifier, e.g. 'user-catalog', 'gltf-loader', 'tauri-core'. */
+  name: string
+  durationMs: number
 }
 
 interface AppLifecycleEvent extends BaseEvent {
@@ -188,6 +211,8 @@ export type TelemetryEvent =
   | PlanRenderEvent
   | CatalogLoadEvent
   | AssetMetricsEvent
+  | AppBootEvent
+  | ChunkLoadEvent
   | FileIoEvent
   | AppLifecycleEvent
   | AutomationEvent

@@ -96,8 +96,8 @@ export const telemetry = {
     emit('perf.plan_render', 1, { durationMs, wallCount, furnitureCount })
   },
 
-  catalogLoad(durationMs: number, itemCount: number): void {
-    emit('perf.catalog_load', 1, { durationMs, itemCount })
+  catalogLoad(durationMs: number, itemCount: number, cacheHit: boolean): void {
+    emit('perf.catalog_load', 1, { durationMs, itemCount, cacheHit })
   },
 
   /** Report asset loading metrics (textures, models, memory estimates). */
@@ -107,11 +107,22 @@ export const telemetry = {
     textureCount: number
     modelLoadCount: number
     avgModelLoadDurationMs: number
+    modelCacheHitRate: number
     totalAssetBundleSizeMB: number
     cacheHitRate: number
     loadedTextureIds: string[]
   }): void {
     emit('perf.asset_metrics', 1, metrics)
+  },
+
+  /** Report app-boot timing (module execution + navigation timing). */
+  appBoot(metrics: { bootMs: number; dclMs: number | null; ttfbMs: number | null }): void {
+    emit('perf.app_boot', 1, metrics)
+  },
+
+  /** Report one dynamic-chunk import duration. */
+  chunkLoad(name: string, durationMs: number): void {
+    emit('perf.chunk_load', 1, { name, durationMs })
   },
 
   fileIo(

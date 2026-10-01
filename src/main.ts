@@ -35,6 +35,9 @@ import { HDRI_PRESETS } from './view3d/hdri-environment'
 import { PropertiesPanel } from './ui/properties-panel'
 
 // ── Telemetry ────────────────────────────────────────────────────────────────
+// Boot clock for perf.app_boot: starts as this module body executes (static
+// imports above have already run), stops at the end of the boot section below.
+const MAIN_MODULE_START = performance.now()
 telemetry.init()
 
 window.onerror = (msg, _src, _line, _col, err) => {
@@ -1585,6 +1588,17 @@ propsPanel = new PropertiesPanel(
 )
 if (window.matchMedia('(max-width: 799px)').matches) setMobileTab('plan')
 
+// App-boot timing: how long the main module body took plus full page-load
+// navigation timing (DOMContentLoaded / TTFB) when the browser provides it.
+{
+  const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
+  telemetry.appBoot({
+    bootMs: Math.round(performance.now() - MAIN_MODULE_START),
+    dclMs: nav ? Math.round(nav.domContentLoadedEventEnd) : null,
+    ttfbMs: nav ? Math.round(nav.responseStart) : null,
+  })
+}
+
 // Pending snap wall-ref data set before catalogPanel.place() and consumed in
 // onPlace — bridges the gap because CatalogPanel.place() only forwards (x, y, angleDeg).
 let pendingSnapWallRef: string | null = null
@@ -1596,6 +1610,16 @@ let pendingSnapWallOffset: number | null = null
 let sharedCatalog: FurnitureCatalog | null = null
 let userCatalog: import('./core/user-catalog').UserCatalog | null = null
 let catalogUnavailable = false
+
+/** Time a dynamic-chunk import and emit perf.chunk_load. */
+async function timedChunk<T>(name: string, load: () => Promise<T>): Promise<T> {
+  const start = performance.now()
+  try {
+    return await load()
+  } finally {
+    telemetry.chunkLoad(name, Math.round(performance.now() - start))
+  }
+}
 
 const catalogLoadStart = performance.now()
 // Cache-first (stale-while-revalidate): a previous session's manifest renders
@@ -1610,8 +1634,8 @@ const catalogReady = (cachedManifest
   // Measure catalog availability (cache-or-network) here, before the
   // unrelated user-catalog dynamic import/merge — their variable cost would
   // otherwise dominate a warm cache-hit load and hide the real cache signal.
-  telemetry.catalogLoad(performance.now() - catalogLoadStart, catalog.size)
-  const { UserCatalog, InMemoryModelStore } = await import('./core/user-catalog')
+  telemetry.catalogLoad(performance.now() - catalogLoadStart, catalog.size, cachedManifest !== null)
+  const { UserCatalog, InMemoryModelStore } = await timedChunk('user-catalog', () => import('./core/user-catalog'))
   sharedCatalog = catalog
   // Merge user-imported items on top of the bundled defaults. The store is
   // in-memory for now; swap in IndexedDB/Tauri-fs in the persistence ticket.
@@ -1711,12 +1735,12 @@ function importModelFile(): void {
         if (!response.ok) throw new Error(`Uploaded model unavailable (${response.status})`)
         const data = await response.arrayBuffer()
 
-        const { MAX_IMPORT_BYTES, validateGlbData } = await import('./core/user-catalog')
+        const { MAX_IMPORT_BYTES, validateGlbData } = await timedChunk('user-catalog', () => import('./core/user-catalog'))
         if (data.byteLength > MAX_IMPORT_BYTES) throw new Error('File too large for import')
         validateGlbData(data, `${result.name}.glb`)
 
         try {
-          const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js')
+          const { GLTFLoader } = await timedChunk('gltf-loader', () => import('three/examples/jsm/loaders/GLTFLoader.js'))
           await configureGltfLoader(new GLTFLoader()).parseAsync(data, '')
         } catch {
           throw new Error('Model could not be parsed — file may be corrupted')
@@ -1759,7 +1783,7 @@ async function connectAutomation(): Promise<void> {
   const queryPort = automationPortFromSearch(window.location.search)
   let port = queryPort
   if (port === null && '__TAURI_INTERNALS__' in window) {
-    const { invoke } = await import('@tauri-apps/api/core')
+    const { invoke } = await timedChunk('tauri-core', () => import('@tauri-apps/api/core'))
     const raw = await invoke<string | null>('automation_port')
     port = raw === null ? DEFAULT_AUTOMATION_PORT : Number(raw)
   }
