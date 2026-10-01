@@ -12,5 +12,6 @@ src-tauri/icons/ios
 *.local
 test-results
 playwright-report
+quality-rating/reports
 coverage
 .sh3d-scratch

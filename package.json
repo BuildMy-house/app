@@ -16,6 +16,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "quality:rate": "playwright test --config=playwright.quality.config.ts",
     "check": "tsc --noEmit",
     "e2e": "playwright test",
     "e2e:open": "playwright open",
