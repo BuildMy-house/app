@@ -1,15 +1,24 @@
 name: Deploy buildmyhouse app to app.buildmy.house
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    # workflow_run fires on CI completion regardless of outcome — only deploy
+    # when the triggering CI run succeeded (or on manual dispatch).
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
+        with:
+          # workflow_run checks out the default branch HEAD, not the commit CI
+          # validated — pin to the exact SHA the triggering CI run tested.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-python@v5
         with:
