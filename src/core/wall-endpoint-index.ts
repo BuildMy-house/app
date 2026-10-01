@@ -8,7 +8,7 @@ import type { Wall } from './home'
 const EPSILON = 1e-6
 const GRID_CM = 2 * EPSILON
 
-export interface WallEndpointMatch {
+interface WallEndpointMatch {
   wallId: string
   /** The matching wall object itself, so callers never re-scan by id. */
   wall: Wall
