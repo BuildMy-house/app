@@ -27,7 +27,7 @@ import {
   type HdriPresetId,
 } from './hdri-environment'
 import { telemetry } from '../telemetry/logger'
-import type { RenderingMetrics } from '../telemetry/events'
+import type { RenderingMetrics, ViewportQualitySnapshot } from '../telemetry/events'
 import {
   applySceneUpdate,
   computeSceneUpdates,
@@ -47,6 +47,24 @@ const GIZMO_ARROW_LENGTH_CM = 90
 const GIZMO_RING_RADIUS_CM = 65
 const GIZMO_HANDLE_RADIUS_CM = 7
 const FLOOR_DRAG_SNAP_CM = 10
+
+/**
+ * GPU class string from WEBGL_debug_renderer_info, 'unknown' when the
+ * extension or context is unavailable. Never throws. (Duplicates the boot-time
+ * `renderer` device field telemetry already stamps on every event, but this is
+ * the live rendering context's string at snapshot time — kept self-contained
+ * on the event per ticket.)
+ */
+function gpuRendererString(renderer: THREE.WebGLRenderer): string {
+  try {
+    const gl = renderer.getContext()
+    const ext = gl.getExtension('WEBGL_debug_renderer_info')
+    const value = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : null
+    return typeof value === 'string' && value.length > 0 ? value : 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
 
 export interface View3DOptions {
   /** DOM container; when absent the view stays a headless scene graph. */
@@ -1253,6 +1271,8 @@ export class View3D {
         this._frameReportTimer = setTimeout(() => {
           telemetry.frameTime(this._frameSamples)
           if (this._lastMetrics) telemetry.renderingMetrics(this._lastMetrics)
+          const snapshot = this.collectViewportQualitySnapshot()
+          if (snapshot) telemetry.viewportQualitySnapshot(snapshot)
           this._frameSamples = []
           this._frameReportTimer = undefined
         }, 30_000)
@@ -1419,6 +1439,43 @@ export class View3D {
       ao: this._quality.ao,
       bloom: this._quality.bloom,
       interacting: this._interacting,
+    }
+  }
+
+  /**
+   * Scene-state + viewport metadata for perf.viewport_quality_snapshot.
+   * Reuses the perf.rendering_metrics stats (_lastMetrics, or a fresh
+   * collectRenderingMetrics() at report time) instead of recomputing them.
+   * Reported on the same 30s timer — no second reporting window.
+   */
+  private collectViewportQualitySnapshot(): ViewportQualitySnapshot | undefined {
+    const renderer = this.renderer
+    if (!renderer) return undefined
+    const metrics = this._lastMetrics ?? this.collectRenderingMetrics()
+    if (!metrics) return undefined
+    const cam = this.perspectiveCamera
+    const size = renderer.getSize(new THREE.Vector2())
+    return {
+      camX: Math.round(cam.position.x * 10) / 10,
+      camY: Math.round(cam.position.y * 10) / 10,
+      camZ: Math.round(cam.position.z * 10) / 10,
+      // Inverse of applyCameraState()'s world convention (Ry(PI - yaw) * Rx(-pitch)).
+      yawDeg: Math.round((180 - THREE.MathUtils.radToDeg(cam.rotation.y)) * 10) / 10,
+      pitchDeg: Math.round(-THREE.MathUtils.radToDeg(cam.rotation.x) * 10) / 10,
+      furnitureCount: metrics.furnitureCount,
+      roomCount: metrics.roomCount,
+      wallCount: metrics.wallCount,
+      triangleCount: metrics.triangleCount,
+      drawCalls: metrics.drawCalls,
+      instancedMeshCount: metrics.instancedMeshCount,
+      qualityPreset: this._quality.preset,
+      shadowMapSize: this._quality.shadowMapSize,
+      ao: this._quality.ao,
+      bloom: this._quality.bloom,
+      viewportWidthPx: size.x,
+      viewportHeightPx: size.y,
+      pixelRatio: renderer.getPixelRatio(),
+      gpuRenderer: gpuRendererString(renderer),
     }
   }
 

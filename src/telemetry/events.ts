@@ -205,6 +205,41 @@ export interface AssetIngestionEvent extends BaseEvent, AssetIngestionMetrics {
   tier: 1
 }
 
+/** Scene-state + viewport METADATA ONLY — no screenshot/image payload (that is
+ *  a separate, deliberately-not-built-yet concern). Collected on the same 30s
+ *  throttled cadence as perf.rendering_metrics, reusing its computed stats. */
+export interface ViewportQualitySnapshot {
+  camX: number
+  camY: number
+  camZ: number
+  /** App-world convention (matches CameraDirector state / applyCameraState),
+   *  not raw three.js rotation, so rows join with camera commands. */
+  yawDeg: number
+  pitchDeg: number
+  furnitureCount: number
+  roomCount: number
+  wallCount: number
+  triangleCount: number
+  drawCalls: number
+  instancedMeshCount: number
+  qualityPreset: string
+  shadowMapSize: number
+  ao: 'none' | 'ssao' | 'gtao'
+  bloom: boolean
+  /** Canvas size in CSS px (drawing buffer = this × pixelRatio). */
+  viewportWidthPx: number
+  viewportHeightPx: number
+  /** Actually-applied devicePixelRatio (after cap/interaction scaling). */
+  pixelRatio: number
+  /** GPU string via WEBGL_debug_renderer_info; 'unknown' when unavailable. */
+  gpuRenderer: string
+}
+
+export interface ViewportQualitySnapshotEvent extends BaseEvent, ViewportQualitySnapshot {
+  event: 'perf.viewport_quality_snapshot'
+  tier: 1
+}
+
 // ── Tier 2: User Interaction (opt-out) ──────────────────────────────────────
 
 interface ToolUsageEvent extends BaseEvent {
@@ -249,6 +284,7 @@ export type TelemetryEvent =
   | RenderingMetricsEvent
   | SceneDeltaMetricsEvent
   | AssetIngestionEvent
+  | ViewportQualitySnapshotEvent
   | ToolUsageEvent
   | FeatureUsageEvent
   | UserActionMetricsEvent

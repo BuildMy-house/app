@@ -8,7 +8,13 @@
  *   telemetry.frameTime([16, 18, 22, 45, 120])
  */
 
-import type { RenderingMetrics, SceneDeltaMetrics, TelemetryEvent, TelemetryTier } from './events'
+import type {
+  RenderingMetrics,
+  SceneDeltaMetrics,
+  TelemetryEvent,
+  TelemetryTier,
+  ViewportQualitySnapshot,
+} from './events'
 import { getTelemetryConfig, initTelemetryConfig, setTelemetryTier2 } from './config'
 import { getDeviceContext, getSessionId, getVersion, initContext } from './context'
 import { enqueue, flush, registerUnload } from './transport'
@@ -155,6 +161,11 @@ export const telemetry = {
   /** Report scene delta-vs-rebuild ratio for the last 60s window. */
   sceneDeltaMetrics(metrics: SceneDeltaMetrics): void {
     emit('perf.scene_delta_metrics', 1, { ...metrics })
+  },
+
+  /** Report scene/viewport quality metadata snapshot (no image payload). */
+  viewportQualitySnapshot(metrics: ViewportQualitySnapshot): void {
+    emit('perf.viewport_quality_snapshot', 1, { ...metrics })
   },
 
   // ── Tier 2: User Interaction ─────────────────────────────────────────────

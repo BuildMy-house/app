@@ -133,6 +133,94 @@ describe('telemetry.sceneDeltaMetrics', () => {
   })
 })
 
+describe('telemetry.viewportQualitySnapshot', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    enqueue.mockClear()
+    vi.unstubAllEnvs()
+    vi.stubEnv('DATABASE_URL', undefined)
+  })
+
+  it('emits perf.viewport_quality_snapshot as tier 1 with all metadata', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token')
+    const { telemetry } = await import('./logger')
+
+    telemetry.viewportQualitySnapshot({
+      camX: 1200.5,
+      camY: 800,
+      camZ: -340.2,
+      yawDeg: 45,
+      pitchDeg: -30,
+      furnitureCount: 12,
+      roomCount: 4,
+      wallCount: 28,
+      triangleCount: 45_000,
+      drawCalls: 96,
+      instancedMeshCount: 5,
+      qualityPreset: 'high',
+      shadowMapSize: 2048,
+      ao: 'ssao',
+      bloom: true,
+      viewportWidthPx: 1280,
+      viewportHeightPx: 720,
+      pixelRatio: 1.5,
+      gpuRenderer: 'ANGLE (NVIDIA GeForce RTX)',
+    })
+
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
+      event: 'perf.viewport_quality_snapshot',
+      tier: 1,
+      camX: 1200.5,
+      yawDeg: 45,
+      pitchDeg: -30,
+      furnitureCount: 12,
+      roomCount: 4,
+      wallCount: 28,
+      triangleCount: 45_000,
+      drawCalls: 96,
+      instancedMeshCount: 5,
+      qualityPreset: 'high',
+      shadowMapSize: 2048,
+      ao: 'ssao',
+      bloom: true,
+      viewportWidthPx: 1280,
+      viewportHeightPx: 720,
+      pixelRatio: 1.5,
+      gpuRenderer: 'ANGLE (NVIDIA GeForce RTX)',
+    }))
+  })
+
+  it('is a no-op when telemetry disabled', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', '')
+    const { telemetry } = await import('./logger')
+
+    telemetry.viewportQualitySnapshot({
+      camX: 0,
+      camY: 0,
+      camZ: 0,
+      yawDeg: 0,
+      pitchDeg: 0,
+      furnitureCount: 0,
+      roomCount: 0,
+      wallCount: 0,
+      triangleCount: 0,
+      drawCalls: 0,
+      instancedMeshCount: 0,
+      qualityPreset: 'low',
+      shadowMapSize: 1024,
+      ao: 'none',
+      bloom: false,
+      viewportWidthPx: 800,
+      viewportHeightPx: 600,
+      pixelRatio: 1,
+      gpuRenderer: 'unknown',
+    })
+
+    expect(enqueue).not.toHaveBeenCalled()
+  })
+})
+
 describe('telemetry.userActionMetrics', () => {
   beforeEach(() => {
     vi.resetModules()
