@@ -9,11 +9,14 @@
  *
  *   px ≈ worldSize / (2 · distance · tan(fov/2)) · viewportHeightPx
  *
- * Objects whose estimate falls below the preset's `lodCullPixelThreshold`
- * are hidden (`visible = false`); objects this pass previously hid are
- * restored once they grow past the threshold again. Walls, floors,
- * ceilings, roofs, and everything else never match, so only furniture is
- * ever touched. A threshold of 0 disables culling entirely.
+ * Objects whose estimate falls below the caller's threshold are hidden
+ * (`visible = false`); objects this pass previously hid are restored once
+ * they grow past the threshold again. Thresholds arrive pre-converted to
+ * pixels by the caller from a screen-height fraction (see viewport-quality.ts),
+ * and transparent/glass furniture uses a separate, higher threshold (based on
+ * standard screen-space LOD culling practice). Walls, floors, ceilings,
+ * roofs, and everything else never match, so only furniture is ever touched.
+ * A threshold of 0 disables culling entirely.
  *
  * Documented scope cuts / tradeoffs:
  *   - The pass runs inside View3D's render-on-demand funnel (draw()), i.e.
@@ -75,6 +78,31 @@ export function shouldCullFurniture(
 ): boolean {
   if (thresholdPx <= 0) return false
   return estimateApparentSizePx(distance, worldSize, fovDeg, viewportHeightPx) < thresholdPx
+}
+
+/**
+ * True if any material on this object (or, for InstancedMesh, its own
+ * material) is transparent or has nonzero transmission (glass). Used to route
+ * furniture to the higher transparentLodCullScreenFraction cull threshold —
+ * blending artifacts are more visible at tiny sizes than opaque popping is.
+ */
+export function hasTransparentMaterial(object: THREE.Object3D): boolean {
+  const walk = (node: THREE.Object3D): boolean => {
+    const mesh = node as THREE.Mesh
+    if (mesh.isMesh) {
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+      for (const material of materials) {
+        if (material.transparent || (material as THREE.MeshPhysicalMaterial).transmission > 0) {
+          return true
+        }
+      }
+    }
+    for (const child of node.children) {
+      if (walk(child)) return true
+    }
+    return false
+  }
+  return walk(object)
 }
 
 // Bounding box (max dimension + world center) of individual furniture
@@ -175,13 +203,14 @@ export function applyFurnitureLod(
   camera: THREE.PerspectiveCamera,
   viewportHeightPx: number,
   thresholdPx: number,
+  transparentThresholdPx: number,
   hiddenByLod: WeakSet<THREE.Object3D>,
 ): FurnitureLodStats {
   const stats: FurnitureLodStats = { hidden: 0, restored: 0 }
   const cameraPosition = camera.position
   const fovDeg = camera.fov
-  const cullDecision = (object: THREE.Object3D, apparentPx: number): void => {
-    const cull = thresholdPx > 0 && apparentPx < thresholdPx
+  const cullDecision = (object: THREE.Object3D, apparentPx: number, limitPx: number): void => {
+    const cull = limitPx > 0 && apparentPx < limitPx
     if (cull) {
       if (!hiddenByLod.has(object)) {
         hiddenByLod.add(object)
@@ -202,6 +231,7 @@ export function applyFurnitureLod(
       cullDecision(
         object,
         instancedGroupApparentSizePx(object, cameraPosition, fovDeg, viewportHeightPx),
+        hasTransparentMaterial(object) ? transparentThresholdPx : thresholdPx,
       )
       return
     }
@@ -209,6 +239,7 @@ export function applyFurnitureLod(
       cullDecision(
         object,
         individualApparentSizePx(object, cameraPosition, fovDeg, viewportHeightPx),
+        hasTransparentMaterial(object) ? transparentThresholdPx : thresholdPx,
       )
       return
     }

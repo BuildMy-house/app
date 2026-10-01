@@ -33,11 +33,20 @@ export interface ViewportQuality {
   ao: 'none' | 'ssao' | 'gtao'
   /**
    * Distance-cull furniture whose estimated on-screen size falls below this
-   * many pixels (see furniture-lod.ts). 0 disables furniture LOD culling.
-   * Lower presets cull more aggressively (8px) to keep weak GPUs fed;
-   * higher presets cull less (3-4px) to keep distant detail.
+   * fraction of the viewport's drawing-buffer height (see furniture-lod.ts).
+   * Expressed as a screen-fraction, not raw device pixels, so culling behaves
+   * consistently across display resolutions/pixel ratios (based on standard
+   * screen-space LOD culling practice). 0 disables furniture LOD culling.
    */
-  lodCullPixelThreshold: number
+  lodCullScreenFraction: number
+  /**
+   * Same idea, but for furniture with transparent/glass materials (e.g. glass
+   * doors, window-like furniture). Set higher than lodCullScreenFraction:
+   * transparent blending artifacts are more visible at tiny apparent sizes
+   * than opaque popping is, so glass furniture should cull sooner (at a
+   * larger apparent size) rather than shrink to near-invisible first.
+   */
+  transparentLodCullScreenFraction: number
 }
 
 export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = {
@@ -50,7 +59,8 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
     maxAnisotropy: 1,
     bloom: false,
     ao: 'none',
-    lodCullPixelThreshold: 8,
+    lodCullScreenFraction: 0.0075,
+    transparentLodCullScreenFraction: 0.013,
   },
   medium: {
     preset: 'medium',
@@ -61,7 +71,8 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
     maxAnisotropy: 4,
     bloom: true,
     ao: 'none',
-    lodCullPixelThreshold: 8,
+    lodCullScreenFraction: 0.0055,
+    transparentLodCullScreenFraction: 0.0095,
   },
   high: {
     preset: 'high',
@@ -72,7 +83,8 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
     maxAnisotropy: 8,
     bloom: true,
     ao: 'ssao',
-    lodCullPixelThreshold: 4,
+    lodCullScreenFraction: 0.0028,
+    transparentLodCullScreenFraction: 0.005,
   },
   ultra: {
     preset: 'ultra',
@@ -87,7 +99,8 @@ export const VIEWPORT_PRESETS: Record<ViewportQualityPreset, ViewportQuality> = 
     maxAnisotropy: 16,
     bloom: true,
     ao: 'gtao',
-    lodCullPixelThreshold: 3,
+    lodCullScreenFraction: 0.0014,
+    transparentLodCullScreenFraction: 0.0025,
   },
 }
 
@@ -113,7 +126,13 @@ export function loadViewportQuality(storage: Pick<Storage, 'getItem'> = localSto
       ao: (['none', 'ssao', 'gtao'] as const).includes(parsed.ao as 'none' | 'ssao' | 'gtao')
         ? (parsed.ao as 'none' | 'ssao' | 'gtao')
         : base.ao,
-      lodCullPixelThreshold: clampNum(parsed.lodCullPixelThreshold, 0, 64, base.lodCullPixelThreshold),
+      lodCullScreenFraction: clampNum(parsed.lodCullScreenFraction, 0, 0.1, base.lodCullScreenFraction),
+      transparentLodCullScreenFraction: clampNum(
+        parsed.transparentLodCullScreenFraction,
+        0,
+        0.1,
+        base.transparentLodCullScreenFraction,
+      ),
     }
   } catch {
     return { ...DEFAULT_VIEWPORT_QUALITY }

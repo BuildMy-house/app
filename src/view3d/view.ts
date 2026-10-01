@@ -1190,11 +1190,13 @@ export class View3D {
     // reduced pixel ratio culls slightly more mid-gesture, where it helps.
     // Stubbed renderers (metrics tests) have no canvas: skip the pass.
     if (renderer.domElement) {
+      const viewportHeightPx = renderer.domElement.height
       applyFurnitureLod(
         this._scene,
         this.perspectiveCamera,
-        renderer.domElement.height,
-        this._quality.lodCullPixelThreshold,
+        viewportHeightPx,
+        this._quality.lodCullScreenFraction * viewportHeightPx,
+        this._quality.transparentLodCullScreenFraction * viewportHeightPx,
         this._lodHidden,
       )
     }

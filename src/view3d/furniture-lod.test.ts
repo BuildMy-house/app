@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import {
   applyFurnitureLod,
   estimateApparentSizePx,
+  hasTransparentMaterial,
   shouldCullFurniture,
 } from './furniture-lod'
 
@@ -79,14 +80,14 @@ describe('applyFurnitureLod', () => {
     scene.add(wall, furnitureAt('a', FAR), furnitureAt('b', NEAR))
 
     const hidden = new WeakSet<THREE.Object3D>()
-    const stats = applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, hidden)
+    const stats = applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, 8, hidden)
     expect(stats).toEqual({ hidden: 1, restored: 0 })
     expect(wall.visible).toBe(true)
     expect(scene.getObjectByName('furniture:a')!.visible).toBe(false)
     expect(scene.getObjectByName('furniture:b')!.visible).toBe(true)
 
     // Second identical pass: nothing changes.
-    expect(applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, hidden)).toEqual({
+    expect(applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, 8, hidden)).toEqual({
       hidden: 0,
       restored: 0,
     })
@@ -97,12 +98,12 @@ describe('applyFurnitureLod', () => {
     const item = furnitureAt('a', FAR)
     scene.add(item)
     const hidden = new WeakSet<THREE.Object3D>()
-    expect(applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, hidden).hidden).toBe(1)
+    expect(applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, 8, hidden).hidden).toBe(1)
 
     // Scene-delta style move: position.set only, matrixWorld goes stale —
     // the pass must still re-evaluate from the fresh transform.
     item.position.set(0, 50, NEAR)
-    const stats = applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, hidden)
+    const stats = applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, 8, hidden)
     expect(stats).toEqual({ hidden: 0, restored: 1 })
     expect(item.visible).toBe(true)
   })
@@ -119,7 +120,7 @@ describe('applyFurnitureLod', () => {
     scene.add(mesh)
 
     const hidden = new WeakSet<THREE.Object3D>()
-    applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, hidden)
+    applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, 8, hidden)
     expect(mesh.visible).toBe(true)
   })
 
@@ -135,11 +136,11 @@ describe('applyFurnitureLod', () => {
     scene.add(mesh)
 
     const hidden = new WeakSet<THREE.Object3D>()
-    expect(applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, hidden).hidden).toBe(1)
+    expect(applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, 8, hidden).hidden).toBe(1)
     expect(mesh.visible).toBe(false)
 
     // Camera approaches: whole group comes back.
-    const stats = applyFurnitureLod(scene, makeCamera(FAR - NEAR), VIEWPORT_H, 8, hidden)
+    const stats = applyFurnitureLod(scene, makeCamera(FAR - NEAR), VIEWPORT_H, 8, 8, hidden)
     expect(stats).toEqual({ hidden: 0, restored: 1 })
     expect(mesh.visible).toBe(true)
   })
@@ -151,7 +152,7 @@ describe('applyFurnitureLod', () => {
     scene.add(userHidden)
 
     const hidden = new WeakSet<THREE.Object3D>()
-    applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, hidden)
+    applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, 8, hidden)
     expect(userHidden.visible).toBe(false) // untouched — large enough, but not ours to show
   })
 
@@ -159,11 +160,73 @@ describe('applyFurnitureLod', () => {
     const scene = new THREE.Scene()
     scene.add(furnitureAt('a', FAR))
     const hidden = new WeakSet<THREE.Object3D>()
-    expect(applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, hidden).hidden).toBe(1)
-    expect(applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 0, hidden)).toEqual({
+    expect(applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, 8, hidden).hidden).toBe(1)
+    expect(applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 0, 0, hidden)).toEqual({
       hidden: 0,
       restored: 1,
     })
     expect(scene.getObjectByName('furniture:a')!.visible).toBe(true)
+  })
+
+  it('routes transparent furniture to the higher transparent threshold', () => {
+    const scene = new THREE.Scene()
+    const glass = furnitureAt('glass', NEAR)
+    glass.material = new THREE.MeshPhysicalMaterial({ transparent: true })
+    scene.add(glass)
+
+    const hidden = new WeakSet<THREE.Object3D>()
+    // NEAR furniture is ≈65px apparent: above the 8px opaque threshold...
+    expect(applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, 8, hidden).hidden).toBe(0)
+    expect(glass.visible).toBe(true)
+    // ...but below a 100px transparent threshold → culled sooner.
+    expect(applyFurnitureLod(scene, makeCamera(), VIEWPORT_H, 8, 100, hidden).hidden).toBe(1)
+    expect(glass.visible).toBe(false)
+  })
+})
+
+describe('hasTransparentMaterial', () => {
+  it('is false for plain opaque materials, true for transparent/glass ones', () => {
+    const opaque = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial())
+    expect(hasTransparentMaterial(opaque)).toBe(false)
+
+    const transparent = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshStandardMaterial({ transparent: true }),
+    )
+    expect(hasTransparentMaterial(transparent)).toBe(true)
+
+    const glass = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshPhysicalMaterial({ transmission: 1 }),
+    )
+    expect(hasTransparentMaterial(glass)).toBe(true)
+
+    const multiMaterial = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), [
+      new THREE.MeshBasicMaterial(),
+      new THREE.MeshBasicMaterial({ transparent: true }),
+    ])
+    expect(hasTransparentMaterial(multiMaterial)).toBe(true)
+  })
+
+  it('sees through group children and checks InstancedMesh materials', () => {
+    const group = new THREE.Group()
+    group.add(
+      new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ transparent: true })),
+    )
+    expect(hasTransparentMaterial(group)).toBe(true)
+
+    const opaqueInstanced = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(100, 100, 100),
+      new THREE.MeshBasicMaterial(),
+      2,
+    )
+    expect(hasTransparentMaterial(opaqueInstanced)).toBe(false)
+
+    const glassInstanced = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(100, 100, 100),
+      new THREE.MeshPhysicalMaterial({ transmission: 1 }),
+      2,
+    )
+    expect(hasTransparentMaterial(glassInstanced)).toBe(true)
   })
 })
