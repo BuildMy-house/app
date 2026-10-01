@@ -23,11 +23,13 @@ import type { ViewportQualitySnapshot } from '../src/telemetry/events'
  *   draw calls indicate broken instancing/batching.
  * - LOD flag: when the caller marks LOD culling as expected for this scene
  *   (context.expectedLodCullScreenFraction > 0) but drawCalls still exceed
- *   4 × furnitureCount + 100, culling is probably not doing its job. NOTE:
- *   the shipped preset field is `lodCullPixelThreshold` (pixels, not screen
- *   fraction) — the fraction here is only used as a boolean "culling is
- *   expected" signal until the transparent-LOD ticket lands and gives us a
- *   fraction-based field to compare against.
+ *   4 × furnitureCount + 100, culling is probably not doing its job. The
+ *   shipped preset fields are `lodCullScreenFraction` /
+ *   `transparentLodCullScreenFraction` (screen-fraction, DPI-independent —
+ *   see viewport-quality.ts); expectedLodCullScreenFraction here is still
+ *   only used as a boolean "culling is expected for this scene" signal, not
+ *   compared numerically against the preset's own fraction — a scene is
+ *   either furnished enough that *some* culling should show up, or it isn't.
  *
  * Score: 100 − 40 × hard − 15 × soft, floored at 0.
  * Verdict: any hard reason → fail; any soft reason → borderline; else pass.

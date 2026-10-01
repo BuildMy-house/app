@@ -41,12 +41,13 @@ Score = 100 − 40 × hard − 15 × soft (floor 0). Any hard → `fail`, any so
   `drawCalls > 4 × (furniture + walls + rooms) + 100`; LOD culling expected
   but draw calls still > 4 × furniture + 100.
 
-Note: the shipped preset field is `lodCullPixelThreshold` (pixels), not a
-screen fraction — the ticket-guessed `lodCullScreenFraction` /
-`transparentLodCullScreenFraction` fields don't exist yet (sibling
-transparent-LOD ticket not landed). The grade context's
-`expectedLodCullScreenFraction` is therefore only a boolean "culling expected"
-signal for now.
+Note: the shipped preset fields are `lodCullScreenFraction` /
+`transparentLodCullScreenFraction` (screen-fraction, DPI-independent — see
+`src/view3d/viewport-quality.ts`, landed alongside this pipeline). The grade
+context's `expectedLodCullScreenFraction` is still only a per-scene boolean
+"culling expected here" signal, not a numeric comparison against the preset's
+own fraction value — it marks scenes furnished enough that LOD culling should
+visibly reduce draw calls.
 
 ## Scene building notes
 
