@@ -39,14 +39,13 @@
     "@playwright/test": "^1.62.1",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/cli": "^2",
-    "@tauri-apps/plugin-fs": "^2.5.2",
+    "@tauri-apps/plugin-fs": "^2.6.0",
     "@types/node": "^24",
     "@types/ws": "^8",
-    "@vitest/coverage-v8": "^5",
+    "@vitest/coverage-v8": "^5.0.3",
     "ajv": "^8.20.0",
     "canvas": "^3.2.3",
     "eslint": "^10",
-    "gl": "^8.1.6",
     "globals": "^17.12.0",
     "jsdom": "^30.0.1",
     "knip": "^6.37.0",
@@ -55,13 +54,12 @@
     "typescript": "^5",
     "typescript-eslint": "^8",
     "vite": "^8",
-    "vitest": "^5",
+    "vitest": "^5.0.3",
     "ws": "^8"
   },
   "allowScripts": {
     "esbuild@0.28.2": true,
     "esbuild@0.25.12": true,
-    "canvas@3.2.3": true,
-    "gl@8.1.6": true
+    "canvas@3.2.3": true
   }
 }

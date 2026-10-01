@@ -43,7 +43,7 @@ export interface FurnitureSnapResult {
 
 /** Max distance (cm) from a wall within which a placement magnetizes to it. */
 export const FURNITURE_SNAP_DISTANCE_CM = 25
-export const FURNITURE_ROTATION_SNAP_ANGLE_DEG = 8
+const FURNITURE_ROTATION_SNAP_ANGLE_DEG = 8
 
 export function closestPointOnSegment(
   p: Point,

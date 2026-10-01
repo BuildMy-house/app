@@ -23,11 +23,11 @@ type RenderJobStatus = 'pending' | 'processing' | 'complete' | 'failed'
 
 // Worker-status poll backoff, mirrored by the MCP render_photoreal poll loop
 // in mcp/server.py (RENDER_POLL_* constants) — keep the two schedules in sync.
-export const RENDER_POLL_INITIAL_DELAY_MS = 1000
-export const RENDER_POLL_BACKOFF_FACTOR = 1.5
-export const RENDER_POLL_MAX_DELAY_MS = 5000
+const RENDER_POLL_INITIAL_DELAY_MS = 1000
+const RENDER_POLL_BACKOFF_FACTOR = 1.5
+const RENDER_POLL_MAX_DELAY_MS = 5000
 
-export function nextRenderPollDelayMs(previousDelayMs: number): number {
+function nextRenderPollDelayMs(previousDelayMs: number): number {
   return Math.min(previousDelayMs * RENDER_POLL_BACKOFF_FACTOR, RENDER_POLL_MAX_DELAY_MS)
 }
 
