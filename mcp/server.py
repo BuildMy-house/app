@@ -22,6 +22,7 @@ import queue
 import subprocess
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
 from urllib.parse import urlparse
@@ -638,6 +639,35 @@ async def screenshot(view: str, width: int = 800, height: int = 600) -> Image:
     return await _render(await _session().request("get_state"), view, width, height)
 
 
+# Worker-status poll backoff mirroring server/src/render-queue.ts (RENDER_POLL_*
+# constants) — keep the two schedules in sync until the API exposes a retryAfter hint.
+RENDER_POLL_INITIAL_DELAY_S = 1.0
+RENDER_POLL_BACKOFF_FACTOR = 1.5
+RENDER_POLL_MAX_DELAY_S = 5.0
+# Wall-clock deadlines per profile (same max wait as the previous fixed 1s iteration counts).
+RENDER_TIMEOUT_S = {"thumbnail": 90, "low": 360, "medium": 900, "high": 1860}
+
+
+async def _emit_roundtrip(started: float, http_ms: float, poll_ms: float, poll_count: int, job_id: str | None, profile: str) -> None:
+    """Fire-and-forget perf.mcp_roundtrip event to Axiom; telemetry failures never fail the render."""
+    try:
+        event = {
+            "event": "perf.mcp_roundtrip",
+            "tier": 1,
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "app": "buildmy-house",
+            "totalMs": round((time.monotonic() - started) * 1000),
+            "httpMs": round(http_ms * 1000),
+            "pollMs": round(poll_ms * 1000),
+            "pollCount": poll_count,
+            "jobId": job_id,
+            "quality": profile,
+        }
+        await anyio.to_thread.run_sync(AxiomClient().ingest, [event])
+    except Exception:
+        pass
+
+
 @mcp.tool()
 async def render_photoreal(profile: str = "thumbnail", house_id: str | None = None) -> Image:
     """Render a photorealistic LuxCore image via the app's render queue; use screenshot for cheap iteration."""
@@ -648,31 +678,52 @@ async def render_photoreal(profile: str = "thumbnail", house_id: str | None = No
     selected = house_id or _ACTIVE_HOUSES.get(_API_TOKEN)
     if not selected:
         raise ValueError("select a production house first")
-    record = await _api_request(f"/api/homes/{selected}")
-    submission = await _api_request(
-        "/api/render/queue",
-        "POST",
-        {
-            "homeId": selected,
-            "homeName": record.get("name", "Untitled"),
-            "homeJson": json.loads(record["json"]),
-            "quality": profile,
-        },
-    )
-    job_id = submission.get("jobId")
-    if not job_id:
-        raise RuntimeError("render queue did not return a job id")
-    for _ in range({"thumbnail": 90, "low": 360, "medium": 900, "high": 1860}[profile]):
-        await anyio.sleep(1)
-        status = await _api_request(f"/api/render/queue/{job_id}")
-        if not isinstance(status, dict):
-            raise RuntimeError("render queue returned an invalid job status")
-        if status.get("status") == "failed":
-            raise RuntimeError(str(status.get("error") or "render failed"))
-        if status.get("status") == "complete":
-            artifact = await _api_request_bytes(f"/api/render/queue/{job_id}/artifact")
-            return Image(data=artifact, format="png")
-    raise TimeoutError(f"render queue {profile} job did not finish before the MCP timeout")
+    started = time.monotonic()
+    http_ms = 0.0
+    poll_ms = 0.0
+    poll_count = 0
+    job_id: str | None = None
+    try:
+        mark = time.monotonic()
+        record = await _api_request(f"/api/homes/{selected}")
+        http_ms += time.monotonic() - mark
+        mark = time.monotonic()
+        submission = await _api_request(
+            "/api/render/queue",
+            "POST",
+            {
+                "homeId": selected,
+                "homeName": record.get("name", "Untitled"),
+                "homeJson": json.loads(record["json"]),
+                "quality": profile,
+            },
+        )
+        http_ms += time.monotonic() - mark
+        job_id = submission.get("jobId")
+        if not job_id:
+            raise RuntimeError("render queue did not return a job id")
+        deadline = time.monotonic() + RENDER_TIMEOUT_S[profile]
+        delay = RENDER_POLL_INITIAL_DELAY_S
+        while time.monotonic() < deadline:
+            await anyio.sleep(delay)
+            delay = min(delay * RENDER_POLL_BACKOFF_FACTOR, RENDER_POLL_MAX_DELAY_S)
+            poll_count += 1
+            mark = time.monotonic()
+            status = await _api_request(f"/api/render/queue/{job_id}")
+            poll_ms += time.monotonic() - mark
+            http_ms += time.monotonic() - mark
+            if not isinstance(status, dict):
+                raise RuntimeError("render queue returned an invalid job status")
+            if status.get("status") == "failed":
+                raise RuntimeError(str(status.get("error") or "render failed"))
+            if status.get("status") == "complete":
+                mark = time.monotonic()
+                artifact = await _api_request_bytes(f"/api/render/queue/{job_id}/artifact")
+                http_ms += time.monotonic() - mark
+                return Image(data=artifact, format="png")
+        raise TimeoutError(f"render queue {profile} job did not finish before the MCP timeout")
+    finally:
+        await _emit_roundtrip(started, http_ms, poll_ms, poll_count, job_id, profile)
 
 
 @mcp.tool()

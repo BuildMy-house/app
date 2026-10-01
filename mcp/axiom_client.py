@@ -11,7 +11,7 @@ class AxiomClient:
 
     def __init__(self, token: str | None = None) -> None:
         self.token = token or os.environ.get("AXIOM_TOKEN", "")
-        self.endpoint = os.environ.get("AXIOM_ENDPOINT", "").rstrip("/")
+        self.endpoint = (os.environ.get("AXIOM_ENDPOINT") or os.environ.get("AXIOM_URL", "")).rstrip("/")
         self.dataset = os.environ.get("AXIOM_DATASET", "buildmy-house-telemetry")
 
     def query(self, aql: str, *, timeframe: str = "24h") -> dict:
@@ -32,6 +32,29 @@ class AxiomClient:
                 return json.loads(response.read())
         except HTTPError as exc:
             raise RuntimeError(f"Axiom query failed ({exc.code})") from exc
+
+    def ingest(self, events: list[dict]) -> None:
+        """POST telemetry events to Axiom (same /v1/ingest route as the app's server and browser transports).
+
+        Dataset-scoped ingest must target the dataset's edge deployment domain, so this resolves
+        the same endpoint/token pair the browser ingest transport uses (VITE_AXIOM_ENDPOINT /
+        VITE_AXIOM_TOKEN), with AXIOM_INGEST_ENDPOINT/AXIOM_INGEST_TOKEN as explicit overrides.
+        """
+        if not self.endpoint or not self.token:
+            raise RuntimeError("Axiom is not configured: AXIOM_ENDPOINT/AXIOM_TOKEN must be set (no hardcoded fallback)")
+        endpoint = (os.environ.get("AXIOM_INGEST_ENDPOINT") or os.environ.get("VITE_AXIOM_ENDPOINT") or self.endpoint).rstrip("/")
+        token = os.environ.get("AXIOM_INGEST_TOKEN") or os.environ.get("VITE_AXIOM_TOKEN") or self.token
+        request = Request(
+            f"{endpoint}/v1/ingest/{self.dataset}",
+            data=json.dumps(events).encode(),
+            method="POST",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        )
+        try:
+            with urlopen(request, timeout=10) as response:
+                response.read()
+        except HTTPError as exc:
+            raise RuntimeError(f"Axiom ingest failed ({exc.code})") from exc
 
     def summary(self, metric: str = "errors", *, timeframe: str = "7d") -> dict:
         ds = self.dataset

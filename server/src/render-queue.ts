@@ -21,6 +21,16 @@ import type { NormalizedHomeState } from '../../src/core/home.js'
 type RenderProfile = 'thumbnail' | 'low' | 'medium' | 'high'
 type RenderJobStatus = 'pending' | 'processing' | 'complete' | 'failed'
 
+// Worker-status poll backoff, mirrored by the MCP render_photoreal poll loop
+// in mcp/server.py (RENDER_POLL_* constants) — keep the two schedules in sync.
+export const RENDER_POLL_INITIAL_DELAY_MS = 1000
+export const RENDER_POLL_BACKOFF_FACTOR = 1.5
+export const RENDER_POLL_MAX_DELAY_MS = 5000
+
+export function nextRenderPollDelayMs(previousDelayMs: number): number {
+  return Math.min(previousDelayMs * RENDER_POLL_BACKOFF_FACTOR, RENDER_POLL_MAX_DELAY_MS)
+}
+
 interface RenderJob {
   id: string
   userId: string
@@ -139,10 +149,10 @@ class RenderQueue {
     })
     if (!submitted.ok) throw new Error(`LuxCore submit failed: ${submitted.status}`)
     const remote = (await submitted.json()) as { id: string }
-    let pollDelayMs = 1000
+    let pollDelayMs = RENDER_POLL_INITIAL_DELAY_MS
     for (;;) {
       await new Promise((resolve) => setTimeout(resolve, pollDelayMs))
-      pollDelayMs = Math.min(pollDelayMs * 1.5, 5000)
+      pollDelayMs = nextRenderPollDelayMs(pollDelayMs)
       const response = await fetch(`${this.workerUrl}/api/render/jobs/${job.userId}/${remote.id}`, { headers })
       if (!response.ok) throw new Error(`LuxCore status failed: ${response.status}`)
       const status = (await response.json()) as { status: string; error?: string }
