@@ -6,6 +6,12 @@
       "type": "remote",
       "url": "{env:STEWARD_MCP_URL}",
       "headers": {"Authorization": "Bearer {env:STEWARD_TOKEN}"}
+    },
+    "buildmyhouse": {
+      "type": "stdio",
+      "command": "./mcp/run.sh",
+      "args": [],
+      "env": {}
     }
   },
   "instructions": ["AGENTS.md", "CLAUDE.md"],
