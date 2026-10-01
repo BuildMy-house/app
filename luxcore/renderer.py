@@ -21,9 +21,11 @@ import base64
 import dataclasses
 import enum
 import json
+import os
 import sys
 import tempfile
 import time
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -240,11 +242,62 @@ def _build_adaptive_props(settings: RenderSettings) -> str:
     return "\n".join(lines)
 
 
+def _halt_reason(session: Any, settings: RenderSettings) -> tuple[int, str]:
+    """Return (final SPP, halt reason) for a completed render.
+
+    With adaptive sampling off, batch.haltspp is the only stop condition,
+    so a completed render is always "sample_cap". With adaptive sampling
+    on, the noise-estimation threshold can halt early ("noise_threshold").
+    A time-cap stop raises TimeoutError (failure path, no completed event).
+    """
+    try:
+        samples = int(session.GetStats().GetDoubleStat("renderengine.total.samples", -1.0))
+    except Exception:  # noqa: BLE001 — stats API varies across pyluxcore builds
+        samples = -1
+    if not settings.adaptive:
+        return max(samples, 0), "sample_cap"
+    if 0 <= samples < settings.samples_per_pixel:
+        return samples, "noise_threshold"
+    if samples >= settings.samples_per_pixel:
+        return samples, "sample_cap"
+    return 0, "unknown"
+
+
+def _emit_render_telemetry(event: dict) -> None:
+    """POST one render-job event to Axiom. Fire-and-forget, never raises.
+
+    Reuses the same env wiring as mcp/axiom_client.py (AXIOM_TOKEN,
+    AXIOM_ENDPOINT, AXIOM_DATASET; dataset default "buildmy-house-telemetry").
+    That module is query-only, so the ingest POST lives here (stdlib urllib);
+    no-op when the env vars are unset (e.g. local dev).
+    """
+    endpoint = os.environ.get("AXIOM_ENDPOINT", "").rstrip("/")
+    token = os.environ.get("AXIOM_TOKEN", "")
+    if not endpoint or not token:
+        return
+    dataset = os.environ.get("AXIOM_DATASET", "buildmy-house-telemetry")
+    try:
+        request = urllib.request.Request(
+            f"{endpoint}/v1/datasets/{dataset}/ingest",
+            data=json.dumps([event]).encode(),
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
+        )
+        with urllib.request.urlopen(request, timeout=5) as response:
+            response.read()
+    except OSError:
+        pass
+
+
 def render(
     scene_data: dict,
     settings: RenderSettings | None = None,
     output_path: str | Path | None = None,
     home: dict | None = None,
+    profile: str | None = None,
 ) -> bytes:
     import pyluxcore
 
@@ -256,14 +309,21 @@ def render(
             "PATHOCL requested, but LuxCore sees no OpenCL devices; "
             "expose the host GPU and NVIDIA OpenCL ICD to this process"
         )
+    started = time.monotonic()
     with tempfile.TemporaryDirectory(prefix="luxcore-render-") as work:
         prefix = Path(work) / "image"
-        # Core film + engine config
+        # PATHCPU/PATHOCL are full path tracers: global illumination (multi-
+        # bounce light transport) is inherent to the engine — no separate
+        # AO/GI pass is needed or defined in this config.
+        # Explicit pixel filter: BLACKMAN_HARRIS is LuxCore's general-purpose
+        # high-quality default for stills and needs no tuning parameters
+        # (Mitchell-Netravali would need 4); the implicit BOX default aliases.
         config_str = (
             f"renderengine.type = {settings.engine}\n"
             f"film.width = {settings.width}\n"
             f"film.height = {settings.height}\n"
             f"film.samplesperpixel = {settings.samples_per_pixel}\n"
+            f"film.filter.type = BLACKMAN_HARRIS\n"
             f"film.gamma = 2.2\n"
             f"batch.haltspp = {settings.samples_per_pixel}\n"
             f"sampler.type = SOBOL"
@@ -305,6 +365,18 @@ def render(
             pyluxcore.Properties(),
         )
         data = prefix.with_suffix(".png").read_bytes()
+    samples, halt_reason = _halt_reason(session, settings)
+    _emit_render_telemetry(
+        {
+            "event": "render.job.completed",
+            "profile": profile or settings.preset or "custom",
+            "width": settings.width,
+            "height": settings.height,
+            "samples": samples,
+            "duration_ms": round((time.monotonic() - started) * 1000),
+            "halt_reason": halt_reason,
+        }
+    )
     if output_path:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         Path(output_path).write_bytes(data)
