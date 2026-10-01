@@ -62,6 +62,10 @@ test.describe('furniture placement', () => {
     // Arm and place one furniture item.
     // Use a full-size furniture item; the curated catalog also contains
     // wall frames whose tiny footprint makes a plan hit-test ambiguous.
+    // MAT-T9: the grid is virtualized — "Bar table" sits deep in the list
+    // and may be outside the mounted window. Searching filters the full
+    // item list so the card gets mounted (same pattern as catalog-panel.spec.ts).
+    await page.locator('.catalog-search').fill('Bar table')
     await page.locator('.catalog-card').filter({ hasText: 'Bar table' }).click()
     const box = await page.locator('#plan-canvas').boundingBox()
     expect(box).not.toBeNull()
