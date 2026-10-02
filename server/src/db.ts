@@ -20,6 +20,30 @@ export interface UserRow {
   created_at: string;
 }
 
+export interface AssetQualityScoreRow {
+  id: string;
+  catalog_id: string;
+  asset_version: string;
+  poly_count: number | null;
+  used_fallback_material: number | null;
+  has_base_color_texture: number | null;
+  has_pbr_maps: number | null;
+  texture_max_px: number | null;
+  render_profile: string | null;
+  render_path: string | null;
+  camera_preset: string;
+  score_geometry: number | null;
+  score_uv_texture: number | null;
+  score_material: number | null;
+  score_render_fidelity: number | null;
+  score_composite: number | null;
+  judge_notes: string | null;
+  score_source: string;
+  scored_at: string;
+  flagged_for_fix: number;
+  fix_ticket_id: string | null;
+}
+
 export interface RunResult {
   changes: number;
   lastInsertRowid: number | string | bigint;
@@ -307,6 +331,32 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_team_invites_token ON team_invites (token);
   CREATE INDEX IF NOT EXISTS idx_team_invites_team ON team_invites (team_id);
+
+  CREATE TABLE IF NOT EXISTS asset_quality_scores (
+    id                     TEXT PRIMARY KEY,
+    catalog_id             TEXT NOT NULL,
+    asset_version          TEXT NOT NULL,
+    poly_count             INTEGER,
+    used_fallback_material INTEGER,
+    has_base_color_texture INTEGER,
+    has_pbr_maps           INTEGER,
+    texture_max_px         INTEGER,
+    render_profile         TEXT,
+    render_path            TEXT,
+    camera_preset          TEXT NOT NULL,
+    score_geometry         REAL,
+    score_uv_texture       REAL,
+    score_material         REAL,
+    score_render_fidelity  REAL,
+    score_composite        REAL,
+    judge_notes            TEXT,
+    score_source           TEXT NOT NULL,
+    scored_at              TEXT NOT NULL,
+    flagged_for_fix        INTEGER NOT NULL DEFAULT 0,
+    fix_ticket_id          TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_aqs_catalog ON asset_quality_scores (catalog_id);
+  CREATE INDEX IF NOT EXISTS idx_aqs_flagged ON asset_quality_scores (flagged_for_fix);
 `;
 
 // Idempotent init-on-boot: safe to call once per server start, and safe to
