@@ -848,7 +848,7 @@ describe('exterior cladding material (Ticket 5c)', () => {
     const [caps, left, right] = mats
     expect(caps).not.toBe(left)
     expect(caps!.color.getHex()).toBe(0xc8c8c8) // DEFAULT_CEILING_COLOR
-    expect(caps!.roughness).toBe(0.55) // DEFAULT_PBR_ROUGHNESS (home.ts)
+    expect(caps!.roughness).toBe(0.95) // WALL_CAP_ROUGHNESS (scene.ts)
     expect(left!.color.getHex()).toBe(0x224466)
     // No rightSideColor set → right face falls back to the left side's look.
     expect(right!.color.getHex()).toBe(0x224466)

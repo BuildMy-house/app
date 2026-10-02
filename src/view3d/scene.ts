@@ -55,6 +55,19 @@ const FABRIC_SHEEN = 0.6
 const FABRIC_SHEEN_ROUGHNESS = 0.7
 const FABRIC_SHEEN_COLOR = 0xffffff
 
+// Wall-top caps read as a cut slab surface, not cladding — always matte,
+// independent of the shared DEFAULT_PBR_ROUGHNESS used by floor/ceiling/roof.
+const WALL_CAP_ROUGHNESS = 0.95
+const WALL_CAP_METALNESS = 0.0
+
+// Furniture GLBs from imported asset packs can carry baked emissive values
+// that make arbitrary furniture glow. Only recognized light-fixture models
+// keep their authored emissive; everything else gets it zeroed at load time.
+// Regex verified against the full public/assets/models listing: every match
+// is a genuine fixture (eteks-*lightsource*, lamp, pendantlamp, spotlight,
+// flooruplight, walluplight, worklamp) — no non-fixture false positives.
+const LIGHT_FIXTURE_MODEL_RE = /light|lamp/i
+
 // Ticket 5b: general lighting controls. A single runtime multiplier applied
 // to every light's base intensity — a presentation/viewing control (like
 // showRoof), not persisted home state, so it needs no schema/export changes.
@@ -296,8 +309,8 @@ export function wallMesh(
   // so a wall's top edge reads as a cut slab surface, not cladding.
   const capMaterial = new THREE.MeshStandardMaterial({
     color: DEFAULT_CEILING_COLOR,
-    roughness: DEFAULT_PBR_ROUGHNESS,
-    metalness: DEFAULT_PBR_METALNESS,
+    roughness: WALL_CAP_ROUGHNESS,
+    metalness: WALL_CAP_METALNESS,
   })
   if (wallsTransparency > 0) {
     capMaterial.transparent = true
@@ -1039,6 +1052,20 @@ function applyFurnitureItemMaterial(
 }
 
 /**
+ * Zero a cloned furniture material's baked glow (emissive color, intensity,
+ * and map) so glow is reserved for genuine light-fixture models. Selection
+ * highlighting (tintEmissive) runs after this and overrides the zeroed
+ * baseline, so it is unaffected.
+ */
+function clearBakedEmissive(mat: THREE.Material): void {
+  if (!('emissive' in mat)) return
+  const std = mat as THREE.MeshStandardMaterial
+  std.emissive.set(0x000000)
+  std.emissiveIntensity = 0
+  std.emissiveMap = null
+}
+
+/**
  * List the material-slot names of a furniture item's actually-loaded 3D
  * model (Ticket 4), for the properties panel's per-slot override picker.
  * Reads live off the scene graph (mesh named `furniture:<id>`, per
@@ -1072,6 +1099,11 @@ function swapInModel(
   const modelPath = item.modelPath || deriveModelPath(item.catalogId)
   if (!modelPath) return
   const url = activeModelUrlResolver(modelPath)
+  // Light fixtures keep their glTF-authored emissive; all other furniture
+  // gets baked glow zeroed (see LIGHT_FIXTURE_MODEL_RE).
+  const isLightFixture = LIGHT_FIXTURE_MODEL_RE.test(
+    modelPath.split('/').pop() ?? modelPath,
+  )
 
   const addModel = (source: THREE.Object3D): void => {
     const model = fitModelToBox(source.clone(), item)
@@ -1084,11 +1116,15 @@ function swapInModel(
         if (Array.isArray(m.material)) {
           m.material.forEach(applyAnisotropyToMaterial)
           m.material = m.material.map((mat) => mat.clone())
-          m.material.forEach((mat) => applyFurnitureItemMaterial(mat, item, m.geometry))
+          m.material.forEach((mat) => {
+            applyFurnitureItemMaterial(mat, item, m.geometry)
+            if (!isLightFixture) clearBakedEmissive(mat)
+          })
         } else {
           applyAnisotropyToMaterial(m.material)
           m.material = m.material.clone()
           applyFurnitureItemMaterial(m.material, item, m.geometry)
+          if (!isLightFixture) clearBakedEmissive(m.material)
         }
       }
       o.userData.shared = true

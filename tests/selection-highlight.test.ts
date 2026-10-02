@@ -142,9 +142,10 @@ describe('selection highlight for modeled furniture (M47)', () => {
     const visibleMesh = children.find((c) => c.name === 'child-mesh')
     expect(visibleMesh).toBeDefined()
     const mat = visibleMesh!.material as THREE.MeshStandardMaterial
-    // Default emissive is black (0x000000) and intensity 1.0 (Three.js default).
+    // Non-fixture models get baked emissive zeroed at load (clearBakedEmissive),
+    // so the untinted baseline is fully unlit: black emissive, intensity 0.
     expect(mat.emissive.getHex()).toBe(0x000000)
-    expect(mat.emissiveIntensity).toBe(1)
+    expect(mat.emissiveIntensity).toBe(0)
   })
 
   it('tints the fallback box itself when no model is loaded (backward compat)', () => {
