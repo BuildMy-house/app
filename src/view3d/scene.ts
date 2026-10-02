@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js'
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { mergeGeometries, toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import {
   DEFAULT_PBR_METALNESS,
   DEFAULT_PBR_ROUGHNESS,
@@ -666,6 +666,24 @@ function modelLoader(): GLTFLoader {
 }
 
 /**
+ * Furniture GLBs are converted from OBJ/MTL source assets (asset-ingestion-service.ts)
+ * via three.js's OBJLoader, which bakes flat per-face normals into the geometry when
+ * the source OBJ has no vertex normals — curved/rounded furniture (chair backs, lamps,
+ * vases, rounded edges) then renders visibly faceted. toCreasedNormals recomputes smooth
+ * normals for any edge whose dihedral angle is below the threshold, while preserving a
+ * hard edge (no over-smoothing) above it — so genuinely angular/boxy furniture (sharp
+ * 90-degree corners) is left untouched, and only the curved surfaces get smoothed. Runs
+ * exactly once per loaded model (keyed by the existing modelCache), not per-instance.
+ */
+function applySmoothNormals(object: THREE.Object3D): void {
+  object.traverse((o) => {
+    const m = o as THREE.Mesh
+    if (!m.isMesh || !m.geometry) return
+    m.geometry = toCreasedNormals(m.geometry, Math.PI / 3) // 60 degrees
+  })
+}
+
+/**
  * Cache of loaded GLTF scenes keyed by resolved URL. The view rebuilds the
  * whole scene on every store change (View3D.render-on-demand), and a GLTF
  * load is async — so an in-flight load used to mutate a mesh that had already
@@ -1149,6 +1167,7 @@ function swapInModel(
       url,
       (gltf) => {
         recordModelLoad(performance.now() - start, false, url)
+        applySmoothNormals(gltf.scene)
         cacheModel(url, gltf.scene)
         addModel(gltf.scene)
         onReady?.()
