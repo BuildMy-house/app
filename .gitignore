@@ -15,3 +15,8 @@ playwright-report
 quality-rating/reports
 coverage
 .sh3d-scratch
+luxcore/.venv
+data/renders
+var/renders
+server/data/*.db-shm
+server/data/*.db-wal

@@ -315,15 +315,16 @@ def render(
         # PATHCPU/PATHOCL are full path tracers: global illumination (multi-
         # bounce light transport) is inherent to the engine — no separate
         # AO/GI pass is needed or defined in this config.
-        # Explicit pixel filter: BLACKMAN_HARRIS is LuxCore's general-purpose
-        # high-quality default for stills and needs no tuning parameters
-        # (Mitchell-Netravali would need 4); the implicit BOX default aliases.
+        # Explicit pixel filter: GAUSSIAN is a supported general-purpose
+        # high-quality stills filter in the pyluxcore 2.x builds in use
+        # (pyluxcore 2.11.2 rejects BLACKMAN_HARRIS at config-parse time);
+        # the implicit BOX default aliases.
         config_str = (
             f"renderengine.type = {settings.engine}\n"
             f"film.width = {settings.width}\n"
             f"film.height = {settings.height}\n"
             f"film.samplesperpixel = {settings.samples_per_pixel}\n"
-            f"film.filter.type = BLACKMAN_HARRIS\n"
+            f"film.filter.type = GAUSSIAN\n"
             f"film.gamma = 2.2\n"
             f"batch.haltspp = {settings.samples_per_pixel}\n"
             f"sampler.type = SOBOL"
