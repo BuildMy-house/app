@@ -25,9 +25,21 @@ interface WallIds {
   west: string
 }
 
+interface ModelBridge {
+  addWall(wall: {
+    xStart: number
+    yStart: number
+    xEnd: number
+    yEnd: number
+    height: number
+    thickness: number
+  }): { id: string }
+  getStore(): { getHome(): { furniture: unknown[] } }
+}
+
 async function buildWalls(page: Page): Promise<WallIds> {
   return page.evaluate(() => {
-    const model = (window as any).__model
+    const model = (window as unknown as { __model: ModelBridge }).__model
     const south = model.addWall({ xStart: -200, yStart: -200, xEnd: 200, yEnd: -200, height: 250, thickness: 10 })
     const east = model.addWall({ xStart: 200, yStart: -200, xEnd: 200, yEnd: 200, height: 250, thickness: 10 })
     const north = model.addWall({ xStart: 200, yStart: 200, xEnd: -200, yEnd: 200, height: 250, thickness: 10 })
@@ -43,7 +55,9 @@ async function clickFraction(page: Page, fx: number, fy: number): Promise<void> 
 }
 
 async function placeFromCatalog(page: Page, name: string, fx: number, fy: number): Promise<void> {
-  const countBefore = await page.evaluate(() => (window as any).__model.getStore().getHome().furniture.length)
+  const countBefore = await page.evaluate(
+    () => (window as unknown as { __model: ModelBridge }).__model.getStore().getHome().furniture.length,
+  )
   await page.locator('.catalog-search').fill(name)
   await page.locator('.catalog-card').filter({ hasText: name }).first().click()
   await expect(page.locator('.catalog-status')).toContainText('Placing:', { timeout: 5000 })
@@ -51,7 +65,10 @@ async function placeFromCatalog(page: Page, name: string, fx: number, fy: number
   await expect(page.locator('.catalog-status')).toContainText('Click a piece to place it', { timeout: 5000 })
   await expect
     .poll(
-      async () => page.evaluate(() => (window as any).__model.getStore().getHome().furniture.length),
+      async () =>
+        page.evaluate(
+          () => (window as unknown as { __model: ModelBridge }).__model.getStore().getHome().furniture.length,
+        ),
       { timeout: 5000 },
     )
     .toBe(countBefore + 1)
@@ -78,7 +95,7 @@ async function finishScene(page: Page, sceneName: string): Promise<void> {
   // the JSON is directly renderable by the LuxCore bridge (bridge.py reads
   // environment.hdriPreset and cameras.observer yawDeg/pitchDeg).
   const home = await page.evaluate((preset) => {
-    const store = (window as any).__model.getStore()
+    const store = (window as unknown as { __model: ModelBridge }).__model.getStore()
     const homeJson = JSON.parse(JSON.stringify(store.getHome()))
     homeJson.environment = { ...(homeJson.environment || {}), hdriPreset: preset.hdri }
     homeJson.cameras = {
@@ -112,7 +129,9 @@ test.describe('photoreal test-house fixtures', () => {
       // placement; the furniture-count assert tolerates either placement mode.
       await placeFromCatalog(page, KNOWN_BAD_SEARCH_NAMES[i], fx, fy)
     }
-    const placed = await page.evaluate(() => (window as any).__model.getStore().getHome().furniture.length)
+    const placed = await page.evaluate(
+      () => (window as unknown as { __model: ModelBridge }).__model.getStore().getHome().furniture.length,
+    )
     expect(placed).toBeGreaterThanOrEqual(KNOWN_BAD_CATALOG_IDS.length)
     await finishScene(page, 'known-bad-scene')
   })
