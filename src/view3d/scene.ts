@@ -8,6 +8,7 @@ import {
   DEFAULT_WALL_HEIGHT_CM,
   WALL_TEXTURES,
   resolveTextureUrl,
+  effectiveFurnitureTextureId,
   type Furniture,
   type HomePreferences,
   type Level,
@@ -18,7 +19,7 @@ import {
   type WallTextureEntry,
 } from '../core/home'
 import { isArcWall, wallOutlinePoints } from '../core/top-camera-follower'
-import { getEffectiveWallSideTextureId, getWallSideExterior } from '../core/wall-exterior'
+import { getEffectiveWallSideTextureId, getWallSideExterior, hasChosenWallSideTexture } from '../core/wall-exterior'
 import { createInstancedMesh, groupFurnitureForInstancing } from './instanced-meshes'
 import { recordModelLoad, recordTextureLoad } from './asset-metrics'
 import { loadViewportQuality } from './viewport-quality'
@@ -293,14 +294,8 @@ export function wallMesh(
   // Explicit side texture (string or null) wins; omitted sides classify via
   // room geometry + home preferences. A null resolver result renders as
   // plaster-white here (matching the previous `?? 'plaster-white'` behavior).
-  const leftTexture = applyMaterialTextures(
-    leftMaterial,
-    getEffectiveWallSideTextureId(wall, 'left', rooms, preferences) ?? 'plaster-white',
-  )
-  const rightTexture = applyMaterialTextures(
-    rightMaterial,
-    getEffectiveWallSideTextureId(wall, 'right', rooms, preferences) ?? 'plaster-white',
-  )
+  const leftTexture = applyWallSideTexture(leftMaterial, wall, 'left', rooms, preferences)
+  const rightTexture = applyWallSideTexture(rightMaterial, wall, 'right', rooms, preferences)
   const wallTexture = leftTexture ?? rightTexture
 
   // ExtrudeGeometry groups (after splitSideFacesByWallSide): materialIndex
@@ -341,7 +336,7 @@ export function wallMesh(
     geometry.rotateX(-Math.PI / 2)
     splitSideFacesByWallSide(geometry, ux, uy)
     if (wallTexture) {
-      remapExtrudeUvs(geometry, ux, uy)
+      remapExtrudeUvs(geometry, ux, uy, tileCmFor(wallTexture))
       if (wallTexture.aoFile) addUv2(geometry)
     }
     const mesh = new THREE.Mesh(geometry, [capMaterial, leftMaterial, rightMaterial])
@@ -365,7 +360,7 @@ export function wallMesh(
     geometry.rotateX(-Math.PI / 2)
     splitSideFacesByWallSide(geometry, ux, uy)
     if (wallTexture) {
-      remapExtrudeUvs(geometry, ux, uy)
+      remapExtrudeUvs(geometry, ux, uy, tileCmFor(wallTexture))
       if (wallTexture.aoFile) addUv2(geometry)
     }
     const mesh = new THREE.Mesh(geometry, [capMaterial, leftMaterial, rightMaterial])
@@ -405,7 +400,7 @@ export function wallMesh(
     geometry.rotateX(-Math.PI / 2)
     splitSideFacesByWallSide(geometry, ux, uy)
     if (wallTexture) {
-      remapExtrudeUvs(geometry, ux, uy)
+      remapExtrudeUvs(geometry, ux, uy, tileCmFor(wallTexture))
       if (wallTexture.aoFile) addUv2(geometry)
     }
     const m = new THREE.Mesh(geometry, [capMaterial, leftMaterial, rightMaterial])
@@ -455,7 +450,7 @@ export function roomMesh(room: Room, elevation: number, opts?: { opacity?: numbe
     ? applyMaterialTextures(material, room.floorTextureId)
     : null
   if (roomTexture) {
-    remapShapeUvs(geometry)
+    remapShapeUvs(geometry, tileCmFor(roomTexture))
     if (roomTexture.aoFile) addUv2(geometry)
   }
   const mesh = new THREE.Mesh(geometry, material)
@@ -512,7 +507,7 @@ export function ceilingMesh(room: Room, elevation: number, levels: Level[]): THR
     ? applyMaterialTextures(material, room.ceilingTextureId)
     : null
   if (ceilingTexture) {
-    remapShapeUvs(geometry)
+    remapShapeUvs(geometry, tileCmFor(ceilingTexture))
     if (ceilingTexture.aoFile) addUv2(geometry)
   }
   const mesh = new THREE.Mesh(geometry, material)
@@ -742,6 +737,12 @@ export function withModelUrlResolver<T>(resolver: ModelUrlResolver | undefined, 
 // ── Wall texture loading (M52) ──────────────────────────────────────────────
 
 const TEXTURE_TILE_CM = 100 // 1 repeat per 100 cm — documents the tiling choice
+const DEFAULT_WALL_TEXTURE_ID = 'plaster-white'
+
+/** Physical size of one repeat for a texture entry (WallTextureEntry.tileCm). */
+function tileCmFor(entry: WallTextureEntry | null): number {
+  return entry?.tileCm ?? TEXTURE_TILE_CM
+}
 const textureCache = new Map<string, THREE.Texture | null>()
 const textureLoader = new THREE.TextureLoader()
 /** URLs whose texture finished loading — only these may attach to materials. */
@@ -927,6 +928,32 @@ function addUv2(geometry: THREE.BufferGeometry): void {
   if (uv) geometry.setAttribute('uv2', uv)
 }
 
+/**
+ * Material for one wall side. A texture the user (or home preferences) chose
+ * gets the full diffuse + PBR-map pipeline. A side that only falls back to the
+ * built-in plaster-white default keeps that entry's matte scalars but NO maps:
+ * the shipped plaster diffuse/normal/AO are high-frequency grain that reads as
+ * noisy hatching on every default wall (QA: 3D view + exports) when nobody
+ * asked for a texture. Returns the entry only when maps were wired (callers
+ * remap UVs / add uv2 off it).
+ */
+function applyWallSideTexture(
+  material: THREE.MeshStandardMaterial,
+  wall: Wall,
+  side: 'left' | 'right',
+  rooms: Room[],
+  preferences: HomePreferences | undefined,
+): WallTextureEntry | null {
+  const id = getEffectiveWallSideTextureId(wall, side, rooms, preferences)
+  if (id !== null && hasChosenWallSideTexture(wall, side, rooms, preferences)) {
+    return applyMaterialTextures(material, id)
+  }
+  const fallback = textureEntryFor(DEFAULT_WALL_TEXTURE_ID)
+  if (fallback?.roughness !== undefined) material.roughness = fallback.roughness
+  if (fallback?.metalness !== undefined) material.metalness = fallback.metalness
+  return null
+}
+
 /** Wire diffuse + PBR maps for a textureId-bearing material; returns the
  * catalog entry (or null) so callers can addUv2() geometries needing it. */
 function applyMaterialTextures(
@@ -957,14 +984,19 @@ function applyMaterialTextures(
  * -z. The rotation maps extrude height to geometry y, so Y is the wall
  * height axis (0 … wallHeight) and V is derived from it.
  */
-export function remapExtrudeUvs(geometry: THREE.BufferGeometry, directionX = 1, directionZ = 0): void {
+export function remapExtrudeUvs(
+  geometry: THREE.BufferGeometry,
+  directionX = 1,
+  directionZ = 0,
+  tileCm = TEXTURE_TILE_CM,
+): void {
   const posAttr = geometry.getAttribute('position')
   const uvAttr = geometry.getAttribute('uv')
   if (!posAttr || !uvAttr) return
   for (let i = 0; i < posAttr.count; i++) {
     const u = posAttr.getX(i) * directionX + posAttr.getZ(i) * directionZ
     const y = posAttr.getY(i)
-    uvAttr.setXY(i, u / TEXTURE_TILE_CM, y / TEXTURE_TILE_CM)
+    uvAttr.setXY(i, u / tileCm, y / tileCm)
   }
   uvAttr.needsUpdate = true
 }
@@ -977,11 +1009,11 @@ export function remapExtrudeUvs(geometry: THREE.BufferGeometry, directionX = 1, 
  * convention as walls and the ground plane). Shape coords are world x and -y,
  * which RepeatWrapping handles including the negative-V half-plane.
  */
-function remapShapeUvs(geometry: THREE.BufferGeometry): void {
+function remapShapeUvs(geometry: THREE.BufferGeometry, tileCm = TEXTURE_TILE_CM): void {
   const uvAttr = geometry.getAttribute('uv')
   if (!uvAttr) return
   for (let i = 0; i < uvAttr.count; i++) {
-    uvAttr.setXY(i, uvAttr.getX(i) / TEXTURE_TILE_CM, uvAttr.getY(i) / TEXTURE_TILE_CM)
+    uvAttr.setXY(i, uvAttr.getX(i) / tileCm, uvAttr.getY(i) / tileCm)
   }
   uvAttr.needsUpdate = true
 }
@@ -1248,6 +1280,19 @@ function claddingMaterial(color: number, roughness: number, metalness: number): 
   })
 }
 
+/**
+ * Thin floor coverings (rugs/carpets: <= 3 cm tall, resting on the floor) sit
+ * flush with the room floor, so their underside/top z-fights the floor slab
+ * and the rug is largely swallowed from the default eye-level Inside camera.
+ * Lift them a hair so the floor can never win the depth test.
+ */
+export const FLOOR_COVERING_LIFT_CM = 0.6
+export function floorCoveringLiftCm(item: Furniture): number {
+  return !item.doorOrWindow && item.height <= 3 && (item.elevation ?? 0) <= 0
+    ? FLOOR_COVERING_LIFT_CM
+    : 0
+}
+
 export function furnitureMesh(
   item: Furniture,
   elevation: number,
@@ -1259,13 +1304,14 @@ export function furnitureMesh(
   const material = isWindow
     ? windowGlassMaterial()
     : fabricMaterial(item.color ?? DEFAULT_FURNITURE_COLOR)
-  if (!isWindow && item.textureId) {
-    const entry = applyMaterialTextures(material, item.textureId)
+  const boxTextureId = effectiveFurnitureTextureId(item)
+  if (!isWindow && boxTextureId) {
+    const entry = applyMaterialTextures(material, boxTextureId)
     if (entry?.aoFile) addUv2(geometry)
   }
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = `furniture:${item.id}`
-  mesh.position.set(item.x, elevation + item.elevation + item.height / 2, item.y)
+  mesh.position.set(item.x, elevation + item.elevation + floorCoveringLiftCm(item) + item.height / 2, item.y)
   // Negated: angleDeg is a plan-space (x right, y down) rotation, but Three.js's
   // right-handed Y-axis rotation has the opposite sign — negating keeps the
   // visual rotation direction identical to the 2D plan view.
@@ -1798,8 +1844,15 @@ function buildSceneInner(
       ? (() => {
           const tex = loadWallTexture(groundTexId)
           if (tex) {
-            const size = GROUND_SIZE_CM / TEXTURE_TILE_CM
-            tex.repeat.set(size, size)
+            // Tile via the plane's UVs, not tex.repeat: loadTextureFile hands out
+            // one cached Texture per file, so mutating its repeat to ~1000x
+            // would squash/stretch every floor and wall sharing that file.
+            const size = GROUND_SIZE_CM / tileCmFor(textureEntryFor(groundTexId))
+            const groundUv = groundGeometry.getAttribute('uv')
+            for (let i = 0; i < groundUv.count; i++) {
+              groundUv.setXY(i, groundUv.getX(i) * size, groundUv.getY(i) * size)
+            }
+            groundUv.needsUpdate = true
             const groundMaterial = new THREE.MeshStandardMaterial({ map: tex })
             const entry = applyMaterialTextures(groundMaterial, groundTexId)
             if (entry?.aoFile) addUv2(groundGeometry)

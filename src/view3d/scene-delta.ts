@@ -25,6 +25,7 @@ import {
   furnitureMesh,
   matchesLevel,
   roomMesh,
+  floorCoveringLiftCm,
   shouldRenderAtElevation,
   shouldShowCeiling,
   clearEmissive,
@@ -496,7 +497,11 @@ function applyFurnitureMatrixUpdate(
 
   const individual = scene.getObjectByName(`furniture:${id}`)
   if (individual) {
-    individual.position.set(item.x, elev + (item.elevation ?? 0) + item.height / 2, item.y)
+    individual.position.set(
+      item.x,
+      elev + (item.elevation ?? 0) + floorCoveringLiftCm(item) + item.height / 2,
+      item.y,
+    )
     // Negated: plan-space y-down angle vs Three.js right-handed Y rotation
     // (same convention as scene.ts furniture placement) — keeps 2D/3D in sync.
     individual.rotation.y = -THREE.MathUtils.degToRad(item.angleDeg)

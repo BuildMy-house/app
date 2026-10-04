@@ -70,6 +70,12 @@ export interface WallTextureEntry {
   roughnessFile?: string
   metalnessFile?: string
   aoFile?: string
+  /**
+   * Physical size (cm) of one texture repeat. Absent = TEXTURE_TILE_CM (100 cm)
+   * in the 3D scene. Used where the shipped image's features are too coarse at
+   * the default period (the images live in R2 and cannot be regenerated here).
+   */
+  tileCm?: number
   /** Scalar PBR defaults applied wherever this texture is used. */
   roughness?: number
   metalness?: number
@@ -144,6 +150,9 @@ export const WALL_TEXTURES: WallTextureEntry[] = [
     aoFile: 'wood-oak_ao.png',
     roughness: 0.65,
     metalness: 0,
+    // 100 cm per repeat blew the grain up: 5-9 cm knots and 20+ cm streaks
+    // read as a stretched image. 50 cm gives ~3 cm knots / ~6 cm grain lines.
+    tileCm: 50,
     wallUsage: ['interior'],
   },
   {
@@ -158,6 +167,20 @@ export const WALL_TEXTURES: WallTextureEntry[] = [
     wallUsage: ['exterior'],
   },
 ]
+
+/**
+ * Texture to draw a furniture item's flat representation with (plan fill, 3D
+ * box fallback). An explicit textureId wins; otherwise catalog carpets/rugs
+ * default to the carpet texture — their catalog color is a flat 0xC0C0C0 grey
+ * that read as a blank grey rectangle in the plan. The textured GLB keeps its
+ * own baked map in 3D (this is deliberately not applied to model materials).
+ */
+export function effectiveFurnitureTextureId(
+  item: Pick<Furniture, 'textureId' | 'catalogId'>,
+): string | null {
+  if (item.textureId) return item.textureId
+  return item.catalogId?.endsWith('#carpet') ? 'carpet' : null
+}
 
 /** R2 key prefix + public base serving the texture files (see r2-client.ts). */
 const R2_MATERIALS_BASE = 'https://assets.buildmy.house/materials'
