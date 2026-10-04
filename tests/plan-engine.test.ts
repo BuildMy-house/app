@@ -897,10 +897,33 @@ describe('furniture rotation handle', () => {
   it('hitTest near the handle returns furniture-rotate', () => {
     const { engine, furniture } = makeFurniture()
     const hp = furnitureRotationHandlePos(furniture)
-    const hit = engine.hitTestPoint({ x: hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, y: hp.y })
+    const hit = engine.hitTestPoint({ x: hp.x, y: hp.y })
     expect(hit).not.toBeNull()
     expect(hit!.kind).toBe('furniture-rotate')
     expect((hit as Extract<HitResult, { kind: 'furniture-rotate' }>).id).toBe(furniture.id)
+  })
+
+  it('rotation knob sits a fixed screen distance outside the furniture, independent of size', () => {
+    const small = { x: 0, y: 0, depth: 40, angleDeg: 0 }
+    const huge = { x: 0, y: 0, depth: 400, angleDeg: 0 }
+    const gapPx = (f: typeof small, scale: number) => (f.y - furnitureRotationHandlePos(f, scale).y - f.depth / 2) * scale
+    expect(gapPx(small, 0.5)).toBeCloseTo(22)
+    expect(gapPx(huge, 0.5)).toBeCloseTo(22)
+    expect(gapPx(huge, 2)).toBeCloseTo(22)
+  })
+
+  it('rotation knob follows the furniture angle', () => {
+    const hp = furnitureRotationHandlePos({ x: 0, y: 0, depth: 40, angleDeg: 90 }, 1)
+    expect(hp.x).toBeCloseTo(42)
+    expect(hp.y).toBeCloseTo(0)
+  })
+
+  it('knob hit target is forgiving but the old oversized ring no longer hits', () => {
+    const { engine, furniture } = makeFurniture()
+    const hp = furnitureRotationHandlePos(furniture)
+    expect(engine.hitTestPoint({ x: hp.x + 8, y: hp.y })?.kind).toBe('furniture-rotate')
+    const ringPoint = { x: furniture.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, y: furniture.y }
+    expect(engine.hitTestPoint(ringPoint)?.kind).not.toBe('furniture-rotate')
   })
 
   it('clicking just outside the furniture selects its padded hit area', () => {
@@ -909,17 +932,17 @@ describe('furniture rotation handle', () => {
     expect(hit?.kind).toBe('furniture')
   })
 
-  it('dragging a quarter turn around the ring sets angleDeg to 90', () => {
+  it('dragging a quarter turn to the right sets angleDeg to 90', () => {
     const { drag, store, furniture } = makeFurniture()
     const hp = furnitureRotationHandlePos(furniture)
-    drag(hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, hp.y, furniture.x, furniture.y + 100)
+    drag(hp.x, hp.y, furniture.x + 100, furniture.y)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(90)
   })
 
   it('dragging back to the start angle leaves angleDeg at 0', () => {
     const { drag, store, furniture } = makeFurniture()
     const hp = furnitureRotationHandlePos(furniture)
-    drag(hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, hp.y, furniture.x + 100, furniture.y)
+    drag(hp.x, hp.y, furniture.x, furniture.y - 100)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(0)
   })
 
@@ -927,7 +950,7 @@ describe('furniture rotation handle', () => {
     const { drag, store, furniture } = makeFurniture()
     const originalAngle = store.getHome().furniture[0]!.angleDeg
     const hp = furnitureRotationHandlePos(furniture)
-    drag(hp.x + Math.hypot(furniture.width / 2, furniture.depth / 2) + 12, hp.y, furniture.x, furniture.y + 100)
+    drag(hp.x, hp.y, furniture.x + 100, furniture.y)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(90)
     expect(store.undo()).toBe(true)
     expect(store.getHome().furniture[0]!.angleDeg).toBe(originalAngle)

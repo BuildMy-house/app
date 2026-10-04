@@ -44,13 +44,23 @@ function endpointSnapMargin(): number {
 const EPSILON = 1e-6
 const ENDPOINT_HIT_RADIUS = 10
 const CONNECTED_WALL_EPSILON = 0.1
-/** Model-space position of the rotation handle for a furniture item. */
-export function furnitureRotationHandlePos(f: { x: number; y: number }): Point {
-  return { x: f.x, y: f.y }
-}
+/** Screen-pixel gap between the furniture edge and the rotation knob. */
+export const ROTATION_KNOB_OFFSET_PX = 22
+/** Screen-pixel radius of the rotation-knob hit target; larger than the drawn knob. */
+export const ROTATION_KNOB_HIT_RADIUS_PX = 14
 
-function furnitureRotationRadius(f: { width: number; depth: number }): number {
-  return Math.hypot(f.width / 2, f.depth / 2) + 12
+/**
+ * Model-space position of the rotation knob: a small handle just beyond the
+ * furniture's local "top" edge, at a constant screen-pixel distance so it stays
+ * proportional at every zoom level and furniture size.
+ */
+export function furnitureRotationHandlePos(
+  f: { x: number; y: number; depth: number; angleDeg: number },
+  scale = 1,
+): Point {
+  const angle = (f.angleDeg * Math.PI) / 180
+  const dist = f.depth / 2 + ROTATION_KNOB_OFFSET_PX / scale
+  return { x: f.x + Math.sin(angle) * dist, y: f.y - Math.cos(angle) * dist }
 }
 
 /** Perpendicular unit vector to a wall's chord (points in the CCW bulge direction). */
@@ -2142,8 +2152,9 @@ export class PlanEngine {
       const selectedId = home.selection[0]!
       const sf = home.furniture.find((f) => f.id === selectedId && this.matchesActiveLevel(f.levelRef))
       if (sf && !(sf.doorOrWindow && sf.wallRef)) {
-        const hp = furnitureRotationHandlePos(sf)
-        if (Math.abs(distance(point, hp) - furnitureRotationRadius(sf)) <= ENDPOINT_HIT_RADIUS) {
+        const scale = getLastDrawnView()?.scale ?? 1
+        const hp = furnitureRotationHandlePos(sf, scale)
+        if (distance(point, hp) <= Math.max(ENDPOINT_HIT_RADIUS, ROTATION_KNOB_HIT_RADIUS_PX / scale)) {
           return { kind: 'furniture-rotate', id: sf.id }
         }
       }

@@ -193,10 +193,13 @@ export class CatalogPanel {
 
   /** Exit place mode. */
   disarm(): void {
-    if (this.armed === null) return
+    const wasArmed = this.armed !== null
     this.armed = null
-    this.renderGrid()
+    // Always reset the hint, even when not armed, so a stale import/error
+    // message does not outlive the interaction that made it relevant.
     this.renderStatus()
+    if (!wasArmed) return
+    this.renderGrid()
     this.onPlaceModeChange?.(false)
   }
 
@@ -627,6 +630,7 @@ export class CatalogPanel {
     this.catalog = catalog
     this.buildCategories()
     this.renderGrid()
+    if (!this.armed) this.renderStatus()
   }
 
   /** Clean up resources when the panel is destroyed. */

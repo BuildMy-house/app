@@ -24,9 +24,8 @@ test('plan furniture rotates continuously during drag and stays undoable as one 
   }, center)
   const zoom = await page.locator('#status-zoom').textContent()
   const pxPerCm = Number(zoom?.match(/[\d.]+/)?.[0]) / 100
-  const radius = Math.hypot(30, 20) + 12
-  const ringPx = radius * pxPerCm
-  const start = { x: cx, y: cy - ringPx }
+  const ringPx = 80 // arbitrary pointer-arc radius; rotation is angle-based
+  const start = { x: cx, y: cy - (20 * pxPerCm + 22) } // knob: half depth + 22px stem
   const atAngle = (deg: number) => ({
     x: cx + ringPx * Math.sin((deg * Math.PI) / 180),
     y: cy - ringPx * Math.cos((deg * Math.PI) / 180),

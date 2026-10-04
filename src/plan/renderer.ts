@@ -51,6 +51,8 @@ const CLOSURE_PREVIEW_FILL = 'rgba(100, 180, 100, 0.18)'
 const CLOSURE_PREVIEW_STROKE = 'rgba(80, 160, 80, 0.7)'
 const FURNITURE_FILL = 'rgba(160, 160, 90, 0.5)'
 const ROTATION_HANDLE_RADIUS = 8
+/** Drawn radius of the furniture rotation knob (hit target is larger, see engine). */
+const ROTATION_KNOB_RADIUS = 5
 
 // Grid colors per theme — minor lines must stay low-contrast vs canvas bg
 // (transparent; body uses --bg), major lines moderately stronger.
@@ -743,39 +745,23 @@ export function drawPlan(
   )
   if (selectedFurniture.length === 1 && !(selectedFurniture[0]!.doorOrWindow && selectedFurniture[0]!.wallRef)) {
     const f = selectedFurniture[0]!
-    const handle = furnitureRotationHandlePos(f)
+    const scale = mapper.sx(1) - mapper.sx(0)
+    const handle = furnitureRotationHandlePos(f, scale)
     const px = mapper.sx(handle.x)
     const py = mapper.sy(handle.y)
+    const angle = (f.angleDeg * Math.PI) / 180
+    const edgeDist = (f.depth / 2) * scale
+    // Stem from the furniture's top edge to the knob.
     ctx.beginPath()
-    const ringRadius = Math.hypot(f.width / 2, f.depth / 2) + 12
-    const ringRadiusPx = ringRadius * (mapper.sx(1) - mapper.sx(0))
-    ctx.arc(px, py, ringRadiusPx, 0, Math.PI * 2)
-    ctx.strokeStyle = '#ffffff'
-    ctx.lineWidth = 4
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.arc(px, py, ringRadiusPx, 0, Math.PI * 2)
+    ctx.moveTo(mapper.sx(f.x) + Math.sin(angle) * edgeDist, mapper.sy(f.y) - Math.cos(angle) * edgeDist)
+    ctx.lineTo(px, py)
     ctx.strokeStyle = SELECTION_COLOR
-    ctx.lineWidth = 2
-    ctx.stroke()
-    // Clockwise arrow on the ring makes its rotation purpose obvious.
-    const ax = px + ringRadiusPx * Math.SQRT1_2
-    const ay = py - ringRadiusPx * Math.SQRT1_2
-    ctx.beginPath()
-    ctx.moveTo(ax - 5, ay - 5)
-    ctx.lineTo(ax + 5, ay + 5)
-    ctx.lineTo(ax - 1, ay + 4)
-    ctx.moveTo(ax + 5, ay + 5)
-    ctx.lineTo(ax + 4, ay - 1)
-    ctx.strokeStyle = '#ffffff'
-    ctx.lineWidth = 5
+    ctx.lineWidth = 1.5
     ctx.stroke()
     ctx.beginPath()
-    ctx.moveTo(ax - 5, ay - 5)
-    ctx.lineTo(ax + 5, ay + 5)
-    ctx.lineTo(ax - 1, ay + 4)
-    ctx.moveTo(ax + 5, ay + 5)
-    ctx.lineTo(ax + 4, ay - 1)
+    ctx.arc(px, py, ROTATION_KNOB_RADIUS, 0, Math.PI * 2)
+    ctx.fillStyle = '#ffffff'
+    ctx.fill()
     ctx.strokeStyle = SELECTION_COLOR
     ctx.lineWidth = 2
     ctx.stroke()
