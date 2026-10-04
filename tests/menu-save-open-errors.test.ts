@@ -91,8 +91,8 @@ describe('File > Save / Open error surfacing (M35)', () => {
     vi.restoreAllMocks()
   })
 
-  it('Save failure is caught and shown via alert (no unhandled rejection)', async () => {
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+  it('Save failure is caught and shown as an error toast (no unhandled rejection)', async () => {
+    document.getElementById('toast-host')?.replaceChildren()
     let unhandled = false
     const onReject = () => { unhandled = true }
     process.on('unhandledRejection', onReject)
@@ -107,21 +107,30 @@ describe('File > Save / Open error surfacing (M35)', () => {
 
     process.off('unhandledRejection', onReject)
     expect(unhandled).toBe(false)
-    expect(alertSpy).toHaveBeenCalledWith('No space left on device')
+    const toast = document.querySelector('.toast-error')
+    expect(toast?.getAttribute('role')).toBe('alert')
+    expect(toast?.textContent).toContain('Could not save file')
+    expect(toast?.textContent).toContain('No space left on device')
+    expect(document.querySelector('.toast-success')).toBeNull()
 
     vi.restoreAllMocks()
   })
 
-  it('Save success shows no alert', async () => {
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
-    saveHomeFile.mockResolvedValue(undefined)
+  it('Save success shows a success toast only after the save resolves', async () => {
+    document.getElementById('toast-host')?.replaceChildren()
+    let resolveSave!: () => void
+    saveHomeFile.mockReturnValue(new Promise<void>((r) => { resolveSave = r }))
 
     await import('../src/main')
     clickMenu('Save')
     await tick()
+    expect(document.querySelector('.toast')).toBeNull()
+    resolveSave()
+    await tick()
     await tick()
 
-    expect(alertSpy).not.toHaveBeenCalled()
+    expect(document.querySelector('.toast-success')?.textContent).toContain('Saved to file')
+    expect(document.querySelector('.toast-error')).toBeNull()
     vi.restoreAllMocks()
   })
 

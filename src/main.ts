@@ -27,6 +27,8 @@ import { HomeListDialog } from './ui/home-list-dialog'
 import { ClipboardManager } from './plan/clipboard'
 import { ModelUploadDialog } from './ui/model-upload-dialog'
 import { saveDraft, loadDraft } from './services/adapters/local-draft'
+import { showToast, errorReason } from './ui/toast'
+import { createPlanEmptyState } from './ui/plan-empty-state'
 import { ProfileWidget } from './ui/profile-widget'
 
 import { View3D, type CameraPresetName } from './view3d'
@@ -100,8 +102,13 @@ const statusZoom = root.querySelector<HTMLSpanElement>('#status-zoom')!
 const statusAutomation = root.querySelector<HTMLSpanElement>('#status-automation')!
 const statusAccount = root.querySelector<HTMLSpanElement>('#status-account')!
 const ctx = canvas.getContext('2d')
+const planEmptyState = createPlanEmptyState({
+  onDrawWalls: () => root.querySelector<HTMLButtonElement>('button[data-tool="wall"]')?.click(),
+  onOpenProjects: () => accountGuard(openProjectManager),
+})
 const contextMenu = root.querySelector<HTMLDivElement>('#context-menu')!
 const mobileNav = root.querySelector<HTMLElement>('#mobile-nav')!
+planPanel.appendChild(planEmptyState.element)
 
 // ── Store + engine ──────────────────────────────────────────────────────────
 
@@ -297,7 +304,8 @@ function refreshMenus(): void {
           label: 'Save',
           action: () => {
             void traceAction('save', () => saveHomeFile(store.getHome()).then(() => store.markClean()))
-              .catch((err: unknown) => alert(err instanceof Error ? err.message : `Failed to save home file: ${String(err)}`))
+              .then(() => showToast('success', 'Saved to file'))
+              .catch((err: unknown) => showToast('error', 'Could not save file', `${errorReason(err)} Your changes are still open and unsaved — try Save again.`))
           },
         },
         {
@@ -460,8 +468,9 @@ async function saveToAccount(): Promise<void> {
     currentAccountHomeRevision = record.updatedAt
     if (!stopHomeSubscription) void watchAccountHome(record.id)
     store.markClean()
+    showToast('success', `Saved "${trimmed}" to your account`, 'Find it under File → My Projects.')
   } catch (err) {
-    alert(err instanceof Error ? err.message : `Failed to save home to account: ${String(err)}`)
+    showToast('error', 'Could not save to your account', `${errorReason(err)} Your changes are still open and unsaved — check your connection or sign in again, then retry.`)
   }
 }
 
@@ -469,6 +478,7 @@ async function openProjectManager(): Promise<void> {
   try {
     const homes = await remoteHomes.list()
     new HomeListDialog(homes, {
+      onSaveCurrent: () => { void saveToAccount() },
       onPick: (id) => {
         void (async () => {
           if (store.isDirty() && !(await confirmDialog('Unsaved changes will be lost. Continue?'))) return
@@ -1357,6 +1367,8 @@ function render(preview: PlanPreview): void {
   if (!ctx) return
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   const home = store.getHome()
+  planEmptyState.setEmpty(home.walls.length === 0 && home.rooms.length === 0 && home.furniture.length === 0)
+  planEmptyState.setSignedIn(auth.currentUser() !== null)
 
   // One-time auto-fit: when the document transitions from empty to having its
   // first wall/room/furniture, fit the view exactly once (M76 fix 4).  Skipped

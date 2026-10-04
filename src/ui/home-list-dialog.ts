@@ -11,6 +11,8 @@ const formatUpdated = (iso: string): string => {
 
 export interface HomeListDialogOptions {
   onPick: (id: string) => void
+  /** Save the open document to the account. When set, the empty state offers it as the next step. */
+  onSaveCurrent?: () => void
   /** Rename a project; resolves once the server confirms. Omit to hide the control. */
   onRename?: (id: string, name: string) => Promise<void>
   /** Delete a project; resolves once the server confirms. Omit to hide the control. */
@@ -68,12 +70,16 @@ export class HomeListDialog {
     this.overlay.innerHTML = `
       <div class="prefs-dialog home-list-dialog">
         <h3>My Projects</h3>
-        <div class="home-list">${items || '<p class="home-list-empty">No saved projects yet.</p>'}</div>
+        <div class="home-list">${items || `<div class="home-list-empty"><p>No saved projects yet.</p><p>Save the project you have open to your account and it will appear here.</p>${this.options.onSaveCurrent ? '<button type="button" class="prefs-btn home-list-empty-cta">Save current project to my account</button>' : ''}</div>`}</div>
         <div class="prefs-actions">
           <button type="button" class="prefs-btn prefs-cancel">Close</button>
         </div>
       </div>
     `
+    this.overlay.querySelector('.home-list-empty-cta')?.addEventListener('click', () => {
+      this.close()
+      this.options.onSaveCurrent?.()
+    })
     this.overlay.querySelector('.prefs-cancel')!.addEventListener('click', () => this.close())
     this.overlay.addEventListener('click', (e) => {
       if (e.target === this.overlay) this.close()
