@@ -5,6 +5,7 @@ import { resolvePlacement, toWireItem, validateManifest } from '../src/core/cata
 import { HomeStore } from '../src/core/store'
 import { HomeModel } from '../src/core/model'
 import { HomelyCommandHandler } from '../src/automation/homely-handler'
+import type { CommandResult } from '../src/automation/client'
 import catalogJsonRaw from '../assets/catalog/catalog.json'
 const catalogJson = catalogJsonRaw as unknown as CatalogManifest
 
@@ -118,6 +119,16 @@ describe('catalog-service', () => {
     expect(() => resolvePlacement(catalog, 'nope')).toThrow(/unknown catalogId: nope/)
   })
 
+  it('resolvePlacement suggests close matches for unknown ids', () => {
+    const catalog = new FurnitureCatalog(fixture)
+    // Token "sofa" from the attempted id matches via name/tags.
+    expect(() => resolvePlacement(catalog, 'sofa-01')).toThrow(
+      /unknown catalogId: sofa-01\. Did you mean: sofa-3-seater\?$/,
+    )
+    // No close matches keeps the original message as fallback.
+    expect(() => resolvePlacement(catalog, 'zzz')).toThrow(/^unknown catalogId: zzz$/)
+  })
+
   it('validateManifest rejects bad manifests', () => {
     expect(() => validateManifest({ schemaVersion: 2 as 1, items: [] })).toThrow(/schemaVersion/)
     expect(() => validateManifest({ schemaVersion: 1, items: [] as CatalogItem[] })).not.toThrow()
@@ -194,6 +205,33 @@ describe('automation catalog commands', () => {
     expect(result.data).toEqual({
       items: fixture.map(toWireItem),
     })
+  })
+
+  it('list_catalog filters by query, category, and limit (AND semantics)', () => {
+    const handler = handlerWithCatalog()
+    const idsOf = (result: CommandResult): string[] =>
+      result.ok
+        ? (result.data as { items: Array<{ catalogId: string }> }).items.map((item) => item.catalogId)
+        : []
+
+    // query: case-insensitive substring over name/tags
+    expect(handler.execute('list_catalog', { query: 'SOFA' }).ok).toBe(true)
+    expect(idsOf(handler.execute('list_catalog', { query: 'SOFA' }))).toEqual(['sofa-3-seater'])
+    expect(idsOf(handler.execute('list_catalog', { query: 'zzz' }))).toEqual([])
+
+    // category: exact match
+    expect(idsOf(handler.execute('list_catalog', { category: 'Doors' }))).toEqual(['front-door'])
+
+    // AND semantics: query + category together
+    expect(idsOf(handler.execute('list_catalog', { query: 'door', category: 'Doors' }))).toEqual(['front-door'])
+    expect(idsOf(handler.execute('list_catalog', { query: 'window', category: 'Doors' }))).toEqual([])
+
+    // limit caps the returned array
+    expect(idsOf(handler.execute('list_catalog', { limit: 1 }))).toHaveLength(1)
+    expect(idsOf(handler.execute('list_catalog', { query: 'door', limit: 1 }))).toEqual(['front-door'])
+
+    // no params = full catalog (back-compat)
+    expect(idsOf(handler.execute('list_catalog', {}))).toHaveLength(3)
   })
 
   it('catalog_add_furniture places a piece with manifest dims', () => {

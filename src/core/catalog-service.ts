@@ -126,7 +126,17 @@ export function resolvePlacement(
 ): Pick<CatalogItem, 'catalogId' | 'name' | 'width' | 'depth' | 'height' | 'elevation' | 'color' | 'doorOrWindow' | 'modelPath' | 'renderModelPath'> {
   const item = catalog.get(catalogId)
   if (!item) {
-    throw new ModelError(`unknown catalogId: ${catalogId}`)
+    // Close-match suggestions for typo'd ids: try the raw id first, then its
+    // alphanumeric chunks (so "sofa-01" still finds "sofa-3-seater").
+    const chunks = catalogId.split(/[^a-zA-Z0-9]+/).filter((c) => c.length > 0)
+    let matches: CatalogItem[] = []
+    for (const needle of [catalogId, ...chunks]) {
+      matches = catalog.search(needle)
+      if (matches.length > 0) break
+    }
+    const suggestions = matches.slice(0, 3).map((m) => m.catalogId)
+    const hint = suggestions.length > 0 ? `. Did you mean: ${suggestions.join(', ')}?` : ''
+    throw new ModelError(`unknown catalogId: ${catalogId}${hint}`)
   }
   return {
     catalogId: item.catalogId,

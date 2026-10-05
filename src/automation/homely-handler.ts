@@ -227,6 +227,9 @@ export class HomelyCommandHandler implements CommandHandler {
       }
       case 'list_catalog': {
         // ws-protocol.md:80 — {items:[{catalogId,name,width,depth,height,doorOrWindow}]}
+        // Optional filters (AND semantics): query (substring via catalog.search
+        // over name/category/tags), category (exact match), limit (cap).
+        // No params = full catalog dump, unchanged from the frozen shape.
         if (!this.catalog) {
           return {
             ok: false,
@@ -234,7 +237,20 @@ export class HomelyCommandHandler implements CommandHandler {
             code: 'INVALID_REQUEST',
           }
         }
-        return { ok: true, data: { items: this.catalog.list().map(toWireItem) } }
+        let items = this.catalog.list()
+        const query = params.query
+        assert(query === undefined || typeof query === 'string', 'param query must be a string')
+        if (typeof query === 'string') items = this.catalog.search(query)
+        const category = params.category
+        assert(category === undefined || typeof category === 'string', 'param category must be a string')
+        if (typeof category === 'string') items = items.filter((item) => item.category === category)
+        const limit = params.limit
+        assert(
+          limit === undefined || (typeof limit === 'number' && Number.isFinite(limit)),
+          'param limit must be a finite number',
+        )
+        if (typeof limit === 'number') items = items.slice(0, Math.max(0, Math.floor(limit)))
+        return { ok: true, data: { items: items.map(toWireItem) } }
       }
       case 'undo': {
         this.store.undo()

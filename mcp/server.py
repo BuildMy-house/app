@@ -763,9 +763,30 @@ async def screenshot_views(views: list[dict] | None = None):
 
 
 @mcp.tool()
-async def list_furniture() -> dict:
-    """List the furniture catalog (catalogId, name, width/depth/height cm, doorOrWindow)."""
-    return await _session().request("list_catalog")
+async def list_furniture(
+    query: str | None = None,
+    category: str | None = None,
+    limit: int | None = None,
+) -> dict:
+    """List the furniture catalog (catalogId, name, width/depth/height cm, doorOrWindow).
+
+    Optional filters, combinable (AND):
+    - query: case-insensitive substring search over item name, category, and tags
+      (e.g. "sofa", "door").
+    - category: exact-match filter on the item's category (e.g. "Living", "Doors",
+      "Windows").
+    - limit: cap the number of items returned.
+
+    Omit all three for the full catalog.
+    """
+    params: dict = {}
+    if query is not None:
+        params["query"] = query
+    if category is not None:
+        params["category"] = category
+    if limit is not None:
+        params["limit"] = limit
+    return await _session().request("list_catalog", params)
 
 
 @mcp.tool()

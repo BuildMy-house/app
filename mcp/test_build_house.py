@@ -69,6 +69,24 @@ class BuildHouseTest(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual([command for command, _ in fake.calls], ["new_home"])
 
+    async def test_list_furniture_threads_optional_filters(self):
+        fake = FakeSession()
+        original = server._session
+        server._session = lambda: fake
+        try:
+            await server.list_furniture()
+            await server.list_furniture(query="sofa", category="Living", limit=5)
+            await server.list_furniture(query="door")
+        finally:
+            server._session = original
+
+        self.assertEqual(fake.calls[0], ("list_catalog", {}))
+        self.assertEqual(
+            fake.calls[1],
+            ("list_catalog", {"query": "sofa", "category": "Living", "limit": 5}),
+        )
+        self.assertEqual(fake.calls[2], ("list_catalog", {"query": "door"}))
+
 
 if __name__ == "__main__":
     unittest.main()
