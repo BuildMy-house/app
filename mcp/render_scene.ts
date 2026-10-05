@@ -103,6 +103,137 @@ function planPoint(point: Point, bounds: { minX: number; minY: number; scale: nu
   return [bounds.x + (point[0] - bounds.minX) * bounds.scale, bounds.y + (point[1] - bounds.minY) * bounds.scale]
 }
 
+/**
+ * Deterministic per-catalogId fill color: FNV-1a hash picks the hue, while
+ * saturation/lightness stay fixed mid-range so boxes are vivid but never
+ * near-black/near-white. Same id -> same color on every render.
+ */
+export function catalogColor(catalogId: string): number {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < catalogId.length; i++) {
+    hash ^= catalogId.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  // Golden-ratio multiplicative hashing spreads distinct ids across the hue
+  // circle far better than hash % 360 (which only sees the low bits).
+  const h = (((hash >>> 0) * 0.618033988749895) % 1)
+  const s = 0.62
+  const l = 0.46
+  const a = s * Math.min(l, 1 - l)
+  const channel = (n: number): number => {
+    const k = (n + h * 12) % 12
+    return Math.round((l - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1))) ) * 255)
+  }
+  return (channel(0) << 16) | (channel(8) << 8) | channel(4)
+}
+
+function catalogRgb(catalogId: string): [number, number, number, number] {
+  const n = catalogColor(catalogId)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 255]
+}
+
+const INK_DARK: [number, number, number, number] = [26, 26, 26, 255]
+const INK_LIGHT: [number, number, number, number] = [255, 255, 255, 255]
+
+function inkFor(fill: [number, number, number, number]): [number, number, number, number] {
+  const luma = (0.2126 * fill[0]! + 0.7152 * fill[1]! + 0.0722 * fill[2]!) / 255
+  return luma > 0.55 ? INK_DARK : INK_LIGHT
+}
+
+/** Human-readable label: item name, else short catalogId ('eTeks#chair' -> 'CHAIR'). */
+function furnitureLabel(item: { name: string; catalogId?: string | null }): string {
+  const name = item.name.trim()
+  if (name) return name.toUpperCase()
+  const short = (item.catalogId ?? '').split('#').pop() ?? ''
+  return short.toUpperCase()
+}
+
+// 5x7 bitmap font (classic GLCD glyphs, one 5-byte column array per char,
+// bit 0 = top row). Uppercase A-Z, 0-9, '-', space; unknown chars render blank.
+const FONT: Record<string, number[]> = {
+  ' ': [0x00, 0x00, 0x00, 0x00, 0x00],
+  '-': [0x08, 0x08, 0x08, 0x08, 0x08],
+  '0': [0x3e, 0x51, 0x49, 0x45, 0x3e],
+  '1': [0x00, 0x42, 0x7f, 0x40, 0x00],
+  '2': [0x42, 0x61, 0x51, 0x49, 0x46],
+  '3': [0x21, 0x41, 0x45, 0x4b, 0x31],
+  '4': [0x18, 0x14, 0x12, 0x7f, 0x10],
+  '5': [0x27, 0x45, 0x45, 0x45, 0x39],
+  '6': [0x3c, 0x4a, 0x49, 0x49, 0x30],
+  '7': [0x01, 0x71, 0x09, 0x05, 0x03],
+  '8': [0x36, 0x49, 0x49, 0x49, 0x36],
+  '9': [0x06, 0x49, 0x49, 0x29, 0x1e],
+  A: [0x7e, 0x11, 0x11, 0x11, 0x7e],
+  B: [0x7f, 0x49, 0x49, 0x49, 0x36],
+  C: [0x3e, 0x41, 0x41, 0x41, 0x22],
+  D: [0x7f, 0x41, 0x41, 0x22, 0x1c],
+  E: [0x7f, 0x49, 0x49, 0x49, 0x41],
+  F: [0x7f, 0x09, 0x09, 0x09, 0x01],
+  G: [0x3e, 0x41, 0x49, 0x49, 0x7a],
+  H: [0x7f, 0x08, 0x08, 0x08, 0x7f],
+  I: [0x00, 0x41, 0x7f, 0x41, 0x00],
+  J: [0x20, 0x40, 0x41, 0x3f, 0x01],
+  K: [0x7f, 0x08, 0x14, 0x22, 0x41],
+  L: [0x7f, 0x40, 0x40, 0x40, 0x40],
+  M: [0x7f, 0x02, 0x0c, 0x02, 0x7f],
+  N: [0x7f, 0x04, 0x08, 0x10, 0x7f],
+  O: [0x3e, 0x41, 0x41, 0x41, 0x3e],
+  P: [0x7f, 0x09, 0x09, 0x09, 0x06],
+  Q: [0x3e, 0x41, 0x51, 0x21, 0x5e],
+  R: [0x7f, 0x09, 0x19, 0x29, 0x46],
+  S: [0x46, 0x49, 0x49, 0x49, 0x31],
+  T: [0x01, 0x01, 0x7f, 0x01, 0x01],
+  U: [0x3f, 0x40, 0x40, 0x40, 0x3f],
+  V: [0x1f, 0x20, 0x40, 0x20, 0x1f],
+  W: [0x3f, 0x40, 0x38, 0x40, 0x3f],
+  X: [0x63, 0x14, 0x08, 0x14, 0x63],
+  Y: [0x07, 0x08, 0x70, 0x08, 0x07],
+  Z: [0x61, 0x51, 0x49, 0x45, 0x43],
+}
+const GLYPH_W = 5
+const GLYPH_H = 7
+const TEXT_SCALE = 2
+const CHAR_ADVANCE = (GLYPH_W + 1) * TEXT_SCALE
+
+function drawText(pixels: Uint8Array, width: number, height: number, x: number, y: number, text: string, fill: [number, number, number, number]): void {
+  let cursor = Math.round(x)
+  for (const raw of text) {
+    const glyph = FONT[raw.toUpperCase()] ?? FONT[' ']!
+    for (let col = 0; col < GLYPH_W; col++) {
+      for (let row = 0; row < GLYPH_H; row++) {
+        if (!(glyph[col]! & (1 << row))) continue
+        for (let dy = 0; dy < TEXT_SCALE; dy++) for (let dx = 0; dx < TEXT_SCALE; dx++) {
+          paint(pixels, width, cursor + col * TEXT_SCALE + dx, Math.round(y) + row * TEXT_SCALE + dy, fill)
+        }
+      }
+    }
+    cursor += CHAR_ADVANCE
+  }
+}
+
+function textWidth(text: string): number {
+  return text.length * CHAR_ADVANCE - TEXT_SCALE
+}
+
+type LabelJob = { x: number; y: number; text: string; fill: [number, number, number, number] }
+
+/** Centered, truncated-to-fit label job for a furniture box already in screen space. */
+function boxLabel(screenPoints: Point[], text: string, fill: [number, number, number, number], maxChars = 16): LabelJob | null {
+  if (!text) return null
+  const xs = screenPoints.map((p) => p[0]!)
+  const ys = screenPoints.map((p) => p[1]!)
+  const boxW = Math.max(...xs) - Math.min(...xs)
+  const boxH = Math.max(...ys) - Math.min(...ys)
+  const fit = Math.max(1, Math.min(maxChars, Math.floor((boxW - 4) / CHAR_ADVANCE)))
+  const clipped = text.slice(0, fit)
+  return {
+    x: (Math.min(...xs) + Math.max(...xs)) / 2 - textWidth(clipped) / 2,
+    y: (Math.min(...ys) + Math.max(...ys)) / 2 - (GLYPH_H * TEXT_SCALE) / 2,
+    text: boxW < CHAR_ADVANCE || boxH < GLYPH_H * TEXT_SCALE ? '' : clipped,
+    fill: inkFor(fill),
+  }
+}
+
 async function renderPlan(home: NormalizedHomeState, width: number, height: number): Promise<string> {
   const pixels = new Uint8Array(width * height * 4)
   fill(pixels, [248, 248, 248, 255])
@@ -117,6 +248,7 @@ async function renderPlan(home: NormalizedHomeState, width: number, height: numb
   const scale = Math.min((width - 24) / (maxX - minX), (height - 24) / (maxY - minY))
   const bounds = { minX, minY, scale, x: (width - (maxX - minX) * scale) / 2, y: (height - (maxY - minY) * scale) / 2 }
   for (const room of home.rooms) polygon(pixels, width, height, room.points.map((p) => planPoint(p as Point, bounds)), color('#e8e4dc'))
+  const labels: LabelJob[] = []
   for (const item of home.furniture) if (!item.doorOrWindow) {
     const angleRad = (item.angleDeg * Math.PI) / 180
     const cos = Math.cos(angleRad)
@@ -127,9 +259,14 @@ async function renderPlan(home: NormalizedHomeState, width: number, height: numb
     const corners: Point[] = offsets.map(
       ([ox, oz]): Point => [item.x + ox * cos - oz * sin, item.y + ox * sin + oz * cos],
     )
-    polygon(pixels, width, height, corners.map((c) => planPoint(c, bounds)), color('#9b8068'))
+    const boxFill = item.catalogId ? catalogRgb(item.catalogId) : color('#9b8068')
+    const screenCorners = corners.map((c) => planPoint(c, bounds))
+    polygon(pixels, width, height, screenCorners, boxFill)
+    const label = boxLabel(screenCorners, furnitureLabel(item), boxFill)
+    if (label && label.text) labels.push(label)
   }
   for (const wall of home.walls) line(pixels, width, height, planPoint([wall.xStart, wall.yStart], bounds), planPoint([wall.xEnd, wall.yEnd], bounds), color('#444444'), Math.max(1, Math.round((wall.thickness ?? 7) * scale)))
+  for (const label of labels) drawText(pixels, width, height, label.x, label.y, label.text, label.fill)
   return png(width, height, pixels)
 }
 
@@ -137,7 +274,19 @@ export type Render3dOptions = { roofVisible?: boolean; lightIntensity?: number }
 
 export async function render3d(home: NormalizedHomeState, width: number, height: number, cameraName = 'observer', options: Render3dOptions = {}): Promise<string> {
   const store = new HomeStore()
-  const safeHome = { ...home, furniture: home.furniture.map((item) => ({ ...item, catalogId: null, modelPath: null })) }
+  // Compute the deterministic catalog color BEFORE stripping catalogId, and
+  // carry it in item.color: buildScene's fallback box uses item.color ?? the
+  // default grey, so this alone differentiates boxes in the raster output.
+  // Doors/windows keep their own rendering path untouched.
+  const safeHome = {
+    ...home,
+    furniture: home.furniture.map((item) => ({
+      ...item,
+      catalogId: null,
+      modelPath: null,
+      color: !item.doorOrWindow && item.catalogId ? catalogColor(item.catalogId) : item.color,
+    })),
+  }
   store.loadHome(safeHome)
   const scene = buildScene(safeHome, {
     modelUrlResolver: () => '',
@@ -182,6 +331,15 @@ export async function render3d(home: NormalizedHomeState, width: number, height:
   })
   faces.sort((a, b) => b.depth - a.depth)
   for (const face of faces) polygon(pixels, width, height, face.points, face.color)
+  for (const item of home.furniture) if (!item.doorOrWindow) {
+    const text = furnitureLabel(item).slice(0, 12)
+    if (!text) continue
+    const center = new THREE.Vector3(item.x, item.elevation + item.height / 2, item.y).project(camera)
+    if (center.z < -1 || center.z > 1) continue
+    const fillNumber = item.catalogId ? catalogColor(item.catalogId) : item.color ?? 0xe8e8e8
+    const boxFill: [number, number, number, number] = [(fillNumber >> 16) & 255, (fillNumber >> 8) & 255, fillNumber & 255, 255]
+    drawText(pixels, width, height, (center.x + 1) * width / 2 - textWidth(text) / 2, (1 - center.y) * height / 2 - (GLYPH_H * TEXT_SCALE) / 2, text, inkFor(boxFill))
+  }
   return png(width, height, pixels)
 }
 
