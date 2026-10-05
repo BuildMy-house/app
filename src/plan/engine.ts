@@ -1209,6 +1209,13 @@ export class PlanEngine {
     // committed walls means "close the loop" (finish like a room), not
     // "add another wall to wherever was clicked". Requires >= 2 committed
     // walls so the closing segment completes a real polygon, not a line.
+    // Excludes clicks within ENDPOINT_HIT_RADIUS of the chain's own start
+    // vertex: that case is already handled by the existing exact-endpoint
+    // snap + double-click finalization flow (resolveSegmentEnd snaps the
+    // click onto the start vertex and commits a zero-length-safe closing
+    // wall there; the room-autodetect e2e flow depends on that first click
+    // of a dblclick NOT short-circuiting finalization before the dblclick
+    // event itself fires).
     if (this.chainIds.length >= 2) {
       const walls = this.homeSnapshot().walls
       const chainWalls = this.chainIds
@@ -1216,7 +1223,7 @@ export class PlanEngine {
         .filter((w): w is Wall => w != null)
       const first = chainWalls[0]
       const last = chainWalls[chainWalls.length - 1]
-      if (first && last) {
+      if (first && last && distance(point, { x: first.xStart, y: first.yStart }) > ENDPOINT_HIT_RADIUS) {
         const polygon: Array<[number, number]> = [
           ...chainWalls.map((w) => [w.xStart, w.yStart] as [number, number]),
           [last.xEnd, last.yEnd],

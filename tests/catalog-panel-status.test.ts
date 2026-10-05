@@ -15,6 +15,12 @@ for (const name of ['IntersectionObserver', 'ResizeObserver']) {
   )
 }
 
+// Scroll handler is rAF-throttled; run it synchronously like view3d.test.ts.
+vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback): number => {
+  cb(0)
+  return 0
+})
+
 const item: CatalogItem = {
   catalogId: 'sofa',
   name: 'Sofa',
@@ -73,5 +79,63 @@ describe('catalog placement hint', () => {
     panel.renderStatusMessage('Import failed: nope')
     panel.setCatalog(new FurnitureCatalog([item]))
     expect(line.textContent).toBe('Click a piece to place it')
+  })
+})
+
+describe('catalog arm/disarm scroll behavior', () => {
+  function makeLargePanel() {
+    const items: CatalogItem[] = Array.from({ length: 200 }, (_, i) => ({
+      catalogId: `it-${i}`,
+      name: `Item ${i}`,
+      category: 'Other',
+      width: 50,
+      depth: 50,
+      height: 50,
+      elevation: 0,
+      color: 0x999999,
+      tags: [],
+    }))
+    const panel = new CatalogPanel({ catalog: new FurnitureCatalog(items), onPlace: () => 'id' })
+    const grid = panel.element.querySelector<HTMLDivElement>('.catalog-grid')!
+    return { panel, grid, items }
+  }
+
+  function scrollTo(grid: HTMLDivElement, top: number): void {
+    grid.scrollTop = top
+    grid.dispatchEvent(new Event('scroll'))
+  }
+
+  it('arm/disarm toggles the card class without rebuilding the grid or resetting scroll', () => {
+    const { panel, grid, items } = makeLargePanel()
+    scrollTo(grid, 5000)
+    const card = grid.querySelector<HTMLButtonElement>('.catalog-card')!
+    expect(card).toBeTruthy()
+    const armed = items.find((i) => i.catalogId === card.dataset.catalogId)!
+    const before = grid.scrollTop
+
+    panel.arm(armed)
+    expect(grid.scrollTop).toBe(before)
+    expect(grid.contains(card)).toBe(true)
+    expect(card.classList.contains('armed')).toBe(true)
+    expect(grid.querySelectorAll('.catalog-card.armed')).toHaveLength(1)
+
+    panel.disarm()
+    expect(grid.scrollTop).toBe(before)
+    expect(card.classList.contains('armed')).toBe(false)
+
+    const card2 = grid.querySelectorAll<HTMLButtonElement>('.catalog-card')[1]!
+    const second = items.find((i) => i.catalogId === card2.dataset.catalogId)!
+    panel.arm(second)
+    expect(grid.scrollTop).toBe(before)
+    expect(card.classList.contains('armed')).toBe(false)
+    expect(card2.classList.contains('armed')).toBe(true)
+  })
+
+  it('toggling .armed is a no-op for cards scrolled out of the window', () => {
+    const { panel, grid, items } = makeLargePanel()
+    scrollTo(grid, 5000) // window mounts items ~32-39; 100/101 stay unmounted
+    panel.arm(items[100]!)
+    panel.arm(items[101]!)
+    expect(grid.querySelector('.catalog-card.armed')).toBeNull()
   })
 })

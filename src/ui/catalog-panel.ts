@@ -186,7 +186,7 @@ export class CatalogPanel {
   /** Arm an item (clicked in the grid). */
   arm(item: CatalogItem): void {
     this.armed = item
-    this.renderGrid()
+    this.syncArmedClass()
     this.renderStatus()
     this.onPlaceModeChange?.(true)
   }
@@ -199,8 +199,20 @@ export class CatalogPanel {
     // message does not outlive the interaction that made it relevant.
     this.renderStatus()
     if (!wasArmed) return
-    this.renderGrid()
+    this.syncArmedClass()
     this.onPlaceModeChange?.(false)
+  }
+
+  /**
+   * Toggle `.armed` on mounted cards only — a full renderGrid() here would
+   * tear down the virtualized scroll scaffolding, and the browser clamps
+   * scrollTop to 0 while the content is empty, visibly jumping the panel
+   * back to the top on every selection. Cards scrolled out of the window
+   * are simply not mounted; nothing to update.
+   */
+  private syncArmedClass(): void {
+    const armedId = this.armed?.catalogId
+    for (const [id, card] of this.cardEls) card.classList.toggle('armed', id === armedId)
   }
 
   /**
@@ -335,8 +347,8 @@ export class CatalogPanel {
     this.spacerBottom.className = 'catalog-spacer'
     this.grid.append(this.spacerTop, this.spacerBottom)
 
-    // New search/category: jump back to the top (arm/disarm re-renders keep
-    // the scroll position so the armed card stays where the user left it).
+    // New search/category: jump back to the top (arm/disarm no longer
+    // re-renders, so it cannot land here).
     if (filterChanged) this.grid.scrollTop = 0
     this.updateWindow(true)
     this.renderStatus()
