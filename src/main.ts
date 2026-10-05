@@ -1367,7 +1367,8 @@ function render(preview: PlanPreview): void {
   if (!ctx) return
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   const home = store.getHome()
-  planEmptyState.setEmpty(home.walls.length === 0 && home.rooms.length === 0 && home.furniture.length === 0)
+  const isEmptyDocument = home.walls.length === 0 && home.rooms.length === 0 && home.furniture.length === 0
+  planEmptyState.setEmpty(isEmptyDocument && engine.getTool() === 'selection')
   planEmptyState.setSignedIn(auth.currentUser() !== null)
 
   // One-time auto-fit: when the document transitions from empty to having its
