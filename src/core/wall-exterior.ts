@@ -92,6 +92,28 @@ export function getWallSideExterior(
 }
 
 /**
+ * True when the side's texture was chosen on purpose — an explicit
+ * left/rightSideTextureId string, or (when omitted) a home-preference id.
+ * False means the resolver is only falling back to its built-in
+ * 'plaster-white' default (or the side is explicitly null).
+ */
+export function hasChosenWallSideTexture(
+  wall: WallSideGeometry &
+    WallSideOverride & { leftSideTextureId?: string | null; rightSideTextureId?: string | null },
+  side: WallSide,
+  rooms: RoomPolygon[],
+  preferences: HomePreferences | undefined,
+): boolean {
+  return typeof getEffectiveWallSideTextureId(wall, side, rooms, preferences) === 'string' &&
+    (
+      (side === 'left' ? wall.leftSideTextureId : wall.rightSideTextureId) !== undefined ||
+      (getWallSideExterior(wall, side, rooms)
+        ? preferences?.defaultExteriorWallTextureId
+        : preferences?.defaultInteriorWallTextureId) !== undefined
+    )
+}
+
+/**
  * Effective texture id for one wall side: the side's explicit
  * leftSideTextureId/rightSideTextureId wins (string or null); when omitted,
  * classify the side via room geometry and fall back to the matching

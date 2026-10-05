@@ -1,5 +1,5 @@
 import type { NormalizedHomeState, Wall, Furniture, Level } from '../core/home'
-import { WALL_TEXTURES, resolveTextureUrl } from '../core/home'
+import { WALL_TEXTURES, resolveTextureUrl, effectiveFurnitureTextureId } from '../core/home'
 import { wallOutlinePoints } from '../core/top-camera-follower'
 import { buildWallEndpointIndex } from '../core/wall-endpoint-index'
 import { getEffectiveWallSideTextureId } from '../core/wall-exterior'
@@ -718,7 +718,7 @@ export function drawPlan(
       else ctx.lineTo(corner.x, corner.y)
     })
     ctx.closePath()
-    ctx.fillStyle = patternOrNull(ctx, f.textureId) ?? cssColor(f.color, FURNITURE_FILL)
+    ctx.fillStyle = patternOrNull(ctx, effectiveFurnitureTextureId(f)) ?? cssColor(f.color, FURNITURE_FILL)
     ctx.fill()
     if (selected.has(f.id)) {
       ctx.lineWidth = 2
