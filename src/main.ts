@@ -528,6 +528,15 @@ const profileWidget = new ProfileWidget(profileWidgetHost, auth, {
 
 // ── Toolbar ─────────────────────────────────────────────────────────────────
 
+function switchTool(tool: PlanTool): void {
+  try { engine.setTool(tool) } catch { /* ignore */ }
+  if (tool === 'selection') setSidebarTab('furniture')
+  telemetry.toolSwitch(tool)
+  catalogPanel?.disarm()
+  refreshToolbar()
+  refreshStatus()
+}
+
 function buildToolbar(): void {
   toolbar.innerHTML = `
     <div class="tool-group">
@@ -576,12 +585,7 @@ function buildToolbar(): void {
 
   for (const btn of toolbar.querySelectorAll<HTMLButtonElement>('button[data-tool]')) {
     btn.addEventListener('click', () => {
-      try { engine.setTool(btn.dataset.tool as PlanTool) } catch { /* ignore */ }
-      if (btn.dataset.tool === 'selection') setSidebarTab('furniture')
-      telemetry.toolSwitch(btn.dataset.tool ?? 'unknown')
-      catalogPanel?.disarm()
-      refreshToolbar()
-      refreshStatus()
+      switchTool(btn.dataset.tool as PlanTool)
     })
   }
 
@@ -1316,6 +1320,15 @@ window.addEventListener('keydown', (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
     event.preventDefault()
     if (clipboardManager.duplicate().length > 0) refreshAll()
+    return
+  }
+
+  // Tool shortcuts V/W — bare keys only, so Ctrl+V paste and Alt combos are
+  // unaffected; skipped while typing in a text input (isInput guard above).
+  if (!event.ctrlKey && !event.metaKey && !event.altKey &&
+      (shortcutKey === 'v' || shortcutKey === 'w') && !isInput) {
+    event.preventDefault()
+    switchTool(shortcutKey === 'v' ? 'selection' : 'wall')
     return
   }
 
