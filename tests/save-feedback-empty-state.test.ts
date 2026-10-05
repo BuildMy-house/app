@@ -48,6 +48,37 @@ describe('plan empty state', () => {
     es.setSignedIn(true)
     expect(btn.textContent).toContain('Open a saved project')
   })
+
+  it('shows the full onboarding checklist while empty', () => {
+    const es = createPlanEmptyState({ onDrawWalls: vi.fn(), onOpenProjects: vi.fn() })
+    document.body.appendChild(es.element)
+    es.setEmpty(true)
+    const steps = es.element.querySelectorAll('.plan-empty-step')
+    expect(steps.length).toBe(4)
+    expect(es.element.textContent).toContain('Draw your first walls')
+    expect(es.element.textContent).toContain('Add a door or window')
+    expect(es.element.textContent).toContain('Furnish a room')
+    expect(es.element.textContent).toContain('See your house in 3D')
+    expect(es.element.querySelector('.plan-empty-step.done')).toBeNull()
+  })
+
+  it('marks step 1 done once the plan has content, then hides', () => {
+    const es = createPlanEmptyState({ onDrawWalls: vi.fn(), onOpenProjects: vi.fn() })
+    es.setEmpty(true)
+    expect(es.element.querySelector('.plan-empty-step.done')).toBeNull()
+    es.setEmpty(false)
+    expect(es.element.querySelector('.plan-empty-step[data-step="1"]')!.classList.contains('done')).toBe(true)
+    expect(es.element.hidden).toBe(true)
+  })
+
+  it('dismissal hides the checklist permanently', () => {
+    const es = createPlanEmptyState({ onDrawWalls: vi.fn(), onOpenProjects: vi.fn() })
+    es.setEmpty(true)
+    es.element.querySelector<HTMLButtonElement>('.plan-empty-dismiss')!.click()
+    expect(es.element.hidden).toBe(true)
+    es.setEmpty(true)
+    expect(es.element.hidden).toBe(true)
+  })
 })
 
 describe('My Projects empty state', () => {
