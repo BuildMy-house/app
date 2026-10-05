@@ -33,6 +33,17 @@ function makePanel() {
   return { panel, line }
 }
 
+describe('catalog tile badge + dimensions', () => {
+  it('renders the category badge and dimensions with cm unit on each tile', () => {
+    const { panel } = makePanel()
+    const card = panel.element.querySelector<HTMLButtonElement>('.catalog-card')!
+    const badge = card.querySelector<HTMLSpanElement>('.catalog-badge')
+    const dims = card.querySelector<HTMLDivElement>('.catalog-dims')
+    expect(badge?.textContent).toBe('Living')
+    expect(dims?.textContent).toBe('200×90×80 cm')
+  })
+})
+
 describe('catalog placement hint', () => {
   it('shows the placing hint while armed and resets on disarm', () => {
     const { panel, line } = makePanel()

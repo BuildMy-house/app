@@ -597,11 +597,28 @@ export class CatalogPanel {
     name.title = `${item.name} — ${item.width}×${item.depth}×${item.height} cm`
     // Names wrap freely — variable-height virtualization handles uneven cards.
 
+    // Category pill (T5): small-caps badge so tiles are scannable by category.
+    const badge = document.createElement('span')
+    badge.className = 'catalog-badge'
+    badge.textContent = item.category
+    Object.assign(badge.style, {
+      alignSelf: 'flex-start',
+      fontSize: '9.5px',
+      lineHeight: '1.4',
+      textTransform: 'uppercase',
+      letterSpacing: '0.4px',
+      color: 'var(--text-secondary)',
+      background: 'var(--menu-hover)',
+      border: '1px solid var(--border)',
+      borderRadius: '8px',
+      padding: '0 6px',
+    } as Partial<CSSStyleDeclaration>)
+
     const dims = document.createElement('div')
     dims.className = 'catalog-dims'
-    dims.textContent = `${item.width}×${item.depth}×${item.height}`
+    dims.textContent = `${item.width}×${item.depth}×${item.height} cm`
 
-    card.append(swatch, name, dims)
+    card.append(swatch, badge, name, dims)
     card.addEventListener('click', () => {
       if (this.armed?.catalogId === item.catalogId) this.disarm()
       else this.arm(item)
