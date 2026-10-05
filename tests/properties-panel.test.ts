@@ -263,6 +263,42 @@ describe('roof editing updates the model and is undoable', () => {
   })
 })
 
+describe('PropertiesPanel wall texture dropdown includes every catalog material (T12)', () => {
+  const selectFor = (panel: PropertiesPanel, rowLabel: string): HTMLSelectElement => {
+    const rows = [...panel.element.querySelectorAll('.prop-row')]
+    const row = rows.find((r) => r.querySelector('.prop-label')?.textContent === rowLabel)
+    expect(row, `row ${rowLabel}`).toBeTruthy()
+    return row!.querySelector('select')!
+  }
+
+  it('never hides a wallUsage-mismatched texture from the L/R Texture dropdowns, and committing it persists', () => {
+    // Regression test for T12: a freestanding wall (no enclosing room) is
+    // auto-classified exterior, which used to filter EVERY interior-only
+    // texture (carpet, wood-oak, plaster-white) out of the dropdown
+    // entirely -- the option simply wasn't there to pick, with no
+    // indication why, making material assignment look broken.
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const wall = model.addWall({ xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 15 })
+    model.setSelection([wall.id])
+    const panel = new PropertiesPanel(store, document.createElement('div'))
+
+    const select = selectFor(panel, 'L Texture')
+    const values = [...select.options].map((o) => o.value)
+    expect(values).toContain('carpet')
+    expect(values).toContain('wood-oak')
+
+    select.value = 'carpet'
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+    expect(store.getHome().walls.find((w) => w.id === wall.id)!.leftSideTextureId).toBe('carpet')
+
+    // Re-render (selection churn) still shows the committed value selected.
+    model.setSelection([])
+    model.setSelection([wall.id])
+    expect(selectFor(panel, 'L Texture').value).toBe('carpet')
+  })
+})
+
 describe('PropertiesPanel Set as default button', () => {
   const buttonFor = (panel: PropertiesPanel, rowLabel: string): HTMLButtonElement => {
     const rows = [...panel.element.querySelectorAll('.prop-row')]

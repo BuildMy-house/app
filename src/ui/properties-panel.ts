@@ -372,10 +372,17 @@ export class PropertiesPanel {
     }
     for (const t of WALL_TEXTURES) {
       if (t.id === leftSelected?.id) continue
-      if (t.wallUsage && !t.wallUsage.includes(leftIsExterior ? 'exterior' : 'interior')) continue
+      // wallUsage is a hint (shown in the label), never a block: a per-wall
+      // override must be able to pick ANY catalog material regardless of the
+      // auto-derived exterior/interior classification, which is fuzzy and can
+      // flip as rooms are drawn/edited. Silently hiding most of the catalog
+      // here is what made assigning a material look broken (T12) -- the
+      // desired option simply wasn't in the list, with no indication why.
       const opt = document.createElement('option')
       opt.value = t.id
-      opt.textContent = t.label
+      opt.textContent = t.wallUsage && !t.wallUsage.includes(leftIsExterior ? 'exterior' : 'interior')
+        ? `${t.label} (${t.wallUsage.join('/')})`
+        : t.label
       if (wall.leftSideTextureId === t.id) opt.selected = true
       leftTexture.appendChild(opt)
     }
@@ -425,10 +432,13 @@ export class PropertiesPanel {
     }
     for (const t of WALL_TEXTURES) {
       if (t.id === rightSelected?.id) continue
-      if (t.wallUsage && !t.wallUsage.includes(rightIsExterior ? 'exterior' : 'interior')) continue
+      // See matching comment on the left-side loop above: wallUsage is a
+      // hint, never a block, for a per-wall override.
       const opt = document.createElement('option')
       opt.value = t.id
-      opt.textContent = t.label
+      opt.textContent = t.wallUsage && !t.wallUsage.includes(rightIsExterior ? 'exterior' : 'interior')
+        ? `${t.label} (${t.wallUsage.join('/')})`
+        : t.label
       if (wall.rightSideTextureId === t.id) opt.selected = true
       rightTexture.appendChild(opt)
     }
