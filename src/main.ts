@@ -1253,7 +1253,11 @@ document.addEventListener('keydown', (event) => {
 })
 
 // Scroll wheel zoom centered on cursor
-canvas.addEventListener('wheel', (event) => {
+// Attached to planPanel (not canvas) so scrolling over the first-run
+// empty-state tip — which visually sits on top of the canvas — still
+// zooms the plan underneath it; canvasPixelCoords() is viewport-relative
+// so it works the same regardless of which descendant the event targets.
+planPanel.addEventListener('wheel', (event) => {
   event.preventDefault()
   userHasZoomed = true
   const { px, py } = canvasPixelCoords(event)
@@ -1368,7 +1372,9 @@ function render(preview: PlanPreview): void {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   const home = store.getHome()
   const isEmptyDocument = home.walls.length === 0 && home.rooms.length === 0 && home.furniture.length === 0
-  planEmptyState.setEmpty(isEmptyDocument && engine.getTool() === 'selection')
+  planEmptyState.setEmpty(
+    isEmptyDocument && engine.getTool() === 'selection' && !catalogPanel?.isArmed(),
+  )
   planEmptyState.setSignedIn(auth.currentUser() !== null)
 
   // One-time auto-fit: when the document transitions from empty to having its
@@ -1689,6 +1695,17 @@ const catalogReady = (cachedManifest
       canvas.style.cursor = active ? 'crosshair' : ''
       const v3 = document.querySelector<HTMLCanvasElement>('#view3d canvas')
       if (v3) v3.style.cursor = active ? 'crosshair' : ''
+      // Arming/disarming a catalog piece can happen between animation
+      // frames (e.g. a synthetic test click right after the arm click,
+      // with no frame in between) — update the empty-state overlay here
+      // too instead of only in the next render() tick, so a canvas click
+      // immediately after arming never gets swallowed by a still-visible
+      // overlay.
+      if (active) {
+        const home = store.getHome()
+        const isEmptyDocument = home.walls.length === 0 && home.rooms.length === 0 && home.furniture.length === 0
+        planEmptyState.setEmpty(isEmptyDocument && engine.getTool() === 'selection' && !active)
+      }
     },
     onImportModel: () => {
       importModelFile()

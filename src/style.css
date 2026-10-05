@@ -1749,6 +1749,11 @@ select:focus-visible {
   color: var(--text-primary, #e6edf3);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
   z-index: 5;
+  /* Decorative first-run tip: never swallow clicks/wheel events meant for
+     the plan canvas beneath it (wall drawing, furniture placement, pan,
+     zoom all need to reach the canvas even while this overlay is shown).
+     Only its own buttons re-enable pointer events below. */
+  pointer-events: none;
 }
 
 .plan-empty-state[hidden] { display: none; }
@@ -1756,6 +1761,7 @@ select:focus-visible {
 .plan-empty-state p { margin: 0 0 12px; font-size: 13px; color: var(--text-secondary); }
 .plan-empty-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .plan-empty-actions button { padding: 8px 12px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: transparent; color: inherit; }
+.plan-empty-actions button { pointer-events: auto; }
 .plan-empty-actions .plan-empty-primary { background: var(--accent, #2f81f7); border-color: var(--accent, #2f81f7); color: #fff; }
 .plan-empty-hint { font-size: 12px !important; margin-bottom: 0 !important; }
 
