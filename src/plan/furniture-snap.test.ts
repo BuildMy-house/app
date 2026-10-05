@@ -26,6 +26,24 @@ describe('snapFurniturePlacement', () => {
     expect(r).toEqual({ x: 50, y: 40, angleDeg: 0, wallRef: null, wallOffset: null })
   })
 
+  it('still pushes an overlapping footprint out of the wall when magnetism is off', () => {
+    const r = snapFurniturePlacement({
+      walls: [{ xStart: 0, yStart: 0, xEnd: 200, yEnd: 0, thickness: 10 }],
+      point: { x: 100, y: 100 },
+      widthCm: 300,
+      depthCm: 20,
+      angleDeg: 90,
+      magnetismEnabled: false,
+    })
+    // Half-extent along y at 90° = width/2 = 150, + half wall 5 → flush-out at 155.
+    // No forced alignment or wallRef — but no overlap either.
+    expect(r.x).toBe(100)
+    expect(r.y).toBe(155)
+    expect(r.angleDeg).toBe(90)
+    expect(r.wallRef).toBeNull()
+    expect(r.wallOffset).toBeNull()
+  })
+
   it('returns the raw point when no wall is within range', () => {
     const r = snapFurniturePlacement({ walls: [wallH], point: { x: 50, y: 200 }, depthCm: 40, magnetismEnabled: true })
     expect(r).toEqual({ x: 50, y: 200, angleDeg: 0, wallRef: null, wallOffset: null })
@@ -153,6 +171,35 @@ describe('snapFurniturePlacement', () => {
 
     expect(corner).toMatchObject({ x: 15, y: 55 })
     expect(endpoint.y).toBe(15)
+  })
+})
+
+describe('snap hysteresis (previousWallId)', () => {
+  const wallA = { id: 'wall-a', xStart: 0, yStart: 0, xEnd: 100, yEnd: 0 }
+
+  it('holds the snap beyond the entry threshold while dragging away from the same wall', () => {
+    // depth 20 → flush at y=10 (half depth from wall centerline);
+    // clearance at y=50 is 40 (> 25 entry, < 50 release)
+    const r = snapFurniturePlacement({ walls: [wallA], point: { x: 50, y: 50 }, depthCm: 20, magnetismEnabled: true, previousWallId: 'wall-a' })
+    expect(r.y).toBe(10)
+    expect(r.wallRef).toBe('wall-a')
+  })
+
+  it('releases once beyond the release threshold', () => {
+    // clearance at y=75 is 65 (> 50 release)
+    const r = snapFurniturePlacement({ walls: [wallA], point: { x: 50, y: 75 }, depthCm: 20, magnetismEnabled: true, previousWallId: 'wall-a' })
+    expect(r).toEqual({ x: 50, y: 75, angleDeg: 0, wallRef: null, wallOffset: null })
+  })
+
+  it('uses the normal entry threshold for a different wall than the previous one', () => {
+    const walls = [
+      wallA,
+      { id: 'wall-b', xStart: 130, yStart: -50, xEnd: 130, yEnd: 50 },
+    ]
+    // Closest wall is wall-b at clearance 30 (> 25 entry, < 50 release):
+    // hysteresis on wall-a must not lower wall-b's entry bar.
+    const r = snapFurniturePlacement({ walls, point: { x: 170, y: 0 }, depthCm: 20, magnetismEnabled: true, previousWallId: 'wall-a' })
+    expect(r).toEqual({ x: 170, y: 0, angleDeg: 0, wallRef: null, wallOffset: null })
   })
 })
 

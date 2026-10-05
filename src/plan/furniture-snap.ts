@@ -29,6 +29,11 @@ export interface FurnitureSnapInput {
   depthCm: number
   angleDeg?: number
   magnetismEnabled: boolean
+  /** Wall id the furniture was snapped to at the start of this drag frame, if
+   *  any — used only to widen the release threshold for THAT specific wall
+   *  (hysteresis). Does not affect snapping onto a different/new wall, which
+   *  always uses the normal FURNITURE_SNAP_DISTANCE_CM entry threshold. */
+  previousWallId?: string | null
 }
 
 export interface FurnitureSnapResult {
@@ -43,6 +48,10 @@ export interface FurnitureSnapResult {
 
 /** Max distance (cm) from a wall within which a placement magnetizes to it. */
 export const FURNITURE_SNAP_DISTANCE_CM = 25
+/** Once flush against a wall, require clearing this larger radius (not the
+ *  entry radius) before the snap releases — prevents an in-progress drag
+ *  away from the wall from being continuously re-glued to it. */
+export const FURNITURE_SNAP_RELEASE_DISTANCE_CM = FURNITURE_SNAP_DISTANCE_CM * 2
 const FURNITURE_ROTATION_SNAP_ANGLE_DEG = 8
 
 export function closestPointOnSegment(
@@ -68,8 +77,14 @@ function normalizeAngle180(deg: number): number {
 
 export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnapResult {
   const { walls, point, depthCm, magnetismEnabled } = input
-  if (!magnetismEnabled || walls.length === 0) {
+  if (walls.length === 0) {
     return { x: point.x, y: point.y, angleDeg: 0, wallRef: null, wallOffset: null }
+  }
+  // Hard anti-clip constraint runs regardless of magnetism; only the
+  // flush-alignment convenience snap below is magnetism-gated.
+  if (!magnetismEnabled) {
+    const separated = separateFurnitureFromWalls(point, walls, input.widthCm ?? depthCm, depthCm, input.angleDeg ?? 0)
+    return { x: separated.x, y: separated.y, angleDeg: input.angleDeg ?? 0, wallRef: null, wallOffset: null }
   }
 
   let best: { dist: number; point: Point; wall: WallLike; t: number; side: number; angleDeg: number } | null = null
@@ -98,7 +113,10 @@ export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnap
     }
   }
 
-  if (!best || best.dist > FURNITURE_SNAP_DISTANCE_CM) {
+  const threshold = input.previousWallId && best?.wall.id === input.previousWallId
+    ? FURNITURE_SNAP_RELEASE_DISTANCE_CM
+    : FURNITURE_SNAP_DISTANCE_CM
+  if (!best || best.dist > threshold) {
     return { x: point.x, y: point.y, angleDeg: 0, wallRef: null, wallOffset: null }
   }
 

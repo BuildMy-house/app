@@ -205,7 +205,7 @@ export class PlanEngine {
   private vertexDrag: { wallId: string; endpoint: 'start' | 'end'; startX: number; startY: number; connectedWalls: Array<{ wallId: string; endpoint: 'start' | 'end' }> } | null = null
   private roomVertexDrag: { roomId: string; vertexIndex: number; startX: number; startY: number } | null = null
   private furnitureRotateDrag: { id: string; angleDeg: number; pointerAngleDeg: number; x: number; y: number } | null = null
-  private furnitureMoveDrag: { id: string; start: Point; furniture: Furniture; walls: Wall[] } | null = null
+  private furnitureMoveDrag: { id: string; start: Point; furniture: Furniture; walls: Wall[]; snappedWallId: string | null } | null = null
   private wallArcDrag: { id: string } | null = null
   private activeLevelId: string | null = null
   /** T12: rooms whose boundary loop dissolved (wall deleted/moved apart).
@@ -618,7 +618,7 @@ export class PlanEngine {
     const furniture = home.furniture.find((item) => item.id === id)
     if (!furniture || this.furnitureMoveDrag) return false
     if (!home.selection.includes(id)) this.model.setSelection([id])
-    this.furnitureMoveDrag = { id, start: point, furniture, walls: home.walls }
+    this.furnitureMoveDrag = { id, start: point, furniture, walls: home.walls, snappedWallId: furniture.wallRef ?? null }
     this.model.getStore().beginCompoundEdit()
     return true
   }
@@ -631,7 +631,9 @@ export class PlanEngine {
     const snap = snapFurniturePlacement({
       walls: drag.walls, point: target, widthCm: drag.furniture.width, depthCm: drag.furniture.depth,
       angleDeg: drag.furniture.angleDeg, magnetismEnabled: this.magnetismEnabled,
+      previousWallId: drag.snappedWallId,
     })
+    drag.snappedWallId = snap.wallRef
     this.model.updateFurniture(drag.id, {
       x: snap.x,
       y: snap.y,
