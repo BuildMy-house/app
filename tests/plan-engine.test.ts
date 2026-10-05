@@ -1095,7 +1095,7 @@ describe('furniture drag wall-snap', () => {
     expect(reverted.y).toBe(origY)
   })
 
-  it('magnetism disabled prevents snap even near a wall', () => {
+  it('magnetism disabled skips flush-alignment snap but still blocks wall overlap', () => {
     const { engine, drag, store, furniture } = setupFurnitureWithWall()
     engine.setMagnetism(false)
     const origX = furniture.x
@@ -1104,7 +1104,12 @@ describe('furniture drag wall-snap', () => {
     drag(origX, origY, origX, 20)
 
     const placed = store.getHome().furniture[0]!
-    expect(placed.y).toBeCloseTo(20, 0)
+    // Magnetism only gates the convenience flush-alignment snap (and angle
+    // alignment, asserted below). The hard anti-clip constraint always runs,
+    // so the furniture is still pushed clear of the wall it was dragged
+    // into -- matching the same push-out distance as the magnetism-enabled
+    // case above, since both paths route through separateFurnitureFromWalls.
+    expect(placed.y).toBeCloseTo(30 + NEW_WALL_THICKNESS_CM / 2, 5)
     expect(placed.angleDeg).toBe(0)
   })
 })
