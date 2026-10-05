@@ -142,6 +142,39 @@ describe('wall tool state machine', () => {
     expect(store.getHome().walls).toHaveLength(0)
   })
 
+  it('a plain click grazing a committed chain edge does not close the loop', () => {
+    const { engine, click, store } = setup()
+    engine.setTool('wall')
+    engine.setMagnetism(false)
+    click(0, 0)
+    click(100, 0)
+    click(100, 80)
+    click(0, 80)
+    expect(store.getHome().walls).toHaveLength(3)
+    // Plain click ON the top edge (y = 0, same as corners (0,0)/(100,0),
+    // x between them, ~50 units from either endpoint). Ray-casting
+    // pointInPolygon misclassifies it as interior, but it grazes a
+    // committed wall: must NOT close the loop (the unit-level equivalent
+    // of e2e "closing click far from the origin does not close the loop").
+    click(50, 0)
+
+    const home = store.getHome()
+    // The click added a plain 4th segment from the chain end onto the
+    // grazed edge (T-junction snap), NOT the closing wall (0,80)->(0,0).
+    expect(home.walls).toHaveLength(4)
+    expect(wallGraph(store)).toEqual([
+      [0, 0, 100, 0],
+      [0, 80, 50, 0],
+      [0, 80, 100, 80],
+      [100, 0, 100, 80],
+    ])
+    expect(home.rooms).toHaveLength(0)
+    expect(engine.getPreview()).toMatchObject({
+      phase: 'drawing',
+      chainStart: { x: 50, y: 0 },
+    })
+  })
+
   it('a later chain starts exactly at a free endpoint of a committed wall', () => {
     const { engine, click } = setup()
     engine.setTool('wall')

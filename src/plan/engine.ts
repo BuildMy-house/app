@@ -1216,6 +1216,11 @@ export class PlanEngine {
     // wall there; the room-autodetect e2e flow depends on that first click
     // of a dblclick NOT short-circuiting finalization before the dblclick
     // event itself fires).
+    // Also requires the click be genuinely INTERIOR: ray-casting
+    // pointInPolygon is implementation-defined on the boundary and returns
+    // true for a point lying exactly on a committed chain edge (e.g. the
+    // same y as two corners, x between them), so a click merely grazing an
+    // already-drawn wall must NOT close the loop.
     if (this.chainIds.length >= 2) {
       const walls = this.homeSnapshot().walls
       const chainWalls = this.chainIds
@@ -1228,7 +1233,10 @@ export class PlanEngine {
           ...chainWalls.map((w) => [w.xStart, w.yStart] as [number, number]),
           [last.xEnd, last.yEnd],
         ]
-        if (this.pointInPolygon(point, polygon)) {
+        if (
+          this.pointInPolygon(point, polygon)
+          && this.minDistanceToPolygonEdges(point, polygon) > ENDPOINT_HIT_RADIUS
+        ) {
           this.commitChainWall(start, { x: first.xStart, y: first.yStart })
           this.validateDrawnWalls()
           return
@@ -2276,6 +2284,23 @@ export class PlanEngine {
       if (dist <= PIXEL_MARGIN) return { kind: 'dimension', id: dim.id }
     }
     return null
+  }
+
+  /**
+   * Minimum distance from a point to every polygon edge, including the
+   * implicit closing edge from the last vertex back to the first. Used to
+   * reject boundary-grazing clicks that raw ray-casting misclassifies as
+   * interior (see the chain-close check in singleClick()).
+   */
+  private minDistanceToPolygonEdges(point: Point, polygon: Array<[number, number]>): number {
+    let min = Infinity
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const a = { x: polygon[j]![0]!, y: polygon[j]![1]! }
+      const b = { x: polygon[i]![0]!, y: polygon[i]![1]! }
+      const dist = distance(point, closestPointOnSegment(point, a, b))
+      if (dist < min) min = dist
+    }
+    return min
   }
 
   private pointInPolygon(point: Point, polygon: Array<[number, number]>): boolean {
