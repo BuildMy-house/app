@@ -46,6 +46,42 @@ color + label) without attempting real model loading in Node.
 - T3: `cd app && npm run test -- render_scene` if a vitest spec exists for it, else exercise directly via the `buildmyhouse` MCP `screenshot` tool on a multi-furniture demo scene and inspect the PNG.
 - T4/T5: `cd app && npm run check && npm run test` then live-exercise via `npm run dev` (first-run with an empty plan for T4; catalog panel open for T5) — these are UI-facing, live verification is mandatory, not optional.
 - All: `npm run lint` must stay clean; no files outside each ticket's owner paths.
+
+## Phase: PM-agent chat widget (2026-10-05)
+
+Dispatched by `agent-manager` (Steward manager task
+`manage-buildmy-house-app-chat-widget-board-wave-1`). App-side half of a new
+feature: an in-app chat widget backed by a new, isolated "pm-agent" in
+`company-os` (tracked on that repo's own `PLAN.md`, Phase: PM-agent). The
+widget must carry the real logged-in user's identity — no anonymous
+sessions — so filed feedback has real provenance.
+
+**Dependency across repos:** the widget's live backend (pm-agent's
+`/chat` HTTP/SSE surface, `company-os` tickets PM-C/PM-E/PM-F) is not yet
+built. A1 below is scoped to be buildable and independently testable
+against a documented contract/mock now; do not wire it to a real
+`pm-agent.buildmy.house` URL or enable it for real users until the
+company-os side is verified live — ship it behind a feature flag / dev-only
+toggle, consistent with this repo's "prod deploy is automatic on push to
+main" behavior (Steward memory
+`buildmyhouse:pattern_app_buildmy_house_app_prod_deploy_is_aut_78D015DB`) —
+there is no staging gate here, so an unflagged widget pointed at a
+non-existent backend would go live immediately on merge.
+
+> Claim rule: Steward's `claim_work` is the real gate. Status moves
+> `todo → claimed → in_progress → review → done`. Only the manager sets
+> `done`, after independent verification (re-run DoD, diff review, live
+> exercise via `npm run dev`).
+
+| Ticket | Title | Deps | Owner paths | Claimed-by | Status | Notes |
+|--------|-------|------|--------------|------------|--------|-------|
+| A1 | Chat widget UI component (behind a dev-only feature flag) | — | `app/src/ui/chat-widget.ts` (new), a feature-flag check (grep existing flag patterns in `src/` first — mirror whatever convention already exists, e.g. a `localStorage`/env-based toggle; if none exists, gate behind `import.meta.env.DEV` plus an explicit opt-in localStorage key so it never silently appears for real users), `src/main.ts` (wiring only, mirror how `plan-empty-state.ts` is wired per the T4 row above) | agent-manager | done | Shipped — `src/ui/chat-widget.ts` (floating panel, open/close toggle, injectable `PmAgentClient` seam, `createFetchPmAgentClient`), feature flag `isPmAgentChatEnabled()` mirrors `src/config/feature-flags.ts`'s `VITE_`-env convention (`VITE_ENABLE_PM_AGENT_CHAT==='true'`, default OFF — this repo auto-deploys to prod on push, so it must never default on), `userIdFromToken()` reads the real auth JWT `sub` claim (same id `requireAuth`/`meHandler` derive server-side); refuses to send with no error swallowed when no logged-in user id is available (asserted by test, never falls back to a placeholder). Wired into `src/main.ts` next to the auth block, mirroring the `createPlanEmptyState` call-site style. No real `pm-agent.buildmy.house` URL anywhere — only this app's own not-yet-built `/api/chat` proxy path (ticket A2). 14/14 new component tests pass; independently re-verified by the manager: `npm run check` clean, `npm run test -- chat-widget` 14/14 pass, `npm run lint` clean. |
+| A2 | Server-side chat proxy: JWT-verified relay to pm-agent | A1, company-os PM-C/PM-F (cross-repo; do not dispatch until pm-agent has a reachable `/chat` endpoint — confirm via the company-os board before claiming this) | `app/server/src/chat.ts` (new), `app/server/src/app.ts` (route wiring only — grep for how other routes mount `requireAuth`, mirror exactly), `app/server/test/chat.test.ts` (new) | — | todo | New authenticated route (reuse `requireAuth` from `server/src/auth.ts` verbatim — do not reimplement JWT verification) that takes a chat message from the already-authenticated `req.userId`, forwards `{app_user_id: req.userId, message}` to the pm-agent's HTTP surface (URL from an env var, e.g. `PM_AGENT_URL`, never hardcoded), and relays the reply back (proxy the SSE stream if pm-agent exposes one, else a plain JSON round-trip is fine for v1 — do not over-build streaming if the pm-agent side ships JSON-only first). This is the one place the real `req.userId` (not client-supplied) reaches pm-agent — never trust a user id the client sends directly, only the one `requireAuth` derived from the verified JWT. DoD: `cd app/server && npm test -- chat` green (mock pm-agent's HTTP endpoint in the test, no live network call); confirm no other existing route/test regressed. **Do not claim/dispatch this ticket until the company-os PM-agent board shows PM-C done and PM-F at least dry-run-validated** — it has a real cross-repo dependency, unlike A1. |
+
+**Dispatch wave 1 (this run):** A1 only — self-contained, mocked backend,
+no live user-facing wiring (feature-flagged). A2 stays `todo`, fully
+scoped, blocked on the company-os side landing first.
+
 ## Claim Board — Wave 2 (dispatched 2026-10-06)
 
 Live-use bug reports from Nahar, each its own Steward ticket (claim/lock/

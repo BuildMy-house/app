@@ -29,6 +29,7 @@ import { ModelUploadDialog } from './ui/model-upload-dialog'
 import { saveDraft, loadDraft } from './services/adapters/local-draft'
 import { showToast, errorReason } from './ui/toast'
 import { createPlanEmptyState } from './ui/plan-empty-state'
+import { createChatWidget, createFetchPmAgentClient, isPmAgentChatEnabled, userIdFromToken } from './ui/chat-widget'
 import { ProfileWidget } from './ui/profile-widget'
 
 import { View3D, type CameraPresetName } from './view3d'
@@ -121,6 +122,18 @@ const clipboardManager = new ClipboardManager(store, model)
 // localStorage-backed; RemoteHomeStore threads the token into requests.
 const auth = new HttpAuth()
 const remoteHomes = new RemoteHomeStore('/api/homes', () => auth.getToken())
+
+// PM-agent chat widget (ticket A1): feature-flagged, floating over the app.
+// No real pm-agent URL is wired — that backend arrives with ticket A2; until
+// then the fetch client only targets this app's own not-yet-built proxy path.
+if (isPmAgentChatEnabled()) {
+  document.body.appendChild(
+    createChatWidget({
+      client: createFetchPmAgentClient(fetch, '/api/chat'),
+      getUserId: () => userIdFromToken(auth.getToken()),
+    }),
+  )
+}
 
 // Server-side home id the currently-open document maps to, if any. Set after a
 // successful save/open so the NEXT save updates (PUT) instead of duplicating
