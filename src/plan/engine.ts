@@ -1204,6 +1204,31 @@ export class PlanEngine {
     const start = this.chainStart!
     const end = this.resolveSegmentEnd(start, point)
     if (distance(start, end) <= 0) return
+
+    // A plain click landing INSIDE the polygon enclosed by this chain's
+    // committed walls means "close the loop" (finish like a room), not
+    // "add another wall to wherever was clicked". Requires >= 2 committed
+    // walls so the closing segment completes a real polygon, not a line.
+    if (this.chainIds.length >= 2) {
+      const walls = this.homeSnapshot().walls
+      const chainWalls = this.chainIds
+        .map((id) => walls.find((w) => w.id === id))
+        .filter((w): w is Wall => w != null)
+      const first = chainWalls[0]
+      const last = chainWalls[chainWalls.length - 1]
+      if (first && last) {
+        const polygon: Array<[number, number]> = [
+          ...chainWalls.map((w) => [w.xStart, w.yStart] as [number, number]),
+          [last.xEnd, last.yEnd],
+        ]
+        if (this.pointInPolygon(point, polygon)) {
+          this.commitChainWall(start, { x: first.xStart, y: first.yStart })
+          this.validateDrawnWalls()
+          return
+        }
+      }
+    }
+
     this.commitChainWall(start, end)
     this.chainStart = end
   }

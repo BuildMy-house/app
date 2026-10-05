@@ -111,6 +111,37 @@ describe('wall tool state machine', () => {
     expect(store.getHome().rooms).toHaveLength(0)
   })
 
+  it('a single click inside the enclosed polygon closes the chain instead of adding a wall', () => {
+    const { engine, click, store } = setup()
+    engine.setTool('wall')
+    engine.setMagnetism(false)
+    click(0, 0)
+    click(100, 0)
+    click(100, 80)
+    expect(store.getHome().walls).toHaveLength(2)
+    // Plain click clearly INSIDE the triangle (0,0)-(100,0)-(100,80),
+    // on/near no vertex and off every wall body.
+    click(60, 30)
+
+    const home = store.getHome()
+    // The click closed the loop (3rd wall back to origin), no spurious
+    // 4th segment committed to the interior point.
+    expect(home.walls).toHaveLength(3)
+    const last = home.walls[2]!
+    expect([last.xStart, last.yStart]).toEqual([100, 80])
+    expect([last.xEnd, last.yEnd]).toEqual([0, 0])
+    expect(wallGraph(store)).toEqual([
+      [0, 0, 100, 0],
+      [0, 0, 100, 80],
+      [100, 0, 100, 80],
+    ])
+    expect(engine.getPreview()).toMatchObject({ phase: 'idle', chainStart: null })
+    expect(home.selection).toHaveLength(3)
+    // One compound undo op for the whole closed session.
+    expect(store.undo()).toBe(true)
+    expect(store.getHome().walls).toHaveLength(0)
+  })
+
   it('a later chain starts exactly at a free endpoint of a committed wall', () => {
     const { engine, click } = setup()
     engine.setTool('wall')
