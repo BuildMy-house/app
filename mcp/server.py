@@ -900,8 +900,17 @@ async def add_label(x: float, y: float, text: str = "Label") -> dict:
 
 
 @mcp.tool()
-async def select_object(object_id: str) -> dict:
-    """Select a single object by its state id."""
+async def select_object(object_id: str | None = None, object_ids: list[str] | None = None) -> dict:
+    """Select one object by state id, or several at once with object_ids.
+
+    object_id selects a single object; object_ids selects an arbitrary subset
+    (batch) for modify_selected/delete_selection. Returns {selection: [...ids]}.
+    Exactly one of the two must be given.
+    """
+    if object_ids is not None:
+        return await _session().request("select_object", {"objectIds": object_ids})
+    if object_id is None:
+        raise ValueError("select_object requires object_id or object_ids")
     return await _session().request("select_object", {"objectId": object_id})
 
 

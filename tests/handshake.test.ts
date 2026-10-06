@@ -390,6 +390,83 @@ describe('ws protocol v1 handshake', () => {
   })
 })
 
+describe('select_object batch selection', () => {
+  it('objectIds selects a subset and modify/delete apply to every selected id', async () => {
+    await awaitHello()
+    await orch.sendRequest('new_home')
+
+    const ids: string[] = []
+    for (const x of [10, 60, 110]) {
+      const added = await orch.sendRequest('add_furniture', {
+        name: 'chair',
+        x,
+        y: 20,
+        width: 20,
+        depth: 20,
+        height: 40,
+      })
+      expect(added.ok).toBe(true)
+      ids.push((added.data as { id: string }).id)
+    }
+    const [chairA, chairB, untouched] = [ids[0] as string, ids[1] as string, ids[2] as string]
+
+    const sel = await orch.sendRequest('select_object', { objectIds: [chairA, chairB] })
+    expect(sel).toMatchObject({ ok: true, data: { selection: [chairA, chairB] } })
+
+    let state = (await orch.sendRequest('get_state')).data as {
+      selection: string[]
+      furniture: Array<{ id: string; x: number }>
+    }
+    expect(state.selection).toEqual([chairA, chairB])
+
+    const mod = await orch.sendRequest('modify_selected', { props: { x: 250 } })
+    expect(mod).toMatchObject({ ok: true, data: { updated: [chairA, chairB] } })
+    state = (await orch.sendRequest('get_state')).data as typeof state
+    const byId = new Map(state.furniture.map((f) => [f.id, f.x]))
+    expect(byId.get(chairA)).toBe(250)
+    expect(byId.get(chairB)).toBe(250)
+    expect(byId.get(untouched)).toBe(110)
+
+    const del = await orch.sendRequest('delete_selection')
+    expect(del).toMatchObject({ ok: true, data: { removed: 2 } })
+    state = (await orch.sendRequest('get_state')).data as typeof state
+    expect(state.furniture.map((f) => f.id)).toEqual([untouched])
+    expect(state.selection).toEqual([])
+
+    await orch.sendRequest('new_home')
+  })
+
+  it('keeps single-objectId selection and rejects requests with neither param', async () => {
+    await awaitHello()
+    await orch.sendRequest('new_home')
+
+    const added = await orch.sendRequest('add_furniture', {
+      name: 'table',
+      x: 30,
+      y: 30,
+      width: 60,
+      depth: 40,
+      height: 75,
+    })
+    const { id } = added.data as { id: string }
+
+    const sel = await orch.sendRequest('select_object', { objectId: id })
+    expect(sel).toMatchObject({ ok: true, data: { selection: [id] } })
+    const state = (await orch.sendRequest('get_state')).data as { selection: string[] }
+    expect(state.selection).toEqual([id])
+
+    const bad = await orch.sendRequest('select_object', {})
+    expect(bad.ok).toBe(false)
+    expect(bad.code).toBe('INVALID_PARAMS')
+
+    const badIds = await orch.sendRequest('select_object', { objectIds: [] })
+    expect(badIds.ok).toBe(false)
+    expect(badIds.code).toBe('INVALID_PARAMS')
+
+    await orch.sendRequest('new_home')
+  })
+})
+
 describe('port seams', () => {
   it('parses HOMELY_AUTOMATION_PORT', () => {
     expect(automationPortFromEnv({ HOMELY_AUTOMATION_PORT: '8765' })).toBe(8765)

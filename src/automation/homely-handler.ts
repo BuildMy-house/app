@@ -334,6 +334,18 @@ export class HomelyCommandHandler implements CommandHandler {
         return { ok: true, data: { magnetismEnabled: params.enabled === true } }
       }
       case 'select_object': {
+        const ids = params.objectIds
+        if (ids !== undefined) {
+          assert(
+            Array.isArray(ids) &&
+              ids.length > 0 &&
+              ids.every((v) => typeof v === 'string' && v.length > 0),
+            'param objectIds must be a non-empty array of non-empty strings',
+          )
+          const selection = ids as string[]
+          this.model.setSelection(selection)
+          return { ok: true, data: { selection } }
+        }
         const id = params.objectId
         assert(typeof id === 'string' && id.length > 0, 'param objectId must be a non-empty string')
         this.model.setSelection([id])

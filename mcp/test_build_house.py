@@ -87,6 +87,26 @@ class BuildHouseTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(fake.calls[2], ("list_catalog", {"query": "door"}))
 
+    async def test_select_object_maps_single_and_batch_params(self):
+        fake = FakeSession()
+        original = server._session
+        server._session = lambda: fake
+        try:
+            await server.select_object(object_id="furniture-1")
+            await server.select_object(object_ids=["furniture-1", "furniture-2"])
+            with self.assertRaisesRegex(ValueError, "object_id or object_ids"):
+                await server.select_object()
+        finally:
+            server._session = original
+
+        self.assertEqual(
+            fake.calls,
+            [
+                ("select_object", {"objectId": "furniture-1"}),
+                ("select_object", {"objectIds": ["furniture-1", "furniture-2"]}),
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
