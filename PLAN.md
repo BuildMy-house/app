@@ -107,3 +107,125 @@ self-report), committed separately.
 ### Verification notes — T13
 
 - T13: `npx vitest run tests/plan-engine.test.ts`, `npx playwright test e2e/wall-loop-closing-precision.spec.ts`, `npm run check`, full `npx vitest run` and full `npx playwright test` — all re-run and confirmed green by the manager directly (not just worker self-report) before marking done. CI run https://github.com/BuildMy-house/app/actions/runs/37360885119 watched to green via `gh run watch`.
+
+## Audit — verification + fresh-findings pass (dispatched 2026-10-06)
+
+Requested by Nahar: "audit the app, ensure that you can [use it], and see
+what else can be improved" — not another feature wave. Two parts: (1)
+actually verify the app works end-to-end (human UI path and agent/MCP
+path) rather than trusting prior waves' test suites alone, (2) look for
+anything newly broken/confusing and any code-health/agent-ergonomics gaps
+beyond the existing T6-T8 backlog.
+
+### Part 1 — Verification results
+
+**Agent/MCP round-trip — actually exercised live, not just unit-tested.**
+A dev server (`npm run dev`, vite on port 1420) plus a headless
+Playwright-driven browser connected to the app's automation WebSocket
+bridge, with the `buildmyhouse` MCP tools bound in a live session. Real
+tool calls made and their results inspected directly:
+
+- `homely_status` — correctly reports `connected: []` before the browser
+  attaches, `connected: ["homely"]` after.
+- `mcp_identity` — returns `{user, transport, authenticated}` as documented.
+- `list_furniture` with a `query` filter (`"sofa"`) and separately with a
+  `category` filter (`"Bedroom"`) — both returned correctly filtered
+  results (confirms wave 1's T2 fix is live end-to-end, not just
+  unit-tested).
+- `build_house` with a real multi-room plan (2 rooms, 7 walls, doors,
+  windows, furniture) — built successfully; `validate_scene` on the
+  resulting scene returned `valid: true`, zero errors/warnings, correct
+  counts/bounds/room areas.
+- Two **intentionally malformed** `build_house` calls to test agent error
+  recovery: (a) a door referencing a non-existent wall with neither
+  `wallKey` nor `wallId` — server correctly rejected with
+  `"doors item requires wallKey or wallId"`; (b) an unknown `catalogId`
+  (`sh3d-full#Nobody#ghostItem`) — server rejected with
+  `"INVALID_PARAMS: unknown catalogId: ... Did you mean:
+  sh3d-full#Dingenskirchen#pinewoodRackFullHeightHalfWidth, ..."`.
+  **Confirms an agent can recover from a bad call without guessing** —
+  both error messages are specific and actionable (name the missing
+  field, or suggest close-match catalogIds via wave 1's T2 fix) rather
+  than a bare/generic failure.
+- `scene_summary` — matches `validate_scene`'s embedded summary, correct.
+- `screenshot` in both `plan` and `3d` views — both produced real,
+  non-trivial PNGs (3d view screenshot confirmed to actually render the
+  built scene, not a blank/error image).
+
+**Human/UI path**: not separately hand-driven this round (time went to the
+live MCP round-trip above instead) — but the pre-push e2e suite (105
+Playwright specs covering draw/close-room/doors-windows/materials/
+furniture/undo-redo/save-reload/3D-view/tool-switching) was re-run in full
+immediately before landing T14 below and passed 105/105 with zero
+failures, which is a direct, current (not stale) signal that wave 1/2/T13
+all still hold together with no regressions.
+
+**Prod deploy**: confirmed `app.buildmy.house`'s current deploy actually
+reflects the latest `main`, not a stale container — the deploy workflow's
+own job log shows `actions/checkout@v4` fetching and building exactly
+commit `8bf955eaebe1da62a1f17025e824ba6a79d8fff5` (T14 below), and the
+deploy run (https://github.com/BuildMy-house/app/actions/runs/37455739025)
+completed successfully.
+
+**Stale-bug-memory triage** (three ambiguous Steward memories checked
+against current code/CI, not re-opened as findings since all are already
+resolved):
+- `buildmyhouse:bug_prod_app_container_never_receives_luxcor_CB189933` —
+  stale; `.github/workflows/deploy-app.yml`'s candidate container run
+  already includes `LUXCORE_WORKER_URL` and `--env-file
+  /home/ubuntu/buildmyhouse-mcp.env`.
+- DianaWindow glass bug — stale; fixed by commit `252c61a` (re-ingest with
+  glass fix), which postdates the memory.
+- Roof/ceiling `activeLevel===null` auto-hide pattern — already
+  incorporated; `src/view3d/scene.ts`'s `shouldShowCeiling`/
+  `matchesLevel`/`findLevelBelowId` helpers explicitly treat
+  `activeLevel === null` as the default case, and numerous later commits
+  (`fece8d0`, `672bb5b`, `47cccde`, `4d6bffc`, `011cf96`, `ba4cc89`, etc.)
+  already build on this.
+
+### Part 2 — New ticket shipped this round
+
+| Ticket | Title | Owner paths | Claimed-by | Status | Notes |
+|--------|-------|--------------|------------|--------|-------|
+| T14 | `select_object` accepts a list of ids for agent batch edit/delete (closes backlog T8) | `app/src/automation/homely-handler.ts`, `app/mcp/server.py`, `app/tests/handshake.test.ts`, `app/mcp/test_build_house.py` | agent-manager | done | Shipped `8bf955e`. Root cause: `select_object` hardcoded a single id into `setSelection([id])` even though `setSelection` already accepts an arbitrary array (proven by the neighboring `select_all` case). This meant an agent could only multi-select via `select_all` (literally everything) or one object at a time — no way to batch move/delete/recolor an arbitrary subset without N round trips. Fix: `select_object` now accepts either `objectId: string` (unchanged) or a new `objectIds: string[]` (validated non-empty array of non-empty strings), passing the full array to `setSelection`. `modify_selected`/`delete_selection` already iterate `home.selection` as an array, so batch edit/delete now works for an arbitrary subset with zero further changes — confirmed by new test coverage, not just code reading. Independently re-verified by the manager (diff review of all 4 touched files + full DoD re-run): `npm run check` clean, `npx vitest run` 995 passed/1 skipped, `npm run lint` clean, `cd mcp && python3 -m pytest -q` 12 passed. Pushed to `origin/main` (`ef31a4c..8bf955e`); CI run https://github.com/BuildMy-house/app/actions/runs/37455358575 green (all jobs incl. both e2e shards); deploy run https://github.com/BuildMy-house/app/actions/runs/37455739025 succeeded, confirmed deploying this exact commit SHA. |
+
+### Part 2 — Code-health items checked and confirmed fine (no action needed)
+
+- **`pointInPolygon`/`minDistanceToPolygonEdges`/`wallBodySnapAt` duplication concern — investigated, not a real duplication.** `minDistanceToPolygonEdges` (added in T13, `src/plan/engine.ts:2295`) and `wallBodySnapAt` (`src/plan/engine.ts:2093`) already share the same underlying primitive (`closestPointOnSegment` + `distance`) — T13's helper is properly factored on top of the existing segment-distance utility, not a parallel reimplementation. No consolidation needed.
+- **`validate_scene`'s `errors`/`warnings` array overlap — investigated, confirmed intentional/tested, not a bug.** `validate_home()` (`mcp/scene_analysis.py`) deliberately promotes a filtered subset of `analyze_home()`'s warnings into a separate `errors` array while leaving the same message in `warnings` too; `mcp/test_scene_analysis.py` has explicit dual-array assertions for this. Initially flagged as a T15 candidate, corrected after checking existing tests — no edit made.
+- **Knip (`npm run knip`) unused-export/unused-file findings — confirmed false positives**, not real dead code: exports used only within their own file (knip flags the `export` keyword as unnecessary even though the binding is actively used), and standalone CLI/script entry points never statically imported by anything else.
+
+### Part 2 — New backlog items (documented, not attempted blind)
+
+| Ticket | Title | Track | Priority | Notes |
+|--------|-------|-------|----------|-------|
+| T15 | `properties-panel.ts`'s `render()` does a full `innerHTML = ''` teardown/rebuild on every store change (not just on selection change) — same code-smell class as T11's root cause (full DOM teardown on every update, there it reset scroll position; here the blast radius is unconfirmed) | human | P2 | Most property inputs (dimensions, name, texture/material selects) use the `change` event (fires once on blur/Enter), so are not affected the same way T11 was. The two color-picker inputs (`leftColor`/`rightColor` on walls, `floorColor`/`colorIn` on rooms/furniture, lines ~349/354/518/617) use the `input` event, which fires continuously while dragging the native color picker — meaning a color-drag likely triggers many consecutive full-panel teardown/rebuilds per drag. Not live-reproduced this round (would need to actually drag a color swatch and watch for visible jank/focus loss), so left as backlog rather than fixed blind, per this round's explicit instruction not to guess at ambiguous findings. |
+| ~~T8~~ | ~~Batch/transactional furniture operations for agents~~ | agent | — | **Closed by T14 above** — confirmed the only real gap was `select_object` not accepting an arbitrary subset; `modify_selected`/`delete_selection` already handled batch operation over whatever `home.selection` contains. No separate `move_furniture_batch`/`delete_many` tools needed. |
+
+T6 and T7 (live wall-dimension readout; lighting/materials realism pass)
+remain untouched from the prior backlog — not revisited this round, no new
+information gathered on either.
+
+### Operational note — concurrent dev servers can silently break the pre-push e2e gate
+
+`vite.config.ts` hardcodes `port: 1420` as the dev server default, and
+`playwright.config.ts`'s own `webServer` defaults to the **same** port
+1420 with `--strictPort`. If another session/worker already has a
+`npm run dev` running on 1420 (e.g. for live MCP testing, as in this
+audit), `git push origin main`'s pre-push hook will have Playwright attach
+to that **other, stateful** session's page instead of a fresh fixture,
+producing spurious `Test timeout ... waiting for locator(...)` failures
+that look like real UI regressions but are actually port contention, not
+a code defect. Confirmed via a live incident this round (T14's push
+initially failed with 5 e2e failures from `level-deletion.spec.ts`/
+`toolbar-level-discoverability.spec.ts`, ruled out as a regression by
+confirming the DOM/code was untouched, then reproduced consistently
+exactly while the other dev server stayed up). Workaround that does not
+require killing another session's legitimate work:
+`E2E_PORT=<free-port> git push origin main` — Playwright's `webServer`
+will spin up its own isolated dev server on that port instead of
+colliding with 1420.
+
+### Verification notes — this Audit round
+
+- T14: `cd app && npm run check && npx vitest run && npm run lint && cd mcp && python3 -m pytest -q` — all re-run and confirmed green by the manager directly (not just worker self-report). `E2E_PORT=14205 git push origin main` used to route around a concurrent dev-server session on port 1420 (see operational note above); full local e2e gate (105/105) passed under the alternate port. CI run https://github.com/BuildMy-house/app/actions/runs/37455358575 and deploy run https://github.com/BuildMy-house/app/actions/runs/37455739025 both watched to green via `gh run watch`/`gh run view`.
