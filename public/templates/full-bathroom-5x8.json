@@ -1,0 +1,148 @@
+{
+ "schemaVersion": 1,
+ "id": "full-bathroom-5x8",
+ "name": "5x8 Full Bathroom Layout",
+ "walls": [
+  {
+   "key": "wall-1",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 172,
+   "yEnd": 0,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-2",
+   "xStart": 0,
+   "yStart": 264,
+   "xEnd": 172,
+   "yEnd": 264,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-3",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 0,
+   "yEnd": 264,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-4",
+   "xStart": 172,
+   "yStart": 0,
+   "xEnd": 172,
+   "yEnd": 264,
+   "thickness": 20,
+   "height": 250
+  }
+ ],
+ "rooms": [
+  {
+   "name": "Bathroom",
+   "points": [
+    [
+     10,
+     10
+    ],
+    [
+     162,
+     10
+    ],
+    [
+     162,
+     254
+    ],
+    [
+     10,
+     254
+    ]
+   ],
+   "floorTextureId": "tile-floor"
+  }
+ ],
+ "openings": [
+  {
+   "kind": "door",
+   "name": "Bathroom door",
+   "wallKey": "wall-2",
+   "offset": 120,
+   "catalogId": "sh3d-full#PeterSmolik#door1",
+   "width": 72,
+   "depth": 18,
+   "height": 205,
+   "elevation": 0
+  },
+  {
+   "kind": "window",
+   "name": "High window",
+   "wallKey": "wall-4",
+   "offset": 60,
+   "catalogId": "sh3d-full#Pencilart#newWindowDk",
+   "width": 60,
+   "depth": 6,
+   "height": 60,
+   "elevation": 150
+  }
+ ],
+ "furniture": [
+  {
+   "name": "Bathtub",
+   "x": 47.5,
+   "y": 95,
+   "angleDeg": 270,
+   "width": 170,
+   "depth": 75,
+   "height": 55,
+   "elevation": 0,
+   "color": 15921906
+  },
+  {
+   "name": "Toilet",
+   "x": 110,
+   "y": 44,
+   "angleDeg": 0,
+   "width": 38,
+   "depth": 68,
+   "height": 40,
+   "elevation": 0,
+   "color": 15921906
+  },
+  {
+   "name": "Vanity",
+   "x": 137,
+   "y": 145,
+   "angleDeg": 90,
+   "width": 60,
+   "depth": 50,
+   "height": 85,
+   "elevation": 0,
+   "color": 15328474
+  },
+  {
+   "name": "Shelving unit",
+   "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackMediumHeight",
+   "x": 147,
+   "y": 25,
+   "angleDeg": 0,
+   "width": 30,
+   "depth": 30,
+   "height": 143,
+   "elevation": 0
+  },
+  {
+   "name": "Laundry hamper",
+   "x": 32.5,
+   "y": 231.5,
+   "angleDeg": 270,
+   "width": 45,
+   "depth": 45,
+   "height": 55,
+   "elevation": 0,
+   "color": 9071179
+  }
+ ]
+}

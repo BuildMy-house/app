@@ -1,0 +1,269 @@
+{
+ "schemaVersion": 1,
+ "id": "galley-kitchen",
+ "name": "Galley Kitchen Layout",
+ "walls": [
+  {
+   "key": "wall-1",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 420,
+   "yEnd": 0,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-2",
+   "xStart": 0,
+   "yStart": 250,
+   "xEnd": 420,
+   "yEnd": 250,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-3",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 0,
+   "yEnd": 250,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-4",
+   "xStart": 420,
+   "yStart": 0,
+   "xEnd": 420,
+   "yEnd": 250,
+   "thickness": 20,
+   "height": 250
+  }
+ ],
+ "rooms": [
+  {
+   "name": "Galley kitchen",
+   "points": [
+    [
+     10,
+     10
+    ],
+    [
+     410,
+     10
+    ],
+    [
+     410,
+     240
+    ],
+    [
+     10,
+     240
+    ]
+   ],
+   "floorTextureId": "tile-floor"
+  }
+ ],
+ "openings": [
+  {
+   "kind": "door",
+   "name": "Interior door",
+   "wallKey": "wall-3",
+   "offset": 125,
+   "catalogId": "sh3d-full#PeterSmolik#door1",
+   "width": 82,
+   "depth": 18,
+   "height": 205,
+   "elevation": 0
+  },
+  {
+   "kind": "door",
+   "name": "Interior door",
+   "wallKey": "wall-4",
+   "offset": 125,
+   "catalogId": "sh3d-full#PeterSmolik#door1",
+   "width": 82,
+   "depth": 18,
+   "height": 205,
+   "elevation": 0
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-2",
+   "offset": 108,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 80,
+   "depth": 8,
+   "height": 100,
+   "elevation": 110
+  }
+ ],
+ "furniture": [
+  {
+   "name": "Refrigerator",
+   "x": 48,
+   "y": 46,
+   "angleDeg": 0,
+   "width": 76,
+   "depth": 72,
+   "height": 180,
+   "elevation": 0,
+   "color": 14014941
+  },
+  {
+   "name": "Base cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorLowerCabinet",
+   "x": 112,
+   "y": 42,
+   "angleDeg": 0,
+   "width": 52,
+   "depth": 64,
+   "height": 86,
+   "elevation": 0
+  },
+  {
+   "name": "Range",
+   "catalogId": "sh3d-full#Pencilart#stove1",
+   "x": 176,
+   "y": 42,
+   "angleDeg": 0,
+   "width": 76,
+   "depth": 64,
+   "height": 92,
+   "elevation": 0
+  },
+  {
+   "name": "Base cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorLowerCabinet",
+   "x": 240,
+   "y": 42,
+   "angleDeg": 0,
+   "width": 52,
+   "depth": 64,
+   "height": 86,
+   "elevation": 0
+  },
+  {
+   "name": "Drawer cabinet",
+   "catalogId": "sh3d-full#Pencilart#3DrawerCabinet",
+   "x": 292.5,
+   "y": 42,
+   "angleDeg": 0,
+   "width": 53,
+   "depth": 64,
+   "height": 86,
+   "elevation": 0
+  },
+  {
+   "name": "Sink cabinet",
+   "catalogId": "sh3d-full#Pencilart#kitchenSinkWithMarble",
+   "x": 107.5,
+   "y": 208,
+   "angleDeg": 180,
+   "width": 91,
+   "depth": 64,
+   "height": 111,
+   "elevation": 0
+  },
+  {
+   "name": "Dishwasher",
+   "x": 183,
+   "y": 209,
+   "angleDeg": 180,
+   "width": 60,
+   "depth": 62,
+   "height": 86,
+   "elevation": 0,
+   "color": 13225683
+  },
+  {
+   "name": "Base cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorLowerCabinet",
+   "x": 239,
+   "y": 208,
+   "angleDeg": 180,
+   "width": 52,
+   "depth": 64,
+   "height": 86,
+   "elevation": 0
+  },
+  {
+   "name": "Drawer cabinet",
+   "catalogId": "sh3d-full#Pencilart#3DrawerCabinet",
+   "x": 291.5,
+   "y": 208,
+   "angleDeg": 180,
+   "width": 53,
+   "depth": 64,
+   "height": 86,
+   "elevation": 0
+  },
+  {
+   "name": "Base cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorLowerCabinet",
+   "x": 344,
+   "y": 208,
+   "angleDeg": 180,
+   "width": 52,
+   "depth": 64,
+   "height": 86,
+   "elevation": 0
+  },
+  {
+   "name": "Wall cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorUpperCabinet",
+   "x": 160,
+   "y": 29.5,
+   "angleDeg": 0,
+   "width": 45,
+   "depth": 39,
+   "height": 71,
+   "elevation": 160
+  },
+  {
+   "name": "Wall cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorUpperCabinet",
+   "x": 205,
+   "y": 29.5,
+   "angleDeg": 0,
+   "width": 45,
+   "depth": 39,
+   "height": 71,
+   "elevation": 160
+  },
+  {
+   "name": "Wall cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorUpperCabinet",
+   "x": 310,
+   "y": 29.5,
+   "angleDeg": 0,
+   "width": 45,
+   "depth": 39,
+   "height": 71,
+   "elevation": 160
+  },
+  {
+   "name": "Wall cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorUpperCabinet",
+   "x": 160,
+   "y": 220.5,
+   "angleDeg": 180,
+   "width": 45,
+   "depth": 39,
+   "height": 71,
+   "elevation": 160
+  },
+  {
+   "name": "Wall cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorUpperCabinet",
+   "x": 270,
+   "y": 220.5,
+   "angleDeg": 180,
+   "width": 45,
+   "depth": 39,
+   "height": 71,
+   "elevation": 160
+  }
+ ]
+}

@@ -1,0 +1,692 @@
+{
+ "schemaVersion": 1,
+ "id": "two-bedroom-apartment",
+ "name": "2-Bedroom Apartment Floor Plan",
+ "walls": [
+  {
+   "key": "wall-1",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 900,
+   "yEnd": 0,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-2",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 0,
+   "yEnd": 720,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-3",
+   "xStart": 520,
+   "yStart": 0,
+   "xEnd": 520,
+   "yEnd": 720,
+   "thickness": 10,
+   "height": 250
+  },
+  {
+   "key": "wall-4",
+   "xStart": 0,
+   "yStart": 720,
+   "xEnd": 900,
+   "yEnd": 720,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-5",
+   "xStart": 520,
+   "yStart": 300,
+   "xEnd": 900,
+   "yEnd": 300,
+   "thickness": 10,
+   "height": 250
+  },
+  {
+   "key": "wall-6",
+   "xStart": 900,
+   "yStart": 0,
+   "xEnd": 900,
+   "yEnd": 720,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-7",
+   "xStart": 520,
+   "yStart": 450,
+   "xEnd": 900,
+   "yEnd": 450,
+   "thickness": 10,
+   "height": 250
+  }
+ ],
+ "rooms": [
+  {
+   "name": "Living room",
+   "points": [
+    [
+     10,
+     10
+    ],
+    [
+     515,
+     10
+    ],
+    [
+     515,
+     400
+    ],
+    [
+     10,
+     400
+    ]
+   ],
+   "floorTextureId": "wood-oak"
+  },
+  {
+   "name": "Kitchen & dining",
+   "points": [
+    [
+     10,
+     400
+    ],
+    [
+     515,
+     400
+    ],
+    [
+     515,
+     710
+    ],
+    [
+     10,
+     710
+    ]
+   ],
+   "floorTextureId": "wood-oak"
+  },
+  {
+   "name": "Bedroom 2",
+   "points": [
+    [
+     525,
+     10
+    ],
+    [
+     890,
+     10
+    ],
+    [
+     890,
+     295
+    ],
+    [
+     525,
+     295
+    ]
+   ],
+   "floorTextureId": "carpet"
+  },
+  {
+   "name": "Bath",
+   "points": [
+    [
+     525,
+     305
+    ],
+    [
+     890,
+     305
+    ],
+    [
+     890,
+     445
+    ],
+    [
+     525,
+     445
+    ]
+   ],
+   "floorTextureId": "tile-floor"
+  },
+  {
+   "name": "Primary bedroom",
+   "points": [
+    [
+     525,
+     455
+    ],
+    [
+     890,
+     455
+    ],
+    [
+     890,
+     710
+    ],
+    [
+     525,
+     710
+    ]
+   ],
+   "floorTextureId": "carpet"
+  }
+ ],
+ "openings": [
+  {
+   "kind": "window",
+   "name": "Picture window",
+   "wallKey": "wall-1",
+   "offset": 260,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 200,
+   "depth": 8,
+   "height": 140,
+   "elevation": 80
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-2",
+   "offset": 330,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "door",
+   "name": "Bathroom door",
+   "wallKey": "wall-3",
+   "offset": 340,
+   "catalogId": "sh3d-full#PeterSmolik#door1",
+   "width": 72,
+   "depth": 18,
+   "height": 205,
+   "elevation": 0
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-2",
+   "offset": 520,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-4",
+   "offset": 310,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "door",
+   "name": "Front door",
+   "wallKey": "wall-4",
+   "offset": 460,
+   "catalogId": "sh3d-full#PencilArt#fancyFrontDoor",
+   "width": 100,
+   "depth": 24,
+   "height": 205,
+   "elevation": 0
+  },
+  {
+   "kind": "door",
+   "name": "Interior door",
+   "wallKey": "wall-3",
+   "offset": 540,
+   "catalogId": "sh3d-full#PeterSmolik#door1",
+   "width": 82,
+   "depth": 18,
+   "height": 205,
+   "elevation": 0
+  },
+  {
+   "kind": "door",
+   "name": "Interior door",
+   "wallKey": "wall-3",
+   "offset": 60,
+   "catalogId": "sh3d-full#PeterSmolik#door1",
+   "width": 82,
+   "depth": 18,
+   "height": 205,
+   "elevation": 0
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-1",
+   "offset": 710,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-6",
+   "offset": 150,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 80,
+   "depth": 8,
+   "height": 100,
+   "elevation": 110
+  },
+  {
+   "kind": "window",
+   "name": "High window",
+   "wallKey": "wall-6",
+   "offset": 375,
+   "catalogId": "sh3d-full#Pencilart#newWindowDk",
+   "width": 60,
+   "depth": 6,
+   "height": 60,
+   "elevation": 150
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-4",
+   "offset": 710,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-6",
+   "offset": 580,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 80,
+   "depth": 8,
+   "height": 100,
+   "elevation": 110
+  }
+ ],
+ "furniture": [
+  {
+   "name": "TV stand",
+   "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackLowHeight",
+   "x": 30,
+   "y": 200,
+   "angleDeg": 270,
+   "width": 140,
+   "depth": 40,
+   "height": 52,
+   "elevation": 0
+  },
+  {
+   "name": "TV",
+   "x": 30,
+   "y": 200,
+   "angleDeg": 270,
+   "width": 110,
+   "depth": 8,
+   "height": 64,
+   "elevation": 52,
+   "color": 1842722
+  },
+  {
+   "name": "Rug",
+   "catalogId": "sh3d-full#Puybaret#carpet",
+   "x": 210,
+   "y": 200,
+   "angleDeg": 0,
+   "width": 280,
+   "depth": 200,
+   "height": 1,
+   "elevation": 0
+  },
+  {
+   "name": "Sofa",
+   "catalogId": "sh3d-full#PeterSmolik#sofa1",
+   "x": 260,
+   "y": 200,
+   "angleDeg": 90,
+   "width": 234,
+   "depth": 79,
+   "height": 79,
+   "elevation": 0
+  },
+  {
+   "name": "Coffee table",
+   "x": 170,
+   "y": 200,
+   "angleDeg": 90,
+   "width": 110,
+   "depth": 60,
+   "height": 42,
+   "elevation": 0,
+   "color": 9071179
+  },
+  {
+   "name": "Side table",
+   "x": 260,
+   "y": 340,
+   "angleDeg": 0,
+   "width": 45,
+   "depth": 45,
+   "height": 55,
+   "elevation": 0,
+   "color": 9071179
+  },
+  {
+   "name": "Armchair",
+   "catalogId": "sh3d-full#Pencilart#singleChair",
+   "x": 90,
+   "y": 48.5,
+   "angleDeg": 0,
+   "width": 85,
+   "depth": 77,
+   "height": 75,
+   "elevation": 0
+  },
+  {
+   "name": "Plant",
+   "catalogId": "sh3d-full#PeterSmolik#potplant2",
+   "x": 37.5,
+   "y": 372.5,
+   "angleDeg": 270,
+   "width": 55,
+   "depth": 55,
+   "height": 85,
+   "elevation": 0
+  },
+  {
+   "name": "Refrigerator",
+   "x": 48,
+   "y": 674,
+   "angleDeg": 180,
+   "width": 76,
+   "depth": 72,
+   "height": 180,
+   "elevation": 0,
+   "color": 14014941
+  },
+  {
+   "name": "Base cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorLowerCabinet",
+   "x": 112,
+   "y": 678,
+   "angleDeg": 180,
+   "width": 52,
+   "depth": 64,
+   "height": 86,
+   "elevation": 0
+  },
+  {
+   "name": "Range",
+   "catalogId": "sh3d-full#Pencilart#stove1",
+   "x": 176,
+   "y": 678,
+   "angleDeg": 180,
+   "width": 76,
+   "depth": 64,
+   "height": 92,
+   "elevation": 0
+  },
+  {
+   "name": "Base cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorLowerCabinet",
+   "x": 240,
+   "y": 678,
+   "angleDeg": 180,
+   "width": 52,
+   "depth": 64,
+   "height": 86,
+   "elevation": 0
+  },
+  {
+   "name": "Sink cabinet",
+   "catalogId": "sh3d-full#Pencilart#kitchenSinkWithMarble",
+   "x": 311.5,
+   "y": 678,
+   "angleDeg": 180,
+   "width": 91,
+   "depth": 64,
+   "height": 111,
+   "elevation": 0
+  },
+  {
+   "name": "Kitchen island",
+   "catalogId": "sh3d-full#Pencilart#kitchenIsland",
+   "x": 160,
+   "y": 520,
+   "angleDeg": 0,
+   "width": 180,
+   "depth": 96,
+   "height": 90,
+   "elevation": 0
+  },
+  {
+   "name": "Bar stool",
+   "x": 110,
+   "y": 453,
+   "angleDeg": 0,
+   "width": 38,
+   "depth": 38,
+   "height": 70,
+   "elevation": 0,
+   "color": 7035464
+  },
+  {
+   "name": "Bar stool",
+   "x": 160,
+   "y": 453,
+   "angleDeg": 0,
+   "width": 38,
+   "depth": 38,
+   "height": 70,
+   "elevation": 0,
+   "color": 7035464
+  },
+  {
+   "name": "Bar stool",
+   "x": 210,
+   "y": 453,
+   "angleDeg": 0,
+   "width": 38,
+   "depth": 38,
+   "height": 70,
+   "elevation": 0,
+   "color": 7035464
+  },
+  {
+   "name": "Dining table",
+   "x": 340,
+   "y": 520,
+   "angleDeg": 0,
+   "width": 160,
+   "depth": 90,
+   "height": 75,
+   "elevation": 0,
+   "color": 9136970
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 305,
+   "y": 454,
+   "angleDeg": 0,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 375,
+   "y": 454,
+   "angleDeg": 0,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 305,
+   "y": 586,
+   "angleDeg": 180,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 375,
+   "y": 586,
+   "angleDeg": 180,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Double bed",
+   "x": 795,
+   "y": 160,
+   "angleDeg": 90,
+   "width": 140,
+   "depth": 190,
+   "height": 48,
+   "elevation": 0,
+   "color": 12174504
+  },
+  {
+   "name": "Nightstand",
+   "x": 870,
+   "y": 67.5,
+   "angleDeg": 90,
+   "width": 45,
+   "depth": 40,
+   "height": 55,
+   "elevation": 0,
+   "color": 9071179
+  },
+  {
+   "name": "Nightstand",
+   "x": 870,
+   "y": 252.5,
+   "angleDeg": 90,
+   "width": 45,
+   "depth": 40,
+   "height": 55,
+   "elevation": 0,
+   "color": 9071179
+  },
+  {
+   "name": "Wardrobe",
+   "catalogId": "sh3d-full#Bettinelli#armoireLotus",
+   "x": 615,
+   "y": 265,
+   "angleDeg": 180,
+   "width": 180,
+   "depth": 60,
+   "height": 221,
+   "elevation": 0
+  },
+  {
+   "name": "Bathtub",
+   "x": 805,
+   "y": 407.5,
+   "angleDeg": 180,
+   "width": 170,
+   "depth": 75,
+   "height": 55,
+   "elevation": 0,
+   "color": 15921906
+  },
+  {
+   "name": "Toilet",
+   "x": 856,
+   "y": 345,
+   "angleDeg": 90,
+   "width": 38,
+   "depth": 68,
+   "height": 40,
+   "elevation": 0,
+   "color": 15921906
+  },
+  {
+   "name": "Vanity",
+   "x": 725,
+   "y": 330,
+   "angleDeg": 0,
+   "width": 60,
+   "depth": 50,
+   "height": 85,
+   "elevation": 0,
+   "color": 15328474
+  },
+  {
+   "name": "Queen bed",
+   "x": 788.5,
+   "y": 582,
+   "angleDeg": 90,
+   "width": 160,
+   "depth": 203,
+   "height": 50,
+   "elevation": 0,
+   "color": 11122889
+  },
+  {
+   "name": "Nightstand",
+   "x": 870,
+   "y": 479.5,
+   "angleDeg": 90,
+   "width": 45,
+   "depth": 40,
+   "height": 55,
+   "elevation": 0,
+   "color": 9071179
+  },
+  {
+   "name": "Nightstand",
+   "x": 870,
+   "y": 684.5,
+   "angleDeg": 90,
+   "width": 45,
+   "depth": 40,
+   "height": 55,
+   "elevation": 0,
+   "color": 9071179
+  },
+  {
+   "name": "Closet",
+   "x": 585,
+   "y": 680,
+   "angleDeg": 180,
+   "width": 120,
+   "depth": 60,
+   "height": 220,
+   "elevation": 0,
+   "color": 14209216
+  }
+ ]
+}

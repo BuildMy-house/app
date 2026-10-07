@@ -1,0 +1,775 @@
+{
+ "schemaVersion": 1,
+ "templates": [
+  {
+   "id": "12x14-living-room",
+   "name": "12x14 Living Room Layout",
+   "category": "Single rooms",
+   "description": "A 12 by 14 ft living room with a sofa under a picture window, a TV wall opposite, a coffee table on a rug, and a clear walking path from the entry door.",
+   "widthCm": 406,
+   "depthCm": 467,
+   "areaM2": 15.6,
+   "bedrooms": 0,
+   "bathrooms": 0,
+   "rooms": [
+    {
+     "name": "Living room",
+     "widthCm": 366,
+     "depthCm": 427,
+     "areaM2": 15.6,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 10,
+   "features": [
+    "Sofa + TV seating group",
+    "Picture window",
+    "Clear 90 cm entry path"
+   ]
+  },
+  {
+   "id": "three-bedroom-ranch",
+   "name": "3-Bedroom Ranch House Plan",
+   "category": "Houses",
+   "description": "A single-storey three-bedroom ranch of about 980 sq ft: an open living, kitchen and dining great room across the front, and a bedroom wing off a central hall with a shared bathroom.",
+   "widthCm": 1120,
+   "depthCm": 900,
+   "areaM2": 91,
+   "bedrooms": 3,
+   "bathrooms": 1,
+   "rooms": [
+    {
+     "name": "Living room",
+     "widthCm": 550,
+     "depthCm": 470,
+     "areaM2": 25.9,
+     "outdoor": false
+    },
+    {
+     "name": "Kitchen & dining",
+     "widthCm": 530,
+     "depthCm": 470,
+     "areaM2": 24.9,
+     "outdoor": false
+    },
+    {
+     "name": "Hall",
+     "widthCm": 1080,
+     "depthCm": 105,
+     "areaM2": 11.3,
+     "outdoor": false
+    },
+    {
+     "name": "Bedroom 2",
+     "widthCm": 305,
+     "depthCm": 275,
+     "areaM2": 8.4,
+     "outdoor": false
+    },
+    {
+     "name": "Bath",
+     "widthCm": 170,
+     "depthCm": 275,
+     "areaM2": 4.7,
+     "outdoor": false
+    },
+    {
+     "name": "Bedroom 3",
+     "widthCm": 290,
+     "depthCm": 275,
+     "areaM2": 8,
+     "outdoor": false
+    },
+    {
+     "name": "Primary bedroom",
+     "widthCm": 285,
+     "depthCm": 275,
+     "areaM2": 7.8,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 41,
+   "features": [
+    "Open great room",
+    "Kitchen island with seating",
+    "Primary suite + two bedrooms",
+    "Patio door to the yard"
+   ]
+  },
+  {
+   "id": "two-bedroom-bungalow",
+   "name": "2-Bedroom Bungalow Floor Plan",
+   "category": "Houses",
+   "description": "A compact two-bedroom bungalow of about 800 sq ft with a separate living room, an eat-in kitchen, a full bath, and a bedroom wing off a straight hall.",
+   "widthCm": 960,
+   "depthCm": 880,
+   "areaM2": 74.6,
+   "bedrooms": 2,
+   "bathrooms": 1,
+   "rooms": [
+    {
+     "name": "Living room",
+     "widthCm": 525,
+     "depthCm": 445,
+     "areaM2": 23.4,
+     "outdoor": false
+    },
+    {
+     "name": "Kitchen & dining",
+     "widthCm": 525,
+     "depthCm": 385,
+     "areaM2": 20.2,
+     "outdoor": false
+    },
+    {
+     "name": "Hall",
+     "widthCm": 90,
+     "depthCm": 840,
+     "areaM2": 7.6,
+     "outdoor": false
+    },
+    {
+     "name": "Bedroom 2",
+     "widthCm": 285,
+     "depthCm": 315,
+     "areaM2": 9,
+     "outdoor": false
+    },
+    {
+     "name": "Bath",
+     "widthCm": 285,
+     "depthCm": 220,
+     "areaM2": 6.3,
+     "outdoor": false
+    },
+    {
+     "name": "Primary bedroom",
+     "widthCm": 285,
+     "depthCm": 285,
+     "areaM2": 8.1,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 33,
+   "features": [
+    "Separate eat-in kitchen",
+    "Straight hall to bedrooms",
+    "Full bath with tub",
+    "Two bedrooms with closets"
+   ]
+  },
+  {
+   "id": "studio-apartment",
+   "name": "Studio Apartment Floor Plan",
+   "category": "Apartments",
+   "description": "A 400 sq ft studio apartment with a kitchenette, dining nook, sofa and TV zone, a bed along the far wall, a full bath and a coat-closet entry.",
+   "widthCm": 740,
+   "depthCm": 580,
+   "areaM2": 37,
+   "bedrooms": 0,
+   "bathrooms": 1,
+   "rooms": [
+    {
+     "name": "Bath",
+     "widthCm": 205,
+     "depthCm": 245,
+     "areaM2": 5,
+     "outdoor": false
+    },
+    {
+     "name": "Entry",
+     "widthCm": 205,
+     "depthCm": 285,
+     "areaM2": 5.8,
+     "outdoor": false
+    },
+    {
+     "name": "Studio",
+     "widthCm": 485,
+     "depthCm": 540,
+     "areaM2": 26.2,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 21,
+   "features": [
+    "Kitchenette with full-size fridge",
+    "Separate sleeping zone",
+    "Entry with coat closet",
+    "Full bath with tub"
+   ]
+  },
+  {
+   "id": "l-shaped-kitchen-diner",
+   "name": "L-Shaped Kitchen and Diner Layout",
+   "category": "Single rooms",
+   "description": "An L-shaped kitchen along two walls with a six-person dining area, a pantry cabinet and a sideboard. The classic eat-in kitchen for a 16 by 14 ft room.",
+   "widthCm": 520,
+   "depthCm": 460,
+   "areaM2": 20.2,
+   "bedrooms": 0,
+   "bathrooms": 0,
+   "rooms": [
+    {
+     "name": "Kitchen & diner",
+     "widthCm": 480,
+     "depthCm": 420,
+     "areaM2": 20.2,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 16,
+   "features": [
+    "L-shaped work triangle",
+    "Pantry cabinet",
+    "Dining for four",
+    "Sideboard storage"
+   ]
+  },
+  {
+   "id": "tiny-house",
+   "name": "Tiny House Floor Plan (26 ft)",
+   "category": "Small spaces",
+   "description": "An 18 m2 (about 190 sq ft) one-level tiny house: a bedroom at one end, a living room with kitchen run in the middle, and a compact bathroom with shower at the other end.",
+   "widthCm": 800,
+   "depthCm": 280,
+   "areaM2": 17.8,
+   "bedrooms": 1,
+   "bathrooms": 1,
+   "rooms": [
+    {
+     "name": "Bedroom",
+     "widthCm": 285,
+     "depthCm": 240,
+     "areaM2": 6.8,
+     "outdoor": false
+    },
+    {
+     "name": "Living & kitchen",
+     "widthCm": 290,
+     "depthCm": 240,
+     "areaM2": 7,
+     "outdoor": false
+    },
+    {
+     "name": "Bath",
+     "widthCm": 165,
+     "depthCm": 240,
+     "areaM2": 4,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 13,
+   "features": [
+    "Full-size bed",
+    "Kitchen run with range and fridge",
+    "Compact shower bath",
+    "Fits a 26 ft trailer footprint"
+   ]
+  },
+  {
+   "id": "garage-conversion-studio",
+   "name": "Garage Conversion Studio Plan (2-Car)",
+   "category": "Small spaces",
+   "description": "A two-car garage converted into a 33 m2 (about 355 sq ft) studio dwelling: a living and kitchen room behind a glass-door wall where the garage door was, plus a separate bedroom and bath.",
+   "widthCm": 620,
+   "depthCm": 620,
+   "areaM2": 32.9,
+   "bedrooms": 1,
+   "bathrooms": 1,
+   "rooms": [
+    {
+     "name": "Living & kitchen",
+     "widthCm": 580,
+     "depthCm": 345,
+     "areaM2": 20,
+     "outdoor": false
+    },
+    {
+     "name": "Bedroom",
+     "widthCm": 385,
+     "depthCm": 225,
+     "areaM2": 8.7,
+     "outdoor": false
+    },
+    {
+     "name": "Bath",
+     "widthCm": 185,
+     "depthCm": 225,
+     "areaM2": 4.2,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 19,
+   "features": [
+    "Glass double doors replace the garage door",
+    "Kitchen run and dining for four",
+    "Separate bedroom",
+    "Full bath with tub"
+   ]
+  },
+  {
+   "id": "small-office-layout",
+   "name": "Small Office Layout (4-Person)",
+   "category": "Offices",
+   "description": "A small office layout for a four-person team: an open work area with four desks, file storage and a front reception shelf, plus a separate six-seat meeting room.",
+   "widthCm": 960,
+   "depthCm": 500,
+   "areaM2": 41.9,
+   "bedrooms": 0,
+   "bathrooms": 0,
+   "rooms": [
+    {
+     "name": "Open office",
+     "widthCm": 625,
+     "depthCm": 460,
+     "areaM2": 28.8,
+     "outdoor": false
+    },
+    {
+     "name": "Meeting room",
+     "widthCm": 285,
+     "depthCm": 460,
+     "areaM2": 13.1,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 22,
+   "features": [
+    "Four workstations",
+    "Six-seat meeting room",
+    "Reception console at the entry",
+    "File and shelf storage"
+   ]
+  },
+  {
+   "id": "home-office-10x12",
+   "name": "10x12 Home Office Layout",
+   "category": "Single rooms",
+   "description": "A 10 by 12 ft home office with an L-shaped desk facing the window, two bookcases, a filing cabinet, and a loveseat for reading or a video-call backdrop.",
+   "widthCm": 345,
+   "depthCm": 406,
+   "areaM2": 11.2,
+   "bedrooms": 0,
+   "bathrooms": 0,
+   "rooms": [
+    {
+     "name": "Home office",
+     "widthCm": 305,
+     "depthCm": 366,
+     "areaM2": 11.2,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 11,
+   "features": [
+    "L-shaped desk facing the window",
+    "Two bookcases + shelf",
+    "Loveseat reading corner",
+    "Filing storage"
+   ]
+  },
+  {
+   "id": "one-bedroom-apartment",
+   "name": "1-Bedroom Apartment Floor Plan",
+   "category": "Apartments",
+   "description": "A one-bedroom apartment of about 550 sq ft: living room open to the kitchen with a bar counter, a bedroom with wardrobe and desk, and an en-suite bath with laundry.",
+   "widthCm": 880,
+   "depthCm": 660,
+   "areaM2": 51.2,
+   "bedrooms": 1,
+   "bathrooms": 1,
+   "rooms": [
+    {
+     "name": "Living room",
+     "widthCm": 485,
+     "depthCm": 390,
+     "areaM2": 18.9,
+     "outdoor": false
+    },
+    {
+     "name": "Kitchen & dining",
+     "widthCm": 485,
+     "depthCm": 230,
+     "areaM2": 11.2,
+     "outdoor": false
+    },
+    {
+     "name": "Bedroom",
+     "widthCm": 345,
+     "depthCm": 405,
+     "areaM2": 14,
+     "outdoor": false
+    },
+    {
+     "name": "Bath & laundry",
+     "widthCm": 345,
+     "depthCm": 205,
+     "areaM2": 7.1,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 29,
+   "features": [
+    "Open living and kitchen",
+    "Bar counter with seating",
+    "En-suite bath with laundry",
+    "Bedroom with wardrobe + desk"
+   ]
+  },
+  {
+   "id": "two-bedroom-apartment",
+   "name": "2-Bedroom Apartment Floor Plan",
+   "category": "Apartments",
+   "description": "A two-bedroom apartment of about 650 sq ft with an open living room and kitchen, a work island with seating, a dining table, a shared bath, and a primary bedroom with wardrobe.",
+   "widthCm": 920,
+   "depthCm": 740,
+   "areaM2": 60.2,
+   "bedrooms": 2,
+   "bathrooms": 1,
+   "rooms": [
+    {
+     "name": "Living room",
+     "widthCm": 505,
+     "depthCm": 390,
+     "areaM2": 19.7,
+     "outdoor": false
+    },
+    {
+     "name": "Kitchen & dining",
+     "widthCm": 505,
+     "depthCm": 310,
+     "areaM2": 15.7,
+     "outdoor": false
+    },
+    {
+     "name": "Bedroom 2",
+     "widthCm": 365,
+     "depthCm": 285,
+     "areaM2": 10.4,
+     "outdoor": false
+    },
+    {
+     "name": "Bath",
+     "widthCm": 365,
+     "depthCm": 140,
+     "areaM2": 5.1,
+     "outdoor": false
+    },
+    {
+     "name": "Primary bedroom",
+     "widthCm": 365,
+     "depthCm": 255,
+     "areaM2": 9.3,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 33,
+   "features": [
+    "Open living, kitchen and dining",
+    "Kitchen island with three stools",
+    "Primary bedroom + guest bedroom",
+    "Shared bath with tub"
+   ]
+  },
+  {
+   "id": "open-plan-living-kitchen-dining",
+   "name": "Open-Plan Living, Kitchen and Dining Layout",
+   "category": "Single rooms",
+   "description": "A 39 m2 (about 420 sq ft) open-plan great room with a kitchen and island on one side, a six-seat dining table by the patio door, and a sofa-and-TV living zone.",
+   "widthCm": 820,
+   "depthCm": 540,
+   "areaM2": 39,
+   "bedrooms": 0,
+   "bathrooms": 0,
+   "rooms": [
+    {
+     "name": "Living, kitchen & dining",
+     "widthCm": 780,
+     "depthCm": 500,
+     "areaM2": 39,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 24,
+   "features": [
+    "Kitchen with island and stools",
+    "Dining for six by the patio door",
+    "Living zone with TV wall",
+    "Patio door to the yard"
+   ]
+  },
+  {
+   "id": "primary-bedroom-suite",
+   "name": "Primary Bedroom Suite Layout",
+   "category": "Single rooms",
+   "description": "A primary bedroom suite with a king bed, seating corner, en-suite bath with tub and shower, and a walk-in closet. About 30 m2 (330 sq ft) in total.",
+   "widthCm": 780,
+   "depthCm": 460,
+   "areaM2": 30.4,
+   "bedrooms": 1,
+   "bathrooms": 1,
+   "rooms": [
+    {
+     "name": "Bedroom",
+     "widthCm": 445,
+     "depthCm": 420,
+     "areaM2": 18.7,
+     "outdoor": false
+    },
+    {
+     "name": "Ensuite bath",
+     "widthCm": 285,
+     "depthCm": 245,
+     "areaM2": 7,
+     "outdoor": false
+    },
+    {
+     "name": "Walk-in closet",
+     "widthCm": 285,
+     "depthCm": 165,
+     "areaM2": 4.7,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 16,
+   "features": [
+    "King bed with bench",
+    "Ensuite with tub and shower",
+    "Walk-in closet",
+    "Reading chair by the window"
+   ]
+  },
+  {
+   "id": "kids-bedroom",
+   "name": "Shared Kids Bedroom Layout",
+   "category": "Single rooms",
+   "description": "A shared kids bedroom of about 11.5 m2 (124 sq ft) with two twin beds, a nightstand between them, a homework desk, a bookcase and a closet along the short wall.",
+   "widthCm": 360,
+   "depthCm": 400,
+   "areaM2": 11.5,
+   "bedrooms": 1,
+   "bathrooms": 0,
+   "rooms": [
+    {
+     "name": "Kids bedroom",
+     "widthCm": 320,
+     "depthCm": 360,
+     "areaM2": 11.5,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 8,
+   "features": [
+    "Two twin beds",
+    "Homework desk by the window",
+    "Bookcase + closet storage",
+    "Open floor for play"
+   ]
+  },
+  {
+   "id": "galley-kitchen",
+   "name": "Galley Kitchen Layout",
+   "category": "Single rooms",
+   "description": "A galley kitchen of about 9 m2 (99 sq ft): two parallel runs with a 100 cm aisle, a sink under the window, a range and refrigerator opposite, and wall cabinets above.",
+   "widthCm": 440,
+   "depthCm": 270,
+   "areaM2": 9.2,
+   "bedrooms": 0,
+   "bathrooms": 0,
+   "rooms": [
+    {
+     "name": "Galley kitchen",
+     "widthCm": 400,
+     "depthCm": 230,
+     "areaM2": 9.2,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 15,
+   "features": [
+    "Two parallel runs",
+    "100 cm aisle",
+    "Sink under the window",
+    "Wall cabinets"
+   ]
+  },
+  {
+   "id": "full-bathroom-5x8",
+   "name": "5x8 Full Bathroom Layout",
+   "category": "Single rooms",
+   "description": "The classic 5 by 8 ft full bathroom: bathtub along the long wall, toilet and vanity on the opposite side, and a linen shelf next to the door.",
+   "widthCm": 192,
+   "depthCm": 284,
+   "areaM2": 3.7,
+   "bedrooms": 0,
+   "bathrooms": 1,
+   "rooms": [
+    {
+     "name": "Bathroom",
+     "widthCm": 152,
+     "depthCm": 244,
+     "areaM2": 3.7,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 5,
+   "features": [
+    "Bathtub along the long wall",
+    "Toilet on the short wall",
+    "Vanity with mirror wall",
+    "Linen shelf"
+   ]
+  },
+  {
+   "id": "dining-room-12x12",
+   "name": "12x12 Dining Room Layout",
+   "category": "Single rooms",
+   "description": "A 12 by 12 ft formal dining room seating six around a rectangular table, with a sideboard, a display bookcase and generous chair-pull-out clearance on all sides.",
+   "widthCm": 406,
+   "depthCm": 406,
+   "areaM2": 13.4,
+   "bedrooms": 0,
+   "bathrooms": 0,
+   "rooms": [
+    {
+     "name": "Dining room",
+     "widthCm": 366,
+     "depthCm": 366,
+     "areaM2": 13.4,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 12,
+   "features": [
+    "Seats six",
+    "70 cm chair clearance all round",
+    "Sideboard for serving",
+    "Display bookcase"
+   ]
+  },
+  {
+   "id": "backyard-adu-cottage",
+   "name": "Backyard ADU Cottage Floor Plan",
+   "category": "Small homes",
+   "description": "A 27 m2 (290 sq ft) detached backyard cottage or ADU with a combined living room and kitchen, a double-bed bedroom with closet, and a full bath with tub.",
+   "widthCm": 620,
+   "depthCm": 520,
+   "areaM2": 27.1,
+   "bedrooms": 1,
+   "bathrooms": 1,
+   "rooms": [
+    {
+     "name": "Living & kitchen",
+     "widthCm": 365,
+     "depthCm": 480,
+     "areaM2": 17.5,
+     "outdoor": false
+    },
+    {
+     "name": "Bedroom",
+     "widthCm": 205,
+     "depthCm": 285,
+     "areaM2": 5.8,
+     "outdoor": false
+    },
+    {
+     "name": "Bath",
+     "widthCm": 205,
+     "depthCm": 185,
+     "areaM2": 3.8,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 18,
+   "features": [
+    "Living, kitchen and dining in one room",
+    "Separate bedroom with closet",
+    "Full bath with tub",
+    "Front door to the garden path"
+   ]
+  },
+  {
+   "id": "small-cabin",
+   "name": "Small Cabin Floor Plan with Bunk Room",
+   "category": "Small homes",
+   "description": "A 29 m2 (315 sq ft) weekend cabin: a great room with kitchen, dining table and sofa, a bunk room with two twin beds and a closet, and a compact bath with shower.",
+   "widthCm": 720,
+   "depthCm": 480,
+   "areaM2": 29.3,
+   "bedrooms": 1,
+   "bathrooms": 1,
+   "rooms": [
+    {
+     "name": "Great room",
+     "widthCm": 465,
+     "depthCm": 440,
+     "areaM2": 20.5,
+     "outdoor": false
+    },
+    {
+     "name": "Bunk room",
+     "widthCm": 205,
+     "depthCm": 265,
+     "areaM2": 5.4,
+     "outdoor": false
+    },
+    {
+     "name": "Bath",
+     "widthCm": 205,
+     "depthCm": 165,
+     "areaM2": 3.4,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 21,
+   "features": [
+    "Great room with kitchen and dining",
+    "Bunk room with two twin beds",
+    "Compact bath with shower",
+    "Reading chair and bookcase"
+   ]
+  },
+  {
+   "id": "basement-rec-room",
+   "name": "Finished Basement Rec Room Layout",
+   "category": "Single rooms",
+   "description": "A finished basement of about 34 m2 (370 sq ft): a rec room with TV area, bar and pool table, plus a laundry and utility room and a full bath.",
+   "widthCm": 740,
+   "depthCm": 540,
+   "areaM2": 34.3,
+   "bedrooms": 0,
+   "bathrooms": 1,
+   "rooms": [
+    {
+     "name": "Rec room",
+     "widthCm": 505,
+     "depthCm": 500,
+     "areaM2": 25.3,
+     "outdoor": false
+    },
+    {
+     "name": "Laundry & utility",
+     "widthCm": 185,
+     "depthCm": 245,
+     "areaM2": 4.5,
+     "outdoor": false
+    },
+    {
+     "name": "Bath",
+     "widthCm": 185,
+     "depthCm": 245,
+     "areaM2": 4.5,
+     "outdoor": false
+    }
+   ],
+   "furnitureCount": 19,
+   "features": [
+    "TV lounge with sofa",
+    "Pool table and bar with stools",
+    "Laundry and utility room",
+    "Full bath with tub"
+   ]
+  }
+ ]
+}

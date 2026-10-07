@@ -1,0 +1,280 @@
+{
+ "schemaVersion": 1,
+ "id": "l-shaped-kitchen-diner",
+ "name": "L-Shaped Kitchen and Diner Layout",
+ "walls": [
+  {
+   "key": "wall-1",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 500,
+   "yEnd": 0,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-2",
+   "xStart": 0,
+   "yStart": 440,
+   "xEnd": 500,
+   "yEnd": 440,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-3",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 0,
+   "yEnd": 440,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-4",
+   "xStart": 500,
+   "yStart": 0,
+   "xEnd": 500,
+   "yEnd": 440,
+   "thickness": 20,
+   "height": 250
+  }
+ ],
+ "rooms": [
+  {
+   "name": "Kitchen & diner",
+   "points": [
+    [
+     10,
+     10
+    ],
+    [
+     490,
+     10
+    ],
+    [
+     490,
+     430
+    ],
+    [
+     10,
+     430
+    ]
+   ],
+   "floorTextureId": "tile-floor"
+  }
+ ],
+ "openings": [
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-1",
+   "offset": 230,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-4",
+   "offset": 220,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "door",
+   "name": "Interior door",
+   "wallKey": "wall-2",
+   "offset": 420,
+   "catalogId": "sh3d-full#PeterSmolik#door1",
+   "width": 82,
+   "depth": 18,
+   "height": 205,
+   "elevation": 0
+  }
+ ],
+ "furniture": [
+  {
+   "name": "Refrigerator",
+   "x": 48,
+   "y": 46,
+   "angleDeg": 0,
+   "width": 76,
+   "depth": 72,
+   "height": 180,
+   "elevation": 0,
+   "color": 14014941
+  },
+  {
+   "name": "Base cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorLowerCabinet",
+   "x": 112,
+   "y": 42,
+   "angleDeg": 0,
+   "width": 52,
+   "depth": 64,
+   "height": 86,
+   "elevation": 0
+  },
+  {
+   "name": "Range",
+   "catalogId": "sh3d-full#Pencilart#stove1",
+   "x": 176,
+   "y": 42,
+   "angleDeg": 0,
+   "width": 76,
+   "depth": 64,
+   "height": 92,
+   "elevation": 0
+  },
+  {
+   "name": "Base cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorLowerCabinet",
+   "x": 240,
+   "y": 42,
+   "angleDeg": 0,
+   "width": 52,
+   "depth": 64,
+   "height": 86,
+   "elevation": 0
+  },
+  {
+   "name": "Sink cabinet",
+   "catalogId": "sh3d-full#Pencilart#kitchenSinkWithMarble",
+   "x": 311.5,
+   "y": 42,
+   "angleDeg": 0,
+   "width": 91,
+   "depth": 64,
+   "height": 111,
+   "elevation": 0
+  },
+  {
+   "name": "Dishwasher",
+   "x": 387,
+   "y": 41,
+   "angleDeg": 0,
+   "width": 60,
+   "depth": 62,
+   "height": 86,
+   "elevation": 0,
+   "color": 13225683
+  },
+  {
+   "name": "Base cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorLowerCabinet",
+   "x": 42,
+   "y": 110,
+   "angleDeg": 270,
+   "width": 52,
+   "depth": 64,
+   "height": 86,
+   "elevation": 0
+  },
+  {
+   "name": "Drawer cabinet",
+   "catalogId": "sh3d-full#Pencilart#3DrawerCabinet",
+   "x": 42,
+   "y": 162.5,
+   "angleDeg": 270,
+   "width": 53,
+   "depth": 64,
+   "height": 86,
+   "elevation": 0
+  },
+  {
+   "name": "Pantry cabinet",
+   "catalogId": "sh3d-full#Pencilart#pantry",
+   "x": 42,
+   "y": 224,
+   "angleDeg": 270,
+   "width": 70,
+   "depth": 64,
+   "height": 200,
+   "elevation": 0
+  },
+  {
+   "name": "Dining table",
+   "x": 290,
+   "y": 280,
+   "angleDeg": 0,
+   "width": 160,
+   "depth": 90,
+   "height": 75,
+   "elevation": 0,
+   "color": 9136970
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 250,
+   "y": 214,
+   "angleDeg": 0,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 330,
+   "y": 214,
+   "angleDeg": 0,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 250,
+   "y": 346,
+   "angleDeg": 180,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 330,
+   "y": 346,
+   "angleDeg": 180,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Sideboard",
+   "x": 85,
+   "y": 407.5,
+   "angleDeg": 180,
+   "width": 150,
+   "depth": 45,
+   "height": 85,
+   "elevation": 0,
+   "color": 9071179
+  },
+  {
+   "name": "Plant",
+   "catalogId": "sh3d-full#PeterSmolik#potplant2",
+   "x": 462.5,
+   "y": 110,
+   "angleDeg": 90,
+   "width": 55,
+   "depth": 55,
+   "height": 85,
+   "elevation": 0
+  }
+ ]
+}
