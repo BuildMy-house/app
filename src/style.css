@@ -1805,3 +1805,9 @@ select:focus-visible {
 .feedback-panel input { width: 100%; box-sizing: border-box; font: inherit; }
 .feedback-panel .feedback-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .feedback-panel .feedback-status { min-height: 1em; color: var(--text-secondary, #9da7b3); }
+
+/* Phones: lift the feedback button/panel above the fixed bottom tab bar. */
+@media (max-width: 799px) {
+  .feedback-btn { bottom: 104px; }
+  .feedback-panel { bottom: 136px; right: 8px; width: min(280px, calc(100vw - 16px)); }
+}
