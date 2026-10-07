@@ -14,6 +14,8 @@ import { PlanEngine, type PlanPreview, type PlanTool } from './plan/engine'
 import { snapFurniturePlacement } from './plan/furniture-snap'
 import { ViewMapper, drawPlan, fitToBounds, type PlanRenderingContext, type ViewTransform } from './plan/renderer'
 import { saveHomeFile, loadHomeFile, parseHomeFile } from './services/adapters/home-persistence'
+import { initAnalytics, track, trackOnce } from './analytics/analytics'
+import { FeedbackWidget } from './ui/feedback-widget'
 import { exportPlanPng, export3dPng, renderPlanPng } from './services/adapters/plan-export'
 import { buildRenderableScene } from './render/scene-builder'
 import { nextLevelElevation } from './core/home'
@@ -347,10 +349,10 @@ function refreshMenus(): void {
             ]
           : [{ label: 'Log In / Register…', action: () => promptLogin() }]),
         { label: '---' },
-        { label: 'Export Plan as PNG…', action: () => { void traceAction('export.plan', () => { exportPlanPng(store.getHome()) }) } },
-        { label: 'Export 3D View as PNG…', action: () => { void traceAction('export.3d', () => { if (view3d) export3dPng(view3d.scene, view3d.camera) }) } },
-        { label: 'Export Scene for LuxCore Render…', action: () => { void traceAction('export.scene', () => exportSceneJson()) } },
-        { label: 'Print Plan…', action: () => printPlan() },
+        { label: 'Export Plan as PNG…', action: () => { track('plan_exported', { kind: 'png_plan' }); void traceAction('export.plan', () => { exportPlanPng(store.getHome()) }) } },
+        { label: 'Export 3D View as PNG…', action: () => { track('plan_exported', { kind: 'png_3d' }); void traceAction('export.3d', () => { if (view3d) export3dPng(view3d.scene, view3d.camera) }) } },
+        { label: 'Export Scene for LuxCore Render…', action: () => { track('plan_exported', { kind: 'luxcore' }); void traceAction('export.scene', () => exportSceneJson()) } },
+        { label: 'Print Plan…', action: () => { track('plan_exported', { kind: 'print' }); printPlan() } },
       ],
     },
     {
@@ -481,6 +483,7 @@ async function saveToAccount(): Promise<void> {
     currentAccountHomeRevision = record.updatedAt
     if (!stopHomeSubscription) void watchAccountHome(record.id)
     store.markClean()
+    track('plan_saved', { kind: 'account' })
     showToast('success', `Saved "${trimmed}" to your account`, 'Find it under File → My Projects.')
   } catch (err) {
     showToast('error', 'Could not save to your account', `${errorReason(err)} Your changes are still open and unsaved — check your connection or sign in again, then retry.`)
@@ -805,6 +808,8 @@ function refreshStatus(): void {
 // ── Camera preset ───────────────────────────────────────────────────────────
 
 function setCameraPreset(preset: string): void {
+  if (preset === '3d' || preset === 'split') trackOnce('first_3d_view_opened', { via: preset })
+  if (preset === 'split') trackOnce('split_view_used', { via: 'switch' })
   planPanel.classList.remove('hidden')
   view3dPanel.classList.remove('hidden')
   divider.style.display = ''
@@ -1546,6 +1551,25 @@ function refreshAll(): void {
 // ── Boot ────────────────────────────────────────────────────────────────────
 
 telemetry.appStart()
+
+// ── Product analytics (self-hosted, anonymous) ───────────────────────────────
+initAnalytics()
+new FeedbackWidget(document.body, { getState: () => store.getContentCounts() })
+// The 3D view is on screen by default (split layout), so "opened" means the
+// user explicitly switched to it or interacted with it. Interacting with it
+// while the plan is also visible is split-view usage.
+root.querySelector('#view3d')!.addEventListener('pointerdown', () => {
+  trackOnce('first_3d_view_opened', { via: 'interact' })
+  if (!planPanel.classList.contains('hidden')) trackOnce('split_view_used', { via: 'interact' })
+}, { passive: true })
+// Milestone: first plan content (wall or room) added this session. The store
+// has no subscription API, so poll the cheap live counts until it fires.
+const planCreatedPoll = window.setInterval(() => {
+  const counts = store.getContentCounts()
+  if (counts.walls + counts.rooms === 0) return
+  trackOnce('first_plan_created')
+  window.clearInterval(planCreatedPoll)
+}, 1000)
 initActionTrace({ getSceneComplexity, getLastFrameTime })
 refreshMenus()
 buildToolbar()
@@ -1712,6 +1736,7 @@ const catalogReady = (cachedManifest
       })
       model.setSelection([placed.id])
       model.getStore().endCompoundEdit()
+      trackOnce('first_furniture_placed')
       setSidebarTab('furniture')
       refreshToolbar()
       refreshStatus()

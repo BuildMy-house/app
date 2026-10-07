@@ -1,4 +1,5 @@
 import type { AuthAdapter } from '../services/auth'
+import { track } from '../analytics/analytics'
 
 /**
  * Login/register modal mirroring PreferencesDialog's overlay pattern. Native
@@ -25,6 +26,7 @@ export class AuthDialog {
   }
 
   open(): void {
+    if (this.mode === 'register') track('signup_modal_opened', { via: 'open' })
     this.render()
     document.body.appendChild(this.overlay)
     this.overlay.addEventListener('click', (e) => {
@@ -85,7 +87,9 @@ export class AuthDialog {
     })
     this.overlay.querySelectorAll<HTMLButtonElement>('.auth-switch').forEach((button) => {
       button.addEventListener('click', () => {
-        this.mode = button.dataset.mode as 'login' | 'register'
+        const next = button.dataset.mode as 'login' | 'register'
+        if (next === 'register' && this.mode !== 'register') track('signup_modal_opened', { via: 'tab' })
+        this.mode = next
         this.updateMode()
       })
     })
@@ -162,6 +166,7 @@ export class AuthDialog {
     try {
       if (this.mode === 'login') await this.auth.login(email, password)
       else await this.auth.register(email, password, this.accountType === 'company' ? companyName : undefined)
+      track(this.mode === 'login' ? 'login_completed' : 'signup_completed', this.mode === 'register' ? { account: this.accountType } : undefined)
       this.close()
       this.onAuthenticated()
     } catch (err) {

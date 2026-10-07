@@ -18,6 +18,7 @@ import {
   magicLinkRequestHandler,
   magicLinkConsumeHandler,
 } from './auth.js';
+import { analyticsRouter } from './analytics.js';
 import { homesRouter } from './homes.js';
 import { teamsRouter } from './teams.js';
 import { initDb, type DbAdapter } from './db.js';
@@ -120,6 +121,7 @@ export async function createApp(
   app.use('/api/models/upload', modelUploadRouter(adapter));
   app.use('/api/homes', homesRouter(adapter));
   app.use('/api/teams', teamsRouter(adapter));
+  app.use('/api/analytics', analyticsRouter(adapter));
 
   // Render queue API: enqueue studio/high-quality renders (optional premium feature)
   app.post('/api/render/queue', requireAuth, (req, res) => {

@@ -357,6 +357,28 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_aqs_catalog ON asset_quality_scores (catalog_id);
   CREATE INDEX IF NOT EXISTS idx_aqs_flagged ON asset_quality_scores (flagged_for_fix);
+
+  CREATE TABLE IF NOT EXISTS analytics_events (
+    id    TEXT PRIMARY KEY,
+    sid   TEXT NOT NULL,
+    aid   TEXT,
+    name  TEXT NOT NULL,
+    props TEXT,
+    ts    BIGINT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_analytics_events_ts ON analytics_events (ts);
+  CREATE INDEX IF NOT EXISTS idx_analytics_events_sid ON analytics_events (sid, ts);
+  CREATE INDEX IF NOT EXISTS idx_analytics_events_aid ON analytics_events (aid, ts);
+
+  CREATE TABLE IF NOT EXISTS feedback (
+    id         TEXT PRIMARY KEY,
+    sid        TEXT NOT NULL,
+    message    TEXT NOT NULL,
+    email      TEXT,
+    state      TEXT,
+    created_at BIGINT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback (created_at);
 `;
 
 // Idempotent init-on-boot: safe to call once per server start, and safe to

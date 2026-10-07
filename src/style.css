@@ -1695,7 +1695,7 @@ select:focus-visible {
 /* Save/failure toasts */
 #toast-host {
   position: fixed;
-  bottom: 40px;
+  bottom: 84px; /* clear of the feedback button */
   right: 16px;
   z-index: 2000;
   display: flex;
@@ -1766,3 +1766,42 @@ select:focus-visible {
 .plan-empty-hint { font-size: 12px !important; margin-bottom: 0 !important; }
 
 .home-list-empty-cta { display: block; margin: 0 auto; }
+
+/* In-app feedback widget: small, unobtrusive, bottom-right corner */
+.feedback-btn {
+  position: fixed;
+  bottom: 44px;
+  right: 16px;
+  z-index: 1500;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--panel-bg, #1f2328);
+  color: var(--text-secondary, #9da7b3);
+  opacity: 0.7;
+  cursor: pointer;
+}
+.feedback-btn:hover,
+.feedback-btn:focus-visible { opacity: 1; }
+.feedback-panel {
+  position: fixed;
+  bottom: 76px;
+  right: 16px;
+  z-index: 1500;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-bg, #1f2328);
+  color: var(--text-primary, #e6edf3);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+  font-size: 12px;
+}
+.feedback-panel textarea,
+.feedback-panel input { width: 100%; box-sizing: border-box; font: inherit; }
+.feedback-panel .feedback-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.feedback-panel .feedback-status { min-height: 1em; color: var(--text-secondary, #9da7b3); }
