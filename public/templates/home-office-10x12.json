@@ -1,0 +1,225 @@
+{
+ "schemaVersion": 1,
+ "id": "home-office-10x12",
+ "name": "10x12 Home Office Layout",
+ "walls": [
+  {
+   "key": "wall-1",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 325,
+   "yEnd": 0,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-2",
+   "xStart": 0,
+   "yStart": 386,
+   "xEnd": 325,
+   "yEnd": 386,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-3",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 0,
+   "yEnd": 386,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-4",
+   "xStart": 325,
+   "yStart": 0,
+   "xEnd": 325,
+   "yEnd": 386,
+   "thickness": 20,
+   "height": 250
+  }
+ ],
+ "rooms": [
+  {
+   "name": "Home office",
+   "points": [
+    [
+     10,
+     10
+    ],
+    [
+     315,
+     10
+    ],
+    [
+     315,
+     376
+    ],
+    [
+     10,
+     376
+    ]
+   ],
+   "floorTextureId": "wood-pine"
+  }
+ ],
+ "openings": [
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-1",
+   "offset": 162,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "door",
+   "name": "Interior door",
+   "wallKey": "wall-3",
+   "offset": 300,
+   "catalogId": "sh3d-full#PeterSmolik#door1",
+   "width": 82,
+   "depth": 18,
+   "height": 205,
+   "elevation": 0
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-4",
+   "offset": 160,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 80,
+   "depth": 8,
+   "height": 100,
+   "elevation": 110
+  }
+ ],
+ "furniture": [
+  {
+   "name": "Corner desk",
+   "x": 162.5,
+   "y": 45,
+   "angleDeg": 0,
+   "width": 160,
+   "depth": 70,
+   "height": 75,
+   "elevation": 0,
+   "color": 11570538
+  },
+  {
+   "name": "Office chair",
+   "catalogId": "sh3d-full#PeterSmolik#officeChair",
+   "x": 162,
+   "y": 125,
+   "angleDeg": 180,
+   "width": 63,
+   "depth": 60,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Bookcase",
+   "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackFullHeight",
+   "x": 25,
+   "y": 55,
+   "angleDeg": 270,
+   "width": 90,
+   "depth": 30,
+   "height": 227,
+   "elevation": 0
+  },
+  {
+   "name": "Bookcase",
+   "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackFullHeight",
+   "x": 25,
+   "y": 155,
+   "angleDeg": 270,
+   "width": 90,
+   "depth": 30,
+   "height": 227,
+   "elevation": 0
+  },
+  {
+   "name": "Filing cabinet",
+   "x": 160,
+   "y": 346,
+   "angleDeg": 180,
+   "width": 45,
+   "depth": 60,
+   "height": 70,
+   "elevation": 0,
+   "color": 11449272
+  },
+  {
+   "name": "Loveseat",
+   "catalogId": "sh3d-full#Pencilart#couchPoofyPillows",
+   "x": 279.5,
+   "y": 250,
+   "angleDeg": 90,
+   "width": 156,
+   "depth": 71,
+   "height": 75,
+   "elevation": 0
+  },
+  {
+   "name": "Side table",
+   "x": 292.5,
+   "y": 352,
+   "angleDeg": 90,
+   "width": 45,
+   "depth": 45,
+   "height": 55,
+   "elevation": 0,
+   "color": 9071179
+  },
+  {
+   "name": "Floor lamp",
+   "x": 300,
+   "y": 25,
+   "angleDeg": 90,
+   "width": 30,
+   "depth": 30,
+   "height": 160,
+   "elevation": 0,
+   "color": 14275264
+  },
+  {
+   "name": "Shelving unit",
+   "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackMediumHeight",
+   "x": 300,
+   "y": 115,
+   "angleDeg": 90,
+   "width": 90,
+   "depth": 30,
+   "height": 143,
+   "elevation": 0
+  },
+  {
+   "name": "Plant",
+   "catalogId": "sh3d-full#PeterSmolik#potplant2",
+   "x": 215,
+   "y": 348.5,
+   "angleDeg": 180,
+   "width": 55,
+   "depth": 55,
+   "height": 85,
+   "elevation": 0
+  },
+  {
+   "name": "Rug",
+   "catalogId": "sh3d-full#Puybaret#carpet",
+   "x": 200,
+   "y": 260,
+   "angleDeg": 0,
+   "width": 150,
+   "depth": 100,
+   "height": 1,
+   "elevation": 0
+  }
+ ]
+}

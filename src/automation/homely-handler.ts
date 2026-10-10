@@ -20,6 +20,7 @@ import { CaptureService, type CaptureBackend } from './capture'
 import type { CommandHandler, CommandResult } from './client'
 import { FurnitureCatalog } from '../core/catalog'
 import { resolvePlacement, toWireItem } from '../core/catalog-service'
+import { openingOnWall } from '../core/wall-opening'
 
 const COMMANDS = [
   'ping',
@@ -653,25 +654,14 @@ export class HomelyCommandHandler implements CommandHandler {
           height = type === 'add_door' ? 210 : 120
         }
 
-        const dx = wall.xEnd - wall.xStart
-        const dy = wall.yEnd - wall.yStart
-        const wallLen = Math.hypot(dx, dy) || 1
-        const nx = dx / wallLen
-        const ny = dy / wallLen
-        const wx = -ny
-        const wy = nx
-
-        const t = Math.max(0, Math.min(wallLen, xAlongWall))
-        const px = wall.xStart + nx * t + wx * (wall.thickness / 2)
-        const py = wall.yStart + ny * t + wy * (wall.thickness / 2)
-        const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI
+        const placed = openingOnWall(wall, xAlongWall)
 
         const furniture = this.model.addFurniture({
           name,
           catalogId,
-          x: px,
-          y: py,
-          angleDeg,
+          x: placed.x,
+          y: placed.y,
+          angleDeg: placed.angleDeg,
           width,
           depth,
           height,
@@ -681,7 +671,7 @@ export class HomelyCommandHandler implements CommandHandler {
           modelPath,
           renderModelPath,
           wallRef: wallId,
-          wallOffset: t,
+          wallOffset: placed.offset,
         })
         return { ok: true, data: { id: furniture.id } }
       }

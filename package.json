@@ -26,6 +26,8 @@
     "knip": "knip",
     "format": "prettier --write .",
     "tauri": "tauri",
+    "templates": "tsx scripts/build-templates.ts",
+    "templates:check": "tsx scripts/build-templates.ts --check",
     "thumbnails": "tsx scripts/render-thumbnails.ts",
     "audit:sh3d-transforms": "tsx scripts/audit-sh3d-transforms.ts",
     "patch-r2-cache-headers": "tsx scripts/patch-r2-cache-headers.ts"

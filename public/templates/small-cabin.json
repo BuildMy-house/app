@@ -1,0 +1,463 @@
+{
+ "schemaVersion": 1,
+ "id": "small-cabin",
+ "name": "Small Cabin Floor Plan with Bunk Room",
+ "walls": [
+  {
+   "key": "wall-1",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 700,
+   "yEnd": 0,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-2",
+   "xStart": 0,
+   "yStart": 460,
+   "xEnd": 700,
+   "yEnd": 460,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-3",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 0,
+   "yEnd": 460,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-4",
+   "xStart": 480,
+   "yStart": 0,
+   "xEnd": 480,
+   "yEnd": 460,
+   "thickness": 10,
+   "height": 250
+  },
+  {
+   "key": "wall-5",
+   "xStart": 480,
+   "yStart": 280,
+   "xEnd": 700,
+   "yEnd": 280,
+   "thickness": 10,
+   "height": 250
+  },
+  {
+   "key": "wall-6",
+   "xStart": 700,
+   "yStart": 0,
+   "xEnd": 700,
+   "yEnd": 460,
+   "thickness": 20,
+   "height": 250
+  }
+ ],
+ "rooms": [
+  {
+   "name": "Great room",
+   "points": [
+    [
+     10,
+     10
+    ],
+    [
+     475,
+     10
+    ],
+    [
+     475,
+     450
+    ],
+    [
+     10,
+     450
+    ]
+   ],
+   "floorTextureId": "wood-pine"
+  },
+  {
+   "name": "Bunk room",
+   "points": [
+    [
+     485,
+     10
+    ],
+    [
+     690,
+     10
+    ],
+    [
+     690,
+     275
+    ],
+    [
+     485,
+     275
+    ]
+   ],
+   "floorTextureId": "wood-pine"
+  },
+  {
+   "name": "Bath",
+   "points": [
+    [
+     485,
+     285
+    ],
+    [
+     690,
+     285
+    ],
+    [
+     690,
+     450
+    ],
+    [
+     485,
+     450
+    ]
+   ],
+   "floorTextureId": "tile-floor"
+  }
+ ],
+ "openings": [
+  {
+   "kind": "door",
+   "name": "Front door",
+   "wallKey": "wall-1",
+   "offset": 330,
+   "catalogId": "sh3d-full#PencilArt#fancyFrontDoor",
+   "width": 100,
+   "depth": 24,
+   "height": 205,
+   "elevation": 0
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-1",
+   "offset": 150,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-3",
+   "offset": 260,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 90,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-2",
+   "offset": 400,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "door",
+   "name": "Interior door",
+   "wallKey": "wall-4",
+   "offset": 240,
+   "catalogId": "sh3d-full#PeterSmolik#door1",
+   "width": 82,
+   "depth": 18,
+   "height": 205,
+   "elevation": 0
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-1",
+   "offset": 590,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 80,
+   "depth": 8,
+   "height": 100,
+   "elevation": 110
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-6",
+   "offset": 130,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 80,
+   "depth": 8,
+   "height": 100,
+   "elevation": 110
+  },
+  {
+   "kind": "door",
+   "name": "Bathroom door",
+   "wallKey": "wall-4",
+   "offset": 340,
+   "catalogId": "sh3d-full#PeterSmolik#door1",
+   "width": 72,
+   "depth": 18,
+   "height": 205,
+   "elevation": 0
+  },
+  {
+   "kind": "window",
+   "name": "High window",
+   "wallKey": "wall-2",
+   "offset": 580,
+   "catalogId": "sh3d-full#Pencilart#newWindowDk",
+   "width": 60,
+   "depth": 6,
+   "height": 60,
+   "elevation": 150
+  }
+ ],
+ "furniture": [
+  {
+   "name": "Refrigerator",
+   "x": 46,
+   "y": 48,
+   "angleDeg": 270,
+   "width": 76,
+   "depth": 72,
+   "height": 180,
+   "elevation": 0,
+   "color": 14014941
+  },
+  {
+   "name": "Base cabinet",
+   "catalogId": "sh3d-full#Pencilart#1DoorLowerCabinet",
+   "x": 42,
+   "y": 112,
+   "angleDeg": 270,
+   "width": 52,
+   "depth": 64,
+   "height": 86,
+   "elevation": 0
+  },
+  {
+   "name": "Range",
+   "catalogId": "sh3d-full#Pencilart#stove1",
+   "x": 42,
+   "y": 176,
+   "angleDeg": 270,
+   "width": 76,
+   "depth": 64,
+   "height": 92,
+   "elevation": 0
+  },
+  {
+   "name": "Sink cabinet",
+   "catalogId": "sh3d-full#Pencilart#kitchenSinkWithMarble",
+   "x": 42,
+   "y": 259.5,
+   "angleDeg": 270,
+   "width": 91,
+   "depth": 64,
+   "height": 111,
+   "elevation": 0
+  },
+  {
+   "name": "Dining table",
+   "x": 180,
+   "y": 100,
+   "angleDeg": 0,
+   "width": 160,
+   "depth": 90,
+   "height": 75,
+   "elevation": 0,
+   "color": 9136970
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 145,
+   "y": 32,
+   "angleDeg": 0,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 225,
+   "y": 32,
+   "angleDeg": 0,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 145,
+   "y": 168,
+   "angleDeg": 180,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 225,
+   "y": 168,
+   "angleDeg": 180,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Rug",
+   "catalogId": "sh3d-full#Puybaret#carpet",
+   "x": 260,
+   "y": 260,
+   "angleDeg": 0,
+   "width": 200,
+   "depth": 140,
+   "height": 1,
+   "elevation": 0
+  },
+  {
+   "name": "Coffee table",
+   "x": 260,
+   "y": 260,
+   "angleDeg": 0,
+   "width": 110,
+   "depth": 60,
+   "height": 42,
+   "elevation": 0,
+   "color": 9071179
+  },
+  {
+   "name": "Sofa",
+   "catalogId": "sh3d-full#PeterSmolik#sofa1",
+   "x": 260,
+   "y": 410.5,
+   "angleDeg": 180,
+   "width": 234,
+   "depth": 79,
+   "height": 79,
+   "elevation": 0
+  },
+  {
+   "name": "Bookcase",
+   "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackFullHeight",
+   "x": 55,
+   "y": 435,
+   "angleDeg": 180,
+   "width": 90,
+   "depth": 30,
+   "height": 227,
+   "elevation": 0
+  },
+  {
+   "name": "Armchair",
+   "catalogId": "sh3d-full#Pencilart#singleChair",
+   "x": 436.5,
+   "y": 110,
+   "angleDeg": 90,
+   "width": 85,
+   "depth": 77,
+   "height": 75,
+   "elevation": 0
+  },
+  {
+   "name": "Floor lamp",
+   "x": 460,
+   "y": 435,
+   "angleDeg": 90,
+   "width": 30,
+   "depth": 30,
+   "height": 160,
+   "elevation": 0,
+   "color": 14275264
+  },
+  {
+   "name": "Twin bed",
+   "x": 533.5,
+   "y": 105,
+   "angleDeg": 0,
+   "width": 97,
+   "depth": 190,
+   "height": 45,
+   "elevation": 0,
+   "color": 13220009
+  },
+  {
+   "name": "Twin bed",
+   "x": 641.5,
+   "y": 105,
+   "angleDeg": 0,
+   "width": 97,
+   "depth": 190,
+   "height": 45,
+   "elevation": 0,
+   "color": 13220009
+  },
+  {
+   "name": "Closet",
+   "x": 630,
+   "y": 245,
+   "angleDeg": 180,
+   "width": 120,
+   "depth": 60,
+   "height": 220,
+   "elevation": 0,
+   "color": 14209216
+  },
+  {
+   "name": "Shower tray",
+   "x": 645,
+   "y": 330,
+   "angleDeg": 90,
+   "width": 90,
+   "depth": 90,
+   "height": 8,
+   "elevation": 0,
+   "color": 15001836
+  },
+  {
+   "name": "Toilet",
+   "x": 585,
+   "y": 416,
+   "angleDeg": 180,
+   "width": 38,
+   "depth": 68,
+   "height": 40,
+   "elevation": 0,
+   "color": 15921906
+  },
+  {
+   "name": "Vanity",
+   "x": 510,
+   "y": 420,
+   "angleDeg": 270,
+   "width": 60,
+   "depth": 50,
+   "height": 85,
+   "elevation": 0,
+   "color": 15328474
+  }
+ ]
+}

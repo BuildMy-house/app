@@ -30,6 +30,8 @@ import { ClipboardManager } from './plan/clipboard'
 import { ModelUploadDialog } from './ui/model-upload-dialog'
 import { saveDraft, loadDraft } from './services/adapters/local-draft'
 import { showToast, errorReason } from './ui/toast'
+import { templateIdFromSearch, searchWithoutTemplate, fetchTemplatePlan } from './templates/load'
+import { buildHomeFromTemplate } from './templates/apply'
 import { createPlanEmptyState } from './ui/plan-empty-state'
 import { createChatWidget, createFetchPmAgentClient, isPmAgentChatEnabled, userIdFromToken } from './ui/chat-widget'
 import { ProfileWidget } from './ui/profile-widget'
@@ -1884,5 +1886,39 @@ async function connectAutomation(): Promise<void> {
   })
 }
 void connectAutomation()
+
+// ── Starter templates ────────────────────────────────────────────────────────
+// `?template=<id>` (the marketing site's "Open this plan" links) replaces the
+// workspace with that starter plan. The param is stripped afterwards so a reload
+// keeps the user's edits (the autosaved draft) rather than re-applying it.
+async function openTemplateFromUrl(): Promise<void> {
+  const id = templateIdFromSearch(window.location.search)
+  if (id === null) return
+  const planPromise = fetchTemplatePlan(id)
+  const stripParam = () =>
+    window.history.replaceState(null, '', `${window.location.pathname}${searchWithoutTemplate(window.location.search)}${window.location.hash}`)
+  try {
+    const plan = await planPromise
+    try {
+      await catalogReady // models/colors come from the catalog; boxes still work without it
+    } catch {
+      // catalog load failed; the template falls back to plain boxes
+    }
+    const counts = store.getContentCounts()
+    if (counts.walls + counts.furniture + counts.rooms > 0 && !(await confirmDialog(`Open the "${plan.name}" template? Your current plan will be replaced.`))) {
+      stripParam()
+      return
+    }
+    store.loadHome(buildHomeFromTemplate(plan, sharedCatalog))
+    closeHomeSession()
+    doFit()
+    refreshAll()
+    stripParam()
+  } catch (err) {
+    stripParam()
+    showToast('error', 'Could not open template', errorReason(err))
+  }
+}
+void openTemplateFromUrl()
 
 export { catalogReady }

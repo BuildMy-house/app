@@ -1,0 +1,236 @@
+{
+ "schemaVersion": 1,
+ "id": "dining-room-12x12",
+ "name": "12x12 Dining Room Layout",
+ "walls": [
+  {
+   "key": "wall-1",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 386,
+   "yEnd": 0,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-2",
+   "xStart": 0,
+   "yStart": 386,
+   "xEnd": 386,
+   "yEnd": 386,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-3",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 0,
+   "yEnd": 386,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-4",
+   "xStart": 386,
+   "yStart": 0,
+   "xEnd": 386,
+   "yEnd": 386,
+   "thickness": 20,
+   "height": 250
+  }
+ ],
+ "rooms": [
+  {
+   "name": "Dining room",
+   "points": [
+    [
+     10,
+     10
+    ],
+    [
+     376,
+     10
+    ],
+    [
+     376,
+     376
+    ],
+    [
+     10,
+     376
+    ]
+   ],
+   "floorTextureId": "wood-oak"
+  }
+ ],
+ "openings": [
+  {
+   "kind": "window",
+   "name": "Picture window",
+   "wallKey": "wall-1",
+   "offset": 193,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 200,
+   "depth": 8,
+   "height": 140,
+   "elevation": 80
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-4",
+   "offset": 193,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "door",
+   "name": "Interior door",
+   "wallKey": "wall-3",
+   "offset": 280,
+   "catalogId": "sh3d-full#PeterSmolik#door1",
+   "width": 82,
+   "depth": 18,
+   "height": 205,
+   "elevation": 0
+  }
+ ],
+ "furniture": [
+  {
+   "name": "Rug",
+   "catalogId": "sh3d-full#Puybaret#carpet",
+   "x": 193,
+   "y": 170,
+   "angleDeg": 0,
+   "width": 280,
+   "depth": 200,
+   "height": 1,
+   "elevation": 0
+  },
+  {
+   "name": "Dining table",
+   "x": 193,
+   "y": 170,
+   "angleDeg": 0,
+   "width": 200,
+   "depth": 95,
+   "height": 75,
+   "elevation": 0,
+   "color": 9136970
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 138,
+   "y": 101,
+   "angleDeg": 0,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 193,
+   "y": 101,
+   "angleDeg": 0,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 248,
+   "y": 101,
+   "angleDeg": 0,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 138,
+   "y": 239,
+   "angleDeg": 180,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 193,
+   "y": 239,
+   "angleDeg": 180,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Dining chair",
+   "catalogId": "sh3d-full#Pencilart#latticeChair",
+   "x": 248,
+   "y": 239,
+   "angleDeg": 180,
+   "width": 43,
+   "depth": 42,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Sideboard",
+   "x": 193,
+   "y": 353.5,
+   "angleDeg": 180,
+   "width": 150,
+   "depth": 45,
+   "height": 85,
+   "elevation": 0,
+   "color": 9071179
+  },
+  {
+   "name": "Bookcase",
+   "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackFullHeight",
+   "x": 25,
+   "y": 55,
+   "angleDeg": 270,
+   "width": 90,
+   "depth": 30,
+   "height": 227,
+   "elevation": 0
+  },
+  {
+   "name": "Plant",
+   "catalogId": "sh3d-full#PeterSmolik#potplant2",
+   "x": 348.5,
+   "y": 348.5,
+   "angleDeg": 180,
+   "width": 55,
+   "depth": 55,
+   "height": 85,
+   "elevation": 0
+  },
+  {
+   "name": "Floor lamp",
+   "x": 361,
+   "y": 25,
+   "angleDeg": 90,
+   "width": 30,
+   "depth": 30,
+   "height": 160,
+   "elevation": 0,
+   "color": 14275264
+  }
+ ]
+}

@@ -1,0 +1,192 @@
+{
+ "schemaVersion": 1,
+ "id": "kids-bedroom",
+ "name": "Shared Kids Bedroom Layout",
+ "walls": [
+  {
+   "key": "wall-1",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 340,
+   "yEnd": 0,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-2",
+   "xStart": 0,
+   "yStart": 380,
+   "xEnd": 340,
+   "yEnd": 380,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-3",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 0,
+   "yEnd": 380,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-4",
+   "xStart": 340,
+   "yStart": 0,
+   "xEnd": 340,
+   "yEnd": 380,
+   "thickness": 20,
+   "height": 250
+  }
+ ],
+ "rooms": [
+  {
+   "name": "Kids bedroom",
+   "points": [
+    [
+     10,
+     10
+    ],
+    [
+     330,
+     10
+    ],
+    [
+     330,
+     370
+    ],
+    [
+     10,
+     370
+    ]
+   ],
+   "floorTextureId": "carpet"
+  }
+ ],
+ "openings": [
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-1",
+   "offset": 170,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-3",
+   "offset": 150,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 80,
+   "depth": 8,
+   "height": 100,
+   "elevation": 110
+  },
+  {
+   "kind": "door",
+   "name": "Interior door",
+   "wallKey": "wall-2",
+   "offset": 150,
+   "catalogId": "sh3d-full#PeterSmolik#door1",
+   "width": 82,
+   "depth": 18,
+   "height": 205,
+   "elevation": 0
+  }
+ ],
+ "furniture": [
+  {
+   "name": "Twin bed",
+   "x": 58.5,
+   "y": 105,
+   "angleDeg": 0,
+   "width": 97,
+   "depth": 190,
+   "height": 45,
+   "elevation": 0,
+   "color": 13220009
+  },
+  {
+   "name": "Twin bed",
+   "x": 281.5,
+   "y": 105,
+   "angleDeg": 0,
+   "width": 97,
+   "depth": 190,
+   "height": 45,
+   "elevation": 0,
+   "color": 13220009
+  },
+  {
+   "name": "Nightstand",
+   "x": 170,
+   "y": 30,
+   "angleDeg": 0,
+   "width": 45,
+   "depth": 40,
+   "height": 55,
+   "elevation": 0,
+   "color": 9071179
+  },
+  {
+   "name": "Desk",
+   "x": 300,
+   "y": 260,
+   "angleDeg": 90,
+   "width": 120,
+   "depth": 60,
+   "height": 75,
+   "elevation": 0,
+   "color": 11570538
+  },
+  {
+   "name": "Office chair",
+   "catalogId": "sh3d-full#PeterSmolik#officeChair",
+   "x": 225,
+   "y": 260,
+   "angleDeg": 270,
+   "width": 63,
+   "depth": 60,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Bookcase",
+   "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackFullHeight",
+   "x": 25,
+   "y": 325,
+   "angleDeg": 270,
+   "width": 90,
+   "depth": 30,
+   "height": 227,
+   "elevation": 0
+  },
+  {
+   "name": "Closet",
+   "x": 270,
+   "y": 345,
+   "angleDeg": 180,
+   "width": 120,
+   "depth": 50,
+   "height": 220,
+   "elevation": 0,
+   "color": 14209216
+  },
+  {
+   "name": "Rug",
+   "catalogId": "sh3d-full#Puybaret#carpet",
+   "x": 170,
+   "y": 210,
+   "angleDeg": 0,
+   "width": 200,
+   "depth": 140,
+   "height": 1,
+   "elevation": 0
+  }
+ ]
+}

@@ -1,0 +1,410 @@
+{
+ "schemaVersion": 1,
+ "id": "small-office-layout",
+ "name": "Small Office Layout (4-Person)",
+ "walls": [
+  {
+   "key": "wall-1",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 940,
+   "yEnd": 0,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-2",
+   "xStart": 0,
+   "yStart": 480,
+   "xEnd": 940,
+   "yEnd": 480,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-3",
+   "xStart": 0,
+   "yStart": 0,
+   "xEnd": 0,
+   "yEnd": 480,
+   "thickness": 20,
+   "height": 250
+  },
+  {
+   "key": "wall-4",
+   "xStart": 640,
+   "yStart": 0,
+   "xEnd": 640,
+   "yEnd": 480,
+   "thickness": 10,
+   "height": 250
+  },
+  {
+   "key": "wall-5",
+   "xStart": 940,
+   "yStart": 0,
+   "xEnd": 940,
+   "yEnd": 480,
+   "thickness": 20,
+   "height": 250
+  }
+ ],
+ "rooms": [
+  {
+   "name": "Open office",
+   "points": [
+    [
+     10,
+     10
+    ],
+    [
+     635,
+     10
+    ],
+    [
+     635,
+     470
+    ],
+    [
+     10,
+     470
+    ]
+   ],
+   "floorTextureId": "carpet"
+  },
+  {
+   "name": "Meeting room",
+   "points": [
+    [
+     645,
+     10
+    ],
+    [
+     930,
+     10
+    ],
+    [
+     930,
+     470
+    ],
+    [
+     645,
+     470
+    ]
+   ],
+   "floorTextureId": "wood-oak"
+  }
+ ],
+ "openings": [
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-1",
+   "offset": 150,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-1",
+   "offset": 450,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  },
+  {
+   "kind": "door",
+   "name": "Front door",
+   "wallKey": "wall-2",
+   "offset": 560,
+   "catalogId": "sh3d-full#PencilArt#fancyFrontDoor",
+   "width": 100,
+   "depth": 24,
+   "height": 205,
+   "elevation": 0
+  },
+  {
+   "kind": "door",
+   "name": "Interior door",
+   "wallKey": "wall-4",
+   "offset": 420,
+   "catalogId": "sh3d-full#PeterSmolik#door1",
+   "width": 82,
+   "depth": 18,
+   "height": 205,
+   "elevation": 0
+  },
+  {
+   "kind": "window",
+   "name": "Picture window",
+   "wallKey": "wall-1",
+   "offset": 790,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 200,
+   "depth": 8,
+   "height": 140,
+   "elevation": 80
+  },
+  {
+   "kind": "window",
+   "name": "Window",
+   "wallKey": "wall-5",
+   "offset": 240,
+   "catalogId": "sh3d-full#Pencilart#fancyWindow",
+   "width": 120,
+   "depth": 8,
+   "height": 128,
+   "elevation": 91
+  }
+ ],
+ "furniture": [
+  {
+   "name": "Desk",
+   "x": 130,
+   "y": 100,
+   "angleDeg": 0,
+   "width": 140,
+   "depth": 70,
+   "height": 75,
+   "elevation": 0,
+   "color": 11570538
+  },
+  {
+   "name": "Office chair",
+   "catalogId": "sh3d-full#PeterSmolik#officeChair",
+   "x": 130,
+   "y": 165,
+   "angleDeg": 180,
+   "width": 63,
+   "depth": 60,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Desk",
+   "x": 340,
+   "y": 100,
+   "angleDeg": 0,
+   "width": 140,
+   "depth": 70,
+   "height": 75,
+   "elevation": 0,
+   "color": 11570538
+  },
+  {
+   "name": "Office chair",
+   "catalogId": "sh3d-full#PeterSmolik#officeChair",
+   "x": 340,
+   "y": 165,
+   "angleDeg": 180,
+   "width": 63,
+   "depth": 60,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Desk",
+   "x": 130,
+   "y": 280,
+   "angleDeg": 0,
+   "width": 140,
+   "depth": 70,
+   "height": 75,
+   "elevation": 0,
+   "color": 11570538
+  },
+  {
+   "name": "Office chair",
+   "catalogId": "sh3d-full#PeterSmolik#officeChair",
+   "x": 130,
+   "y": 345,
+   "angleDeg": 180,
+   "width": 63,
+   "depth": 60,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Desk",
+   "x": 340,
+   "y": 280,
+   "angleDeg": 0,
+   "width": 140,
+   "depth": 70,
+   "height": 75,
+   "elevation": 0,
+   "color": 11570538
+  },
+  {
+   "name": "Office chair",
+   "catalogId": "sh3d-full#PeterSmolik#officeChair",
+   "x": 340,
+   "y": 345,
+   "angleDeg": 180,
+   "width": 63,
+   "depth": 60,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Filing cabinet",
+   "x": 605,
+   "y": 110,
+   "angleDeg": 90,
+   "width": 45,
+   "depth": 60,
+   "height": 70,
+   "elevation": 0,
+   "color": 11449272
+  },
+  {
+   "name": "Filing cabinet",
+   "x": 605,
+   "y": 160,
+   "angleDeg": 90,
+   "width": 45,
+   "depth": 60,
+   "height": 70,
+   "elevation": 0,
+   "color": 11449272
+  },
+  {
+   "name": "Shelving unit",
+   "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackMediumHeight",
+   "x": 25,
+   "y": 230,
+   "angleDeg": 270,
+   "width": 90,
+   "depth": 30,
+   "height": 143,
+   "elevation": 0
+  },
+  {
+   "name": "Console table",
+   "catalogId": "sh3d-full#PeterSmolik#hallTable",
+   "x": 340,
+   "y": 447.5,
+   "angleDeg": 180,
+   "width": 117,
+   "depth": 45,
+   "height": 88,
+   "elevation": 0
+  },
+  {
+   "name": "Plant",
+   "catalogId": "sh3d-full#PeterSmolik#potplant2",
+   "x": 607.5,
+   "y": 37.5,
+   "angleDeg": 0,
+   "width": 55,
+   "depth": 55,
+   "height": 85,
+   "elevation": 0
+  },
+  {
+   "name": "Meeting table",
+   "x": 785,
+   "y": 240,
+   "angleDeg": 0,
+   "width": 220,
+   "depth": 100,
+   "height": 75,
+   "elevation": 0,
+   "color": 9136970
+  },
+  {
+   "name": "Office chair",
+   "catalogId": "sh3d-full#PeterSmolik#officeChair",
+   "x": 715,
+   "y": 160,
+   "angleDeg": 0,
+   "width": 63,
+   "depth": 60,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Office chair",
+   "catalogId": "sh3d-full#PeterSmolik#officeChair",
+   "x": 785,
+   "y": 160,
+   "angleDeg": 0,
+   "width": 63,
+   "depth": 60,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Office chair",
+   "catalogId": "sh3d-full#PeterSmolik#officeChair",
+   "x": 855,
+   "y": 160,
+   "angleDeg": 0,
+   "width": 63,
+   "depth": 60,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Office chair",
+   "catalogId": "sh3d-full#PeterSmolik#officeChair",
+   "x": 715,
+   "y": 320,
+   "angleDeg": 180,
+   "width": 63,
+   "depth": 60,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Office chair",
+   "catalogId": "sh3d-full#PeterSmolik#officeChair",
+   "x": 785,
+   "y": 320,
+   "angleDeg": 180,
+   "width": 63,
+   "depth": 60,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "Office chair",
+   "catalogId": "sh3d-full#PeterSmolik#officeChair",
+   "x": 855,
+   "y": 320,
+   "angleDeg": 180,
+   "width": 63,
+   "depth": 60,
+   "height": 87,
+   "elevation": 0
+  },
+  {
+   "name": "TV",
+   "x": 926,
+   "y": 240,
+   "angleDeg": 90,
+   "width": 110,
+   "depth": 8,
+   "height": 64,
+   "elevation": 90,
+   "color": 1842722
+  },
+  {
+   "name": "Bookcase",
+   "catalogId": "sh3d-full#Dingenskirchen#pinewoodRackFullHeight",
+   "x": 885,
+   "y": 455,
+   "angleDeg": 180,
+   "width": 90,
+   "depth": 30,
+   "height": 227,
+   "elevation": 0
+  }
+ ]
+}
