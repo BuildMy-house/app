@@ -36,7 +36,7 @@ async function flushMicrotasks() {
 describe('reportError', () => {
   it('POSTs one event with the ingest URL, Bearer auth, and the documented shape', async () => {
     process.env.AXIOM_TOKEN = 'tok-123';
-    process.env.AXIOM_DATASET = 'homely-server-errors';
+    process.env.AXIOM_DATASET = 'buildmy-house-server-errors';
     process.env.AXIOM_ENDPOINT = 'https://axiom.example.com';
     const fetchMock = stubFetch();
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -47,7 +47,7 @@ describe('reportError', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('https://axiom.example.com/v1/ingest/homely-server-errors');
+    expect(url).toBe('https://axiom.example.com/v1/ingest/buildmy-house-server-errors');
     expect(init.method).toBe('POST');
     expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer tok-123');
     expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json');
