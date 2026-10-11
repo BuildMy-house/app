@@ -221,3 +221,78 @@ describe('snapFurnitureRotation', () => {
     expect(r).toMatchObject({ x: 50, y: 100, angleDeg: 3, wallRef: null })
   })
 })
+
+describe('wide footprint clearance (rotated and unrotated)', () => {
+  const vertical = { id: 'wall-v', xStart: 50, yStart: -100, xEnd: 50, yEnd: 100, thickness: 10 }
+
+  it('clears an unrotated wide piece whose centre is past the snap range', () => {
+    // At angle 0 the width spans the wall normal, so half width (150) +
+    // half thickness (5) must reach x = 205 even though the centre (150) is
+    // 100cm from the wall — far beyond the 25cm entry threshold.
+    const withMagnetism = snapFurniturePlacement({
+      walls: [vertical],
+      point: { x: 150, y: 0 },
+      widthCm: 300,
+      depthCm: 20,
+      angleDeg: 0,
+      magnetismEnabled: true,
+    })
+    expect(withMagnetism).toMatchObject({ x: 205, y: 0, angleDeg: 0, wallRef: 'wall-v', wallOffset: 100 })
+
+    // Anti-clip alone (magnetism off) must reach the same clear position.
+    const withoutMagnetism = snapFurniturePlacement({
+      walls: [vertical],
+      point: { x: 150, y: 0 },
+      widthCm: 300,
+      depthCm: 20,
+      angleDeg: 0,
+      magnetismEnabled: false,
+    })
+    expect(withoutMagnetism).toMatchObject({ x: 205, y: 0, wallRef: null, wallOffset: null })
+  })
+})
+
+describe('level filtering (levelRef)', () => {
+  // Same geometry as the wide unrotated case: overlapping, past snap range.
+  const upperWall = { id: 'wall-upper', xStart: 50, yStart: -100, xEnd: 50, yEnd: 100, thickness: 10, levelRef: 'lvl-1' }
+  const input = {
+    point: { x: 150, y: 0 },
+    widthCm: 300,
+    depthCm: 20,
+    angleDeg: 0,
+  }
+
+  it('ignores an overlapping wall on another level', () => {
+    const r = snapFurniturePlacement({ walls: [upperWall], ...input, magnetismEnabled: true, levelRef: null })
+    expect(r).toEqual({ x: 150, y: 0, angleDeg: 0, wallRef: null, wallOffset: null })
+  })
+
+  it('never pushes a footprint out of another level’s wall when magnetism is off', () => {
+    const r = snapFurniturePlacement({ walls: [upperWall], ...input, magnetismEnabled: false, levelRef: null })
+    expect(r).toEqual({ x: 150, y: 0, angleDeg: 0, wallRef: null, wallOffset: null })
+  })
+
+  it('snaps and clears against a same-level wall', () => {
+    const r = snapFurniturePlacement({ walls: [upperWall], ...input, magnetismEnabled: true, levelRef: 'lvl-1' })
+    expect(r).toMatchObject({ x: 205, wallRef: 'wall-upper', wallOffset: 100 })
+  })
+
+  it('treats a missing wall levelRef as the ground floor', () => {
+    const groundWall = { ...upperWall, levelRef: undefined }
+    expect(snapFurniturePlacement({ walls: [groundWall], ...input, magnetismEnabled: true, levelRef: null }).wallRef).toBe('wall-upper')
+    expect(snapFurniturePlacement({ walls: [upperWall], ...input, magnetismEnabled: true, levelRef: null }).wallRef).toBeNull()
+  })
+
+  it('considers every wall when the caller omits levelRef', () => {
+    const r = snapFurniturePlacement({ walls: [upperWall], ...input, magnetismEnabled: true })
+    expect(r).toMatchObject({ x: 205, wallRef: 'wall-upper' })
+  })
+
+  it('applies the same filter to snapFurnitureRotation', () => {
+    const mismatch = snapFurnitureRotation({ walls: [upperWall], ...input, levelRef: null })
+    expect(mismatch).toMatchObject({ x: 150, y: 0, wallRef: null })
+
+    const match = snapFurnitureRotation({ walls: [upperWall], ...input, levelRef: 'lvl-1' })
+    expect(match).toMatchObject({ x: 205, wallRef: 'wall-upper' })
+  })
+})
