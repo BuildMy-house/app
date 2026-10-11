@@ -33,6 +33,7 @@ beforeEach(async () => {
 afterEach(() => {
   vi.unstubAllGlobals();
   delete process.env.PM_AGENT_URL;
+  delete process.env.PM_AGENT_AUTH_TOKEN;
   db.close();
   rmSync(assetRoot, { recursive: true, force: true });
 });
@@ -59,6 +60,17 @@ describe('POST /api/chat', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('http://pm-agent.test:4200/chat');
     expect(JSON.parse(init.body)).toEqual({ app_user_id: userId, message: 'add a deck' });
+  });
+
+  it('sends a bearer token to pm-agent only when PM_AGENT_AUTH_TOKEN is set', async () => {
+    fetchMock.mockReturnValue(upstreamJson({ reply: 'ok' }));
+    await post({ message: 'one' });
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBeUndefined();
+
+    process.env.PM_AGENT_AUTH_TOKEN = ' s3cret ';
+    fetchMock.mockReturnValue(upstreamJson({ reply: 'ok' }));
+    await post({ message: 'two' });
+    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe('Bearer s3cret');
   });
 
   it('400s on missing/blank message', async () => {
