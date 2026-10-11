@@ -43,7 +43,7 @@ const capturedLogs: string[] = [];
 const originalLog = console.log;
 
 beforeEach(async () => {
-  assetRoot = mkdtempSync(join(tmpdir(), 'homely-telemetry-'));
+  assetRoot = mkdtempSync(join(tmpdir(), 'buildmy-house-telemetry-'));
   db = new Database(':memory:');
   openDbs.push(db);
   app = await createApp(db, assetRoot);
