@@ -27,6 +27,16 @@ RUN pip3 install --break-system-packages -r assets/textures/requirements.txt
 COPY public ./public
 COPY scripts ./scripts
 COPY src ./src
+# Client telemetry config is baked into the bundle at build time (Vite reads
+# import.meta.env.VITE_AXIOM_*). Declared only in this build stage, so the
+# values never reach the runtime image's ENV. Supplied via --build-arg
+# (deploy-app.yml for prod, dev-deploy-poller.js for the in-cluster dev image).
+ARG VITE_AXIOM_TOKEN
+ARG VITE_AXIOM_DATASET
+ARG VITE_AXIOM_ENDPOINT
+ENV VITE_AXIOM_TOKEN=$VITE_AXIOM_TOKEN \
+    VITE_AXIOM_DATASET=$VITE_AXIOM_DATASET \
+    VITE_AXIOM_ENDPOINT=$VITE_AXIOM_ENDPOINT
 RUN npm run build
 
 # better-sqlite3@13 requires Node >=22 (its prebuilt binary segfaults on
