@@ -19,6 +19,9 @@ export interface WallLike {
   xEnd: number
   yEnd: number
   thickness?: number
+  /** Level the wall sits on; null = ground floor. Optional so plain walls
+   *  (and existing callers) stay valid. */
+  levelRef?: string | null
 }
 
 export interface FurnitureSnapInput {
@@ -29,6 +32,10 @@ export interface FurnitureSnapInput {
   depthCm: number
   angleDeg?: number
   magnetismEnabled: boolean
+  /** Level the furniture sits on. Omit (undefined) to consider every wall;
+   *  when provided, only same-level walls participate — so a first-floor
+   *  piece never snaps to (or is pushed by) a ground-floor wall. */
+  levelRef?: string | null
   /** Wall id the furniture was snapped to at the start of this drag frame, if
    *  any — used only to widen the release threshold for THAT specific wall
    *  (hysteresis). Does not affect snapping onto a different/new wall, which
@@ -75,8 +82,16 @@ function normalizeAngle180(deg: number): number {
   return a
 }
 
+/** Walls that can interact with the furniture: all of them when the caller
+ *  omitted `levelRef`, otherwise only same-level walls (null = ground). */
+function wallsFor(input: Pick<FurnitureSnapInput, 'walls' | 'levelRef'>): ReadonlyArray<WallLike> {
+  if (input.levelRef === undefined) return input.walls
+  return input.walls.filter((wall) => (wall.levelRef ?? null) === input.levelRef)
+}
+
 export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnapResult {
-  const { walls, point, depthCm, magnetismEnabled } = input
+  const { point, depthCm, magnetismEnabled } = input
+  const walls = wallsFor(input)
   if (walls.length === 0) {
     return { x: point.x, y: point.y, angleDeg: 0, wallRef: null, wallOffset: null }
   }
@@ -188,7 +203,8 @@ function separateFurnitureFromWalls(
 }
 
 export function snapFurnitureRotation(input: Omit<FurnitureSnapInput, 'magnetismEnabled'>): FurnitureSnapResult {
-  const { walls, point, widthCm = input.depthCm, depthCm, angleDeg = 0 } = input
+  const { point, widthCm = input.depthCm, depthCm, angleDeg = 0 } = input
+  const walls = wallsFor(input)
   let best: { wall: WallLike; point: Point; dist: number; side: number } | null = null
   for (const wall of walls) {
     const a = { x: wall.xStart, y: wall.yStart }
