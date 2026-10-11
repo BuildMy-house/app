@@ -8,7 +8,9 @@ import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js'
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js'
 import { HomeModel } from '../core/model'
 import { HomeStore } from '../core/store'
-import { DEFAULT_WALL_HEIGHT_CM, type Furniture, type NormalizedHomeState } from '../core/home'
+import { DEFAULT_WALL_HEIGHT_CM, type NormalizedHomeState } from '../core/home'
+import { normalizeAngle } from '../core/export'
+import { snapFurniturePlacement } from '../plan/furniture-snap'
 import { CameraDirector, type CameraPatch, type CameraPresetName } from './cameras'
 import { buildScene, defaultModelUrlResolver, type ModelUrlResolver } from './scene'
 import { observeStore, onScenePreferenceChange } from './watch'
@@ -42,11 +44,10 @@ import { applyFurnitureLod } from './furniture-lod'
 // Per-texture memory estimate for the telemetry textureMemoryMB figure (1024×1024 RGBA).
 const ESTIMATED_TEXTURE_MB = 1
 const INTERACTION_PIXEL_RATIO = 0.75
-// Furniture gizmo handle geometry and 3D floor-drag magnetism, in world cm.
+// Furniture gizmo handle geometry, in world cm.
 const GIZMO_ARROW_LENGTH_CM = 90
 const GIZMO_RING_RADIUS_CM = 65
 const GIZMO_HANDLE_RADIUS_CM = 7
-const FLOOR_DRAG_SNAP_CM = 10
 
 /**
  * GPU class string from WEBGL_debug_renderer_info, 'unknown' when the
@@ -85,6 +86,8 @@ export interface View3DOptions {
   isPlacing?: () => boolean
   /** Called with the model-space floor point of a placement click. */
   onFloorClick?: (point: { x: number; y: number }) => void
+  /** Live plan-engine magnetism flag, so 3D drags share 2D's snap behavior. */
+  isMagnetismEnabled?: () => boolean
   /**
    * Called every time an async (cache-miss) furniture GLB finishes loading.
    * The properties panel's per-slot material-override picker (Ticket 4)
@@ -151,7 +154,7 @@ export class View3D {
   private readonly modelUrlResolver: ModelUrlResolver
   private readonly model: HomeModel
   private readonly pointerDown = { x: 0, y: 0 }
-  private furnitureDrag: { id: string; x: number; y: number; start: { x: number; y: number } } | null = null
+  private furnitureDrag: { id: string; x: number; y: number; start: { x: number; y: number }; snappedWallId: string | null } | null = null
   private gizmo: THREE.Group | undefined
   private gizmoDrag: {
     id: string
@@ -164,6 +167,7 @@ export class View3D {
   } | null = null
   private readonly isPlacing?: () => boolean
   private readonly onFloorClick?: (point: { x: number; y: number }) => void
+  private readonly isMagnetismEnabled: () => boolean
   private readonly _onFurnitureModelReady?: () => void
   private _lastHome: NormalizedHomeState | null = null
   private _lastDeltaMs = 0
@@ -198,6 +202,7 @@ export class View3D {
     this.modelUrlResolver = options.modelUrlResolver ?? defaultModelUrlResolver
     this.isPlacing = options.isPlacing
     this.onFloorClick = options.onFloorClick
+    this.isMagnetismEnabled = options.isMagnetismEnabled ?? (() => true)
     this._onFurnitureModelReady = options.onFurnitureModelReady
     this._scene = buildScene(store.getHome(), {
       modelUrlResolver: this.modelUrlResolver,
@@ -317,7 +322,7 @@ export class View3D {
         const item = id && this.store.getHome().furniture.find((f) => f.id === id)
         const start = item && this.floorPoint(e)
         if (!item || !start) return
-        this.furnitureDrag = { id: item.id, x: item.x, y: item.y, start }
+        this.furnitureDrag = { id: item.id, x: item.x, y: item.y, start, snappedWallId: item.wallRef ?? null }
         this.store.beginCompoundEdit()
         this.model.setSelection([item.id])
         this.controls!.enabled = false
@@ -336,8 +341,33 @@ export class View3D {
           x: drag.x + point.x - drag.start.x,
           y: drag.y + point.y - drag.start.y,
         }
-        const item = this.store.getHome().furniture.find((f) => f.id === drag.id)
-        this.model.updateFurniture(drag.id, item ? this.snapFloorTarget(item, naive) : naive)
+        const home = this.store.getHome()
+        const item = home.furniture.find((f) => f.id === drag.id)
+        if (!item) {
+          this.model.updateFurniture(drag.id, naive)
+          return
+        }
+        // Same anti-clip + wall snap the 2D plan drag uses (engine.moveFurnitureTo).
+        const snap = snapFurniturePlacement({
+          walls: home.walls,
+          point: naive,
+          widthCm: item.width,
+          depthCm: item.depth,
+          angleDeg: item.angleDeg,
+          magnetismEnabled: this.isMagnetismEnabled(),
+          previousWallId: drag.snappedWallId,
+          levelRef: item.levelRef ?? null,
+        })
+        drag.snappedWallId = snap.wallRef
+        this.model.updateFurniture(drag.id, {
+          x: snap.x,
+          y: snap.y,
+          ...(snap.wallRef ? {
+            wallRef: snap.wallRef,
+            wallOffset: snap.wallOffset,
+            angleDeg: normalizeAngle(snap.angleDeg),
+          } : {}),
+        })
       })
       renderer.domElement.addEventListener('pointerup', (e) => {
         if (this.gizmoDrag) {
@@ -1131,46 +1161,6 @@ export class View3D {
     const n = camDir.clone().addScaledVector(axis, -camDir.dot(axis))
     if (n.lengthSq() < 1e-6) return axis.y !== 0 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0)
     return n.normalize()
-  }
-
-  // ponytail: local snap checks wall endpoints + furniture edges only (no
-  // diagonal-wall projection, fixed 10cm world threshold) — upgrade to
-  // snapFurniturePlacement once View3D can read the plan engine's magnetism flag
-  private snapFloorTarget(
-    item: Furniture,
-    naive: { x: number; y: number },
-  ): { x: number; y: number } {
-    const home = this.store.getHome()
-    const xs: number[] = []
-    const ys: number[] = []
-    for (const w of home.walls) {
-      if ((w.levelRef ?? null) !== (item.levelRef ?? null)) continue
-      xs.push(w.xStart, w.xEnd)
-      ys.push(w.yStart, w.yEnd)
-    }
-    for (const f of home.furniture) {
-      if (f.id === item.id || f.visible === false || (f.levelRef ?? null) !== (item.levelRef ?? null)) continue
-      xs.push(f.x - f.width / 2, f.x, f.x + f.width / 2)
-      ys.push(f.y - f.depth / 2, f.y, f.y + f.depth / 2)
-    }
-    const snapAxis = (value: number, half: number, targets: number[]): number => {
-      let best = value
-      let bestDist = FLOOR_DRAG_SNAP_CM
-      for (const t of targets) {
-        for (const cand of [t - half, t, t + half]) {
-          const dist = Math.abs(cand - value)
-          if (dist < bestDist) {
-            bestDist = dist
-            best = cand
-          }
-        }
-      }
-      return best
-    }
-    return {
-      x: snapAxis(naive.x, item.width / 2, xs),
-      y: snapAxis(naive.y, item.depth / 2, ys),
-    }
   }
 
   /** Draw the current scene. Does NOT advance controls (that's the loop). */

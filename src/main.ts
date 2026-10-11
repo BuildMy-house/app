@@ -1128,8 +1128,11 @@ canvas.addEventListener('pointerup', (event) => {
       ? snapFurniturePlacement({
           walls: store.peek().walls,
           point: raw,
+          widthCm: item.width,
           depthCm: item.depth,
+          angleDeg: 0,
           magnetismEnabled: engine.isMagnetismEnabled(),
+          levelRef: activeLevelId,
         })
       : { x: raw.x, y: raw.y, angleDeg: 0, wallRef: null, wallOffset: null }
     pendingSnapWallRef = snap.wallRef
@@ -1622,6 +1625,7 @@ view3d = new View3D(store, {
   // Placement in the 3D view: when a catalog piece is armed, a click on the
   // floor places it (snapped to walls), mirroring the 2D plan flow.
   isPlacing: () => catalogPanel?.isArmed() ?? false,
+  isMagnetismEnabled: () => engine.isMagnetismEnabled(),
   onFloorClick: (p) => {
     if (!catalogPanel?.isArmed()) return
     const item = catalogPanel.armedItem!
@@ -1630,8 +1634,11 @@ view3d = new View3D(store, {
     const snap = snapFurniturePlacement({
       walls: store.getHome().walls,
       point: raw,
+      widthCm: item.width,
       depthCm: item.depth,
+      angleDeg: 0,
       magnetismEnabled: engine.isMagnetismEnabled(),
+      levelRef: activeLevelId,
     })
     pendingSnapWallRef = snap.wallRef
     pendingSnapWallOffset = snap.wallOffset
