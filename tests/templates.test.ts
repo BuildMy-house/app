@@ -5,6 +5,7 @@ import { catalogFromManifest } from '../src/core/catalog-service'
 import type { CatalogManifest } from '../src/core/catalog'
 import catalogJsonRaw from '../assets/catalog/catalog.json'
 import { buildHomeFromTemplate } from '../src/templates/apply'
+import { furnitureOverlapsWalls } from '../src/plan/furniture-snap'
 import { searchWithoutTemplate, templateIdFromSearch } from '../src/templates/load'
 import type { TemplateFurniture } from '../src/templates/types'
 import { TEMPLATES } from '../scripts/templates/defs'
@@ -120,6 +121,17 @@ describe.each(compiled)('template $def.id', ({ def, plan }) => {
       spans.sort((a, b) => a[0] - b[0])
       spans.slice(1).forEach((s, i) => expect(s[0], `${spans[i]![2]} vs ${s[2]}`).toBeGreaterThanOrEqual(spans[i]![1] + 20))
     }
+  })
+
+  it('never places furniture inside a wall, and opening it moves nothing', () => {
+    for (const f of plan.furniture) {
+      expect(furnitureOverlapsWalls({ x: f.x, y: f.y }, plan.walls, f.width, f.depth, f.angleDeg), `${f.name}@${f.x},${f.y} overlaps a wall`).toBe(false)
+    }
+    // The store enforces clearance on every build; clean data means it moved nothing.
+    const built = buildHomeFromTemplate(plan, null).furniture.filter((f) => !f.doorOrWindow)
+    built.forEach((f, i) => {
+      expect([f.x, f.y], f.name).toEqual([plan.furniture[i]!.x, plan.furniture[i]!.y])
+    })
   })
 
   it('keeps every piece inside a room', () => {

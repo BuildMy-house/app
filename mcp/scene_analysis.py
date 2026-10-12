@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from math import hypot
+from math import atan2, ceil, cos, hypot, pi, radians, sin, tan
 from typing import Any
 
 
@@ -89,6 +89,69 @@ def _bounds(points: list[tuple[float, float]]) -> dict[str, float] | None:
             "width": max(xs) - min(xs), "height": max(ys) - min(ys)}
 
 
+_OVERLAP_EPSILON_CM = 1e-6
+
+
+def _wall_pieces(wall: dict[str, Any]) -> list[dict[str, float]]:
+    """Straight chords for a wall; round walls (arcExtent) are approximated by chords."""
+    xs, ys, xe, ye = wall["xStart"], wall["yStart"], wall["xEnd"], wall["yEnd"]
+    thickness = max(0.0, wall.get("thickness") or 0.0)
+    extent = wall.get("arcExtent") or 0
+    chord = hypot(xe - xs, ye - ys)
+    sagitta = (chord / 2) * tan(extent / 4) if extent and chord > 0 else 0
+    if abs(sagitta) < 1e-9:
+        return [{"xs": xs, "ys": ys, "xe": xe, "ye": ye, "t": thickness}]
+    nx, ny = (ye - ys) / chord, -(xe - xs) / chord
+    mx, my = (xs + xe) / 2 + nx * sagitta, (ys + ye) / 2 + ny * sagitta
+    radius = (chord * chord / 4 + sagitta * sagitta) / (2 * abs(sagitta))
+    sign = 1 if sagitta > 0 else -1
+    cx, cy = mx - nx * sign * radius, my - ny * sign * radius
+    start = atan2(ys - cy, xs - cx)
+    direction = 1 if (xs - cx) * (my - cy) - (ys - cy) * (mx - cx) >= 0 else -1
+    steps = max(2, ceil(abs(extent) / (pi / 12)))
+    points = [(xs, ys)]
+    for i in range(1, steps):
+        angle = start + direction * abs(extent) * i / steps
+        points.append((cx + radius * cos(angle), cy + radius * sin(angle)))
+    points.append((xe, ye))
+    return [{"xs": a[0], "ys": a[1], "xe": b[0], "ye": b[1], "t": thickness} for a, b in zip(points, points[1:])]
+
+
+def _item_overlaps_piece(item: dict[str, Any], piece: dict[str, float]) -> bool:
+    """Separating-axis test: oriented furniture footprint vs. one wall rectangle."""
+    length = hypot(piece["xe"] - piece["xs"], piece["ye"] - piece["ys"])
+    if length <= 0:
+        return False
+    tx, ty = (piece["xe"] - piece["xs"]) / length, (piece["ye"] - piece["ys"]) / length
+    nx, ny = -ty, tx
+    angle = radians(item.get("angleDeg") or 0)
+    ux, uy = cos(angle), sin(angle)
+    vx, vy = -uy, ux
+    dx = item["x"] - (piece["xs"] + piece["xe"]) / 2
+    dy = item["y"] - (piece["ys"] + piece["ye"]) / 2
+    half_w, half_d = item["width"] / 2, item["depth"] / 2
+    for ax, ay in ((nx, ny), (tx, ty), (ux, uy), (vx, vy)):
+        radius_f = abs(ux * ax + uy * ay) * half_w + abs(vx * ax + vy * ay) * half_d
+        radius_w = abs(tx * ax + ty * ay) * length / 2 + abs(nx * ax + ny * ay) * piece["t"] / 2
+        if radius_f + radius_w - abs(dx * ax + dy * ay) <= _OVERLAP_EPSILON_CM:
+            return False
+    return True
+
+
+def furniture_wall_overlaps(home: dict[str, Any]) -> list[tuple[Any, Any]]:
+    """(furniture id, wall id) pairs where a non-opening piece penetrates a wall on its own level."""
+    pairs: list[tuple[Any, Any]] = []
+    for item in home.get("furniture", []):
+        if item.get("doorOrWindow") or not all(isinstance(item.get(key), (int, float)) for key in ("x", "y", "width", "depth")):
+            continue
+        for wall in home.get("walls", []):
+            if (wall.get("levelRef") or None) != (item.get("levelRef") or None):
+                continue
+            if any(_item_overlaps_piece(item, piece) for piece in _wall_pieces(wall)):
+                pairs.append((item.get("id"), wall.get("id")))
+    return pairs
+
+
 def analyze_home(home: dict[str, Any]) -> dict[str, Any]:
     walls = home.get("walls", [])
     rooms = home.get("rooms", [])
@@ -142,6 +205,7 @@ def analyze_home(home: dict[str, Any]) -> dict[str, Any]:
     for row in furniture_rows:
         if row["roomId"] is None and not any(item.get("doorOrWindow") for item in furniture if item.get("id") == row["id"]):
             warnings.append(f"furniture {row['id']} is outside every room")
+    warnings.extend(f"furniture {item_id} overlaps wall {wall_id}" for item_id, wall_id in furniture_wall_overlaps(home))
     for i in range(len(rooms)):
         for j in range(i + 1, len(rooms)):
             if _rooms_overlap(rooms[i].get("points", []), rooms[j].get("points", [])):
@@ -184,5 +248,6 @@ def validate_home(home: dict[str, Any]) -> dict[str, Any]:
         if warning.startswith("scene has no ")
         or warning.startswith("duplicate ")
         or " is self-intersecting" in warning
+        or (warning.startswith("furniture ") and " overlaps wall " in warning)
     ]
     return {"valid": not errors, "errors": errors, "warnings": summary["warnings"], "summary": summary}

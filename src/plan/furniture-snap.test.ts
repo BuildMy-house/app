@@ -3,6 +3,8 @@ import {
   snapFurniturePlacement,
   snapFurnitureRotation,
   closestPointOnSegment,
+  furnitureOverlapsWalls,
+  separateFurnitureFromWalls,
   FURNITURE_SNAP_DISTANCE_CM,
 } from './furniture-snap'
 import type { WallLike } from './furniture-snap'
@@ -294,5 +296,92 @@ describe('level filtering (levelRef)', () => {
 
     const match = snapFurnitureRotation({ walls: [upperWall], ...input, levelRef: 'lvl-1' })
     expect(match).toMatchObject({ x: 205, wallRef: 'wall-upper' })
+  })
+})
+
+describe('separateFurnitureFromWalls robustness', () => {
+  const box = (thickness = 10): WallLike[] => [
+    { xStart: 0, yStart: 0, xEnd: 300, yEnd: 0, thickness },
+    { xStart: 300, yStart: 0, xEnd: 300, yEnd: 300, thickness },
+    { xStart: 300, yStart: 300, xEnd: 0, yEnd: 300, thickness },
+    { xStart: 0, yStart: 300, xEnd: 0, yEnd: 0, thickness },
+  ]
+
+  it('leaves a clear footprint untouched', () => {
+    expect(separateFurnitureFromWalls({ x: 150, y: 150 }, box(), 60, 60, 30)).toEqual({ x: 150, y: 150 })
+  })
+
+  it('clears a corner without re-entering either wall', () => {
+    const p = separateFurnitureFromWalls({ x: 2, y: 2 }, box(), 80, 40, 45)
+    expect(furnitureOverlapsWalls(p, box(), 80, 40, 45)).toBe(false)
+  })
+
+  it('clears thin, zero-thickness and rotated walls', () => {
+    for (const thickness of [0, 0.1, 2]) {
+      const walls: WallLike[] = [{ xStart: 0, yStart: 0, xEnd: 200, yEnd: 120, thickness }]
+      const p = separateFurnitureFromWalls({ x: 100, y: 60 }, walls, 50, 30, 17)
+      expect(furnitureOverlapsWalls(p, walls, 50, 30, 17), `thickness ${thickness}`).toBe(false)
+    }
+  })
+
+  it('treats round walls as solid along their bulge', () => {
+    const arc: WallLike = { xStart: 0, yStart: 0, xEnd: 200, yEnd: 0, thickness: 10, arcExtent: Math.PI }
+    // Chord midpoint bulges to y = -100 (engine convention: positive = ccw); sit on the bulge.
+    const bulge = { x: 100, y: -100 }
+    const p = separateFurnitureFromWalls(bulge, [arc], 40, 40, 0)
+    expect(p).not.toEqual(bulge)
+    expect(furnitureOverlapsWalls(p, [arc], 40, 40, 0)).toBe(false)
+  })
+
+  it('finds free space for a piece larger than its room (no infinite push, no NaN)', () => {
+    const p = separateFurnitureFromWalls({ x: 150, y: 150 }, box(), 500, 500, 33)
+    expect(Number.isFinite(p.x) && Number.isFinite(p.y)).toBe(true)
+    expect(furnitureOverlapsWalls(p, box(), 500, 500, 33)).toBe(false)
+  })
+
+  it('returns non-finite input unchanged instead of producing NaN', () => {
+    expect(separateFurnitureFromWalls({ x: Number.NaN, y: 5 }, box(), 50, 50, 0).y).toBe(5)
+    expect(separateFurnitureFromWalls({ x: 1, y: 2 }, box(), Number.POSITIVE_INFINITY, 50, 0)).toEqual({ x: 1, y: 2 })
+  })
+
+  it('ignores degenerate zero-length walls', () => {
+    expect(separateFurnitureFromWalls({ x: 5, y: 5 }, [{ xStart: 5, yStart: 5, xEnd: 5, yEnd: 5, thickness: 10 }], 20, 20, 0)).toEqual({ x: 5, y: 5 })
+  })
+
+  it('property: the result never overlaps any wall, for random layouts', () => {
+    let seed = 20261012
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0
+      return seed / 2 ** 32
+    }
+    const between = (lo: number, hi: number) => lo + rand() * (hi - lo)
+    for (let run = 0; run < 400; run++) {
+      const walls: WallLike[] = Array.from({ length: 1 + Math.floor(rand() * 6) }, () => ({
+        xStart: between(-300, 300),
+        yStart: between(-300, 300),
+        xEnd: between(-300, 300),
+        yEnd: between(-300, 300),
+        thickness: rand() < 0.2 ? 0 : between(0.5, 40),
+        arcExtent: rand() < 0.25 ? between(-Math.PI, Math.PI) : null,
+      }))
+      const w = between(5, 400)
+      const d = between(5, 400)
+      const angle = between(-180, 180)
+      const start = { x: between(-350, 350), y: between(-350, 350) }
+      const p = separateFurnitureFromWalls(start, walls, w, d, angle)
+      expect(Number.isFinite(p.x) && Number.isFinite(p.y), `run ${run} finite`).toBe(true)
+      expect(furnitureOverlapsWalls(p, walls, w, d, angle), `run ${run} overlaps`).toBe(false)
+    }
+  })
+
+  it('snapFurniturePlacement never returns an overlapping position, magnetism on or off', () => {
+    const walls = box(12).map((wall, i) => ({ ...wall, id: `w${i}` }))
+    for (const magnetismEnabled of [true, false]) {
+      for (const { x, y } of [{ x: 0, y: 0 }, { x: 150, y: 3 }, { x: 298, y: 150 }, { x: 150, y: 150 }, { x: -40, y: 150 }]) {
+        const r = snapFurniturePlacement({ walls, point: { x, y }, widthCm: 90, depthCm: 45, angleDeg: 20, magnetismEnabled })
+        const angle = r.wallRef ? r.angleDeg : 20
+        expect(furnitureOverlapsWalls(r, walls, 90, 45, angle), `${x},${y} magnetism ${magnetismEnabled}`).toBe(false)
+      }
+    }
   })
 })

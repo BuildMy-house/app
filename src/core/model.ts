@@ -44,7 +44,8 @@ function attachedPosition(item: Furniture, x: number, y: number, wall: Wall): { 
   const nx = -uy
   const ny = ux
   const currentLateral = (item.x - wall.xStart) * nx + (item.y - wall.yStart) * ny
-  const lateral = Math.sign(currentLateral || 1) * item.depth / 2
+  // Non-openings sit flush against the wall FACE, not its centerline.
+  const lateral = Math.sign(currentLateral || 1) * (item.depth / 2 + (item.doorOrWindow ? 0 : (wall.thickness || 0) / 2))
   const halfWidth = item.doorOrWindow ? item.width / 2 : 0
   const wallOffset = length < halfWidth * 2
     ? length / 2

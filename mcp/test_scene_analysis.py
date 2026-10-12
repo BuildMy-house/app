@@ -93,6 +93,41 @@ class SceneAnalysisTest(unittest.TestCase):
         self.assertEqual(summary["warnings"], [])
         self.assertTrue(validate_home(home)["valid"])
 
+    def _box(self, **item):
+        piece = {"id": "f1", "name": "Sofa", "x": 200, "y": 150, "width": 120, "depth": 60, "angleDeg": 0}
+        piece.update(item)
+        walls = [dict(wall, thickness=10) for wall in CLOSED_SQUARE_WALLS]
+        return make_home(walls=walls, rooms=[SQUARE_ROOM], furniture=[piece])
+
+    def test_furniture_inside_a_wall_is_an_error(self):
+        home = self._box(y=0)
+        result = validate_home(home)
+        self.assertIn("furniture f1 overlaps wall w1", result["warnings"])
+        self.assertIn("furniture f1 overlaps wall w1", result["errors"])
+        self.assertFalse(result["valid"])
+
+    def test_rotated_furniture_poking_into_a_wall_is_an_error(self):
+        self.assertFalse(validate_home(self._box(x=20, y=150, angleDeg=90, width=150, depth=40))["valid"])
+
+    def test_furniture_flush_against_a_wall_face_is_valid(self):
+        result = validate_home(self._box(y=35))
+        self.assertTrue(result["valid"], result["errors"])
+
+    def test_doors_and_windows_may_sit_in_walls(self):
+        home = self._box(y=0, doorOrWindow=True, width=90, depth=10)
+        self.assertTrue(validate_home(home)["valid"])
+
+    def test_furniture_ignores_walls_on_other_levels(self):
+        home = self._box(y=0, levelRef="level-2")
+        self.assertTrue(validate_home(home)["valid"])
+
+    def test_round_walls_are_solid_along_their_bulge(self):
+        arc = {"id": "arc", "xStart": 0, "yStart": 0, "xEnd": 200, "yEnd": 0, "thickness": 10, "arcExtent": 3.14159}
+        piece = {"id": "f1", "name": "Pot", "x": 100, "y": -100, "width": 30, "depth": 30, "angleDeg": 0}
+        self.assertIn("furniture f1 overlaps wall arc", analyze_home(make_home(walls=[arc], furniture=[piece]))["warnings"])
+        piece["y"] = 100
+        self.assertNotIn("furniture f1 overlaps wall arc", analyze_home(make_home(walls=[arc], furniture=[piece]))["warnings"])
+
 
 if __name__ == "__main__":
     unittest.main()

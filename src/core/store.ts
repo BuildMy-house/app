@@ -1,9 +1,13 @@
+import { enforceFurnitureClearance } from './furniture-clearance'
 import { createEmptyHome, type NormalizedHomeState } from './home'
 import { followTopCamera } from './top-camera-follower'
 
 /**
  * Pure home state store. Zero platform imports; all mutation goes through
  * apply() so the automation layer and the UI share one truth.
+ *
+ * Every apply() also enforces the furniture-never-overlaps-a-wall invariant
+ * (see furniture-clearance.ts) — loadHome/undo/redo restore states verbatim.
  *
  * Undo/redo is snapshot-based: every undoable mutation clones the whole home.
  * Depth-capped to the 20 most recent actions.
@@ -71,6 +75,7 @@ export class HomeStore {
     const previous = this.home
     const draft = structuredClone(previous)
     mutate(draft)
+    enforceFurnitureClearance(draft, previous)
     if (this.compoundDepth > 0) {
       // Inside a compound edit: state advances now (so per-item followers run
       // event-by-event) but the single undo push waits for endCompoundEdit.
