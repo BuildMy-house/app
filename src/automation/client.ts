@@ -13,7 +13,7 @@ interface AutomationRequest {
   params?: Record<string, unknown>
 }
 
-export type CommandResult = { ok: true; data: unknown } | { ok: false; error: string; code: string }
+export type CommandResult = { ok: true; data: unknown } | { ok: false; error: string; code: string; details?: Record<string, unknown> }
 
 /** The set of command types this client answers, implemented by HomelyCommandHandler. */
 export interface CommandHandler {

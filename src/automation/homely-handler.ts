@@ -1,5 +1,6 @@
 import type { HomeStore } from '../core/store'
 import { serializeHome } from '../core/export'
+import { FurnitureTooLargeError } from '../core/furniture-clearance'
 import { HomeModel, ModelError, assert, DEFAULT_LEVEL_HEIGHT_CM } from '../core/model'
 import type {
   NormalizedHomeState,
@@ -120,6 +121,24 @@ export class HomelyCommandHandler implements CommandHandler {
     } catch (err) {
       if (err instanceof ModelError) {
         return { ok: false, error: err.message, code: 'INVALID_PARAMS' }
+      }
+      if (err instanceof FurnitureTooLargeError) {
+        return {
+          ok: false,
+          error: err.message,
+          code: 'FURNITURE_TOO_LARGE',
+          details: {
+            furnitureId: err.furnitureId,
+            furnitureName: err.furnitureName,
+            widthCm: err.widthCm,
+            depthCm: err.depthCm,
+            angleDeg: err.angleDeg,
+            roomId: err.roomId,
+            roomName: err.roomName,
+            roomWidthCm: err.roomWidthCm,
+            roomDepthCm: err.roomDepthCm,
+          },
+        }
       }
       throw err
     }
@@ -383,12 +402,12 @@ export class HomelyCommandHandler implements CommandHandler {
         return { ok: true, data: { count } }
       }
       case 'paste': {
-        const ids = this.clipboardManager.paste()
+        const ids = this.store.atomically(() => this.clipboardManager.paste())
         if (ids.length === 0) throw new ModelError('clipboard is empty; copy something first')
         return { ok: true, data: { ids } }
       }
       case 'duplicate': {
-        const ids = this.clipboardManager.duplicate()
+        const ids = this.store.atomically(() => this.clipboardManager.duplicate())
         if (ids.length === 0) throw new ModelError('duplicate requires a non-empty selection')
         return { ok: true, data: { ids } }
       }
@@ -403,12 +422,14 @@ export class HomelyCommandHandler implements CommandHandler {
           throw new ModelError('modify_selected requires a selection; use select_object first')
         }
         const updated: string[] = []
-        for (const id of home.selection) {
-          const collection = this.collectionOf(home, id)
-          assert(collection !== null, `unknown object id: ${id}`)
-          this.modifyItem(collection, id, props as Record<string, unknown>)
-          updated.push(id)
-        }
+        this.store.atomically(() => {
+          for (const id of home.selection) {
+            const collection = this.collectionOf(home, id)
+            assert(collection !== null, `unknown object id: ${id}`)
+            this.modifyItem(collection, id, props as Record<string, unknown>)
+            updated.push(id)
+          }
+        })
         return { ok: true, data: { updated } }
       }
       case 'add_room': {
