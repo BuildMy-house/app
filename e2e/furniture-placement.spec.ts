@@ -336,7 +336,9 @@ async function installOverlapProbe(page: Page) {
       const f = home.furniture.find((i: any) => i.id === furnitureId)
       const a = (f.angleDeg * Math.PI) / 180
       const fAxes = [[Math.cos(a), Math.sin(a)], [-Math.sin(a), Math.cos(a)]]
-      return home.walls.some((w: any) => {
+      // A wall only blocks a piece whose underside is below the wall top (see plan/wall-height.ts).
+      const blocking = home.walls.filter((w: any) => Math.max(w.height ?? 250, w.heightAtEnd ?? w.height ?? 250) > f.elevation)
+      return blocking.some((w: any) => {
         const len = Math.hypot(w.xEnd - w.xStart, w.yEnd - w.yStart)
         const t = [(w.xEnd - w.xStart) / len, (w.yEnd - w.yStart) / len]
         const n = [-t[1], t[0]]
