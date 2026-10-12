@@ -10,6 +10,7 @@ import { HomeModel } from '../core/model'
 import { HomeStore } from '../core/store'
 import { DEFAULT_WALL_HEIGHT_CM, type NormalizedHomeState } from '../core/home'
 import { normalizeAngle } from '../core/export'
+import { guardFurnitureEdit } from '../ui/furniture-rejection'
 import { snapFurniturePlacement } from '../plan/furniture-snap'
 import { CameraDirector, type CameraPatch, type CameraPresetName } from './cameras'
 import { buildScene, defaultModelUrlResolver, type ModelUrlResolver } from './scene'
@@ -330,7 +331,7 @@ export class View3D {
       })
       renderer.domElement.addEventListener('pointermove', (e) => {
         if (this.gizmoDrag) {
-          this.updateGizmoDrag(e)
+          guardFurnitureEdit(() => this.updateGizmoDrag(e))
           return
         }
         if (!this.furnitureDrag) return
@@ -344,7 +345,7 @@ export class View3D {
         const home = this.store.getHome()
         const item = home.furniture.find((f) => f.id === drag.id)
         if (!item) {
-          this.model.updateFurniture(drag.id, naive)
+          guardFurnitureEdit(() => this.model.updateFurniture(drag.id, naive))
           return
         }
         // Same anti-clip + wall snap the 2D plan drag uses (engine.moveFurnitureTo).
@@ -360,7 +361,7 @@ export class View3D {
           levelRef: item.levelRef ?? null,
         })
         drag.snappedWallId = snap.wallRef
-        this.model.updateFurniture(drag.id, {
+        guardFurnitureEdit(() => this.model.updateFurniture(drag.id, {
           x: snap.x,
           y: snap.y,
           ...(snap.wallRef ? {
@@ -368,7 +369,7 @@ export class View3D {
             wallOffset: snap.wallOffset,
             angleDeg: normalizeAngle(snap.angleDeg),
           } : {}),
-        })
+        }))
       })
       renderer.domElement.addEventListener('pointerup', (e) => {
         if (this.gizmoDrag) {

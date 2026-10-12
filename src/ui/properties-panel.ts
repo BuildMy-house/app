@@ -1,4 +1,6 @@
 import type { HomeStore } from '../core/store'
+import { FurnitureTooLargeError } from '../core/furniture-clearance'
+import { reportFurnitureRejection } from './furniture-rejection'
 import { HomeModel } from '../core/model'
 import type { Wall, Room, Furniture, Label, DimensionLine, Roof, NormalizedHomeState } from '../core/home'
 import { WALL_TEXTURES } from '../core/home'
@@ -163,6 +165,21 @@ export class PropertiesPanel {
     this.render(this.store)
   }
 
+  /**
+   * Run a model edit from a control. If the model refuses it because a piece
+   * would be too large for its room, nothing changed: explain why and rebuild
+   * the controls from the model so they show the last valid values.
+   */
+  private commitGuarded(edit: () => void): void {
+    try {
+      edit()
+    } catch (err) {
+      if (!(err instanceof FurnitureTooLargeError)) throw err
+      reportFurnitureRejection(err)
+      this.refresh()
+    }
+  }
+
   toggle(): void {
     this.visible = !this.visible
     this.root.classList.toggle('collapsed', !this.visible)
@@ -257,7 +274,7 @@ export class PropertiesPanel {
 
   private renderWall(body: HTMLDivElement, wall: Wall, store: HomeStore): void {
     const commit = (patch: Partial<Omit<Wall, 'id'>>) => {
-      this.model.updateWall(wall.id, patch)
+      this.commitGuarded(() => this.model.updateWall(wall.id, patch))
     }
     const rooms = store.getHome().rooms
 
@@ -540,7 +557,7 @@ export class PropertiesPanel {
 
   private renderFurniture(body: HTMLDivElement, f: Furniture, store: HomeStore): void {
     const commit = (patch: Partial<Omit<Furniture, 'id'>>) => {
-      this.model.updateFurniture(f.id, patch)
+      this.commitGuarded(() => this.model.updateFurniture(f.id, patch))
     }
 
     // Name

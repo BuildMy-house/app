@@ -371,3 +371,33 @@ describe('PropertiesPanel Set as default button', () => {
     expect(store.getHome().preferences!.defaultInteriorWallTextureId).toBe('carpet')
   })
 })
+
+describe('PropertiesPanel rejects furniture that cannot fit its room', () => {
+  it('toasts the reason and restores the control to the last valid value', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    const pts: Array<[number, number]> = [[0, 0], [400, 0], [400, 400], [0, 400]]
+    pts.forEach(([xs, ys], i) => {
+      const [xe, ye] = pts[(i + 1) % 4]!
+      model.addWall({ xStart: xs, yStart: ys, xEnd: xe, yEnd: ye, thickness: 10 })
+    })
+    model.addRoom(pts, { name: 'Living' })
+    const f = model.addFurniture({ name: 'Sofa', x: 200, y: 200, angleDeg: 0, width: 200, depth: 90, height: 80, elevation: 0 })
+    model.setSelection([f.id])
+    const panel = new PropertiesPanel(store, document.createElement('div'))
+    const widthInput = (): HTMLInputElement => {
+      const row = [...panel.element.querySelectorAll('.prop-row')].find(
+        (r) => r.querySelector('.prop-label')?.textContent === 'W',
+      )!
+      return row.querySelector('input')!
+    }
+
+    widthInput().value = '600'
+    widthInput().dispatchEvent(new Event('change', { bubbles: true }))
+
+    expect(store.getHome().furniture[0]!.width).toBe(200)
+    expect(widthInput().value).toBe('200')
+    const toast = document.querySelector('.toast-error')
+    expect(toast?.textContent).toContain('"Sofa" (600 x 90 cm) is too large for room "Living"')
+  })
+})

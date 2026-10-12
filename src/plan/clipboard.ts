@@ -39,9 +39,11 @@ export class ClipboardManager {
 
   paste(): string[] {
     if (this.clipboard.length === 0) return []
-    const ids = this.clipboard.map((entry) => this.pasteItem(entry, PASTE_OFFSET_CM, PASTE_OFFSET_CM))
-    this.model.setSelection(ids)
-    return ids
+    return this.store.atomically(() => {
+      const ids = this.clipboard.map((entry) => this.pasteItem(entry, PASTE_OFFSET_CM, PASTE_OFFSET_CM))
+      this.model.setSelection(ids)
+      return ids
+    })
   }
 
   duplicate(): string[] {
@@ -57,9 +59,11 @@ export class ClipboardManager {
       }
     }
     if (clip.length === 0) return []
-    const ids = clip.map((entry) => this.pasteItem(entry, PASTE_OFFSET_CM, PASTE_OFFSET_CM))
-    this.model.setSelection(ids)
-    return ids
+    return this.store.atomically(() => {
+      const ids = clip.map((entry) => this.pasteItem(entry, PASTE_OFFSET_CM, PASTE_OFFSET_CM))
+      this.model.setSelection(ids)
+      return ids
+    })
   }
 
   getClipboardLength(): number {

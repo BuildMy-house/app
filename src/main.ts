@@ -30,6 +30,7 @@ import { ClipboardManager } from './plan/clipboard'
 import { ModelUploadDialog } from './ui/model-upload-dialog'
 import { saveDraft, loadDraft } from './services/adapters/local-draft'
 import { showToast, errorReason } from './ui/toast'
+import { guardFurnitureEdit } from './ui/furniture-rejection'
 import { templateIdFromSearch, searchWithoutTemplate, fetchTemplatePlan } from './templates/load'
 import { buildHomeFromTemplate } from './templates/apply'
 import { createPlanEmptyState } from './ui/plan-empty-state'
@@ -363,12 +364,12 @@ function refreshMenus(): void {
         { label: 'Undo', shortcut: 'Ctrl+Z', action: doUndo, disabled: !hasUndo() },
         { label: 'Redo', shortcut: 'Ctrl+Y', action: doRedo, disabled: !hasRedo() },
         { label: '---' },
-        { label: 'Delete', action: () => { engine.key('delete'); refreshAll() } },
+        { label: 'Delete', action: () => { guardFurnitureEdit(() => engine.key('delete')); refreshAll() } },
         { label: 'Select All', action: () => selectAll() },
         { label: '---' },
         { label: 'Copy', shortcut: 'Ctrl+C', action: () => { if (clipboardManager.copy() > 0) refreshAll() } },
-        { label: 'Paste', shortcut: 'Ctrl+V', action: () => { if (clipboardManager.paste().length > 0) refreshAll() } },
-        { label: 'Duplicate', shortcut: 'Ctrl+D', action: () => { if (clipboardManager.duplicate().length > 0) refreshAll() } },
+        { label: 'Paste', shortcut: 'Ctrl+V', action: () => { if (guardFurnitureEdit(() => clipboardManager.paste().length > 0)) refreshAll() } },
+        { label: 'Duplicate', shortcut: 'Ctrl+D', action: () => { if (guardFurnitureEdit(() => clipboardManager.duplicate().length > 0)) refreshAll() } },
         { label: '---' },
         { label: 'Preferences…', action: () => openPreferences() },
       ],
@@ -1071,7 +1072,8 @@ canvas.addEventListener('pointermove', (event) => {
   pointer.lastX = point.x
   pointer.lastY = point.y
   if (pointer.rotationId) {
-    if (pointer.moved) engine.rotateFurnitureTo(pointer.rotationId, point)
+    const rotationId = pointer.rotationId
+    if (pointer.moved) guardFurnitureEdit(() => engine.rotateFurnitureTo(rotationId, point))
     return
   }
   if (pointer.furnitureMoveId) {
@@ -1090,7 +1092,8 @@ canvas.addEventListener('pointerup', (event) => {
   const point = eventModelPoint(event)
 
   if (pointer.rotationId) {
-    if (pointer.moved) engine.rotateFurnitureTo(pointer.rotationId, point)
+    const rotationId = pointer.rotationId
+    if (pointer.moved) guardFurnitureEdit(() => engine.rotateFurnitureTo(rotationId, point))
     engine.endFurnitureRotation()
     pointer.rotationId = null
     refreshToolbar()
@@ -1099,7 +1102,7 @@ canvas.addEventListener('pointerup', (event) => {
   }
   if (pointer.furnitureMoveId) {
     pendingFurnitureMovePoint = null
-    if (pointer.moved) engine.moveFurnitureTo(point)
+    if (pointer.moved) guardFurnitureEdit(() => engine.moveFurnitureTo(point))
     engine.endFurnitureMove()
     pointer.furnitureMoveId = null
     refreshToolbar()
@@ -1140,7 +1143,7 @@ canvas.addEventListener('pointerup', (event) => {
     pendingSnapWallOffset = snap.wallOffset
     const panel = catalogPanel
     void traceAction(item?.doorOrWindow ? 'doorwindow.add' : 'furniture.place', () => {
-      panel.place(snap.x, snap.y, snap.angleDeg)
+      guardFurnitureEdit(() => panel.place(snap.x, snap.y, snap.angleDeg))
     })
     refreshToolbar()
     refreshStatus()
@@ -1148,25 +1151,25 @@ canvas.addEventListener('pointerup', (event) => {
   }
 
   if (pointer.moved) {
-    engine.drag({
+    guardFurnitureEdit(() => engine.drag({
       fromX: pointer.startX,
       fromY: pointer.startY,
       toX: point.x,
       toY: point.y,
       shift: pointer.shift,
       altOrMeta: event.altKey || event.metaKey,
-    })
+    }))
   } else {
     const tool = engine.getTool()
     const actionName = tool === 'wall' ? 'wall.click' : tool === 'room' ? 'room.add' : null
     const doClick = (): void => {
-      engine.click({
+      guardFurnitureEdit(() => engine.click({
         x: point.x,
         y: point.y,
         dbl: false,
         shift: event.shiftKey,
         altOrMeta: event.altKey || event.metaKey,
-      })
+      }))
     }
     if (actionName) void traceAction(actionName, doClick)
     else doClick()
@@ -1195,14 +1198,14 @@ canvas.addEventListener('dblclick', (event) => {
     return
   }
   const point = eventModelPoint(event)
-  engine.click({ x: point.x, y: point.y, dbl: true, shift: event.shiftKey })
+  guardFurnitureEdit(() => engine.click({ x: point.x, y: point.y, dbl: true, shift: event.shiftKey }))
   refreshToolbar()
   refreshStatus()
 })
 
 // ── Plan-view context menu (right-click) ────────────────────────────────────
 // Mirrors the Edit menu actions, wired to the exact same functions the
-// keyboard shortcuts use (clipboardManager / engine.key('delete')).
+// keyboard shortcuts use (clipboardManager / guardFurnitureEdit(() => engine.key('delete'))).
 
 function closeContextMenu(): void {
   contextMenu.classList.remove('open')
@@ -1239,11 +1242,11 @@ function openContextMenu(clientX: number, clientY: number): void {
 
   makeEntry('Copy', hasSelection, () => { if (clipboardManager.copy() > 0) refreshAll() })
   makeEntry('Paste', clipboardManager.getClipboardLength() > 0, () => {
-    if (clipboardManager.paste().length > 0) refreshAll()
+    if (guardFurnitureEdit(() => clipboardManager.paste().length > 0)) refreshAll()
   })
-  makeEntry('Duplicate', hasSelection, () => { if (clipboardManager.duplicate().length > 0) refreshAll() })
+  makeEntry('Duplicate', hasSelection, () => { if (guardFurnitureEdit(() => clipboardManager.duplicate().length > 0)) refreshAll() })
   makeEntry('Delete', hasSelection, () => {
-    if (store.getHome().selection.length > 0) { engine.key('delete'); refreshAll() }
+    if (store.getHome().selection.length > 0) { guardFurnitureEdit(() => engine.key('delete')); refreshAll() }
   })
 
   contextMenu.style.left = `${clientX}px`
@@ -1338,12 +1341,12 @@ window.addEventListener('keydown', (event) => {
   }
   if ((event.ctrlKey || event.metaKey) && event.key === 'v' && !isInput) {
     event.preventDefault()
-    if (clipboardManager.paste().length > 0) refreshAll()
+    if (guardFurnitureEdit(() => clipboardManager.paste().length > 0)) refreshAll()
     return
   }
   if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
     event.preventDefault()
-    if (clipboardManager.duplicate().length > 0) refreshAll()
+    if (guardFurnitureEdit(() => clipboardManager.duplicate().length > 0)) refreshAll()
     return
   }
 
@@ -1390,7 +1393,7 @@ window.addEventListener('keydown', (event) => {
   else if (event.key === ']') { propsPanel?.toggle(); return }
   if (key === null) return
   event.preventDefault()
-  engine.key(key, event.shiftKey)
+  guardFurnitureEdit(() => engine.key(key, event.shiftKey))
   refreshToolbar()
   refreshStatus()
 })
@@ -1463,7 +1466,8 @@ function frame(ts: number): void {
   prevFrameTs = ts
 
   if (pendingFurnitureMovePoint && pointer.furnitureMoveId) {
-    engine.moveFurnitureTo(pendingFurnitureMovePoint)
+    const movePoint = pendingFurnitureMovePoint
+    guardFurnitureEdit(() => engine.moveFurnitureTo(movePoint))
     pendingFurnitureMovePoint = null
   }
   const preview = engine.getPreview()
@@ -1645,7 +1649,7 @@ view3d = new View3D(store, {
     pendingSnapWallRef = snap.wallRef
     pendingSnapWallOffset = snap.wallOffset
     void traceAction(item.doorOrWindow ? 'doorwindow.add' : 'furniture.place', () => {
-      panel.place(snap.x, snap.y, snap.angleDeg)
+      guardFurnitureEdit(() => panel.place(snap.x, snap.y, snap.angleDeg))
     })
     refreshToolbar()
     refreshStatus()
@@ -1727,8 +1731,9 @@ const catalogReady = (cachedManifest
     catalog: sharedCatalog,
     modelUrlResolver,
     onPlace: (item, x, y, angleDeg) => {
+      const placed = model.getStore().atomically(() => {
       model.getStore().beginCompoundEdit()
-      const placed = model.addFurniture({
+      const added = model.addFurniture({
         name: item.name,
         catalogId: item.catalogId,
         x,
@@ -1745,8 +1750,10 @@ const catalogReady = (cachedManifest
         wallRef: item.doorOrWindow ? pendingSnapWallRef : undefined,
         wallOffset: item.doorOrWindow ? pendingSnapWallOffset : undefined,
       })
-      model.setSelection([placed.id])
+      model.setSelection([added.id])
       model.getStore().endCompoundEdit()
+      return added
+      })
       trackOnce('first_furniture_placed')
       setSidebarTab('furniture')
       refreshToolbar()

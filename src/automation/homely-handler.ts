@@ -402,12 +402,12 @@ export class HomelyCommandHandler implements CommandHandler {
         return { ok: true, data: { count } }
       }
       case 'paste': {
-        const ids = this.store.atomically(() => this.clipboardManager.paste())
+        const ids = this.clipboardManager.paste()
         if (ids.length === 0) throw new ModelError('clipboard is empty; copy something first')
         return { ok: true, data: { ids } }
       }
       case 'duplicate': {
-        const ids = this.store.atomically(() => this.clipboardManager.duplicate())
+        const ids = this.clipboardManager.duplicate()
         if (ids.length === 0) throw new ModelError('duplicate requires a non-empty selection')
         return { ok: true, data: { ids } }
       }
