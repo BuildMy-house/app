@@ -7,7 +7,7 @@ import type { WallLoop } from '../core/wall-loop-detector'
 import { detectClosedLoops, wallCenterlinePoints } from '../core/wall-loop-detector'
 import { buildWallEndpointIndex } from '../core/wall-endpoint-index'
 import { AutoFloorDialog } from '../ui/AutoFloorDialog'
-import { pointWithAngleMagnetism, wallPointMagnetism } from './magnetism'
+import { lockVectorToAngleStep, pointWithAngleMagnetism, softAxisSnapVector, wallPointMagnetism } from './magnetism'
 import { FurnitureTooLargeError } from '../core/furniture-clearance'
 import { snapFurniturePlacement, snapFurnitureRotation } from './furniture-snap'
 import {
@@ -160,6 +160,9 @@ export interface PlanPreview {
   snapLock: Point | null
   /** Live feedback while dragging a piece: where it was asked to go and why it isn't going there. */
   furnitureDragHint: FurnitureDragHint | null
+  /** Live wall-drag angle-lock preview (ghost segment/centerline) — drawn by
+   *  the renderer but backed by NO model edit until the drag commits. */
+  wallDragGhost: { x1: number; y1: number; x2: number; y2: number } | null
 }
 
 /**
@@ -237,6 +240,16 @@ export class PlanEngine {
   private _marqueeActive = false
   private closurePolygon: Array<Point> | null = null
   private closureTooltip: { text: string; x: number; y: number } | null = null
+  /** Live keyboard modifiers (Shift = hard 15° lock, Alt/Option/Meta = bypass
+   *  all magnetism). main.ts pushes these on every pointer/key event so a key
+   *  pressed mid-gesture applies without waiting for a fresh pointer event. */
+  private liveShift = false
+  private liveAlt = false
+  /** Modifiers captured on the click/drag input currently being processed
+   *  (null outside one); OR-ed with the live keys by effectiveModifiers(). */
+  private gestureInput: { shift?: boolean; altOrMeta?: boolean } | null = null
+  /** Ghost segment for the live wall-drag angle-lock preview (see PlanPreview). */
+  private wallDragGhost: { x1: number; y1: number; x2: number; y2: number } | null = null
   private snapLock: Point | null = null
   private furnitureDragHint: FurnitureDragHint | null = null
 
@@ -283,6 +296,7 @@ export class PlanEngine {
     this.tool = tool
     this.closurePolygon = null
     this.closureTooltip = null
+    this.wallDragGhost = null
     if (tool !== 'wall' && tool !== 'room' && tool !== 'polyline' && tool !== 'dimensionLine' && tool !== 'label') this.phase = 'idle'
     // Mirror the tool into home state without polluting undo history.
     this.model.getStore().patchNonUndoable((h) => {
@@ -296,6 +310,27 @@ export class PlanEngine {
 
   isMagnetismEnabled(): boolean {
     return this.magnetismEnabled
+  }
+
+  /** Push live keyboard modifiers (main.ts calls this on every pointer/key
+   *  event and on window blur). */
+  setModifierKeys(keys: { shift?: boolean; alt?: boolean }): void {
+    this.liveShift = keys.shift === true
+    this.liveAlt = keys.alt === true
+  }
+
+  getModifierKeys(): { shift: boolean; alt: boolean } {
+    return { shift: this.liveShift, alt: this.liveAlt }
+  }
+
+  /** Effective modifiers for a gesture: the live keys OR the gesture input's
+   *  own captured flags (a key held at pointerdown counts even if the live
+   *  push was missed, and vice versa). */
+  private effectiveModifiers(input?: { shift?: boolean; altOrMeta?: boolean } | null): { shift: boolean; alt: boolean } {
+    return {
+      shift: this.liveShift || input?.shift === true,
+      alt: this.liveAlt || input?.altOrMeta === true,
+    }
   }
 
   setReferenceOverlay(enabled: boolean): void {
@@ -589,11 +624,69 @@ export class PlanEngine {
       closureTooltip: this.closureTooltip,
       snapLock: this.snapLock,
       furnitureDragHint: this.furnitureDragHint,
+      wallDragGhost: this.wallDragGhost,
     }
   }
 
   hitTestPoint(point: Point): HitResult | null {
     return this.hitTest(this.homeSnapshot(), point)
+  }
+
+  /**
+   * Live drag preview for selection-tool drags, driven from pointermove long
+   * before the release-time commit: draws the marquee rectangle on empty
+   * space and the Shift angle-lock ghost when dragging a wall (endpoint or
+   * body). Purely visual — NO model mutation, NO undo entries; the single
+   * undoable edit still happens in the release-time drag().
+   */
+  previewDrag(from: Point, to: Point, input: { shift?: boolean; altOrMeta?: boolean } = {}): void {
+    if (this.tool !== 'selection') return
+    const home = this.homeSnapshot()
+    const hit = this.hitTest(home, from)
+    if (!hit) {
+      this.wallDragGhost = null
+      if (!this._marqueeActive || !this.marqueeFrom || !samePoint(this.marqueeFrom, from)) {
+        this._marqueeActive = true
+        this.marqueeFrom = from
+      }
+      this.marqueeTo = to
+      return
+    }
+    if (hit.kind === 'wall-endpoint') {
+      const wall = home.walls.find((w) => w.id === hit.wallId)
+      if (!wall) return
+      const vd = {
+        wallId: wall.id,
+        endpoint: hit.endpoint,
+        startX: hit.endpoint === 'start' ? wall.xStart : wall.xEnd,
+        startY: hit.endpoint === 'start' ? wall.yStart : wall.yEnd,
+      }
+      const oppositeEnd = vd.endpoint === 'start'
+        ? { x: wall.xEnd, y: wall.yEnd }
+        : { x: wall.xStart, y: wall.yStart }
+      const snapped = this.resolveEndpointDragPoint(home, vd, from, to, this.effectiveModifiers(input))
+      this.wallDragGhost = { x1: oppositeEnd.x, y1: oppositeEnd.y, x2: snapped.x, y2: snapped.y }
+      return
+    }
+    if (hit.kind === 'wall-body') {
+      const wall = home.walls.find((w) => w.id === hit.id)
+      if (!wall) return
+      const delta = this.resolveBodyDragDelta(to.x - from.x, to.y - from.y, this.effectiveModifiers(input))
+      this.wallDragGhost = {
+        x1: (wall.xStart + wall.xEnd) / 2,
+        y1: (wall.yStart + wall.yEnd) / 2,
+        x2: (wall.xStart + wall.xEnd) / 2 + delta.x,
+        y2: (wall.yStart + wall.yEnd) / 2 + delta.y,
+      }
+      return
+    }
+    this.wallDragGhost = null
+  }
+
+  /** Drop the live wall-drag ghost (marquee lifecycle is untouched — the
+   *  rectangle stays visible after release, as before). */
+  endDragPreview(): void {
+    this.wallDragGhost = null
   }
 
   beginFurnitureRotation(id: string, pointer: Point): boolean {
@@ -687,11 +780,25 @@ export class PlanEngine {
 
   /** All-or-nothing: a rejected edit (furniture too large for its room) leaves no partial change. */
   click(input: ClickInput): void {
-    this.model.getStore().atomically(() => this.clickImpl(input))
+    this.model.getStore().atomically(() => {
+      this.gestureInput = input
+      try {
+        this.clickImpl(input)
+      } finally {
+        this.gestureInput = null
+      }
+    })
   }
 
   drag(input: DragInput): void {
-    this.model.getStore().atomically(() => this.dragImpl(input))
+    this.model.getStore().atomically(() => {
+      this.gestureInput = input
+      try {
+        this.dragImpl(input)
+      } finally {
+        this.gestureInput = null
+      }
+    })
   }
 
   key(key: PlanKey, shift = false): void {
@@ -704,14 +811,108 @@ export class PlanEngine {
     if (input.dbl) {
       this.doubleClick(point)
     } else {
-      this.singleClick(point, input.shift === true)
+      this.singleClick(point, this.effectiveModifiers(input).shift)
     }
+  }
+
+  /**
+   * Resolve a wall-endpoint drag target. Shared by the committed drag
+   * (dragImpl) and the live preview (previewDrag) so both apply exactly the
+   * same modifier semantics: Shift = hard 15° lock relative to the opposite
+   * endpoint (even with magnetism off; length still magnetizes), Alt = raw
+   * point (no magnetism, no grid snap), default = SH3D WallResizeState.moveMouse
+   * soft magnetism when enabled (WallPointWithAngleMagnetism anchors on the
+   * opposite endpoint and snaps to OTHER walls' endpoints, gated on the toggle).
+   */
+  private resolveEndpointDragPoint(
+    home: Readonly<NormalizedHomeState>,
+    vd: { wallId: string; endpoint: 'start' | 'end'; startX: number; startY: number },
+    from: Point,
+    to: Point,
+    eff: { shift: boolean; alt: boolean },
+  ): Point {
+    let rawX = vd.startX + (to.x - from.x)
+    let rawY = vd.startY + (to.y - from.y)
+    if (eff.alt) return { x: rawX, y: rawY }
+    if (this.gridSnapEnabled) {
+      const g = this.snapToGrid(rawX, rawY)
+      rawX = g.x
+      rawY = g.y
+    }
+    const draggedWall = home.walls.find((w) => w.id === vd.wallId)
+    if (!draggedWall) return { x: rawX, y: rawY }
+    const oppositeEnd = vd.endpoint === 'start'
+      ? { x: draggedWall.xEnd, y: draggedWall.yEnd }
+      : { x: draggedWall.xStart, y: draggedWall.yStart }
+    if (eff.shift) {
+      // Hard lock: angle wins, so no per-axis endpoint snapping (walls: []).
+      return wallPointMagnetism(
+        oppositeEnd,
+        { x: rawX, y: rawY },
+        [],
+        {
+          enabled: true,
+          mode: 'hard',
+          maxDelta: PLAN_SCALE,
+          endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+        },
+      )
+    }
+    if (this.magnetismEnabled) {
+      let snapped = wallPointMagnetism(
+        oppositeEnd,
+        { x: rawX, y: rawY },
+        home.walls.filter((w) => w.id !== vd.wallId && this.matchesActiveLevel(w.levelRef)),
+        {
+          enabled: true,
+          maxDelta: PLAN_SCALE,
+          endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+        },
+      )
+      // Cross-level: if same-level didn't snap, try reference walls.
+      if (
+        this.referenceOverlayEnabled && this.activeLevelId != null
+        && snapped.x === rawX && snapped.y === rawY
+      ) {
+        const refWalls = home.walls.filter(
+          (w) => w.id !== vd.wallId && !this.matchesActiveLevel(w.levelRef),
+        )
+        if (refWalls.length > 0) {
+          snapped = wallPointMagnetism(
+            oppositeEnd,
+            { x: rawX, y: rawY },
+            refWalls,
+            {
+              enabled: true,
+              maxDelta: PLAN_SCALE,
+              endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+            },
+          )
+        }
+      }
+      return snapped
+    }
+    return { x: rawX, y: rawY }
+  }
+
+  /**
+   * Whole-wall body-drag delta, shared by the committed drag and the live
+   * preview: Alt = raw, Shift = hard 15° direction lock, default = soft
+   * horizontal/vertical axis snap when magnetism is on, else raw.
+   */
+  private resolveBodyDragDelta(dx: number, dy: number, eff: { shift: boolean; alt: boolean }): Point {
+    if (eff.alt) return { x: dx, y: dy }
+    if (eff.shift) return lockVectorToAngleStep(dx, dy)
+    if (this.magnetismEnabled) return softAxisSnapVector(dx, dy)
+    return { x: dx, y: dy }
   }
 
   private dragImpl(input: DragInput): void {
     this.validateDrag(input)
+    this.wallDragGhost = null
     const from = { x: input.fromX, y: input.fromY }
     const to = { x: input.toX, y: input.toY }
+    const eff = this.effectiveModifiers(input)
     if (this.tool !== 'selection') {
       if (this._marqueeActive) this._endMarqueeDrag(false)
       return
@@ -720,7 +921,7 @@ export class PlanEngine {
     const hit = this.hitTest(home, from)
 
     if (hit) {
-      if (this._marqueeActive) this._endMarqueeDrag(input.shift === true)
+      if (this._marqueeActive) this._endMarqueeDrag(eff.shift)
       if (hit.kind === 'wall-endpoint') {
         if (!this.vertexDrag) {
           const wall = home.walls.find((w) => w.id === hit.wallId)
@@ -744,59 +945,7 @@ export class PlanEngine {
         }
         const vd = this.vertexDrag
         if (!vd) return
-        let rawX = vd.startX + (to.x - from.x)
-        let rawY = vd.startY + (to.y - from.y)
-        if (this.gridSnapEnabled) {
-          const g = this.snapToGrid(rawX, rawY)
-          rawX = g.x
-          rawY = g.y
-        }
-        const draggedWall = home.walls.find((w) => w.id === vd.wallId)
-        if (!draggedWall) return
-        const oppositeEnd = vd.endpoint === 'start'
-          ? { x: draggedWall.xEnd, y: draggedWall.yEnd }
-          : { x: draggedWall.xStart, y: draggedWall.yStart }
-        // SH3D WallResizeState.moveMouse: WallPointWithAngleMagnetism anchors
-        // on the opposite endpoint and snaps to OTHER walls' endpoints.
-        // Gate the whole magnetizer on the toggle (the helper keeps snapping
-        // endpoints even with enabled:false, so gate here for SH3D parity).
-        let snapped: Point
-        if (this.magnetismEnabled) {
-          const otherWalls = home.walls.filter((w) => w.id !== vd.wallId && this.matchesActiveLevel(w.levelRef))
-          snapped = wallPointMagnetism(
-            oppositeEnd,
-            { x: rawX, y: rawY },
-            otherWalls,
-            {
-              enabled: true,
-              maxDelta: PLAN_SCALE,
-              endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
-            },
-          )
-          // Cross-level: if same-level didn't snap, try reference walls.
-          if (
-            this.referenceOverlayEnabled && this.activeLevelId != null
-            && snapped.x === rawX && snapped.y === rawY
-          ) {
-            const refWalls = home.walls.filter(
-              (w) => w.id !== vd.wallId && !this.matchesActiveLevel(w.levelRef),
-            )
-            if (refWalls.length > 0) {
-              snapped = wallPointMagnetism(
-                oppositeEnd,
-                { x: rawX, y: rawY },
-                refWalls,
-                {
-                  enabled: true,
-                  maxDelta: PLAN_SCALE,
-                  endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
-                },
-              )
-            }
-          }
-        } else {
-          snapped = { x: rawX, y: rawY }
-        }
+        const snapped = this.resolveEndpointDragPoint(home, vd, from, to, eff)
         this.model.getStore().beginCompoundEdit()
         this.model.setWallEndpoint(vd.wallId, vd.endpoint, snapped.x, snapped.y)
         for (const cw of vd.connectedWalls) {
@@ -954,7 +1103,10 @@ export class PlanEngine {
         }
         const moved = new Set<string>(home.selection)
         moved.add(hit.id)
-        this.model.moveSelection(to.x - from.x, to.y - from.y)
+        const delta = this.resolveBodyDragDelta(to.x - from.x, to.y - from.y, eff)
+        // Connected walls do not follow a body-dragged wall (existing gap,
+        // out of scope — only the moved selection translates).
+        this.model.moveSelection(delta.x, delta.y)
         this.updateRoomsAfterWallMove(
           home,
           [...moved].filter((id) => home.walls.some((w) => w.id === id)),
@@ -1011,12 +1163,12 @@ export class PlanEngine {
       } else if (this.marqueeFrom && samePoint(this.marqueeFrom, from)) {
         this.marqueeTo = to
       } else {
-        this._endMarqueeDrag(input.shift === true)
+        this._endMarqueeDrag(eff.shift)
         this._marqueeActive = true
         this.marqueeFrom = from
         this.marqueeTo = to
       }
-      this._applyMarqueeSelection(input.shift === true)
+      this._applyMarqueeSelection(eff.shift)
     }
   }
 
@@ -2059,6 +2211,22 @@ export class PlanEngine {
    * 2. angle+length magnetization plus per-axis wall-endpoint snapping
    */
   private resolveSegmentEnd(start: Point, point: Point): Point {
+    const eff = this.effectiveModifiers(this.gestureInput)
+    // Alt/Option: bypass ALL magnetism — raw cursor, no join, no grid snap,
+    // no body snap (the engine-level contract for 'off' mode).
+    if (eff.alt) return { x: point.x, y: point.y }
+    // Shift: the hard 15° lock wins over everything — no free-endpoint join,
+    // no body snap, and wallPointMagnetism 'hard' skips per-axis endpoint
+    // snapping itself (the angle is the contract; length still magnetizes).
+    if (eff.shift) {
+      const lockedBase = this.gridSnapEnabled ? this.snapToGrid(point.x, point.y) : point
+      return wallPointMagnetism(start, lockedBase, [], {
+        enabled: true,
+        mode: 'hard',
+        maxDelta: PLAN_SCALE,
+        endpointMargin: endpointSnapMargin(),
+      })
+    }
     const home = this.homeSnapshot()
     const margin = endpointSnapMargin()
     const free = this.freeEndpointAt(home, point, margin)

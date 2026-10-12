@@ -332,6 +332,7 @@ describe('drawPlan wall measurement preview', () => {
       closurePolygon: null,
       closureTooltip: null,
       snapLock: null,
+      wallDragGhost: null,
       furnitureDragHint: null,
     }, ctx, IDENTITY_VIEW)
 
