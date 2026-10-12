@@ -128,6 +128,37 @@ class SceneAnalysisTest(unittest.TestCase):
         piece["y"] = 100
         self.assertNotIn("furniture f1 overlaps wall arc", analyze_home(make_home(walls=[arc], furniture=[piece]))["warnings"])
 
+    def test_round_wall_clearance_is_tight_to_the_true_arc(self):
+        # Chord approximation used to leave a visible gap or cut in; slices stand off by <= 0.005 cm.
+        arc = {"id": "arc", "xStart": -100, "yStart": 0, "xEnd": 100, "yEnd": 0, "thickness": 10, "arcExtent": 3.14159265}
+        # True outer face of the semicircle bulge is radius 105 around (0, 0) (bulge toward -y).
+        def overlaps(y):
+            piece = {"id": "f1", "name": "Pot", "x": 0, "y": y, "width": 20, "depth": 20, "angleDeg": 0}
+            return "furniture f1 overlaps wall arc" in analyze_home(make_home(walls=[arc], furniture=[piece]))["warnings"]
+        self.assertTrue(overlaps(-104))
+        self.assertFalse(overlaps(-105 - 10 - 0.01))
+        self.assertTrue(overlaps(-105 - 10 + 0.5))
+
+    def test_oversize_furniture_in_a_room_is_an_error_with_the_app_wording(self):
+        result = validate_home(self._box(width=500, depth=60))
+        message = '"Sofa" (500 x 60 cm) is too large for room "Room" (about 400 x 300 cm): it cannot fit inside the room\'s walls.'
+        self.assertIn(message, result["errors"])
+        self.assertFalse(result["valid"])
+
+    def test_exact_fit_is_not_oversize(self):
+        # Room interior is 390 cm wide (400 minus two 5 cm half-walls).
+        self.assertFalse(any("too large" in w for w in validate_home(self._box(width=390, depth=60))["warnings"]))
+        self.assertTrue(any("too large" in w for w in validate_home(self._box(width=391, depth=60))["warnings"]))
+
+    def test_oversize_piece_outside_any_room_is_not_flagged_as_too_large(self):
+        home = self._box(x=900, y=900, width=500, depth=60)
+        self.assertFalse(any("too large" in w for w in validate_home(home)["warnings"]))
+
+    def test_unnamed_room_is_named_by_id(self):
+        home = self._box(width=500, depth=60)
+        home["rooms"] = [{"id": "r1", "points": SQUARE_ROOM["points"]}]
+        self.assertTrue(any("too large for room r1 " in e for e in validate_home(home)["errors"]))
+
 
 if __name__ == "__main__":
     unittest.main()

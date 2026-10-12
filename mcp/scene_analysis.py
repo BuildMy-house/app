@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from math import atan2, ceil, cos, hypot, pi, radians, sin, tan
+from math import acos, atan2, ceil, cos, hypot, radians, sin, tan
 from typing import Any
 
 
@@ -90,52 +90,177 @@ def _bounds(points: list[tuple[float, float]]) -> dict[str, float] | None:
 
 
 _OVERLAP_EPSILON_CM = 1e-6
+# Same constants and slice construction as src/plan/wall-solids.ts, so the
+# validator and the in-app clearance agree on what "overlaps a wall" means.
+_ARC_TOLERANCE_CM = 0.005
+_MAX_ARC_SLICES = 4096
+_RELAX_PASSES = 64
+_SEED_GRID = 5
+
+Solid = tuple[list[tuple[float, float]], list[tuple[float, float]]]
 
 
-def _wall_pieces(wall: dict[str, Any]) -> list[dict[str, float]]:
-    """Straight chords for a wall; round walls (arcExtent) are approximated by chords."""
+def _rect_solid(wall: dict[str, Any]) -> Solid | None:
     xs, ys, xe, ye = wall["xStart"], wall["yStart"], wall["xEnd"], wall["yEnd"]
-    thickness = max(0.0, wall.get("thickness") or 0.0)
-    extent = wall.get("arcExtent") or 0
+    length = hypot(xe - xs, ye - ys)
+    if length <= 0:
+        return None
+    tx, ty = (xe - xs) / length, (ye - ys) / length
+    nx, ny = -ty, tx
+    cx, cy, hl = (xs + xe) / 2, (ys + ye) / 2, length / 2
+    ht = max(0.0, wall.get("thickness") or 0.0) / 2
+    pts = [(cx - tx * hl - nx * ht, cy - ty * hl - ny * ht), (cx + tx * hl - nx * ht, cy + ty * hl - ny * ht),
+           (cx + tx * hl + nx * ht, cy + ty * hl + ny * ht), (cx - tx * hl + nx * ht, cy - ty * hl + ny * ht)]
+    return pts, [(nx, ny), (tx, ty)]
+
+
+def _arc_slices(wall: dict[str, Any]) -> list[Solid] | None:
+    """Conservative trapezoid slices covering a round wall's true band; None for straight walls."""
+    xs, ys, xe, ye = wall["xStart"], wall["yStart"], wall["xEnd"], wall["yEnd"]
+    extent = wall.get("arcExtent")
+    if not isinstance(extent, (int, float)) or extent == 0:
+        return None
     chord = hypot(xe - xs, ye - ys)
-    sagitta = (chord / 2) * tan(extent / 4) if extent and chord > 0 else 0
+    if chord <= 0:
+        return None
+    sagitta = (chord / 2) * tan(extent / 4)
     if abs(sagitta) < 1e-9:
-        return [{"xs": xs, "ys": ys, "xe": xe, "ye": ye, "t": thickness}]
+        return None
     nx, ny = (ye - ys) / chord, -(xe - xs) / chord
     mx, my = (xs + xe) / 2 + nx * sagitta, (ys + ye) / 2 + ny * sagitta
     radius = (chord * chord / 4 + sagitta * sagitta) / (2 * abs(sagitta))
     sign = 1 if sagitta > 0 else -1
     cx, cy = mx - nx * sign * radius, my - ny * sign * radius
+    cross = (xs - cx) * (my - cy) - (ys - cy) * (mx - cx)
+    half_thickness = max(0.0, wall.get("thickness") or 0.0) / 2
+    outer, inner = radius + half_thickness, max(0.0, radius - half_thickness)
+    sweep = abs(extent)
+    max_half = acos(1 / (1 + _ARC_TOLERANCE_CM / outer))
+    count = min(_MAX_ARC_SLICES, max(1, ceil(sweep / (2 * max_half))))
+    direction = 1 if cross >= 0 else -1
     start = atan2(ys - cy, xs - cx)
-    direction = 1 if (xs - cx) * (my - cy) - (ys - cy) * (mx - cx) >= 0 else -1
-    steps = max(2, ceil(abs(extent) / (pi / 12)))
-    points = [(xs, ys)]
-    for i in range(1, steps):
-        angle = start + direction * abs(extent) * i / steps
-        points.append((cx + radius * cos(angle), cy + radius * sin(angle)))
-    points.append((xe, ye))
-    return [{"xs": a[0], "ys": a[1], "xe": b[0], "ye": b[1], "t": thickness} for a, b in zip(points, points[1:])]
+    step = sweep / count
+    half = step / 2
+    outer_cut = outer / cos(half)
+    slices: list[Solid] = []
+    for i in range(count):
+        a0 = start + direction * step * i
+        a1 = start + direction * step * (i + 1)
+        am = (a0 + a1) / 2
+        pts = [(cx + inner * cos(a0), cy + inner * sin(a0)), (cx + inner * cos(a1), cy + inner * sin(a1)),
+               (cx + outer_cut * cos(a1), cy + outer_cut * sin(a1)), (cx + outer_cut * cos(a0), cy + outer_cut * sin(a0))]
+        slices.append((pts, [(cos(am), sin(am)), (-sin(a0), cos(a0)), (-sin(a1), cos(a1))]))
+    return slices
 
 
-def _item_overlaps_piece(item: dict[str, Any], piece: dict[str, float]) -> bool:
-    """Separating-axis test: oriented furniture footprint vs. one wall rectangle."""
-    length = hypot(piece["xe"] - piece["xs"], piece["ye"] - piece["ys"])
-    if length <= 0:
-        return False
-    tx, ty = (piece["xe"] - piece["xs"]) / length, (piece["ye"] - piece["ys"]) / length
-    nx, ny = -ty, tx
-    angle = radians(item.get("angleDeg") or 0)
+def _level_solids(home: dict[str, Any], level_ref: Any) -> list[Solid]:
+    solids: list[Solid] = []
+    for wall in home.get("walls", []):
+        if (wall.get("levelRef") or None) != (level_ref or None):
+            continue
+        sliced = _arc_slices(wall)
+        if sliced is not None:
+            solids.extend(sliced)
+            continue
+        rect = _rect_solid(wall)
+        if rect is not None:
+            solids.append(rect)
+    return solids
+
+
+def _footprint_overlaps(x: float, y: float, w: float, d: float, angle_deg: float, solid: Solid) -> bool:
+    """Separating-axis test: oriented furniture footprint vs. one convex wall solid."""
+    pts, axes = solid
+    angle = radians(angle_deg or 0)
     ux, uy = cos(angle), sin(angle)
     vx, vy = -uy, ux
-    dx = item["x"] - (piece["xs"] + piece["xe"]) / 2
-    dy = item["y"] - (piece["ys"] + piece["ye"]) / 2
-    half_w, half_d = item["width"] / 2, item["depth"] / 2
-    for ax, ay in ((nx, ny), (tx, ty), (ux, uy), (vx, vy)):
+    half_w, half_d = w / 2, d / 2
+    for ax, ay in (*axes, (ux, uy), (vx, vy)):
         radius_f = abs(ux * ax + uy * ay) * half_w + abs(vx * ax + vy * ay) * half_d
-        radius_w = abs(tx * ax + ty * ay) * length / 2 + abs(nx * ax + ny * ay) * piece["t"] / 2
-        if radius_f + radius_w - abs(dx * ax + dy * ay) <= _OVERLAP_EPSILON_CM:
+        projected = [px * ax + py * ay for px, py in pts]
+        lo, hi = min(projected), max(projected)
+        if radius_f + (hi - lo) / 2 - abs(x * ax + y * ay - (lo + hi) / 2) <= _OVERLAP_EPSILON_CM:
             return False
     return True
+
+
+def _clear(x: float, y: float, w: float, d: float, angle_deg: float, solids: list[Solid]) -> bool:
+    reach = hypot(w, d) / 2
+    for solid in solids:
+        pts = solid[0]
+        if all(hypot(px - x, py - y) > reach + hypot(pts[0][0] - pts[2][0], pts[0][1] - pts[2][1]) for px, py in pts):
+            continue
+        if _footprint_overlaps(x, y, w, d, angle_deg, solid):
+            return False
+    return True
+
+
+def _push(x: float, y: float, w: float, d: float, angle_deg: float, solid: Solid) -> tuple[float, float] | None:
+    pts, axes = solid
+    angle = radians(angle_deg or 0)
+    ux, uy = cos(angle), sin(angle)
+    vx, vy = -uy, ux
+    half_w, half_d = w / 2, d / 2
+    best: tuple[float, float, float] | None = None
+    for ax, ay in (*axes, (ux, uy), (vx, vy)):
+        radius_f = abs(ux * ax + uy * ay) * half_w + abs(vx * ax + vy * ay) * half_d
+        projected = [px * ax + py * ay for px, py in pts]
+        lo, hi = min(projected), max(projected)
+        dist = x * ax + y * ay - (lo + hi) / 2
+        depth = radius_f + (hi - lo) / 2 - abs(dist)
+        if depth <= _OVERLAP_EPSILON_CM:
+            return None
+        if best is None or depth < best[2] - 1e-9:
+            sgn = -1 if dist < 0 else 1
+            best = (ax * sgn * depth, ay * sgn * depth, depth)
+    return None if best is None else (best[0], best[1])
+
+
+def _relax(x: float, y: float, w: float, d: float, angle_deg: float, solids: list[Solid]) -> tuple[float, float] | None:
+    for _ in range(_RELAX_PASSES):
+        moved = False
+        for solid in solids:
+            push = _push(x, y, w, d, angle_deg, solid)
+            if push is not None:
+                x, y = x + push[0], y + push[1]
+                moved = True
+        if not moved:
+            return x, y
+    return None
+
+
+def _room_for(item: dict[str, Any], rooms: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The smallest same-level room whose polygon contains the piece's centre."""
+    inside = [room for room in rooms
+              if (room.get("levelRef") or None) == (item.get("levelRef") or None)
+              and len(room.get("points", [])) >= 3 and _inside((item["x"], item["y"]), room["points"])]
+    return min(inside, key=lambda room: _area(room["points"])) if inside else None
+
+
+def _fits_in_room(item: dict[str, Any], room: dict[str, Any], solids: list[Solid]) -> bool:
+    """Whether the footprint can sit clear of every wall somewhere inside the room."""
+    w, d, angle = item["width"], item["depth"], item.get("angleDeg") or 0
+    if _clear(item["x"], item["y"], w, d, angle, solids):
+        return True
+    points = room["points"]
+    xs, ys = [p[0] for p in points], [p[1] for p in points]
+    seeds = [(item["x"], item["y"])]
+    for i in range(_SEED_GRID):
+        for j in range(_SEED_GRID):
+            seeds.append((min(xs) + (i + 0.5) / _SEED_GRID * (max(xs) - min(xs)),
+                          min(ys) + (j + 0.5) / _SEED_GRID * (max(ys) - min(ys))))
+    seeds.append((sum(xs) / len(xs), sum(ys) / len(ys)))
+    for sx, sy in seeds:
+        if not _inside((sx, sy), points):
+            continue
+        settled = _relax(sx, sy, w, d, angle, solids)
+        if settled is not None and _inside(settled, points):
+            return True
+    return False
+
+
+def _fmt_cm(value: float) -> str:
+    return str(int(round(value * 10)) / 10).removesuffix(".0")
 
 
 def furniture_wall_overlaps(home: dict[str, Any]) -> list[tuple[Any, Any]]:
@@ -147,9 +272,35 @@ def furniture_wall_overlaps(home: dict[str, Any]) -> list[tuple[Any, Any]]:
         for wall in home.get("walls", []):
             if (wall.get("levelRef") or None) != (item.get("levelRef") or None):
                 continue
-            if any(_item_overlaps_piece(item, piece) for piece in _wall_pieces(wall)):
+            solids = _arc_slices(wall) or ([rect] if (rect := _rect_solid(wall)) else [])
+            if not _clear(item["x"], item["y"], item["width"], item["depth"], item.get("angleDeg") or 0, solids):
                 pairs.append((item.get("id"), wall.get("id")))
     return pairs
+
+
+def furniture_too_large(home: dict[str, Any]) -> list[str]:
+    """Messages (same wording as the app's FurnitureTooLargeError) for pieces that cannot fit the room they are in."""
+    messages: list[str] = []
+    rooms = home.get("rooms", [])
+    cache: dict[Any, list[Solid]] = {}
+    for item in home.get("furniture", []):
+        if item.get("doorOrWindow") or not all(isinstance(item.get(key), (int, float)) for key in ("x", "y", "width", "depth")):
+            continue
+        room = _room_for(item, rooms)
+        if room is None:
+            continue
+        level = item.get("levelRef") or None
+        if level not in cache:
+            cache[level] = _level_solids(home, level)
+        if not cache[level] or _fits_in_room(item, room, cache[level]):
+            continue
+        xs, ys = [p[0] for p in room["points"]], [p[1] for p in room["points"]]
+        room_label = f'room "{room["name"]}"' if room.get("name") else f"room {room.get('id')}"
+        messages.append(
+            f'"{item.get("name")}" ({_fmt_cm(item["width"])} x {_fmt_cm(item["depth"])} cm) is too large for {room_label} '
+            f"(about {_fmt_cm(max(xs) - min(xs))} x {_fmt_cm(max(ys) - min(ys))} cm): it cannot fit inside the room's walls."
+        )
+    return messages
 
 
 def analyze_home(home: dict[str, Any]) -> dict[str, Any]:
@@ -206,6 +357,7 @@ def analyze_home(home: dict[str, Any]) -> dict[str, Any]:
         if row["roomId"] is None and not any(item.get("doorOrWindow") for item in furniture if item.get("id") == row["id"]):
             warnings.append(f"furniture {row['id']} is outside every room")
     warnings.extend(f"furniture {item_id} overlaps wall {wall_id}" for item_id, wall_id in furniture_wall_overlaps(home))
+    warnings.extend(furniture_too_large(home))
     for i in range(len(rooms)):
         for j in range(i + 1, len(rooms)):
             if _rooms_overlap(rooms[i].get("points", []), rooms[j].get("points", [])):
@@ -249,5 +401,6 @@ def validate_home(home: dict[str, Any]) -> dict[str, Any]:
         or warning.startswith("duplicate ")
         or " is self-intersecting" in warning
         or (warning.startswith("furniture ") and " overlaps wall " in warning)
+        or " is too large for room " in warning
     ]
     return {"valid": not errors, "errors": errors, "warnings": summary["warnings"], "summary": summary}
