@@ -50,12 +50,20 @@ export interface ChatWidgetOptions {
  * `{ reply }` back). `endpoint` is injected — nothing here hardcodes a URL.
  * Endpoint path for the real backend lands with A2.
  */
-export function createFetchPmAgentClient(fetchImpl: typeof fetch, endpoint: string): PmAgentClient {
+export function createFetchPmAgentClient(
+  fetchImpl: typeof fetch,
+  endpoint: string,
+  getToken: () => string | null = () => null,
+): PmAgentClient {
   return {
     async send({ userId, text }): Promise<string> {
+      // /api/chat sits behind requireAuth, which needs the session JWT as a bearer token.
+      const token = getToken()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) headers.Authorization = `Bearer ${token}`
       const response = await fetchImpl(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ userId, message: text }),
       })
       if (!response.ok) throw new Error(`chat request failed (${response.status})`)

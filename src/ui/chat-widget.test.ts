@@ -199,6 +199,34 @@ describe('createFetchPmAgentClient', () => {
     )
   })
 
+  it('sends the session token as a bearer Authorization header when signed in', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ reply: 'pong' }),
+    }) as unknown as Response)
+    const client = createFetchPmAgentClient(fetchMock as unknown as typeof fetch, '/api/chat', () => 'jwt-abc')
+    await client.send({ userId: USER_ID, text: 'ping' })
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/chat',
+      expect.objectContaining({
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer jwt-abc' },
+      }),
+    )
+  })
+
+  it('omits Authorization when there is no token', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ reply: 'pong' }),
+    }) as unknown as Response)
+    const client = createFetchPmAgentClient(fetchMock as unknown as typeof fetch, '/api/chat')
+    await client.send({ userId: USER_ID, text: 'ping' })
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/chat',
+      expect.objectContaining({ headers: { 'Content-Type': 'application/json' } }),
+    )
+  })
+
   it('rejects on a non-OK response', async () => {
     const fetchMock = vi.fn(async () => ({
       ok: false,
