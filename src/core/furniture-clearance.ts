@@ -1,5 +1,6 @@
-import { resolveFootprint } from '../plan/furniture-room-fit'
-import { wallSolids, type WallSolids } from '../plan/wall-solids'
+import { resolveFootprint, type Resolution } from '../plan/furniture-room-fit'
+import { footprintAt, overlapsAnySolid, wallSolids, type WallSolids } from '../plan/wall-solids'
+import { wallsBlockingAt } from '../plan/wall-height'
 import type { Furniture, NormalizedHomeState, Room, Wall } from './home'
 
 /**
@@ -22,7 +23,8 @@ import type { Furniture, NormalizedHomeState, Room, Wall } from './home'
  * Only pieces whose footprint changed (or every piece, when a wall changed)
  * are re-checked, so an unrelated edit never moves furniture in a loaded file
  * that already overlaps or is oversize. Doors and windows (`doorOrWindow`) are
- * meant to sit IN walls and are exempt.
+ * meant to sit IN walls and are exempt. A piece hung above a wall's top is not
+ * obstructed by that wall (see plan/wall-height.ts for the elevation rule).
  */
 
 export class FurnitureTooLargeError extends Error {
@@ -50,11 +52,11 @@ function fmt(cm: number): string {
 }
 
 function wallKey(wall: Wall): string {
-  return [wall.xStart, wall.yStart, wall.xEnd, wall.yEnd, wall.thickness, wall.arcExtent ?? 0, wall.levelRef ?? ''].join('|')
+  return [wall.xStart, wall.yStart, wall.xEnd, wall.yEnd, wall.thickness, wall.arcExtent ?? 0, wall.height ?? '', wall.heightAtEnd ?? '', wall.levelRef ?? ''].join('|')
 }
 
 function footprintKey(item: Furniture): string {
-  return [item.x, item.y, item.angleDeg, item.width, item.depth, item.levelRef ?? ''].join('|')
+  return [item.x, item.y, item.angleDeg, item.width, item.depth, item.elevation, item.levelRef ?? ''].join('|')
 }
 
 function wallsChanged(draft: NormalizedHomeState, previous: NormalizedHomeState): boolean {
@@ -64,26 +66,49 @@ function wallsChanged(draft: NormalizedHomeState, previous: NormalizedHomeState)
 }
 
 interface Level {
-  solids: WallSolids
+  walls: Wall[]
   rooms: Room[]
+  /** Solids per set of blocking walls, keyed by how many walls block (the set
+   *  is fully determined by the count, since wall tops are totally ordered). */
+  solidsByBlocking: Map<number, WallSolids>
 }
 
 function levelOf(state: NormalizedHomeState, levelRef: string | null): Level {
   return {
-    solids: wallSolids(state.walls.filter((wall) => (wall.levelRef ?? null) === levelRef)),
+    walls: state.walls.filter((wall) => (wall.levelRef ?? null) === levelRef),
     rooms: state.rooms.filter((room) => (room.levelRef ?? null) === levelRef && room.points.length >= 3),
+    solidsByBlocking: new Map(),
   }
+}
+
+/** The level's wall solids as seen by a piece at this elevation. */
+function solidsAt(level: Level, elevationCm: number): WallSolids {
+  const blocking = wallsBlockingAt(level.walls, elevationCm)
+  let solids = level.solidsByBlocking.get(blocking.length)
+  if (!solids) {
+    solids = wallSolids(blocking)
+    level.solidsByBlocking.set(blocking.length, solids)
+  }
+  return solids
+}
+
+function resolveItemResult(item: Furniture, level: Level): Resolution {
+  return resolveFootprint(solidsAt(level, item.elevation), level.rooms, { x: item.x, y: item.y }, item.width, item.depth, item.angleDeg)
+}
+
+function tooLarge(item: Furniture, result: Extract<Resolution, { fits: false }>): FurnitureTooLargeError {
+  return new FurnitureTooLargeError(
+    item.id, item.name, item.width, item.depth, item.angleDeg,
+    result.room.id, result.room.name ?? null, result.roomWidthCm, result.roomDepthCm,
+  )
 }
 
 /** Where the piece ends up: unchanged when clear, otherwise the nearest flush
  *  position. Throws FurnitureTooLargeError when it is in a room it cannot fit. */
 function resolveItem(item: Furniture, level: Level): { x: number; y: number } {
-  const result = resolveFootprint(level.solids, level.rooms, { x: item.x, y: item.y }, item.width, item.depth, item.angleDeg)
+  const result = resolveItemResult(item, level)
   if (result.fits) return result
-  throw new FurnitureTooLargeError(
-    item.id, item.name, item.width, item.depth, item.angleDeg,
-    result.room.id, result.room.name ?? null, result.roomWidthCm, result.roomDepthCm,
-  )
+  throw tooLarge(item, result)
 }
 
 export function enforceFurnitureClearance(draft: NormalizedHomeState, previous: NormalizedHomeState): void {
@@ -106,7 +131,8 @@ export function enforceFurnitureClearance(draft: NormalizedHomeState, previous: 
     if (!allChanged && !footprintChanged) continue
     const ref = item.levelRef ?? null
     const level = levelFor(draftLevels, draft, ref)
-    if (level.solids.rects.length === 0 && level.solids.arcs.length === 0) continue
+    const solids = solidsAt(level, item.elevation)
+    if (solids.rects.length === 0 && solids.arcs.length === 0) continue
     let clear: { x: number; y: number }
     try {
       clear = resolveItem(item, level)
@@ -136,4 +162,43 @@ export function enforceFurnitureClearance(draft: NormalizedHomeState, previous: 
       if (length > 0) item.wallOffset = ((item.x - attached.xStart) * dx + (item.y - attached.yStart) * dy) / length
     }
   }
+}
+
+export interface ClearanceViolations {
+  /** One entry per wall a piece penetrates. */
+  overlaps: Array<{ furnitureId: string; wallId: string }>
+  /** One entry per piece that cannot fit anywhere inside the room it is in. */
+  oversize: Array<{ furnitureId: string; roomId: string; message: string }>
+}
+
+function overlappingWalls(item: Furniture, blocking: ReadonlyArray<Wall>): string[] {
+  const footprint = footprintAt(item.x, item.y, item.width, item.depth, item.angleDeg)
+  return blocking.filter((wall) => overlapsAnySolid(footprint, wallSolids([wall]))).map((wall) => wall.id)
+}
+
+/**
+ * Every clearance violation currently in `state`, whether or not the file was
+ * loaded that way. The store never produces one through an edit, but loadHome,
+ * saved files, templates and undo/redo restore states verbatim, so this is how
+ * a legacy overlap is found (and what the MCP validator mirrors, see
+ * mcp/furniture_clearance.py).
+ */
+export function findClearanceViolations(state: Pick<NormalizedHomeState, 'walls' | 'rooms' | 'furniture'>): ClearanceViolations {
+  const result: ClearanceViolations = { overlaps: [], oversize: [] }
+  const levels = new Map<string | null, Level>()
+  for (const item of state.furniture) {
+    if (item.doorOrWindow) continue
+    const ref = item.levelRef ?? null
+    let level = levels.get(ref)
+    if (!level) {
+      level = levelOf(state as NormalizedHomeState, ref)
+      levels.set(ref, level)
+    }
+    const blocking = wallsBlockingAt(level.walls, item.elevation)
+    if (blocking.length === 0) continue
+    for (const wallId of overlappingWalls(item, blocking)) result.overlaps.push({ furnitureId: item.id, wallId })
+    const fit = resolveItemResult(item, level)
+    if (!fit.fits) result.oversize.push({ furnitureId: item.id, roomId: fit.room.id, message: tooLarge(item, fit).message })
+  }
+  return result
 }

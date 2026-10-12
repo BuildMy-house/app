@@ -602,7 +602,7 @@ export class PlanEngine {
     const pointerAngleDeg = (Math.atan2(point.x - drag.x, -(point.y - drag.y)) * 180) / Math.PI
     const angleDeg = drag.angleDeg + normalizeAngle(pointerAngleDeg - drag.pointerAngleDeg)
     const snap = this.magnetismEnabled
-      ? snapFurnitureRotation({ walls: home.walls, rooms: home.rooms, point: { x: drag.x, y: drag.y }, widthCm: f.width, depthCm: f.depth, angleDeg, levelRef: f.levelRef ?? null })
+      ? snapFurnitureRotation({ walls: home.walls, rooms: home.rooms, point: { x: drag.x, y: drag.y }, widthCm: f.width, depthCm: f.depth, angleDeg, levelRef: f.levelRef ?? null, elevationCm: f.elevation })
       : { x: f.x, y: f.y, angleDeg }
     this.model.updateFurniture(id, { x: snap.x, y: snap.y, angleDeg: normalizeAngle(snap.angleDeg) })
   }
@@ -631,7 +631,7 @@ export class PlanEngine {
     const snap = snapFurniturePlacement({
       walls: drag.walls, rooms: drag.rooms, point: target, widthCm: drag.furniture.width, depthCm: drag.furniture.depth,
       angleDeg: drag.furniture.angleDeg, magnetismEnabled: this.magnetismEnabled,
-      previousWallId: drag.snappedWallId, levelRef: drag.furniture.levelRef ?? null,
+      previousWallId: drag.snappedWallId, levelRef: drag.furniture.levelRef ?? null, elevationCm: drag.furniture.elevation,
     })
     drag.snappedWallId = snap.wallRef
     this.model.updateFurniture(drag.id, {
@@ -887,6 +887,7 @@ export class PlanEngine {
             angleDeg: f.angleDeg,
             magnetismEnabled: this.magnetismEnabled,
             levelRef: f.levelRef ?? null,
+            elevationCm: f.elevation,
           })
           const snapped =
             snap.x !== naive.x || snap.y !== naive.y

@@ -2,6 +2,7 @@ import type { Point } from './geometry'
 import { distance } from './geometry'
 import { footprintAt, nearestFreeSpot, overlapsAnySolid, settleAmongSolids, wallSolids } from './wall-solids'
 import { insidePolygon, resolveFootprint, type RoomLike } from './furniture-room-fit'
+import { wallsBlockingAt } from './wall-height'
 
 /**
  * Furniture placement snapping (ticket U9).
@@ -23,6 +24,9 @@ export interface WallLike {
   thickness?: number
   /** Radians, non-zero = round wall (exact conservative arc band for clearance). */
   arcExtent?: number | null
+  /** Wall top (cm above its level's floor); unset = the default wall height. */
+  height?: number | null
+  heightAtEnd?: number | null
   /** Level the wall sits on; null = ground floor. Optional so plain walls
    *  (and existing callers) stay valid. */
   levelRef?: string | null
@@ -40,6 +44,10 @@ export interface FurnitureSnapInput {
    *  when provided, only same-level walls participate — so a first-floor
    *  piece never snaps to (or is pushed by) a ground-floor wall. */
   levelRef?: string | null
+  /** Underside of the piece above its level's floor (cm). A wall whose top is at
+   *  or below this does not obstruct the piece (see wall-height.ts); omit for
+   *  floor-standing pieces. */
+  elevationCm?: number
   /** Wall id the furniture was snapped to at the start of this drag frame, if
    *  any — used only to widen the release threshold for THAT specific wall
    *  (hysteresis). Does not affect snapping onto a different/new wall, which
@@ -92,10 +100,13 @@ function normalizeAngle180(deg: number): number {
 }
 
 /** Walls that can interact with the furniture: all of them when the caller
- *  omitted `levelRef`, otherwise only same-level walls (null = ground). */
-function wallsFor(input: Pick<FurnitureSnapInput, 'walls' | 'levelRef'>): ReadonlyArray<WallLike> {
-  if (input.levelRef === undefined) return input.walls
-  return input.walls.filter((wall) => (wall.levelRef ?? null) === input.levelRef)
+ *  omitted `levelRef`, otherwise only same-level walls (null = ground); walls
+ *  the piece hangs above (`elevationCm`) are left out. */
+function wallsFor(input: Pick<FurnitureSnapInput, 'walls' | 'levelRef' | 'elevationCm'>): ReadonlyArray<WallLike> {
+  const sameLevel = input.levelRef === undefined
+    ? input.walls
+    : input.walls.filter((wall) => (wall.levelRef ?? null) === input.levelRef)
+  return wallsBlockingAt(sameLevel, input.elevationCm)
 }
 
 /** Rooms that can hold the piece: same-level ones (all when `levelRef` is omitted). */

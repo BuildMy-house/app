@@ -359,6 +359,7 @@ export class View3D {
           magnetismEnabled: this.isMagnetismEnabled(),
           previousWallId: drag.snappedWallId,
           levelRef: item.levelRef ?? null,
+          elevationCm: item.elevation,
         })
         drag.snappedWallId = snap.wallRef
         guardFurnitureEdit(() => this.model.updateFurniture(drag.id, {

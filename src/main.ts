@@ -1137,6 +1137,7 @@ canvas.addEventListener('pointerup', (event) => {
           angleDeg: 0,
           magnetismEnabled: engine.isMagnetismEnabled(),
           levelRef: activeLevelId,
+          elevationCm: item.elevation,
         })
       : { x: raw.x, y: raw.y, angleDeg: 0, wallRef: null, wallOffset: null }
     pendingSnapWallRef = snap.wallRef
@@ -1645,6 +1646,7 @@ view3d = new View3D(store, {
       angleDeg: 0,
       magnetismEnabled: engine.isMagnetismEnabled(),
       levelRef: activeLevelId,
+      elevationCm: item.elevation,
     })
     pendingSnapWallRef = snap.wallRef
     pendingSnapWallOffset = snap.wallOffset
