@@ -135,7 +135,7 @@ const remoteHomes = new RemoteHomeStore('/api/homes', () => auth.getToken())
 if (isPmAgentChatEnabled()) {
   document.body.appendChild(
     createChatWidget({
-      client: createFetchPmAgentClient(fetch, '/api/chat'),
+      client: createFetchPmAgentClient(fetch, '/api/chat', () => auth.getToken()),
       getUserId: () => userIdFromToken(auth.getToken()),
     }),
   )
