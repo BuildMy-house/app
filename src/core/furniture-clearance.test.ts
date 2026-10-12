@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { furnitureOverlapsWalls } from '../plan/furniture-snap'
+import { FurnitureTooLargeError } from './furniture-clearance'
 import { ClipboardManager } from '../plan/clipboard'
 import type { Furniture } from './home'
 import { HomeModel } from './model'
@@ -152,5 +153,191 @@ describe('store invariant: furniture never overlaps a wall', () => {
     expect(store.peek().furniture[0]!.y).toBe(200)
     store.redo()
     expect(store.peek().furniture[0]!.y).toBe(pushed)
+  })
+})
+
+describe('store invariant: furniture too large for its room is rejected, never relocated', () => {
+  /** 400x400 room (walls on its edges, 10 cm thick => 390 cm clear) with a Room polygon. */
+  function roomSetup() {
+    const s = setup()
+    s.model.addRoom([[0, 0], [400, 0], [400, 400], [0, 400]], { name: 'Living' })
+    return s
+  }
+
+  /** Everything observable that a rejected edit must leave untouched. */
+  function snapshot(store: HomeStore) {
+    return { home: JSON.stringify(store.getHome()), canUndo: store.canUndo(), canRedo: store.canRedo(), dirty: store.isDirty() }
+  }
+
+  it('addFurniture bigger than the room throws a clear error and changes nothing', () => {
+    const { store, model } = roomSetup()
+    const before = snapshot(store)
+    const attempt = () => model.addFurniture(piece({ name: 'Giant sofa', width: 500, depth: 120 }))
+    expect(attempt).toThrow(FurnitureTooLargeError)
+    expect(attempt).toThrow(/"Giant sofa" \(500 x 120 cm\) is too large for room "Living" \(about 400 x 400 cm\)/)
+    expect(snapshot(store)).toEqual(before)
+  })
+
+  it('carries structured details about the piece and the room', () => {
+    const { model } = roomSetup()
+    try {
+      model.addFurniture(piece({ name: 'Slab', width: 600, depth: 50, angleDeg: 10 }))
+      expect.unreachable()
+    } catch (err) {
+      expect(err).toBeInstanceOf(FurnitureTooLargeError)
+      const e = err as FurnitureTooLargeError
+      expect([e.furnitureName, e.widthCm, e.depthCm, e.angleDeg, e.roomName, e.roomWidthCm, e.roomDepthCm]).toEqual(['Slab', 600, 50, 10, 'Living', 400, 400])
+    }
+  })
+
+  it('a piece that exactly fills the clear space is accepted and sits flush', () => {
+    const { store, model } = roomSetup()
+    const f = model.addFurniture(piece({ width: 390, depth: 60, x: 120, y: 200 }))
+    const placed = store.peek().furniture.find((i) => i.id === f.id)!
+    expect(placed.x).toBeCloseTo(200, 6)
+    expect(overlapsWall(store, f.id)).toBe(false)
+    expect(() => model.addFurniture(piece({ width: 390.5, depth: 60 }))).toThrow(FurnitureTooLargeError)
+  })
+
+  it('resizing a placed piece past the room (properties panel W/D) is rejected and the old size stays', () => {
+    const { store, model } = roomSetup()
+    const f = model.addFurniture(piece({ x: 200, y: 200 }))
+    const before = snapshot(store)
+    expect(() => model.updateFurniture(f.id, { width: 450 })).toThrow(FurnitureTooLargeError)
+    expect(() => model.updateFurniture(f.id, { depth: 450 })).toThrow(FurnitureTooLargeError)
+    expect(snapshot(store)).toEqual(before)
+    expect(() => model.updateFurniture(f.id, { width: 380 })).not.toThrow()
+  })
+
+  it('rotating a long piece so it no longer fits the room is rejected (angle input, rotate handle)', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    for (const [xs, ys, xe, ye] of [[0, 0, 400, 0], [400, 0, 400, 200], [400, 200, 0, 200], [0, 200, 0, 0]] as const) {
+      model.addWall({ xStart: xs, yStart: ys, xEnd: xe, yEnd: ye, thickness: 10 })
+    }
+    model.addRoom([[0, 0], [400, 0], [400, 200], [0, 200]], { name: 'Corridor' })
+    const f = model.addFurniture(piece({ name: 'Shelf', width: 380, depth: 40, x: 200, y: 100 }))
+    const before = snapshot(store)
+    expect(() => model.updateFurniture(f.id, { angleDeg: 90 })).toThrow(/"Shelf" \(380 x 40 cm\) is too large for room "Corridor" \(about 400 x 200 cm\)/)
+    expect(snapshot(store)).toEqual(before)
+    expect(() => model.updateFurniture(f.id, { angleDeg: 10 })).not.toThrow()
+  })
+
+  it('moving a fitting piece into a wall still slides it flush inside the room', () => {
+    const { store, model } = roomSetup()
+    const f = model.addFurniture(piece({ x: 200, y: 200 }))
+    model.updateFurniture(f.id, { x: 5, y: 5 })
+    const item = store.peek().furniture.find((i) => i.id === f.id)!
+    expect(item.x).toBeCloseTo(5 + 60, 6)
+    expect(item.y).toBeCloseTo(5 + 30, 6)
+  })
+
+  it('a piece dragged out of the room keeps the existing push-out (it is outside every room)', () => {
+    const { store, model } = roomSetup()
+    const f = model.addFurniture(piece({ x: 200, y: 200 }))
+    model.updateFurniture(f.id, { x: 700, y: 200 })
+    expect(store.peek().furniture.find((i) => i.id === f.id)!.x).toBe(700)
+  })
+
+  it('handles non-rectangular rooms: an L-shape holds a piece in its wide arm, not in its narrow one', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    // L: 400x100 bar along the top, 100x300 bar down the left (walls on the outline).
+    const outline: Array<[number, number]> = [[0, 0], [400, 0], [400, 100], [100, 100], [100, 400], [0, 400]]
+    outline.forEach(([x, y], i) => {
+      const [nx, ny] = outline[(i + 1) % outline.length]!
+      model.addWall({ xStart: x, yStart: y, xEnd: nx, yEnd: ny, thickness: 10 })
+    })
+    model.addRoom(outline, { name: 'L-room' })
+    const fits = model.addFurniture(piece({ name: 'Bench', width: 250, depth: 60, x: 250, y: 50 }))
+    expect(store.peek().furniture.find((i) => i.id === fits.id)!.x).toBeCloseTo(250, 6)
+    // A 200x200 block fits neither the 90 cm arm nor the 90 cm bar.
+    expect(() => model.addFurniture(piece({ name: 'Wardrobe', width: 200, depth: 200, x: 50, y: 300 }))).toThrow(
+      /"Wardrobe" \(200 x 200 cm\) is too large for room "L-room" \(about 400 x 400 cm\)/,
+    )
+  })
+
+  it('round rooms: a circle of two arc walls holds a square that fits its inscribed circle and rejects a bigger one', () => {
+    const store = new HomeStore()
+    const model = new HomeModel(store)
+    // Two half-turn arcs making a circle of centreline radius 150, walls 10 cm: 145 cm clear radius.
+    model.addWall({ xStart: 0, yStart: 150, xEnd: 300, yEnd: 150, thickness: 10, arcExtent: Math.PI })
+    model.addWall({ xStart: 300, yStart: 150, xEnd: 0, yEnd: 150, thickness: 10, arcExtent: Math.PI })
+    const ring: Array<[number, number]> = Array.from({ length: 64 }, (_, i) => [150 + 150 * Math.cos((i * Math.PI) / 32), 150 + 150 * Math.sin((i * Math.PI) / 32)])
+    model.addRoom(ring, { name: 'Rotunda' })
+    // Largest square in a 145 cm circle has side 145 * sqrt(2) = 205.06.
+    const fits = model.addFurniture(piece({ name: 'Rug', width: 205, depth: 205, x: 160, y: 140 }))
+    const placed = store.peek().furniture.find((i) => i.id === fits.id)!
+    expect(Math.hypot(placed.x - 150, placed.y - 150)).toBeLessThan(0.5)
+    const before = JSON.stringify(store.getHome())
+    expect(() => model.addFurniture(piece({ name: 'Rug', width: 207, depth: 207, x: 150, y: 150 }))).toThrow(
+      /"Rug" \(207 x 207 cm\) is too large for room "Rotunda" \(about 300 x 300 cm\)/,
+    )
+    expect(JSON.stringify(store.getHome())).toBe(before)
+  })
+
+  it('a wall edit that shrinks the room below an existing piece is rejected (no ejection)', () => {
+    const { store, model } = roomSetup()
+    const f = model.addFurniture(piece({ name: 'Sofa', width: 300, depth: 80, x: 200, y: 200 }))
+    const east = store.peek().walls[1]!
+    expect(() => model.updateWall(east.id, { xStart: 250, xEnd: 250 })).toThrow(/"Sofa" \(300 x 80 cm\) is too large for room "Living"/)
+    model.setSelection([east.id])
+    const selected = snapshot(store)
+    expect(() => model.moveSelection(-150, 0)).toThrow(FurnitureTooLargeError)
+    expect(snapshot(store)).toEqual(selected)
+    expect(store.peek().furniture.find((i) => i.id === f.id)!.x).toBe(200)
+  })
+
+  it('a wall drawn through a room is rejected when neither side can hold the piece, accepted (piece moves aside) when one can', () => {
+    const { store, model } = roomSetup()
+    const sofa = model.addFurniture(piece({ name: 'Sofa', width: 300, depth: 80, x: 200, y: 200 }))
+    const before = snapshot(store)
+    // A divider at x = 200 leaves two 190 cm halves: a 300 cm sofa fits neither.
+    expect(() => model.addWall({ xStart: 200, yStart: 0, xEnd: 200, yEnd: 400, thickness: 20 })).toThrow(FurnitureTooLargeError)
+    expect(snapshot(store)).toEqual(before)
+    // A divider close to the west wall leaves a 285 cm side: a 250 cm piece moves there.
+    model.updateFurniture(sofa.id, { width: 250 })
+    model.addWall({ xStart: 100, yStart: 0, xEnd: 100, yEnd: 400, thickness: 20 })
+    const moved = store.peek().furniture.find((i) => i.id === sofa.id)!
+    expect(moved.x - 125).toBeGreaterThanOrEqual(110 - 1e-6)
+    expect(overlapsWall(store, sofa.id)).toBe(false)
+  })
+
+  it('a loaded file that is already oversize is restored verbatim and unrelated wall edits leave it alone', () => {
+    const { store, model } = roomSetup()
+    const f = model.addFurniture(piece({ x: 200, y: 200 }))
+    const home = store.getHome()
+    home.furniture[0]!.width = 900 // a saved file whose piece never fitted
+    store.loadHome(home)
+    expect(store.peek().furniture[0]!.width).toBe(900)
+    model.updateWall(store.peek().walls[0]!.id, { thickness: 12 })
+    model.addWall({ xStart: 1000, yStart: 0, xEnd: 1100, yEnd: 0, thickness: 10 })
+    expect(store.peek().furniture.find((i) => i.id === f.id)!.width).toBe(900)
+  })
+
+  it('undo/redo of an accepted edit are untouched by rejections in between', () => {
+    const { store, model } = roomSetup()
+    const f = model.addFurniture(piece())
+    model.updateFurniture(f.id, { x: 150 })
+    expect(() => model.updateFurniture(f.id, { width: 800 })).toThrow(FurnitureTooLargeError)
+    expect(store.undo()).toBe(true)
+    expect(store.peek().furniture[0]!.x).toBe(200)
+    expect(store.redo()).toBe(true)
+    expect(store.peek().furniture[0]!.x).toBe(150)
+  })
+
+  it('atomically rolls back a multi-step batch that is rejected halfway', () => {
+    const { store, model } = roomSetup()
+    const before = snapshot(store)
+    expect(() => store.atomically(() => {
+      store.beginCompoundEdit()
+      model.addFurniture(piece({ name: 'Chair', width: 50, depth: 50 }))
+      model.addFurniture(piece({ name: 'Giant', width: 900, depth: 50 }))
+      store.endCompoundEdit()
+    })).toThrow(FurnitureTooLargeError)
+    expect(snapshot(store)).toEqual(before)
+    // The compound edit is closed again: the next apply is a normal undo step.
+    model.addFurniture(piece({ name: 'Stool', width: 40, depth: 40 }))
+    expect(store.canUndo()).toBe(true)
   })
 })

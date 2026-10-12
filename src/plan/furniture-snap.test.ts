@@ -385,3 +385,42 @@ describe('separateFurnitureFromWalls robustness', () => {
     }
   })
 })
+
+describe('snapping with rooms (a piece never leaves the room it is in)', () => {
+  const walls: WallLike[] = [
+    { id: 'n', xStart: 0, yStart: 0, xEnd: 300, yEnd: 0, thickness: 10 },
+    { id: 'e', xStart: 300, yStart: 0, xEnd: 300, yEnd: 300, thickness: 10 },
+    { id: 's', xStart: 300, yStart: 300, xEnd: 0, yEnd: 300, thickness: 10 },
+    { id: 'w', xStart: 0, yStart: 300, xEnd: 0, yEnd: 0, thickness: 10 },
+  ]
+  const rooms = [{ id: 'room-1', name: 'Den', points: [[0, 0], [300, 0], [300, 300], [0, 300]] as Array<[number, number]> }]
+
+  it('returns the raw point (not a spot outside the walls) for a piece too large for the room', () => {
+    for (const magnetismEnabled of [true, false]) {
+      const point = { x: 150, y: 150 }
+      const r = snapFurniturePlacement({ walls, rooms, point, widthCm: 400, depthCm: 80, angleDeg: 0, magnetismEnabled })
+      expect({ x: r.x, y: r.y }, `magnetism ${magnetismEnabled}`).toEqual(point)
+      const rot = snapFurnitureRotation({ walls, rooms, point, widthCm: 400, depthCm: 80, angleDeg: 30 })
+      expect({ x: rot.x, y: rot.y }, `rotation, magnetism ${magnetismEnabled}`).toEqual(point)
+    }
+  })
+
+  it('still clears the walls INSIDE the room for a piece that fits', () => {
+    const r = snapFurniturePlacement({ walls, rooms, point: { x: 20, y: 150 }, widthCm: 60, depthCm: 60, angleDeg: 0, magnetismEnabled: false })
+    expect(r.x).toBeCloseTo(5 + 30, 6)
+    expect(furnitureOverlapsWalls(r, walls, 60, 60, 0)).toBe(false)
+  })
+
+  it('without rooms the plain push-out (and ring search) still applies', () => {
+    const r = snapFurniturePlacement({ walls, point: { x: 150, y: 150 }, widthCm: 400, depthCm: 80, angleDeg: 0, magnetismEnabled: false })
+    expect(furnitureOverlapsWalls(r, walls, 400, 80, 0)).toBe(false)
+  })
+
+  it('only rooms on the same level count', () => {
+    const upstairs = [{ ...rooms[0]!, levelRef: 'level-2' }]
+    const point = { x: 150, y: 150 }
+    const r = snapFurniturePlacement({ walls, rooms: upstairs, point, widthCm: 400, depthCm: 80, angleDeg: 0, magnetismEnabled: false, levelRef: null })
+    // The ground-floor piece is not in the first-floor room: falls back to the plain push-out.
+    expect(furnitureOverlapsWalls(r, walls, 400, 80, 0)).toBe(false)
+  })
+})
