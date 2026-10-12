@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { furnitureOverlapsWalls } from '../plan/furniture-snap'
 import { FurnitureTooLargeError } from './furniture-clearance'
 import { ClipboardManager } from '../plan/clipboard'
-import type { Furniture } from './home'
+import type { Furniture, NormalizedHomeState } from './home'
 import { HomeModel } from './model'
 import { HomeStore } from './store'
 
@@ -348,7 +348,7 @@ describe('fixFurnitureClearance (legacy loads)', () => {
   })
   function legacyHome() {
     const store = new HomeStore()
-    const home = structuredClone(store.peek()) as any
+    const home = structuredClone(store.peek()) as NormalizedHomeState
     home.walls = [wall('w1', 0, 0, 400, 0), wall('w2', 400, 0, 400, 400), wall('w3', 400, 400, 0, 400), wall('w4', 0, 400, 0, 0)]
     home.rooms = [{ id: 'r1', points: [[5, 5], [395, 5], [395, 395], [5, 395]], levelRef: null }]
     home.furniture = [
@@ -374,7 +374,7 @@ describe('fixFurnitureClearance (legacy loads)', () => {
 
   it('reports an oversize piece as unfixable without throwing or moving it', () => {
     const store = legacyHome()
-    const home = structuredClone(store.peek()) as any
+    const home = structuredClone(store.peek()) as NormalizedHomeState
     home.furniture.push({ id: 'big', name: 'Huge', x: 200, y: 200, angleDeg: 0, width: 900, depth: 900, height: 80, elevation: 0 })
     store.loadHome(home)
     const fix = store.fixFurnitureClearance()
