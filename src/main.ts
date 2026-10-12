@@ -90,6 +90,7 @@ root.innerHTML = `
     <span id="status-cursor">x: 0  y: 0</span>
     <span id="status-tool">selection</span>
     <span id="status-zoom">zoom: 100%</span>
+    <span id="status-hint"></span>
     <span id="status-automation">automation: idle</span>
     <span id="status-account"></span>
   </div>
@@ -106,6 +107,7 @@ const canvas = root.querySelector<HTMLCanvasElement>('#plan-canvas')!
 const statusCursor = root.querySelector<HTMLSpanElement>('#status-cursor')!
 const statusTool = root.querySelector<HTMLSpanElement>('#status-tool')!
 const statusZoom = root.querySelector<HTMLSpanElement>('#status-zoom')!
+const statusHint = root.querySelector<HTMLSpanElement>('#status-hint')!
 const statusAutomation = root.querySelector<HTMLSpanElement>('#status-automation')!
 const statusAccount = root.querySelector<HTMLSpanElement>('#status-account')!
 const ctx = canvas.getContext('2d')
@@ -809,6 +811,15 @@ function refreshStatus(): void {
   statusZoom.textContent = `zoom: ${Math.round(currentView.scale * 100)}%`
   const user = auth.currentUser()
   statusAccount.textContent = user ? `account: ${user}` : 'account: signed out'
+  const mods = engine.getModifierKeys()
+  const hintVisible = engine.getTool() === 'wall' || pointer.down
+  statusHint.textContent = !hintVisible
+    ? ''
+    : mods.alt
+      ? 'snap off'
+      : mods.shift
+        ? '15° lock'
+        : 'Shift: 15° lock · Alt: free'
   profileWidget.refresh()
 }
 
@@ -940,7 +951,6 @@ interface PointerState {
   lastX: number
   lastY: number
   moved: boolean
-  shift: boolean
   button: number
   rotationId: string | null
   furnitureMoveId: string | null
@@ -954,13 +964,15 @@ const pointer: PointerState = {
   lastX: 0,
   lastY: 0,
   moved: false,
-  shift: false,
   button: 0,
   rotationId: null,
   furnitureMoveId: null,
   wallDrawing: false,
 }
 let pendingFurnitureMovePoint: { x: number; y: number } | null = null
+// Last cursor position in model space — lets a modifier keydown refresh the
+// wall-drawing preview without any mouse movement.
+let lastCursorModel: { x: number; y: number } | null = null
 
 function eventModelPoint(event: PointerEvent | MouseEvent): { x: number; y: number } {
   const rect = canvas.getBoundingClientRect()
@@ -1005,10 +1017,10 @@ canvas.addEventListener('pointerdown', (event) => {
 
   if (event.button !== 0) return
   canvas.setPointerCapture(event.pointerId)
+  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey || event.metaKey })
   const point = eventModelPoint(event)
   pointer.down = true
   pointer.moved = false
-  pointer.shift = event.shiftKey
   pointer.button = event.button
   pointer.startX = point.x
   pointer.startY = point.y
@@ -1034,8 +1046,10 @@ canvas.addEventListener('pointerdown', (event) => {
 })
 
 canvas.addEventListener('pointermove', (event) => {
+  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey || event.metaKey })
   const coords = canvasPixelCoords(event)
   const pt = new ViewMapper(currentView).toModel(coords.px, coords.py)
+  lastCursorModel = pt
   statusCursor.textContent = `x: ${pt.x.toFixed(1)}  y: ${pt.y.toFixed(1)}`
   if (engine.getTool() === 'wall') engine.moveMouse(pt.x, pt.y)
 
@@ -1084,6 +1098,17 @@ canvas.addEventListener('pointermove', (event) => {
     pendingFurnitureMovePoint = pointer.moved ? point : null
     return
   }
+
+  // Live drag preview (marquee + wall angle-lock ghost): engine-side, purely
+  // visual — the single undoable edit still happens at pointerup. forceNextRender
+  // because preview-only state changes never touch the store revision.
+  if (pointer.moved && engine.getTool() === 'selection') {
+    engine.previewDrag({ x: pointer.startX, y: pointer.startY }, point, {
+      shift: event.shiftKey,
+      altOrMeta: event.altKey || event.metaKey,
+    })
+    forceNextRender = true
+  }
 })
 
 canvas.addEventListener('pointerup', (event) => {
@@ -1093,6 +1118,7 @@ canvas.addEventListener('pointerup', (event) => {
   }
   if (!pointer.down) return
   pointer.down = false
+  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey || event.metaKey })
   const point = eventModelPoint(event)
 
   if (pointer.rotationId) {
@@ -1117,7 +1143,13 @@ canvas.addEventListener('pointerup', (event) => {
   if (pointer.wallDrawing) {
     if (pointer.moved) {
       void traceAction('wall.click', () => {
-        engine.click({ x: point.x, y: point.y, dbl: false, shift: pointer.shift })
+        engine.click({
+          x: point.x,
+          y: point.y,
+          dbl: false,
+          shift: event.shiftKey,
+          altOrMeta: event.altKey || event.metaKey,
+        })
       })
     }
     pointer.wallDrawing = false
@@ -1161,9 +1193,10 @@ canvas.addEventListener('pointerup', (event) => {
       fromY: pointer.startY,
       toX: point.x,
       toY: point.y,
-      shift: pointer.shift,
+      shift: event.shiftKey,
       altOrMeta: event.altKey || event.metaKey,
     }))
+    engine.endDragPreview()
   } else {
     const tool = engine.getTool()
     const actionName = tool === 'wall' ? 'wall.click' : tool === 'room' ? 'room.add' : null
@@ -1412,6 +1445,32 @@ window.addEventListener('keyup', (event) => {
     spaceHeld = false
     canvas.style.cursor = ''
   }
+})
+
+// Live modifier tracking for the plan engine (Shift = hard 15° lock,
+// Alt/Option/Meta = bypass all magnetism). Deliberately separate listeners
+// from the shortcut handler above: never preventDefault, so Shift+arrows
+// nudging and native Alt/Meta combos are unaffected.
+function syncEngineModifiers(event: KeyboardEvent): void {
+  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey || event.metaKey })
+  refreshStatus()
+  // Pressing/releasing a modifier must re-shape the live wall-drawing preview
+  // (angle lock / free) even with no mouse movement.
+  if (engine.getTool() === 'wall' && lastCursorModel) {
+    engine.moveMouse(lastCursorModel.x, lastCursorModel.y)
+  }
+  forceNextRender = true
+}
+
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Shift' || event.key === 'Alt' || event.key === 'Meta') syncEngineModifiers(event)
+})
+window.addEventListener('keyup', (event) => {
+  if (event.key === 'Shift' || event.key === 'Alt' || event.key === 'Meta') syncEngineModifiers(event)
+})
+window.addEventListener('blur', () => {
+  engine.setModifierKeys({ shift: false, alt: false })
+  refreshStatus()
 })
 
 // ── Render loop ─────────────────────────────────────────────────────────────

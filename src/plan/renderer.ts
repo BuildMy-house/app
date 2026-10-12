@@ -1009,4 +1009,17 @@ export function drawPlan(
     ctx.strokeRect(x, y, w, h)
     ctx.setLineDash([])
   }
+
+  // Live wall-drag angle-lock ghost (preview only — the model edits on release).
+  if (preview && preview.wallDragGhost) {
+    const ghost = preview.wallDragGhost
+    ctx.strokeStyle = SELECTION_COLOR
+    ctx.lineWidth = 1.5
+    ctx.setLineDash([6, 4])
+    ctx.beginPath()
+    ctx.moveTo(mapper.sx(ghost.x1), mapper.sy(ghost.y1))
+    ctx.lineTo(mapper.sx(ghost.x2), mapper.sy(ghost.y2))
+    ctx.stroke()
+    ctx.setLineDash([])
+  }
 }
