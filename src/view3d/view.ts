@@ -350,6 +350,7 @@ export class View3D {
         // Same anti-clip + wall snap the 2D plan drag uses (engine.moveFurnitureTo).
         const snap = snapFurniturePlacement({
           walls: home.walls,
+          rooms: home.rooms,
           point: naive,
           widthCm: item.width,
           depthCm: item.depth,

@@ -1127,6 +1127,7 @@ canvas.addEventListener('pointerup', (event) => {
     const snap = item
       ? snapFurniturePlacement({
           walls: store.peek().walls,
+          rooms: store.peek().rooms,
           point: raw,
           widthCm: item.width,
           depthCm: item.depth,
@@ -1633,6 +1634,7 @@ view3d = new View3D(store, {
     const raw = engine.isGridSnapEnabled() ? engine.snapToGrid(p.x, p.y) : p
     const snap = snapFurniturePlacement({
       walls: store.getHome().walls,
+      rooms: store.getHome().rooms,
       point: raw,
       widthCm: item.width,
       depthCm: item.depth,

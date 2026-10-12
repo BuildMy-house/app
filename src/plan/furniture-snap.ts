@@ -1,5 +1,7 @@
 import type { Point } from './geometry'
 import { distance } from './geometry'
+import { footprintAt, nearestFreeSpot, overlapsAnySolid, settleAmongSolids, wallSolids } from './wall-solids'
+import { resolveFootprint, type RoomLike } from './furniture-room-fit'
 
 /**
  * Furniture placement snapping (ticket U9).
@@ -19,7 +21,7 @@ export interface WallLike {
   xEnd: number
   yEnd: number
   thickness?: number
-  /** Radians, non-zero = round wall (approximated by chords for clearance). */
+  /** Radians, non-zero = round wall (exact conservative arc band for clearance). */
   arcExtent?: number | null
   /** Level the wall sits on; null = ground floor. Optional so plain walls
    *  (and existing callers) stay valid. */
@@ -43,6 +45,11 @@ export interface FurnitureSnapInput {
    *  (hysteresis). Does not affect snapping onto a different/new wall, which
    *  always uses the normal FURNITURE_SNAP_DISTANCE_CM entry threshold. */
   previousWallId?: string | null
+  /** The home's rooms. When given, a piece inside a room is kept inside it: if
+   *  it cannot fit anywhere in that room the raw `point` is returned untouched
+   *  (never a spot outside the room) and the store rejects the edit. Omit only
+   *  for callers with no room context — they get the plain wall push-out. */
+  rooms?: ReadonlyArray<RoomLike>
 }
 
 export interface FurnitureSnapResult {
@@ -91,6 +98,29 @@ function wallsFor(input: Pick<FurnitureSnapInput, 'walls' | 'levelRef'>): Readon
   return input.walls.filter((wall) => (wall.levelRef ?? null) === input.levelRef)
 }
 
+/** Rooms that can hold the piece: same-level ones (all when `levelRef` is omitted). */
+function roomsFor(input: Pick<FurnitureSnapInput, 'rooms' | 'levelRef'>): RoomLike[] | null {
+  if (!input.rooms) return null
+  return input.rooms.filter((room) =>
+    room.points.length >= 3 && (input.levelRef === undefined || (room.levelRef ?? null) === input.levelRef))
+}
+
+/** Clears a position of the walls (see resolveFootprint); null when the piece is
+ *  too large for the room it is in. */
+function clearOfWalls(
+  input: Pick<FurnitureSnapInput, 'rooms' | 'levelRef'>,
+  walls: ReadonlyArray<WallLike>,
+  point: Point,
+  widthCm: number,
+  depthCm: number,
+  angleDeg: number,
+): Point | null {
+  const rooms = roomsFor(input)
+  if (!rooms) return separateFurnitureFromWalls(point, walls, widthCm, depthCm, angleDeg)
+  const result = resolveFootprint(wallSolids(walls), rooms, point, widthCm, depthCm, angleDeg)
+  return result.fits ? { x: result.x, y: result.y } : null
+}
+
 export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnapResult {
   const { point, depthCm, magnetismEnabled } = input
   const walls = wallsFor(input)
@@ -100,7 +130,7 @@ export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnap
   // Hard anti-clip constraint runs regardless of magnetism; only the
   // flush-alignment convenience snap below is magnetism-gated.
   if (!magnetismEnabled) {
-    const separated = separateFurnitureFromWalls(point, walls, input.widthCm ?? depthCm, depthCm, input.angleDeg ?? 0)
+    const separated = clearOfWalls(input, walls, point, input.widthCm ?? depthCm, depthCm, input.angleDeg ?? 0) ?? point
     return { x: separated.x, y: separated.y, angleDeg: input.angleDeg ?? 0, wallRef: null, wallOffset: null }
   }
 
@@ -134,7 +164,7 @@ export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnap
     ? FURNITURE_SNAP_RELEASE_DISTANCE_CM
     : FURNITURE_SNAP_DISTANCE_CM
   if (!best || best.dist > threshold) {
-    const clear = separateFurnitureFromWalls(point, walls, input.widthCm ?? depthCm, depthCm, input.angleDeg ?? 0)
+    const clear = clearOfWalls(input, walls, point, input.widthCm ?? depthCm, depthCm, input.angleDeg ?? 0) ?? point
     return { x: clear.x, y: clear.y, angleDeg: 0, wallRef: null, wallOffset: null }
   }
 
@@ -153,132 +183,13 @@ export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnap
   const offset = halfExtent + (best.wall.thickness ?? 0) / 2
   const x = best.point.x + nx * side * offset
   const y = best.point.y + ny * side * offset
-  const separated = separateFurnitureFromWalls(
-    { x, y }, walls, input.widthCm ?? depthCm, depthCm, angleDeg,
-  )
+  const separated = clearOfWalls(input, walls, { x, y }, input.widthCm ?? depthCm, depthCm, angleDeg)
+  if (!separated) return { x: point.x, y: point.y, angleDeg: input.angleDeg ?? 0, wallRef: null, wallOffset: null }
 
   const wallRef = best.wall.id ?? null
   const wallOffset = best.t * len
 
   return { x: separated.x, y: separated.y, angleDeg, wallRef, wallOffset }
-}
-
-/** Penetration (cm) tolerated before furniture counts as overlapping a wall —
- *  absorbs floating-point error from the exact-flush push-out. */
-const WALL_OVERLAP_EPSILON_CM = 1e-6
-
-interface WallRect {
-  cx: number
-  cy: number
-  tx: number
-  ty: number
-  halfLength: number
-  halfThickness: number
-}
-
-function wallRect(wall: WallLike): WallRect | null {
-  const dx = wall.xEnd - wall.xStart
-  const dy = wall.yEnd - wall.yStart
-  const length = Math.hypot(dx, dy)
-  if (!(length > 0)) return null
-  return {
-    cx: (wall.xStart + wall.xEnd) / 2,
-    cy: (wall.yStart + wall.yEnd) / 2,
-    tx: dx / length,
-    ty: dy / length,
-    halfLength: length / 2,
-    halfThickness: Math.max(0, wall.thickness ?? 0) / 2,
-  }
-}
-
-/** Round walls (arcExtent != 0) are approximated by chords so a curved wall's
- *  bulge is as solid as a straight one. Straight walls pass through as-is. */
-function straightPieces(wall: WallLike & { arcExtent?: number | null }): WallLike[] {
-  const a = wall.arcExtent
-  if (typeof a !== 'number' || !Number.isFinite(a) || a === 0) return [wall]
-  const dx = wall.xEnd - wall.xStart
-  const dy = wall.yEnd - wall.yStart
-  const d = Math.hypot(dx, dy)
-  if (!(d > 0)) return [wall]
-  const sagitta = (d / 2) * Math.tan(a / 4)
-  if (!Number.isFinite(sagitta) || Math.abs(sagitta) < 1e-9) return [wall]
-  const nx = dy / d
-  const ny = -dx / d
-  const mx = (wall.xStart + wall.xEnd) / 2 + nx * sagitta
-  const my = (wall.yStart + wall.yEnd) / 2 + ny * sagitta
-  const radius = (d * d / 4 + sagitta * sagitta) / (2 * Math.abs(sagitta))
-  const cx = mx - nx * Math.sign(sagitta) * radius
-  const cy = my - ny * Math.sign(sagitta) * radius
-  const a0 = Math.atan2(wall.yStart - cy, wall.xStart - cx)
-  const cross = (wall.xStart - cx) * (my - cy) - (wall.yStart - cy) * (mx - cx)
-  const dir = cross >= 0 ? 1 : -1
-  const steps = Math.max(2, Math.ceil(Math.abs(a) / (Math.PI / 12)))
-  const pieces: WallLike[] = []
-  let prev = { x: wall.xStart, y: wall.yStart }
-  for (let i = 1; i <= steps; i++) {
-    const next = i === steps
-      ? { x: wall.xEnd, y: wall.yEnd }
-      : { x: cx + radius * Math.cos(a0 + (dir * Math.abs(a) * i) / steps), y: cy + radius * Math.sin(a0 + (dir * Math.abs(a) * i) / steps) }
-    pieces.push({ ...wall, xStart: prev.x, yStart: prev.y, xEnd: next.x, yEnd: next.y, arcExtent: null })
-    prev = next
-  }
-  return pieces
-}
-
-interface Footprint {
-  x: number
-  y: number
-  ux: number
-  uy: number
-  halfW: number
-  halfD: number
-}
-
-/** Smallest SAT push (unit axis * distance) separating the footprint from the
- *  wall rectangle, or null when they do not overlap. */
-function wallPush(f: Footprint, w: WallRect): { x: number; y: number } | null {
-  const vx = -f.uy
-  const vy = f.ux
-  const nx = -w.ty
-  const ny = w.tx
-  // Wall normal first: on ties the push goes straight out of the wall face
-  // rather than sliding along it.
-  const axes: Array<[number, number]> = [[nx, ny], [w.tx, w.ty], [f.ux, f.uy], [vx, vy]]
-  const dx = f.x - w.cx
-  const dy = f.y - w.cy
-  let best: { x: number; y: number; depth: number } | null = null
-  for (const [ax, ay] of axes) {
-    const rf = Math.abs(f.ux * ax + f.uy * ay) * f.halfW + Math.abs(vx * ax + vy * ay) * f.halfD
-    const rw = Math.abs(w.tx * ax + w.ty * ay) * w.halfLength + Math.abs(nx * ax + ny * ay) * w.halfThickness
-    const dist = dx * ax + dy * ay
-    const depth = rf + rw - Math.abs(dist)
-    if (depth <= WALL_OVERLAP_EPSILON_CM) return null
-    if (!best || depth < best.depth - 1e-9) {
-      const sign = dist < 0 ? -1 : 1
-      best = { x: ax * sign * depth, y: ay * sign * depth, depth }
-    }
-  }
-  return best ? { x: best.x, y: best.y } : null
-}
-
-function footprintAt(x: number, y: number, widthCm: number, depthCm: number, angleDeg: number): Footprint {
-  const rad = (angleDeg * Math.PI) / 180
-  return { x, y, ux: Math.cos(rad), uy: Math.sin(rad), halfW: widthCm / 2, halfD: depthCm / 2 }
-}
-
-function rectsFor(walls: ReadonlyArray<WallLike>): WallRect[] {
-  const rects: WallRect[] = []
-  for (const wall of walls) {
-    for (const piece of straightPieces(wall)) {
-      const rect = wallRect(piece)
-      if (rect) rects.push(rect)
-    }
-  }
-  return rects
-}
-
-function overlapsAny(f: Footprint, rects: ReadonlyArray<WallRect>): boolean {
-  return rects.some((rect) => wallPush(f, rect) !== null)
 }
 
 /** True when a furniture footprint (centre, size, angle) penetrates any wall in
@@ -290,20 +201,16 @@ export function furnitureOverlapsWalls(
   depthCm: number,
   angleDeg: number,
 ): boolean {
-  return overlapsAny(footprintAt(point.x, point.y, widthCm, depthCm, angleDeg), rectsFor(walls))
+  return overlapsAnySolid(footprintAt(point.x, point.y, widthCm, depthCm, angleDeg), wallSolids(walls))
 }
 
-const RELAX_PASSES = 32
-const SEARCH_STEP_CM = 5
-const SEARCH_DIRECTIONS = 32
-
 /**
- * Hard anti-clip: returns the nearest position at which the footprint no
- * longer overlaps any wall. Walls are solid oriented rectangles (length x
- * thickness), so corners, thin and rotated walls all behave the same. Pushes
- * relax wall by wall; if that cannot settle (tight corner, piece bigger than
- * its room) an expanding ring search finds the closest free spot, which always
- * exists beyond the walls' bounding box. Non-finite input is returned as-is.
+ * Hard anti-clip for a piece that is NOT known to be inside a room: the nearest
+ * position at which the footprint no longer overlaps any wall — relaxation, and
+ * if that cannot settle (tight corner) the closest free spot by ring search.
+ * Non-finite input is returned as-is. Pieces inside a room go through
+ * resolveFootprint (furniture-room-fit.ts) instead, which never moves a piece
+ * out of its room.
  */
 export function separateFurnitureFromWalls(
   point: Point,
@@ -312,40 +219,10 @@ export function separateFurnitureFromWalls(
   depthCm: number,
   angleDeg: number,
 ): Point {
-  if (![point.x, point.y, widthCm, depthCm, angleDeg].every(Number.isFinite)) return { x: point.x, y: point.y }
-  const rects = rectsFor(walls)
-  if (rects.length === 0) return { x: point.x, y: point.y }
-  const at = (x: number, y: number) => footprintAt(x, y, widthCm, depthCm, angleDeg)
-
-  let { x, y } = point
-  for (let pass = 0; pass < RELAX_PASSES; pass++) {
-    let moved = false
-    for (const rect of rects) {
-      const push = wallPush(at(x, y), rect)
-      if (push) {
-        x += push.x
-        y += push.y
-        moved = true
-      }
-    }
-    if (!moved) return { x, y }
-  }
-  if (!overlapsAny(at(x, y), rects)) return { x, y }
-
-  let reach = 0
-  for (const rect of rects) {
-    reach = Math.max(reach, Math.hypot(rect.cx - point.x, rect.cy - point.y) + rect.halfLength + rect.halfThickness)
-  }
-  const maxRadius = reach + Math.hypot(widthCm, depthCm) + SEARCH_STEP_CM
-  for (let radius = SEARCH_STEP_CM; radius <= maxRadius + SEARCH_STEP_CM; radius += SEARCH_STEP_CM) {
-    for (let i = 0; i < SEARCH_DIRECTIONS; i++) {
-      const theta = (2 * Math.PI * i) / SEARCH_DIRECTIONS
-      const cx = point.x + Math.cos(theta) * radius
-      const cy = point.y + Math.sin(theta) * radius
-      if (!overlapsAny(at(cx, cy), rects)) return { x: cx, y: cy }
-    }
-  }
-  return { x: point.x, y: point.y }
+  const solids = wallSolids(walls)
+  const settled = settleAmongSolids(solids, point, widthCm, depthCm, angleDeg)
+  if (settled.settled) return { x: settled.x, y: settled.y }
+  return nearestFreeSpot(solids, point, widthCm, depthCm, angleDeg)
 }
 
 export function snapFurnitureRotation(input: Omit<FurnitureSnapInput, 'magnetismEnabled'>): FurnitureSnapResult {
@@ -372,7 +249,7 @@ export function snapFurnitureRotation(input: Omit<FurnitureSnapInput, 'magnetism
     if (!best || Math.abs(dist) < Math.abs(best.dist)) best = { wall, point: projected, dist, side }
   }
   if (!best || best.dist > FURNITURE_SNAP_DISTANCE_CM) {
-    const clear = separateFurnitureFromWalls(point, walls, widthCm, depthCm, angleDeg)
+    const clear = clearOfWalls(input, walls, point, widthCm, depthCm, angleDeg) ?? point
     return { x: clear.x, y: clear.y, angleDeg, wallRef: null, wallOffset: null }
   }
 
@@ -392,10 +269,12 @@ export function snapFurnitureRotation(input: Omit<FurnitureSnapInput, 'magnetism
   const relative = ((resultAngle - wallAngle) * Math.PI) / 180
   const extent = (Math.abs(Math.sin(relative)) * widthCm + Math.abs(Math.cos(relative)) * depthCm) / 2
   const offset = extent + (best.wall.thickness ?? 0) / 2
-  const separated = separateFurnitureFromWalls(
+  const separated = clearOfWalls(
+    input, walls,
     { x: best.point.x + nx * best.side * offset, y: best.point.y + ny * best.side * offset },
-    walls, widthCm, depthCm, resultAngle,
+    widthCm, depthCm, resultAngle,
   )
+  if (!separated) return { x: point.x, y: point.y, angleDeg, wallRef: null, wallOffset: null }
   return {
     x: separated.x,
     y: separated.y,

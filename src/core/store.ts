@@ -123,6 +123,38 @@ export class HomeStore {
     }
   }
 
+  /**
+   * Runs `fn` (any number of applies and compound edits) as all-or-nothing:
+   * if it throws, the home, undo/redo stacks, open compound edit and dirty flag
+   * are put back exactly as they were and the error propagates. apply() itself
+   * already leaves nothing behind when ONE mutation is rejected; this covers
+   * the multi-step callers (paste, duplicate, a gesture that opens a compound
+   * edit) so a rejection halfway through never leaves a half-applied batch or
+   * an unclosed compound edit.
+   */
+  atomically<T>(fn: () => T): T {
+    const saved = {
+      home: this.home,
+      undoStack: [...this.undoStack],
+      redoStack: this.redoStack,
+      compoundDepth: this.compoundDepth,
+      compoundBase: this.compoundBase,
+      dirty: this._dirty,
+    }
+    try {
+      return fn()
+    } catch (err) {
+      this.home = saved.home
+      this.undoStack = saved.undoStack
+      this.redoStack = saved.redoStack
+      this.compoundDepth = saved.compoundDepth
+      this.compoundBase = saved.compoundBase
+      this._dirty = saved.dirty
+      this._revision++
+      throw err
+    }
+  }
+
   undo(): boolean {
     const previous = this.undoStack.pop()
     if (!previous) return false

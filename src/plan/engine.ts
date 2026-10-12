@@ -1,7 +1,7 @@
 import type { HomeModel } from '../core/model'
 import { ModelError, NEW_WALL_PATTERN_ID, NEW_WALL_THICKNESS_CM } from '../core/model'
 import { DEFAULT_WALL_HEIGHT_CM, getDefaultFloorColor, getDefaultCeilingVisibility } from '../core/home'
-import type { Furniture, NormalizedHomeState, Wall } from '../core/home'
+import type { Furniture, NormalizedHomeState, Room, Wall } from '../core/home'
 import { normalizeAngle } from '../core/export'
 import type { WallLoop } from '../core/wall-loop-detector'
 import { detectClosedLoops, wallCenterlinePoints } from '../core/wall-loop-detector'
@@ -205,7 +205,7 @@ export class PlanEngine {
   private vertexDrag: { wallId: string; endpoint: 'start' | 'end'; startX: number; startY: number; connectedWalls: Array<{ wallId: string; endpoint: 'start' | 'end' }> } | null = null
   private roomVertexDrag: { roomId: string; vertexIndex: number; startX: number; startY: number } | null = null
   private furnitureRotateDrag: { id: string; angleDeg: number; pointerAngleDeg: number; x: number; y: number } | null = null
-  private furnitureMoveDrag: { id: string; start: Point; furniture: Furniture; walls: Wall[]; snappedWallId: string | null } | null = null
+  private furnitureMoveDrag: { id: string; start: Point; furniture: Furniture; walls: Wall[]; rooms: Room[]; snappedWallId: string | null } | null = null
   private wallArcDrag: { id: string } | null = null
   private activeLevelId: string | null = null
   /** T12: rooms whose boundary loop dissolved (wall deleted/moved apart).
@@ -602,7 +602,7 @@ export class PlanEngine {
     const pointerAngleDeg = (Math.atan2(point.x - drag.x, -(point.y - drag.y)) * 180) / Math.PI
     const angleDeg = drag.angleDeg + normalizeAngle(pointerAngleDeg - drag.pointerAngleDeg)
     const snap = this.magnetismEnabled
-      ? snapFurnitureRotation({ walls: home.walls, point: { x: drag.x, y: drag.y }, widthCm: f.width, depthCm: f.depth, angleDeg, levelRef: f.levelRef ?? null })
+      ? snapFurnitureRotation({ walls: home.walls, rooms: home.rooms, point: { x: drag.x, y: drag.y }, widthCm: f.width, depthCm: f.depth, angleDeg, levelRef: f.levelRef ?? null })
       : { x: f.x, y: f.y, angleDeg }
     this.model.updateFurniture(id, { x: snap.x, y: snap.y, angleDeg: normalizeAngle(snap.angleDeg) })
   }
@@ -618,7 +618,7 @@ export class PlanEngine {
     const furniture = home.furniture.find((item) => item.id === id)
     if (!furniture || this.furnitureMoveDrag) return false
     if (!home.selection.includes(id)) this.model.setSelection([id])
-    this.furnitureMoveDrag = { id, start: point, furniture, walls: home.walls, snappedWallId: furniture.wallRef ?? null }
+    this.furnitureMoveDrag = { id, start: point, furniture, walls: home.walls, rooms: home.rooms, snappedWallId: furniture.wallRef ?? null }
     this.model.getStore().beginCompoundEdit()
     return true
   }
@@ -629,7 +629,7 @@ export class PlanEngine {
     let target = { x: drag.furniture.x + point.x - drag.start.x, y: drag.furniture.y + point.y - drag.start.y }
     if (this.gridSnapEnabled) target = this.snapToGrid(target.x, target.y)
     const snap = snapFurniturePlacement({
-      walls: drag.walls, point: target, widthCm: drag.furniture.width, depthCm: drag.furniture.depth,
+      walls: drag.walls, rooms: drag.rooms, point: target, widthCm: drag.furniture.width, depthCm: drag.furniture.depth,
       angleDeg: drag.furniture.angleDeg, magnetismEnabled: this.magnetismEnabled,
       previousWallId: drag.snappedWallId, levelRef: drag.furniture.levelRef ?? null,
     })
@@ -655,7 +655,20 @@ export class PlanEngine {
     return this.vertexDrag !== null
   }
 
+  /** All-or-nothing: a rejected edit (furniture too large for its room) leaves no partial change. */
   click(input: ClickInput): void {
+    this.model.getStore().atomically(() => this.clickImpl(input))
+  }
+
+  drag(input: DragInput): void {
+    this.model.getStore().atomically(() => this.dragImpl(input))
+  }
+
+  key(key: PlanKey, shift = false): void {
+    this.model.getStore().atomically(() => this.keyImpl(key, shift))
+  }
+
+  private clickImpl(input: ClickInput): void {
     this.validateClick(input)
     const point = { x: input.x, y: input.y }
     if (input.dbl) {
@@ -665,7 +678,7 @@ export class PlanEngine {
     }
   }
 
-  drag(input: DragInput): void {
+  private dragImpl(input: DragInput): void {
     this.validateDrag(input)
     const from = { x: input.fromX, y: input.fromY }
     const to = { x: input.toX, y: input.toY }
@@ -867,6 +880,7 @@ export class PlanEngine {
           if (this.gridSnapEnabled) naive = this.snapToGrid(naive.x, naive.y)
           const snap = snapFurniturePlacement({
             walls: home.walls,
+            rooms: home.rooms,
             point: naive,
             widthCm: f.width,
             depthCm: f.depth,
@@ -1044,7 +1058,7 @@ export class PlanEngine {
     this.marqueeTo = null
   }
 
-  key(key: PlanKey, shift = false): void {
+  private keyImpl(key: PlanKey, shift: boolean): void {
     if (key === 'arrow-up' || key === 'arrow-down' || key === 'arrow-left' || key === 'arrow-right') {
       const step = shift ? 10 : 1
       const dx = key === 'arrow-left' ? -step : key === 'arrow-right' ? step : 0
