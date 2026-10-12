@@ -38,6 +38,7 @@ jobs:
           VITE_AXIOM_TOKEN: ${{ secrets.VITE_AXIOM_TOKEN }}
           VITE_AXIOM_DATASET: ${{ secrets.VITE_AXIOM_DATASET }}
           VITE_AXIOM_ENDPOINT: ${{ secrets.VITE_AXIOM_ENDPOINT }}
+          VITE_ENABLE_PM_AGENT_CHAT: 'true'
 
       - name: Warn about deployment cutover
         run: echo "::warning::Production uses a blue/green app cutover; the current app remains live until the candidate passes its runtime smoke test."
@@ -58,7 +59,11 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            docker build -t buildmyhouse-app:latest .
+            docker build -t buildmyhouse-app:latest \
+              --build-arg VITE_AXIOM_TOKEN="${{ secrets.VITE_AXIOM_TOKEN }}" \
+              --build-arg VITE_AXIOM_DATASET="${{ secrets.VITE_AXIOM_DATASET }}" \
+              --build-arg VITE_AXIOM_ENDPOINT="${{ secrets.VITE_AXIOM_ENDPOINT }}" \
+              --build-arg VITE_ENABLE_PM_AGENT_CHAT=true .
             docker build -t buildmyhouse-mcp:latest -f mcp/Dockerfile .
             docker build -t buildmyhouse-luxcore:latest -f luxcore/Dockerfile .
             docker run --rm --entrypoint node buildmyhouse-app:latest \
