@@ -1,6 +1,6 @@
 import type { HomeStore } from '../core/store'
 import { serializeHome } from '../core/export'
-import { FurnitureTooLargeError } from '../core/furniture-clearance'
+import { FurnitureTooLargeError, findClearanceViolations } from '../core/furniture-clearance'
 import { HomeModel, ModelError, assert, DEFAULT_LEVEL_HEIGHT_CM } from '../core/model'
 import type {
   NormalizedHomeState,
@@ -26,6 +26,8 @@ import { openingOnWall } from '../core/wall-opening'
 const COMMANDS = [
   'ping',
   'new_home',
+  'begin_batch',
+  'end_batch',
   'open',
   'save',
   'get_state',
@@ -151,6 +153,17 @@ export class HomelyCommandHandler implements CommandHandler {
       case 'new_home':
         this.store.resetToEmpty()
         return { ok: true, data: {} }
+      case 'begin_batch':
+        this.store.beginTransaction()
+        return { ok: true, data: {} }
+      case 'end_batch': {
+        // All-or-nothing multi-command edits (MCP build_house): a rolled-back
+        // batch leaves the home, undo history and ids exactly as they were.
+        assert(typeof params.commit === 'boolean', 'param commit must be a boolean')
+        if (params.commit) this.store.commitTransaction()
+        else this.store.rollbackTransaction()
+        return { ok: true, data: {} }
+      }
       case 'get_state':
         return { ok: true, data: serializeHome(this.store.getHome()) }
       case 'get_capabilities':
@@ -600,7 +613,9 @@ export class HomelyCommandHandler implements CommandHandler {
           throw new ModelError('open requires either json or path')
         }
         this.store.loadHome(loaded)
-        return { ok: true, data: { name: loaded.name ?? null } }
+        // Loaded verbatim, so say if the file clips furniture into walls (the store only polices edits).
+        const violations = findClearanceViolations(loaded)
+        return { ok: true, data: { name: loaded.name ?? null, clearance: { overlaps: violations.overlaps, oversize: violations.oversize } } }
       }
       case 'save': {
         const json = serializeHome(this.store.getHome())

@@ -17,6 +17,16 @@ import { followTopCamera } from './top-camera-follower'
  * mutations, so explicit moves are never fought; writes are non-undoable
  * (camera placement is not an undoable edit in SH3D either).
  */
+interface StoreSnapshot {
+  home: NormalizedHomeState
+  undoStack: NormalizedHomeState[]
+  redoStack: NormalizedHomeState[]
+  idCounter: number
+  compoundDepth: number
+  compoundBase: NormalizedHomeState | null
+  dirty: boolean
+}
+
 export class HomeStore {
   static readonly MAX_UNDO_DEPTH = 20
 
@@ -27,6 +37,7 @@ export class HomeStore {
   private compoundDepth = 0
   private compoundBase: NormalizedHomeState | null = null
   private _dirty = false
+  private transaction: StoreSnapshot | null = null
   /**
    * Bumped on every mutation (undoable or not). The plan render loop
    * (main.ts) uses this as a cheap "did anything change" check so it can
@@ -123,6 +134,29 @@ export class HomeStore {
     }
   }
 
+  private capture(): StoreSnapshot {
+    return {
+      home: this.home,
+      undoStack: [...this.undoStack],
+      redoStack: this.redoStack,
+      idCounter: this.idCounter,
+      compoundDepth: this.compoundDepth,
+      compoundBase: this.compoundBase,
+      dirty: this._dirty,
+    }
+  }
+
+  private restore(saved: StoreSnapshot): void {
+    this.home = saved.home
+    this.undoStack = saved.undoStack
+    this.redoStack = saved.redoStack
+    this.idCounter = saved.idCounter
+    this.compoundDepth = saved.compoundDepth
+    this.compoundBase = saved.compoundBase
+    this._dirty = saved.dirty
+    this._revision++
+  }
+
   /**
    * Runs `fn` (any number of applies and compound edits) as all-or-nothing:
    * if it throws, the home, undo/redo stacks, open compound edit and dirty flag
@@ -133,26 +167,35 @@ export class HomeStore {
    * an unclosed compound edit.
    */
   atomically<T>(fn: () => T): T {
-    const saved = {
-      home: this.home,
-      undoStack: [...this.undoStack],
-      redoStack: this.redoStack,
-      compoundDepth: this.compoundDepth,
-      compoundBase: this.compoundBase,
-      dirty: this._dirty,
-    }
+    const saved = this.capture()
     try {
       return fn()
     } catch (err) {
-      this.home = saved.home
-      this.undoStack = saved.undoStack
-      this.redoStack = saved.redoStack
-      this.compoundDepth = saved.compoundDepth
-      this.compoundBase = saved.compoundBase
-      this._dirty = saved.dirty
-      this._revision++
+      this.restore(saved)
       throw err
     }
+  }
+
+  /**
+   * The same all-or-nothing guarantee for a batch that spans separate calls
+   * (the MCP build_house tool sends one command per object): begin, run the
+   * edits, then commit or roll back. Starting a transaction while one is still
+   * open (its caller vanished mid-build) rolls the stale one back first, so a
+   * dead batch can never leave a half-built home behind.
+   */
+  beginTransaction(): void {
+    this.rollbackTransaction()
+    this.transaction = this.capture()
+  }
+
+  commitTransaction(): void {
+    this.transaction = null
+  }
+
+  rollbackTransaction(): void {
+    const saved = this.transaction
+    this.transaction = null
+    if (saved) this.restore(saved)
   }
 
   undo(): boolean {
@@ -238,6 +281,9 @@ export class HomeStore {
    * subsequent creates never collide with loaded ids.
    */
   loadHome(home: NormalizedHomeState): void {
+    // A document swap mid-batch is the user's, not the batch's: never let a later
+    // rollback put the old document back over it.
+    this.transaction = null
     this.home = structuredClone(home)
     this.undoStack = []
     this.redoStack = []

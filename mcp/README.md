@@ -92,6 +92,19 @@ also get predictable generated wall keys such as `living-wall-1`, so doors
 and windows can target them without switching to explicit walls. Every
 `levelKey` is checked and rejected if it does not resolve to a declared level.
 
+Furniture never ends up inside a wall, however it is added (`build_house`,
+`add_furniture`, `modify_selected`, in the app or against a production
+house). A piece that touches a wall is moved flush against it; a piece too
+large for the room it sits in is rejected with the error code
+`FURNITURE_TOO_LARGE` (details: piece and room size, so you can pick a smaller
+piece or a bigger room). A rejected `build_house` changes nothing: the app rolls
+the whole build back, and a production build is checked before anything is
+written. A piece hung above a wall's top (its `elevation` at or over the wall
+height) may overlap that wall. `validate_scene` reports the same rules, and
+`open_project` lists any overlaps in the file it loads (files are loaded as
+saved, never rearranged). The Python checks in `furniture_clearance.py` mirror
+the app's and are pinned to it by `tests/fixtures/furniture-clearance-corpus.json`.
+
 The assistant remains the vision/planning layer; the MCP is the deterministic
 scene builder and renderer. A cloud deployment must put the streamable HTTP
 endpoint behind authentication and a trusted network boundary. The default

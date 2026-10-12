@@ -497,39 +497,117 @@ def _checkable(item: dict[str, Any]) -> bool:
         isinstance(item.get(key), (int, float)) and not isinstance(item.get(key), bool) for key in ("x", "y", "width", "depth"))
 
 
+class _Level:
+    """One level's walls and rooms, with wall solids cached per set of blocking walls."""
+
+    def __init__(self, home: dict[str, Any], level_ref: Any):
+        self.walls = [wall for wall in home.get("walls", []) if (wall.get("levelRef") or None) == level_ref]
+        self.rooms = [room for room in home.get("rooms", [])
+                      if (room.get("levelRef") or None) == level_ref and len(room.get("points", [])) >= 3]
+        self._solids: dict[int, WallSolids] = {}
+
+    def solids_at(self, elevation_cm: Any) -> WallSolids:
+        blocking = walls_blocking_at(self.walls, elevation_cm)
+        solids = self._solids.get(len(blocking))
+        if solids is None:
+            solids = self._solids[len(blocking)] = wall_solids(blocking)
+        return solids
+
+    def resolve(self, item: dict[str, Any]):
+        return resolve_footprint(self.solids_at(item.get("elevation")), self.rooms, (item["x"], item["y"]),
+                                 item["width"], item["depth"], item.get("angleDeg") or 0)
+
+
 def find_clearance_violations(home: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     """overlaps: one {furnitureId, wallId} per wall a piece penetrates (a piece
     hung above a wall's top does not count); oversize: one entry per piece that
     cannot fit anywhere inside the room it is in."""
     overlaps: list[dict[str, Any]] = []
     oversize: list[dict[str, Any]] = []
-    walls_by_level: dict[Any, list[dict[str, Any]]] = {}
-    for wall in home.get("walls", []):
-        walls_by_level.setdefault(wall.get("levelRef") or None, []).append(wall)
-    rooms_by_level: dict[Any, list[dict[str, Any]]] = {}
-    for room in home.get("rooms", []):
-        if len(room.get("points", [])) >= 3:
-            rooms_by_level.setdefault(room.get("levelRef") or None, []).append(room)
-    solids_cache: dict[tuple[Any, int], WallSolids] = {}
+    levels: dict[Any, _Level] = {}
     for item in home.get("furniture", []):
         if not _checkable(item):
             continue
-        level = item.get("levelRef") or None
-        elevation = item.get("elevation")
-        blocking = walls_blocking_at(walls_by_level.get(level, []), elevation)
+        ref = item.get("levelRef") or None
+        level = levels.get(ref) or levels.setdefault(ref, _Level(home, ref))
+        blocking = walls_blocking_at(level.walls, item.get("elevation"))
         if not blocking:
             continue
-        angle = item.get("angleDeg") or 0
-        f = footprint_at(item["x"], item["y"], item["width"], item["depth"], angle)
+        f = footprint_at(item["x"], item["y"], item["width"], item["depth"], item.get("angleDeg") or 0)
         for wall in blocking:
             if overlaps_any_solid(f, wall_solids([wall])):
                 overlaps.append({"furnitureId": item.get("id"), "wallId": wall.get("id")})
-        key = (level, len(blocking))
-        if key not in solids_cache:
-            solids_cache[key] = wall_solids(blocking)
-        result = resolve_footprint(solids_cache[key], rooms_by_level.get(level, []), (item["x"], item["y"]), item["width"], item["depth"], angle)
+        result = level.resolve(item)
         if not result[0]:
             _, room, room_w, room_d = result
             oversize.append({"furnitureId": item.get("id"), "roomId": room.get("id"),
                              "message": too_large_message(item, room, room_w, room_d)})
     return {"overlaps": overlaps, "oversize": oversize}
+
+
+class FurnitureTooLargeError(Exception):
+    """A piece cannot fit inside the room it is in; same wording as the app's FurnitureTooLargeError."""
+
+    def __init__(self, item: dict[str, Any], room: dict[str, Any], room_w: float, room_d: float):
+        super().__init__(too_large_message(item, room, room_w, room_d))
+        self.furniture_id = item.get("id")
+        self.room_id = room.get("id")
+
+
+def _wall_key(wall: dict[str, Any]) -> tuple:
+    return tuple(("" if wall.get(key) is None else wall.get(key)) for key in
+                 ("xStart", "yStart", "xEnd", "yEnd", "thickness", "arcExtent", "height", "heightAtEnd", "levelRef"))
+
+
+def _footprint_key(item: dict[str, Any]) -> tuple:
+    return tuple(("" if item.get(key) is None else item.get(key)) for key in
+                 ("x", "y", "angleDeg", "width", "depth", "elevation", "levelRef"))
+
+
+def enforce_clearance(draft: dict[str, Any], previous: dict[str, Any]) -> list[dict[str, Any]]:
+    """The store invariant (enforceFurnitureClearance in furniture-clearance.ts) for a
+    home assembled outside the app: pieces whose footprint changed since `previous`
+    (every piece when a wall changed) are pushed flush against any wall they touch,
+    in place; a piece that cannot fit the room it is in raises FurnitureTooLargeError
+    (a piece that was already too large and did not move is left alone, as in the app).
+    Returns the adjustments made, one {furnitureId, fromX, fromY, x, y} per moved piece."""
+    adjustments: list[dict[str, Any]] = []
+    if not draft.get("walls") or not draft.get("furniture"):
+        return adjustments
+    before_walls = {wall.get("id"): _wall_key(wall) for wall in previous.get("walls", [])}
+    all_changed = (len(draft["walls"]) != len(previous.get("walls", []))
+                   or any(before_walls.get(wall.get("id")) != _wall_key(wall) for wall in draft["walls"]))
+    before = {item.get("id"): _footprint_key(item) for item in previous.get("furniture", [])}
+    draft_levels: dict[Any, _Level] = {}
+    previous_levels: dict[Any, _Level] = {}
+    for item in draft["furniture"]:
+        if not _checkable(item):
+            continue
+        footprint_changed = before.get(item.get("id")) != _footprint_key(item)
+        if not all_changed and not footprint_changed:
+            continue
+        ref = item.get("levelRef") or None
+        level = draft_levels.get(ref) or draft_levels.setdefault(ref, _Level(draft, ref))
+        if level.solids_at(item.get("elevation")).empty():
+            continue
+        result = level.resolve(item)
+        if not result[0]:
+            _, room, room_w, room_d = result
+            old = None if footprint_changed else next((f for f in previous.get("furniture", []) if f.get("id") == item.get("id")), None)
+            if old is not None and _checkable(old):
+                old_level = previous_levels.get(ref) or previous_levels.setdefault(ref, _Level(previous, ref))
+                if not old_level.resolve(old)[0]:
+                    continue
+            raise FurnitureTooLargeError(item, room, room_w, room_d)
+        _, x, y = result
+        if x == item["x"] and y == item["y"]:
+            continue
+        adjustments.append({"furnitureId": item.get("id"), "fromX": item["x"], "fromY": item["y"], "x": x, "y": y})
+        item["x"], item["y"] = x, y
+        attached = next((w for w in draft["walls"] if item.get("wallRef") and w.get("id") == item["wallRef"]), None)
+        if attached is not None:
+            dx, dy = attached["xEnd"] - attached["xStart"], attached["yEnd"] - attached["yStart"]
+            length = hypot(dx, dy)
+            if length > 0:
+                item["wallOffset"] = ((item["x"] - attached["xStart"]) * dx + (item["y"] - attached["yStart"]) * dy) / length
+    return adjustments

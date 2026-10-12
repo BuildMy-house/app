@@ -29,8 +29,9 @@ from urllib.parse import urlparse
 from pathlib import Path
 
 import anyio
-from automation_server import AutomationServer, Session
+from automation_server import AdapterError, AutomationServer, Session
 from axiom_client import AxiomClient
+from furniture_clearance import FurnitureTooLargeError, enforce_clearance
 from scene_analysis import analyze_home, validate_home
 from mcp.server.fastmcp import Context, FastMCP, Image
 from mcp.shared.message import SessionMessage
@@ -358,6 +359,7 @@ async def get_plan_state(house_id: str | None = None) -> dict:
 async def _production_build_house(house_id: str, plan: dict, reset: bool) -> dict:
     record = await _api_request(f"/api/homes/{house_id}")
     home = _empty_home() if reset else json.loads(record["json"])
+    previous = _empty_home() if reset else json.loads(record["json"])
     counters = {key: len(home[key]) + 1 for key in ("levels", "walls", "rooms", "furniture", "roofs", "polylines", "labels", "dimensionLines")}
     ids: dict[str, dict[str, str]] = {key: {} for key in counters}
 
@@ -408,8 +410,15 @@ async def _production_build_house(house_id: str, plan: dict, reset: bool) -> dic
             add(collection, value, item.get("key"))
     if isinstance(plan.get("camera"), dict):
         home["cameras"]["observer"].update(plan["camera"])
+    # Same rule the app enforces on every edit: furniture is never left inside a wall,
+    # and a piece too large for its room rejects the build. Checked BEFORE writing, so
+    # a rejected build leaves the stored house untouched.
+    try:
+        adjustments = enforce_clearance(home, previous)
+    except FurnitureTooLargeError as exc:
+        raise AdapterError(str(exc), "FURNITURE_TOO_LARGE") from exc
     updated = await _api_request(f"/api/homes/{house_id}", "PUT", {"name": home.get("name", "Untitled home"), "json": json.dumps(home), "baseUpdatedAt": record["updatedAt"], "actor": "agent"})
-    return {"houseId": house_id, "revision": updated["updatedAt"], "state": home, **{f"{key}Ids": value for key, value in ids.items()}}
+    return {"houseId": house_id, "revision": updated["updatedAt"], "state": home, "adjustments": adjustments, **{f"{key}Ids": value for key, value in ids.items()}}
 
 
 @mcp.tool()
@@ -426,26 +435,7 @@ async def reset_home() -> dict:
     return await _session().request("new_home")
 
 
-@mcp.tool()
-async def build_house(plan: dict, reset: bool = True, house_id: str | None = None) -> dict:
-    """Build a complete house from one declarative plan and return its state.
-
-    Plan shape: {name?, levels?, walls?, rooms?, furniture?, doors?, windows?,
-    roofs?, polylines?, labels?, dimensions?, camera?}. Coordinates are centimeters. Each
-    wall may have a local `key`; openings refer to that key. Each level may have
-    a local `key`; objects may use `levelKey`. If `walls` is omitted, closed
-    room polygons generate walls automatically (explicit walls are better for
-    shared walls). Use screenshot(view='plan'|'3d') after this tool.
-    """
-    if not isinstance(plan, dict):
-        raise ValueError("plan must be an object")
-    if _API_URL:
-        selected = house_id or _ACTIVE_HOUSES.get(_API_TOKEN)
-        if not selected:
-            raise ValueError("select a production house first")
-        _ACTIVE_HOUSES[_API_TOKEN] = selected
-        return await _production_build_house(selected, plan, reset)
-    s = _session()
+async def _build_house_in_app(s: Session, plan: dict, reset: bool) -> dict:
     if reset:
         await s.request("new_home")
     level_ids: dict[str, str] = {}
@@ -586,6 +576,43 @@ async def build_house(plan: dict, reset: bool = True, house_id: str | None = Non
     return {"state": state, "levelIds": level_ids, "wallIds": wall_ids,
             "roomIds": room_ids, "furnitureIds": furniture_ids, "roofIds": roof_ids,
             "polylineIds": polyline_ids, "labelIds": label_ids, "dimensionIds": dimension_ids}
+
+
+@mcp.tool()
+async def build_house(plan: dict, reset: bool = True, house_id: str | None = None) -> dict:
+    """Build a complete house from one declarative plan and return its state.
+
+    Plan shape: {name?, levels?, walls?, rooms?, furniture?, doors?, windows?,
+    roofs?, polylines?, labels?, dimensions?, camera?}. Coordinates are centimeters. Each
+    wall may have a local `key`; openings refer to that key. Each level may have
+    a local `key`; objects may use `levelKey`. If `walls` is omitted, closed
+    room polygons generate walls automatically (explicit walls are better for
+    shared walls). Use screenshot(view='plan'|'3d') after this tool.
+
+    Furniture is never left overlapping a wall: a piece that touches one is moved
+    flush against it, and a piece too large for the room it sits in rejects the
+    WHOLE build with FURNITURE_TOO_LARGE, leaving the home exactly as it was.
+    """
+    if not isinstance(plan, dict):
+        raise ValueError("plan must be an object")
+    if _API_URL:
+        selected = house_id or _ACTIVE_HOUSES.get(_API_TOKEN)
+        if not selected:
+            raise ValueError("select a production house first")
+        _ACTIVE_HOUSES[_API_TOKEN] = selected
+        return await _production_build_house(selected, plan, reset)
+    s = _session()
+    # One batch: the app rolls the whole build back (home, undo history, ids) if any
+    # command is rejected, e.g. FURNITURE_TOO_LARGE, so a failed build changes nothing.
+    await s.request("begin_batch")
+    try:
+        result = await _build_house_in_app(s, plan, reset)
+    except BaseException:
+        with anyio.CancelScope(shield=True), contextlib.suppress(Exception):
+            await s.request("end_batch", {"commit": False})
+        raise
+    await s.request("end_batch", {"commit": True})
+    return result
 
 
 @mcp.tool()

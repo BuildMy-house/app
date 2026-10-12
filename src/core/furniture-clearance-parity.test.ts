@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import corpus from '../../tests/fixtures/furniture-clearance-corpus.json'
-import { findClearanceViolations } from './furniture-clearance'
+import { enforceFurnitureClearance, findClearanceViolations, FurnitureTooLargeError } from './furniture-clearance'
 
 interface CorpusCase {
   name: string
   home: Parameters<typeof findClearanceViolations>[0]
-  expected: { overlaps: Array<[string, string]>; oversize: string[] }
+  expected: { overlaps: Array<[string, string]>; oversize: string[]; resolved: Record<string, [number, number] | null> }
 }
 
 const cases = corpus.cases as unknown as CorpusCase[]
@@ -28,5 +28,26 @@ describe('clearance verdicts match the shared corpus (mirrored in mcp/test_clear
     const found = findClearanceViolations(c.home)
     expect(found.overlaps.map((o) => [o.furnitureId, o.wallId]).sort()).toEqual(c.expected.overlaps)
     expect(found.oversize.map((o) => o.furnitureId).sort()).toEqual(c.expected.oversize)
+  })
+
+  it.each(cases.map((c) => [c.name, c] as const))('%s: pieces end up where the corpus says', (_name, c) => {
+    for (const item of c.home.furniture) {
+      const draft = { walls: c.home.walls, rooms: c.home.rooms, furniture: [{ ...item }] }
+      let resolved: [number, number] | null
+      try {
+        enforceFurnitureClearance(draft as never, { walls: c.home.walls, rooms: c.home.rooms, furniture: [] } as never)
+        resolved = [draft.furniture[0]!.x, draft.furniture[0]!.y]
+      } catch (err) {
+        if (!(err instanceof FurnitureTooLargeError)) throw err
+        resolved = null
+      }
+      const expected = c.expected.resolved[item.id]!
+      if (expected === null) expect(resolved, item.id).toBeNull()
+      else {
+        expect(resolved, item.id).not.toBeNull()
+        expect(resolved![0], item.id).toBeCloseTo(expected[0], 5)
+        expect(resolved![1], item.id).toBeCloseTo(expected[1], 5)
+      }
+    }
   })
 })

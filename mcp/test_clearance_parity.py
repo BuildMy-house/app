@@ -10,7 +10,7 @@ import json
 import pathlib
 import unittest
 
-from furniture_clearance import find_clearance_violations
+from furniture_clearance import FurnitureTooLargeError, enforce_clearance, find_clearance_violations
 
 CORPUS = json.loads((pathlib.Path(__file__).parent.parent / "tests" / "fixtures" / "furniture-clearance-corpus.json").read_text())
 
@@ -28,6 +28,24 @@ class ClearanceParityTest(unittest.TestCase):
             if overlaps != case["expected"]["overlaps"] or oversize != case["expected"]["oversize"]:
                 mismatches.append((case["name"], overlaps, oversize, case["expected"]))
         self.assertEqual(mismatches, [], f"{len(mismatches)} cases differ from the TS verdicts")
+
+    def test_pieces_end_up_where_the_app_puts_them(self):
+        mismatches = []
+        for case in CORPUS["cases"]:
+            for item in case["home"]["furniture"]:
+                draft = {**case["home"], "furniture": [dict(item)]}
+                previous = {**case["home"], "furniture": []}
+                try:
+                    enforce_clearance(draft, previous)
+                    resolved = [draft["furniture"][0]["x"], draft["furniture"][0]["y"]]
+                except FurnitureTooLargeError:
+                    resolved = None
+                expected = case["expected"]["resolved"][item["id"]]
+                same = resolved is None if expected is None else (
+                    resolved is not None and abs(resolved[0] - expected[0]) < 1e-5 and abs(resolved[1] - expected[1]) < 1e-5)
+                if not same:
+                    mismatches.append((case["name"], item["id"], resolved, expected))
+        self.assertEqual(mismatches, [], f"{len(mismatches)} pieces end up elsewhere than in the app")
 
 
 if __name__ == "__main__":

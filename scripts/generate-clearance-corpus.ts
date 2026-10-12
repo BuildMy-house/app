@@ -13,7 +13,7 @@
  * around them. Re-run only when the rules intentionally change.
  */
 import { writeFileSync } from 'node:fs'
-import { findClearanceViolations } from '../src/core/furniture-clearance'
+import { enforceFurnitureClearance, findClearanceViolations, FurnitureTooLargeError } from '../src/core/furniture-clearance'
 
 interface Wall { id: string; xStart: number; yStart: number; xEnd: number; yEnd: number; thickness: number; arcExtent?: number; height?: number; heightAtEnd?: number; levelRef?: string }
 interface Room { id: string; name: string; points: Array<[number, number]>; levelRef?: string }
@@ -21,6 +21,7 @@ interface Piece { id: string; name: string; x: number; y: number; angleDeg: numb
 interface Case { name: string; home: { walls: Wall[]; rooms: Room[]; furniture: Piece[] } }
 
 const r2 = (n: number): number => Math.round(n * 100) / 100
+const r6 = (n: number): number => Math.round(n * 1e6) / 1e6
 
 function rectRoom(prefix: string, x0: number, y0: number, x1: number, y1: number, thickness = 10, extra: Partial<Wall> = {}, levelRef?: string): { walls: Wall[]; room: Room } {
   const pts: Array<[number, number]> = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
@@ -215,6 +216,22 @@ function randomCases(count: number): Case[] {
   return cases
 }
 
+/** Where the store's invariant puts each piece when it is the only new one (null = rejected as too large). */
+function resolvedPositions(home: Case['home']): Record<string, [number, number] | null> {
+  const out: Record<string, [number, number] | null> = {}
+  for (const item of home.furniture) {
+    const draft = { walls: home.walls, rooms: home.rooms, furniture: [{ ...item }] }
+    try {
+      enforceFurnitureClearance(draft as never, { walls: home.walls, rooms: home.rooms, furniture: [] } as never)
+      out[item.id] = [r6(draft.furniture[0]!.x), r6(draft.furniture[0]!.y)]
+    } catch (err) {
+      if (!(err instanceof FurnitureTooLargeError)) throw err
+      out[item.id] = null
+    }
+  }
+  return out
+}
+
 const cases = [...handwritten(), ...randomCases(160)].map((c) => {
   const found = findClearanceViolations({ walls: c.home.walls, rooms: c.home.rooms, furniture: c.home.furniture } as never)
   return {
@@ -222,6 +239,7 @@ const cases = [...handwritten(), ...randomCases(160)].map((c) => {
     expected: {
       overlaps: found.overlaps.map((o) => [o.furnitureId, o.wallId]).sort(),
       oversize: found.oversize.map((o) => o.furnitureId).sort(),
+      resolved: resolvedPositions(c.home),
     },
   }
 })
