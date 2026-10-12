@@ -159,6 +159,28 @@ class SceneAnalysisTest(unittest.TestCase):
         home["rooms"] = [{"id": "r1", "points": SQUARE_ROOM["points"]}]
         self.assertTrue(any("too large for room r1 " in e for e in validate_home(home)["errors"]))
 
+    def test_piece_that_fits_a_bowed_room_is_not_flagged_too_large(self):
+        # Regression: pushing slice by slice around a bulging arc wall reported this
+        # overlapping piece as too large although it fits (the app, which pushes
+        # analytically, accepts it). A piece must only be called too large when it
+        # truly cannot fit, so an overlap here is reported as an overlap only.
+        bow = {"id": "w2", "xStart": 572.88, "yStart": 0, "xEnd": 572.88, "yEnd": 594.93, "thickness": 14.83, "arcExtent": -2.18}
+        straight = [{"id": f"w{i}", "xStart": a[0], "yStart": a[1], "xEnd": b[0], "yEnd": b[1], "thickness": 14.83}
+                    for i, (a, b) in ((1, ((0, 0), (572.88, 0))), (3, ((572.88, 594.93), (0, 594.93))), (4, ((0, 594.93), (0, 0))))]
+        home = {"walls": [straight[0], bow, *straight[1:], {"id": "p", "xStart": 286.44, "yStart": 0, "xEnd": 286.44, "yEnd": 356.958, "thickness": 9.37}],
+                "rooms": [{"id": "r", "name": "Bow", "points": [[0, 0], [572.88, 0], [572.88, 594.93], [0, 594.93]]}],
+                "furniture": [{"id": "f", "name": "Bench", "x": 135.84, "y": 307.11, "angleDeg": -67, "width": 388.17, "depth": 178.02, "height": 80, "elevation": 0}]}
+        warnings = analyze_home(home)["warnings"]
+        self.assertFalse(any("too large" in w for w in warnings), warnings)
+        self.assertIn("furniture f overlaps wall w4", warnings)
+
+    def test_furniture_hung_above_the_wall_top_does_not_overlap_it(self):
+        home = self._box(x=200, y=0, width=100, depth=40)
+        home["furniture"][0]["elevation"] = 250
+        self.assertFalse(any("overlaps wall" in w for w in validate_home(home)["warnings"]))
+        home["furniture"][0]["elevation"] = 249
+        self.assertTrue(any("overlaps wall" in w for w in validate_home(home)["warnings"]))
+
 
 if __name__ == "__main__":
     unittest.main()

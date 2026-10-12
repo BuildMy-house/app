@@ -26,6 +26,7 @@
     "knip": "knip",
     "format": "prettier --write .",
     "tauri": "tauri",
+    "clearance:corpus": "tsx scripts/generate-clearance-corpus.ts",
     "templates": "tsx scripts/build-templates.ts",
     "templates:check": "tsx scripts/build-templates.ts --check",
     "thumbnails": "tsx scripts/render-thumbnails.ts",
