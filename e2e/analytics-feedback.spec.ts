@@ -88,6 +88,8 @@ test.describe('analytics + feedback instrumentation', () => {
       email: 'tester@example.com',
       state: { walls: 1, furniture: 0, rooms: 0, levels: 0 },
     })
+    // The event batch is flushed on a timer; wait for it instead of racing it.
+    await expect.poll(() => cap.batches.length, { timeout: 10_000 }).toBeGreaterThan(0)
     expect(cap.feedback[0]!.sid).toBe(cap.batches[0]!.sid)
   })
 })
