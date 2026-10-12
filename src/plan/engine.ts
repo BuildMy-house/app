@@ -8,6 +8,7 @@ import { detectClosedLoops, wallCenterlinePoints } from '../core/wall-loop-detec
 import { buildWallEndpointIndex } from '../core/wall-endpoint-index'
 import { AutoFloorDialog } from '../ui/AutoFloorDialog'
 import { pointWithAngleMagnetism, wallPointMagnetism } from './magnetism'
+import { FurnitureTooLargeError } from '../core/furniture-clearance'
 import { snapFurniturePlacement, snapFurnitureRotation } from './furniture-snap'
 import {
   closestPointOnSegment,
@@ -157,6 +158,21 @@ export interface PlanPreview {
   closureTooltip: { text: string; x: number; y: number } | null
   /** Endpoint the cursor is currently locked onto (zoom-aware snap), for the visual indicator. */
   snapLock: Point | null
+  /** Live feedback while dragging a piece: where it was asked to go and why it isn't going there. */
+  furnitureDragHint: FurnitureDragHint | null
+}
+
+/**
+ * 'blocked': the room can't hold the piece there, the edit is refused (ghost at the refused spot).
+ * 'pushed': the piece is held clear of a wall, so it rests somewhere other than the cursor (ghost at the cursor).
+ */
+export interface FurnitureDragHint {
+  kind: 'blocked' | 'pushed'
+  x: number
+  y: number
+  width: number
+  depth: number
+  angleDeg: number
 }
 
 function samePoint(a: Point, b: Point): boolean {
@@ -222,6 +238,7 @@ export class PlanEngine {
   private closurePolygon: Array<Point> | null = null
   private closureTooltip: { text: string; x: number; y: number } | null = null
   private snapLock: Point | null = null
+  private furnitureDragHint: FurnitureDragHint | null = null
 
   constructor(model: HomeModel) {
     this.model = model
@@ -571,6 +588,7 @@ export class PlanEngine {
       closurePolygon: this.closurePolygon,
       closureTooltip: this.closureTooltip,
       snapLock: this.snapLock,
+      furnitureDragHint: this.furnitureDragHint,
     }
   }
 
@@ -634,20 +652,32 @@ export class PlanEngine {
       previousWallId: drag.snappedWallId, levelRef: drag.furniture.levelRef ?? null, elevationCm: drag.furniture.elevation,
     })
     drag.snappedWallId = snap.wallRef
-    this.model.updateFurniture(drag.id, {
-      x: snap.x,
-      y: snap.y,
-      ...(snap.wallRef ? {
-        wallRef: snap.wallRef,
-        wallOffset: snap.wallOffset,
-        angleDeg: normalizeAngle(snap.angleDeg),
-      } : {}),
+    const hint = (kind: FurnitureDragHint['kind'], at: Point): FurnitureDragHint => ({
+      kind, x: at.x, y: at.y, width: drag.furniture.width, depth: drag.furniture.depth, angleDeg: snap.wallRef ? snap.angleDeg : drag.furniture.angleDeg,
     })
+    try {
+      this.model.updateFurniture(drag.id, {
+        x: snap.x,
+        y: snap.y,
+        ...(snap.wallRef ? {
+          wallRef: snap.wallRef,
+          wallOffset: snap.wallOffset,
+          angleDeg: normalizeAngle(snap.angleDeg),
+        } : {}),
+      })
+    } catch (err) {
+      if (err instanceof FurnitureTooLargeError) this.furnitureDragHint = hint('blocked', snap)
+      throw err
+    }
+    // Held clear of a wall (not merely magnetised to it): show where the cursor is asking for.
+    const held = !snap.wallRef && Math.hypot(snap.x - target.x, snap.y - target.y) > 1
+    this.furnitureDragHint = held ? hint('pushed', target) : null
   }
 
   endFurnitureMove(): void {
     if (!this.furnitureMoveDrag) return
     this.furnitureMoveDrag = null
+    this.furnitureDragHint = null
     this.model.getStore().endCompoundEdit()
   }
 

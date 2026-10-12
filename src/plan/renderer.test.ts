@@ -332,6 +332,7 @@ describe('drawPlan wall measurement preview', () => {
       closurePolygon: null,
       closureTooltip: null,
       snapLock: null,
+      furnitureDragHint: null,
     }, ctx, IDENTITY_VIEW)
 
     expect(ctx.ops.some(op => op.type === 'lineTo' && op.args?.[0] === 125 && op.args?.[1] === 0)).toBe(true)

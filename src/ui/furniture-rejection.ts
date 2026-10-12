@@ -8,7 +8,7 @@ let current: { message: string; el: HTMLElement } | null = null
 /** Tell the user a furniture edit was refused because the piece cannot fit in its room. */
 export function reportFurnitureRejection(err: FurnitureTooLargeError): void {
   if (current && current.message === err.message && current.el.isConnected) return
-  const el = showToast('error', 'Furniture is too large for this room', err.message)
+  const el = showToast('error', 'Furniture is too large for this room', `${err.message} Try rotating it, or pick a smaller piece.`)
   current = { message: err.message, el }
   setTimeout(() => el.remove(), DISMISS_MS)
 }

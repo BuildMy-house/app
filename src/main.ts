@@ -1465,6 +1465,7 @@ let lastRenderedOffsetY = NaN
 let lastRenderedWidth = -1
 let lastRenderedHeight = -1
 let lastRenderedLevelId: string | null | undefined
+let lastRenderedDragHint = false
 
 function frame(ts: number): void {
   if (prevFrameTs > 0) lastFrameMs = ts - prevFrameTs
@@ -1481,6 +1482,8 @@ function frame(ts: number): void {
     forceNextRender ||
     isPanning ||
     preview.phase === 'drawing' ||
+    (preview.furnitureDragHint !== null) !== lastRenderedDragHint ||
+    preview.furnitureDragHint !== null ||
     revision !== lastRenderedRevision ||
     currentView.scale !== lastRenderedScale ||
     currentView.offsetX !== lastRenderedOffsetX ||
@@ -1501,6 +1504,7 @@ function frame(ts: number): void {
     lastRenderedWidth = canvas.width
     lastRenderedHeight = canvas.height
     lastRenderedLevelId = activeLevelId
+    lastRenderedDragHint = preview.furnitureDragHint !== null
   }
 
   requestAnimationFrame(frame)

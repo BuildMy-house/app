@@ -58,6 +58,7 @@ test('rotating a piece until it no longer fits its room shows the error toast an
   const toast = page.locator('.toast-error')
   await expect(toast).toBeVisible()
   await expect(toast).toContainText('"Bench" (150 x 40 cm) is too large for room "Corridor"')
+  await expect(toast).toContainText('Try rotating it, or pick a smaller piece.')
 
   const { furniture } = await homeState(page)
   const bench = furniture.find((f: any) => f.id === id)!

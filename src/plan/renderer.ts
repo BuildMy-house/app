@@ -968,6 +968,32 @@ export function drawPlan(
     ctx.textBaseline = 'alphabetic'
   }
 
+  // Live furniture-drag feedback: where the cursor is asking for when the piece can't go there.
+  if (preview?.furnitureDragHint) {
+    const hint = preview.furnitureDragHint
+    const blocked = hint.kind === 'blocked'
+    const rad = (hint.angleDeg * Math.PI) / 180
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+    const hw = hint.width / 2
+    const hd = hint.depth / 2
+    ctx.beginPath()
+    ;([[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]] as const).forEach(([ox, oz], index) => {
+      const px = mapper.sx(hint.x + ox * cos - oz * sin)
+      const py = mapper.sy(hint.y + ox * sin + oz * cos)
+      if (index === 0) ctx.moveTo(px, py)
+      else ctx.lineTo(px, py)
+    })
+    ctx.closePath()
+    ctx.fillStyle = blocked ? 'rgba(214, 48, 49, 0.18)' : 'rgba(214, 48, 49, 0.08)'
+    ctx.fill()
+    ctx.strokeStyle = blocked ? 'rgba(214, 48, 49, 0.9)' : 'rgba(214, 48, 49, 0.45)'
+    ctx.lineWidth = 1.5
+    ctx.setLineDash([5, 4])
+    ctx.stroke()
+    ctx.setLineDash([])
+  }
+
   // Marquee selection rectangle (live during drag on empty space).
   if (preview && preview.marquee) {
     const { from, to } = preview.marquee
