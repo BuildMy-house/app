@@ -1,4 +1,4 @@
-import { enforceFurnitureClearance } from './furniture-clearance'
+import { applyClearanceMoves, enforceFurnitureClearance, planClearanceFix, type ClearanceFix } from './furniture-clearance'
 import { createEmptyHome, type NormalizedHomeState } from './home'
 import { followTopCamera } from './top-camera-follower'
 
@@ -103,6 +103,19 @@ export class HomeStore {
     followTopCamera(this.home, previous)
     this._dirty = true
     this._revision++
+  }
+
+  /**
+   * Makes a loaded home obey the clearance rule, as ONE undoable step (loadHome,
+   * saved files, templates and undo/redo restore verbatim, so legacy overlaps can
+   * exist). Pieces overlapping a wall are moved flush; pieces too large for their
+   * room cannot be fixed and are only reported. Never throws; with nothing to move
+   * there is no undo step.
+   */
+  fixFurnitureClearance(): ClearanceFix {
+    const fix = planClearanceFix(this.home)
+    if (fix.moves.length > 0) this.apply((draft) => applyClearanceMoves(draft, fix.moves))
+    return fix
   }
 
   /**

@@ -4,7 +4,13 @@
  * show one AFTER the real outcome is known.
  */
 
-export type ToastKind = 'success' | 'error'
+export type ToastKind = 'success' | 'error' | 'notice'
+
+/** An inline button on a toast; clicking runs `run` and dismisses the toast. */
+export interface ToastAction {
+  label: string
+  run: () => void
+}
 
 const SUCCESS_MS = 4000
 
@@ -20,10 +26,11 @@ function ensureHost(): HTMLDivElement {
 
 /**
  * Show a toast. Success toasts auto-dismiss; error toasts stay until
- * dismissed so the user can read and act on them. Errors use role="alert"
+ * dismissed so the user can read and act on them; notices (e.g. with an action
+ * button) also stay until dismissed. Errors use role="alert"
  * (announced assertively), success uses role="status".
  */
-export function showToast(kind: ToastKind, message: string, detail?: string): HTMLDivElement {
+export function showToast(kind: ToastKind, message: string, detail?: string, action?: ToastAction): HTMLDivElement {
   const el = document.createElement('div')
   el.className = `toast toast-${kind}`
   el.setAttribute('role', kind === 'error' ? 'alert' : 'status')
@@ -38,6 +45,18 @@ export function showToast(kind: ToastKind, message: string, detail?: string): HT
     d.className = 'toast-detail'
     d.textContent = detail
     el.appendChild(d)
+  }
+
+  if (action) {
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'toast-action'
+    btn.textContent = action.label
+    btn.addEventListener('click', () => {
+      el.remove()
+      action.run()
+    })
+    el.appendChild(btn)
   }
 
   const close = document.createElement('button')

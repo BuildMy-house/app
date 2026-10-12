@@ -152,15 +152,20 @@ export function enforceFurnitureClearance(draft: NormalizedHomeState, previous: 
       throw err
     }
     if (clear.x === item.x && clear.y === item.y) continue
-    item.x = clear.x
-    item.y = clear.y
-    const attached = item.wallRef ? draft.walls.find((wall) => wall.id === item.wallRef) : undefined
-    if (attached) {
-      const dx = attached.xEnd - attached.xStart
-      const dy = attached.yEnd - attached.yStart
-      const length = Math.hypot(dx, dy)
-      if (length > 0) item.wallOffset = ((item.x - attached.xStart) * dx + (item.y - attached.yStart) * dy) / length
-    }
+    moveTo(item, clear, draft.walls)
+  }
+}
+
+/** Moves a piece, keeping the along-wall offset of a wall-attached piece in step. */
+function moveTo(item: Furniture, to: { x: number; y: number }, walls: ReadonlyArray<Wall>): void {
+  item.x = to.x
+  item.y = to.y
+  const attached = item.wallRef ? walls.find((wall) => wall.id === item.wallRef) : undefined
+  if (attached) {
+    const dx = attached.xEnd - attached.xStart
+    const dy = attached.yEnd - attached.yStart
+    const length = Math.hypot(dx, dy)
+    if (length > 0) item.wallOffset = ((item.x - attached.xStart) * dx + (item.y - attached.yStart) * dy) / length
   }
 }
 
@@ -201,4 +206,45 @@ export function findClearanceViolations(state: Pick<NormalizedHomeState, 'walls'
     if (!fit.fits) result.oversize.push({ furnitureId: item.id, roomId: fit.room.id, message: tooLarge(item, fit).message })
   }
   return result
+}
+
+export interface ClearanceFix {
+  /** Pieces to move flush against the walls they penetrate. */
+  moves: Array<{ furnitureId: string; furnitureName: string; x: number; y: number }>
+  /** Pieces that cannot be fixed: too large for their room, so no position clears the walls. */
+  unfixable: Array<{ furnitureId: string; furnitureName: string; message: string }>
+}
+
+/**
+ * What it takes to make a loaded home obey the clearance rule, without touching
+ * it: each piece that overlaps a wall is moved to the position the store would
+ * have given it, and a piece too large for its room is reported (never moved or
+ * thrown at; the user has to resize or remove it).
+ */
+export function planClearanceFix(state: Pick<NormalizedHomeState, 'walls' | 'rooms' | 'furniture'>): ClearanceFix {
+  const fix: ClearanceFix = { moves: [], unfixable: [] }
+  const found = findClearanceViolations(state)
+  const flagged = new Set([...found.overlaps.map((o) => o.furnitureId), ...found.oversize.map((o) => o.furnitureId)])
+  const levels = new Map<string | null, Level>()
+  for (const item of state.furniture) {
+    if (!flagged.has(item.id)) continue
+    const ref = item.levelRef ?? null
+    let level = levels.get(ref)
+    if (!level) {
+      level = levelOf(state as NormalizedHomeState, ref)
+      levels.set(ref, level)
+    }
+    const fit = resolveItemResult(item, level)
+    if (!fit.fits) fix.unfixable.push({ furnitureId: item.id, furnitureName: item.name, message: tooLarge(item, fit).message })
+    else if (fit.x !== item.x || fit.y !== item.y) fix.moves.push({ furnitureId: item.id, furnitureName: item.name, x: fit.x, y: fit.y })
+  }
+  return fix
+}
+
+/** Applies the moves of a ClearanceFix to a draft (ids that no longer exist are skipped). */
+export function applyClearanceMoves(draft: NormalizedHomeState, moves: ClearanceFix['moves']): void {
+  for (const move of moves) {
+    const item = draft.furniture.find((f) => f.id === move.furnitureId)
+    if (item) moveTo(item, move, draft.walls)
+  }
 }

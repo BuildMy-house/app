@@ -341,3 +341,46 @@ describe('store invariant: furniture too large for its room is rejected, never r
     expect(store.canUndo()).toBe(true)
   })
 })
+
+describe('fixFurnitureClearance (legacy loads)', () => {
+  const wall = (id: string, xs: number, ys: number, xe: number, ye: number) => ({
+    id, xStart: xs, yStart: ys, xEnd: xe, yEnd: ye, thickness: 10, levelRef: null,
+  })
+  function legacyHome() {
+    const store = new HomeStore()
+    const home = structuredClone(store.peek()) as any
+    home.walls = [wall('w1', 0, 0, 400, 0), wall('w2', 400, 0, 400, 400), wall('w3', 400, 400, 0, 400), wall('w4', 0, 400, 0, 0)]
+    home.rooms = [{ id: 'r1', points: [[5, 5], [395, 5], [395, 395], [5, 395]], levelRef: null }]
+    home.furniture = [
+      { id: 'f1', name: 'Shelf', x: 200, y: 0, angleDeg: 0, width: 120, depth: 60, height: 80, elevation: 0 },
+      { id: 'f2', name: 'Fine', x: 200, y: 200, angleDeg: 0, width: 50, depth: 50, height: 80, elevation: 0 },
+    ]
+    store.loadHome(home)
+    return store
+  }
+
+  it('moves overlapping pieces flush as ONE undo step and leaves others alone', () => {
+    const store = legacyHome()
+    const fix = store.fixFurnitureClearance()
+    expect(fix.moves.map((m) => m.furnitureId)).toEqual(['f1'])
+    expect(fix.unfixable).toEqual([])
+    expect(store.peek().furniture.find((f) => f.id === 'f1')!.y).toBe(35)
+    expect(store.peek().furniture.find((f) => f.id === 'f2')!.y).toBe(200)
+    expect(store.fixFurnitureClearance().moves).toEqual([])
+    store.undo()
+    expect(store.peek().furniture.find((f) => f.id === 'f1')!.y).toBe(0)
+    expect(store.canUndo()).toBe(false)
+  })
+
+  it('reports an oversize piece as unfixable without throwing or moving it', () => {
+    const store = legacyHome()
+    const home = structuredClone(store.peek()) as any
+    home.furniture.push({ id: 'big', name: 'Huge', x: 200, y: 200, angleDeg: 0, width: 900, depth: 900, height: 80, elevation: 0 })
+    store.loadHome(home)
+    const fix = store.fixFurnitureClearance()
+    expect(fix.unfixable.map((u) => u.furnitureId)).toEqual(['big'])
+    expect(fix.unfixable[0]!.message).toMatch(/Huge/)
+    expect(store.peek().furniture.find((f) => f.id === 'big')!.x).toBe(200)
+    expect(store.peek().furniture.find((f) => f.id === 'f1')!.y).toBe(35)
+  })
+})

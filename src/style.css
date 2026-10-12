@@ -1718,6 +1718,17 @@ select:focus-visible {
 
 .toast-success { border-left-color: #2ea043; }
 .toast-error { border-left-color: var(--danger, #e5534b); }
+.toast-notice { border-left-color: #d29922; }
+.toast-action {
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
 .toast-message { font-weight: 600; }
 .toast-detail { margin-top: 4px; color: var(--text-secondary); word-break: break-word; }
 

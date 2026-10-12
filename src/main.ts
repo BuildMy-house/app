@@ -30,6 +30,7 @@ import { ClipboardManager } from './plan/clipboard'
 import { ModelUploadDialog } from './ui/model-upload-dialog'
 import { saveDraft, loadDraft } from './services/adapters/local-draft'
 import { showToast, errorReason } from './ui/toast'
+import { notifyLegacyClearance } from './ui/clearance-notice'
 import { guardFurnitureEdit } from './ui/furniture-rejection'
 import { templateIdFromSearch, searchWithoutTemplate, fetchTemplatePlan } from './templates/load'
 import { buildHomeFromTemplate } from './templates/apply'
@@ -181,6 +182,7 @@ engine.setWallDefaults(bootPrefs.wallHeightCm, bootPrefs.wallThicknessCm)
 const bootDraft = loadDraft()
 if (bootDraft) {
   store.loadHome(bootDraft)
+  notifyLegacyClearance(store)
 } else {
   store.patchNonUndoable((h) => {
     h.environment.groundColor = hexToIntColor(bootPrefs.groundColor)
@@ -334,6 +336,7 @@ function refreshMenus(): void {
               const home = await loadHomeFile()
               if (home) {
                 store.loadHome(home)
+                notifyLegacyClearance(store)
                 closeHomeSession()
                 doFit()
                 refreshAll()
@@ -504,6 +507,7 @@ async function openProjectManager(): Promise<void> {
           try {
             const record = await remoteHomes.loadRecord(id)
             store.loadHome(parseHomeFile(record.json))
+            notifyLegacyClearance(store)
             currentAccountHomeId = id
             currentAccountHomeRevision = record.updatedAt
             void watchAccountHome(id)
@@ -1928,6 +1932,7 @@ async function openTemplateFromUrl(): Promise<void> {
       return
     }
     store.loadHome(buildHomeFromTemplate(plan, sharedCatalog))
+    notifyLegacyClearance(store)
     closeHomeSession()
     doFit()
     refreshAll()
