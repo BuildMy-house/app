@@ -1314,9 +1314,15 @@ window.addEventListener('keydown', (event) => {
   const shortcutKey = event.key.toLowerCase()
   // Typing in a text field (auth dialog, props panel, …) must keep native
   // editing — Backspace, Space, letters, Ctrl+A/Z — so skip every shortcut.
-  const isInput = event.target instanceof HTMLElement &&
-    (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable)
-  if (isInput) return
+  const target = event.target instanceof HTMLElement ? event.target : null
+  if (target && (
+    target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' ||
+    target.isContentEditable ||
+    // Any focus inside a modal dialog: plan shortcuts (Delete, arrows, f…) must not act on the scene behind it.
+    target.closest('.prefs-overlay, dialog, [role="dialog"]')
+  )) return
+  // Space on a focused button/link activates it natively — don't hijack it for pan.
+  if (event.key === ' ' && target && (target.tagName === 'BUTTON' || target.tagName === 'A' || target.tagName === 'SUMMARY')) return
   if ((event.ctrlKey || event.metaKey) && shortcutKey === 'z' && !event.shiftKey) {
     event.preventDefault()
     doUndo()
