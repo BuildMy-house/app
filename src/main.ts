@@ -1312,6 +1312,11 @@ planPanel.addEventListener('wheel', (event) => {
 
 window.addEventListener('keydown', (event) => {
   const shortcutKey = event.key.toLowerCase()
+  // Typing in a text field (auth dialog, props panel, …) must keep native
+  // editing — Backspace, Space, letters, Ctrl+A/Z — so skip every shortcut.
+  const isInput = event.target instanceof HTMLElement &&
+    (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable)
+  if (isInput) return
   if ((event.ctrlKey || event.metaKey) && shortcutKey === 'z' && !event.shiftKey) {
     event.preventDefault()
     doUndo()
@@ -1331,20 +1336,13 @@ window.addEventListener('keydown', (event) => {
 
   // Clipboard shortcuts — skip Ctrl+C/V when focused in a text input so
   // native browser copy/paste takes precedence.
-  const isInput = event.target instanceof HTMLElement &&
-    (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable)
 
-  // Arrow keys: skip nudge when focused in a text input so native cursor movement works.
-  if (isInput && (event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
-    return
-  }
-
-  if ((event.ctrlKey || event.metaKey) && event.key === 'c' && !isInput) {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'c' ) {
     event.preventDefault()
     if (clipboardManager.copy() > 0) refreshAll()
     return
   }
-  if ((event.ctrlKey || event.metaKey) && event.key === 'v' && !isInput) {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'v' ) {
     event.preventDefault()
     if (guardFurnitureEdit(() => clipboardManager.paste().length > 0)) refreshAll()
     return
@@ -1358,7 +1356,7 @@ window.addEventListener('keydown', (event) => {
   // Tool shortcuts V/W — bare keys only, so Ctrl+V paste and Alt combos are
   // unaffected; skipped while typing in a text input (isInput guard above).
   if (!event.ctrlKey && !event.metaKey && !event.altKey &&
-      (shortcutKey === 'v' || shortcutKey === 'w') && !isInput) {
+      (shortcutKey === 'v' || shortcutKey === 'w') ) {
     event.preventDefault()
     switchTool(shortcutKey === 'v' ? 'selection' : 'wall')
     return
