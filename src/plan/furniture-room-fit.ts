@@ -29,7 +29,7 @@ export type Resolution =
   | { fits: true; x: number; y: number }
   | { fits: false; room: RoomLike; roomWidthCm: number; roomDepthCm: number }
 
-function insidePolygon(p: Point2, points: ReadonlyArray<readonly [number, number]>): boolean {
+export function insidePolygon(p: Point2, points: ReadonlyArray<readonly [number, number]>): boolean {
   let inside = false
   for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
     const [xi, yi] = points[i]!

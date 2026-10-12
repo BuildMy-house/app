@@ -1,7 +1,7 @@
 import type { Point } from './geometry'
 import { distance } from './geometry'
 import { footprintAt, nearestFreeSpot, overlapsAnySolid, settleAmongSolids, wallSolids } from './wall-solids'
-import { resolveFootprint, type RoomLike } from './furniture-room-fit'
+import { insidePolygon, resolveFootprint, type RoomLike } from './furniture-room-fit'
 
 /**
  * Furniture placement snapping (ticket U9).
@@ -121,6 +121,26 @@ function clearOfWalls(
   return result.fits ? { x: result.x, y: result.y } : null
 }
 
+/** Like clearOfWalls for a magnetized (wall-flush) candidate position: null too
+ *  when the candidate would leave the room the raw point is in — magnetizing to a
+ *  wall must never carry a piece out of its room. */
+function clearWithinRoom(
+  input: Pick<FurnitureSnapInput, 'rooms' | 'levelRef'>,
+  walls: ReadonlyArray<WallLike>,
+  raw: Point,
+  candidate: Point,
+  widthCm: number,
+  depthCm: number,
+  angleDeg: number,
+): Point | null {
+  const cleared = clearOfWalls(input, walls, candidate, widthCm, depthCm, angleDeg)
+  const rooms = roomsFor(input)
+  if (!cleared || !rooms) return cleared
+  const holding = rooms.filter((room) => insidePolygon(raw, room.points))
+  if (holding.length > 0 && !holding.some((room) => insidePolygon(cleared, room.points))) return null
+  return cleared
+}
+
 export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnapResult {
   const { point, depthCm, magnetismEnabled } = input
   const walls = wallsFor(input)
@@ -183,8 +203,11 @@ export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnap
   const offset = halfExtent + (best.wall.thickness ?? 0) / 2
   const x = best.point.x + nx * side * offset
   const y = best.point.y + ny * side * offset
-  const separated = clearOfWalls(input, walls, { x, y }, input.widthCm ?? depthCm, depthCm, angleDeg)
-  if (!separated) return { x: point.x, y: point.y, angleDeg: input.angleDeg ?? 0, wallRef: null, wallOffset: null }
+  const separated = clearWithinRoom(input, walls, point, { x, y }, input.widthCm ?? depthCm, depthCm, angleDeg)
+  if (!separated) {
+    const clear = clearOfWalls(input, walls, point, input.widthCm ?? depthCm, depthCm, input.angleDeg ?? 0) ?? point
+    return { x: clear.x, y: clear.y, angleDeg: input.angleDeg ?? 0, wallRef: null, wallOffset: null }
+  }
 
   const wallRef = best.wall.id ?? null
   const wallOffset = best.t * len
@@ -269,12 +292,15 @@ export function snapFurnitureRotation(input: Omit<FurnitureSnapInput, 'magnetism
   const relative = ((resultAngle - wallAngle) * Math.PI) / 180
   const extent = (Math.abs(Math.sin(relative)) * widthCm + Math.abs(Math.cos(relative)) * depthCm) / 2
   const offset = extent + (best.wall.thickness ?? 0) / 2
-  const separated = clearOfWalls(
-    input, walls,
+  const separated = clearWithinRoom(
+    input, walls, point,
     { x: best.point.x + nx * best.side * offset, y: best.point.y + ny * best.side * offset },
     widthCm, depthCm, resultAngle,
   )
-  if (!separated) return { x: point.x, y: point.y, angleDeg, wallRef: null, wallOffset: null }
+  if (!separated) {
+    const clear = clearOfWalls(input, walls, point, widthCm, depthCm, angleDeg) ?? point
+    return { x: clear.x, y: clear.y, angleDeg, wallRef: null, wallOffset: null }
+  }
   return {
     x: separated.x,
     y: separated.y,

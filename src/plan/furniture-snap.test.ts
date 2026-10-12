@@ -405,6 +405,23 @@ describe('snapping with rooms (a piece never leaves the room it is in)', () => {
     }
   })
 
+  it('magnetizing to a wall never carries a piece out of the room it is in (corridor regression)', () => {
+    const corridorWalls: WallLike[] = [
+      { id: 'n', xStart: -100, yStart: -40, xEnd: 100, yEnd: -40, thickness: 10 },
+      { id: 'e', xStart: 100, yStart: -40, xEnd: 100, yEnd: 40, thickness: 10 },
+      { id: 's', xStart: 100, yStart: 40, xEnd: -100, yEnd: 40, thickness: 10 },
+      { id: 'w', xStart: -100, yStart: 40, xEnd: -100, yEnd: -40, thickness: 10 },
+    ]
+    const corridor = [{ id: 'c', name: 'Corridor', points: [[-100, -40], [100, -40], [100, 40], [-100, 40]] as Array<[number, number]> }]
+    const point = { x: 0, y: 0 }
+    for (const angleDeg of [30, 60, 79, 85, 90]) {
+      const rot = snapFurnitureRotation({ walls: corridorWalls, rooms: corridor, point, widthCm: 150, depthCm: 40, angleDeg })
+      expect(Math.abs(rot.y), `rotation ${angleDeg}`).toBeLessThanOrEqual(40)
+      const place = snapFurniturePlacement({ walls: corridorWalls, rooms: corridor, point, widthCm: 150, depthCm: 40, angleDeg, magnetismEnabled: true })
+      expect(Math.abs(place.y), `placement ${angleDeg}`).toBeLessThanOrEqual(40)
+    }
+  })
+
   it('still clears the walls INSIDE the room for a piece that fits', () => {
     const r = snapFurniturePlacement({ walls, rooms, point: { x: 20, y: 150 }, widthCm: 60, depthCm: 60, angleDeg: 0, magnetismEnabled: false })
     expect(r.x).toBeCloseTo(5 + 30, 6)
