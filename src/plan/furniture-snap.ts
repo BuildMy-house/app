@@ -165,7 +165,7 @@ export function snapFurniturePlacement(input: FurnitureSnapInput): FurnitureSnap
 
 /** Penetration (cm) tolerated before furniture counts as overlapping a wall —
  *  absorbs floating-point error from the exact-flush push-out. */
-export const WALL_OVERLAP_EPSILON_CM = 1e-6
+const WALL_OVERLAP_EPSILON_CM = 1e-6
 
 interface WallRect {
   cx: number
