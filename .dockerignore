@@ -3,7 +3,8 @@ server/node_modules
 dist
 server/dist
 e2e
-tests
+tests/*
+!tests/fixtures
 test-results
 playwright-report
 graphify-out
