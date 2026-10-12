@@ -467,6 +467,29 @@ describe('select_object batch selection', () => {
   })
 })
 
+describe('furniture never lands inside a wall over the MCP protocol', () => {
+  type State = { furniture: Array<{ id: string; x: number; y: number; doorOrWindow?: boolean }> }
+  const furnitureOf = async () => ((await orch.sendRequest('get_state')).data as State).furniture
+
+  it('add_furniture and modify_selected push pieces out of walls', async () => {
+    await awaitHello()
+    await orch.sendRequest('new_home')
+    const wall = await orch.sendRequest('add_wall', { xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 10 })
+    expect(wall.ok).toBe(true)
+
+    const sofa = await orch.sendRequest('add_furniture', { name: 'sofa', x: 200, y: 0, width: 100, depth: 40, height: 80 })
+    const sofaId = (sofa.data as { id: string }).id
+    // A freshly added piece centred on the wall line is flush against its face (20 + 5).
+    expect((await furnitureOf()).find((f) => f.id === sofaId)!.y).toBe(25)
+
+    await orch.sendRequest('select_object', { objectId: sofaId })
+    await orch.sendRequest('modify_selected', { props: { y: 3 } })
+    expect((await furnitureOf()).find((f) => f.id === sofaId)!.y).toBe(25)
+
+    await orch.sendRequest('new_home')
+  })
+})
+
 describe('port seams', () => {
   it('parses HOMELY_AUTOMATION_PORT', () => {
     expect(automationPortFromEnv({ HOMELY_AUTOMATION_PORT: '8765' })).toBe(8765)
