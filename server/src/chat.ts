@@ -1,8 +1,18 @@
 import type { RequestHandler } from 'express';
 import { asyncHandler } from './asyncHandler.js';
 
-/** Max time to wait on pm-agent before answering 503. */
-export const PM_AGENT_TIMEOUT_MS = 15_000;
+/**
+ * Max time to wait on pm-agent before answering 503. The upstream model reasons
+ * and calls tools, so a reply routinely takes 15-30s; 60s leaves headroom while
+ * staying above pm-agent's own front-door budget so it answers (or errors)
+ * first. Override with the PM_AGENT_TIMEOUT_MS env var (positive integer ms).
+ */
+export const PM_AGENT_TIMEOUT_MS = 60_000;
+
+export function pmAgentTimeoutMs(): number {
+  const n = Number(process.env.PM_AGENT_TIMEOUT_MS);
+  return Number.isInteger(n) && n > 0 ? n : PM_AGENT_TIMEOUT_MS;
+}
 const MAX_MESSAGE_LENGTH = 4000;
 
 /**
@@ -41,7 +51,7 @@ export function chatHandler(): RequestHandler {
         method: 'POST',
         headers,
         body: JSON.stringify({ app_user_id: req.userId, message }),
-        signal: AbortSignal.timeout(PM_AGENT_TIMEOUT_MS),
+        signal: AbortSignal.timeout(pmAgentTimeoutMs()),
       });
     } catch {
       res.status(503).json({ error: 'Chat service unavailable' });
