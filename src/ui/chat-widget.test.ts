@@ -249,3 +249,120 @@ describe('createFetchPmAgentClient', () => {
     await expect(client.send({ userId: USER_ID, text: 'ping' })).rejects.toThrow('chat request failed (404)')
   })
 })
+
+describe('chat widget queue', () => {
+  const flush = async (): Promise<void> => {
+    await vi.advanceTimersByTimeAsync(0)
+  }
+  const tickPoll = async (): Promise<void> => {
+    await vi.advanceTimersByTimeAsync(3000)
+  }
+
+  function mountQueued(poll: PmAgentClient['poll'], position = 2) {
+    vi.useFakeTimers()
+    const client: PmAgentClient = { send: vi.fn().mockResolvedValue({ ticket: 'tkt', position }), poll }
+    const element = mount(client)
+    open(element)
+    sendFrom(element, 'hello')
+    return element
+  }
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('shows the queue position, updates it, then renders the reply once done', async () => {
+    const poll = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 'queued', position: 1 })
+      .mockResolvedValueOnce({ status: 'processing' })
+      .mockResolvedValueOnce({ status: 'done', reply: 'here you go' })
+    const element = mountQueued(poll, 2)
+    await flush()
+    expect(element.querySelector('.chat-queue')!.textContent).toContain("number 2 in the queue")
+    expect(element.querySelector('.chat-thinking')).toBeNull()
+
+    await tickPoll()
+    expect(element.querySelector('.chat-queue')!.textContent).toContain("You're next")
+
+    await tickPoll()
+    expect(element.querySelector('.chat-queue')).toBeNull()
+    expect(element.querySelector('.chat-thinking')!.textContent).toContain('thinking')
+
+    await tickPoll()
+    expect(element.querySelector('.chat-thinking')).toBeNull()
+    expect(panelMessages(element)).toEqual(['hello', 'here you go'])
+    expect(poll).toHaveBeenCalledWith('tkt')
+    await tickPoll()
+    expect(poll).toHaveBeenCalledTimes(3)
+  })
+
+  it('reports an expired ticket as an error and stops polling', async () => {
+    const poll = vi.fn().mockResolvedValue({ status: 'expired' })
+    const element = mountQueued(poll)
+    await tickPoll()
+    expect(element.querySelector('.chat-error')!.textContent).toContain('expired')
+    expect(element.querySelector('.chat-queue')).toBeNull()
+    await tickPoll()
+    expect(poll).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops polling and clears the queue line when the widget is closed', async () => {
+    const poll = vi.fn().mockResolvedValue({ status: 'queued', position: 3 })
+    const element = mountQueued(poll)
+    await tickPoll()
+    expect(poll).toHaveBeenCalledTimes(1)
+    element.querySelector<HTMLButtonElement>('.chat-close')!.click()
+    expect(element.querySelector('.chat-queue')).toBeNull()
+    await tickPoll()
+    await tickPoll()
+    expect(poll).toHaveBeenCalledTimes(1)
+  })
+
+  it('gives up with an error after repeated poll failures', async () => {
+    const poll = vi.fn().mockRejectedValue(new Error('chat status failed (503)'))
+    const element = mountQueued(poll)
+    await tickPoll()
+    await tickPoll()
+    await tickPoll()
+    expect(poll).toHaveBeenCalledTimes(3)
+    expect(element.querySelector('.chat-error')!.textContent).toContain('503')
+    expect(element.querySelector('.chat-queue')).toBeNull()
+  })
+
+  it('does not send a second message while one is queued', async () => {
+    const poll = vi.fn().mockResolvedValue({ status: 'queued', position: 2 })
+    const element = mountQueued(poll)
+    await flush()
+    sendFrom(element, 'again')
+    expect(element.querySelector('.chat-error')!.textContent).toContain('wait')
+  })
+})
+
+describe('createFetchPmAgentClient queue', () => {
+  it('returns a ticket when pm-agent answers queued or processing', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'queued', ticket: 't1', position: 3, reply: 'x' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'processing', ticket: 't2' })))
+    const client = createFetchPmAgentClient(fetchImpl as unknown as typeof fetch, '/api/chat')
+    expect(await client.send({ userId: USER_ID, text: 'a' })).toEqual({ ticket: 't1', position: 3 })
+    expect(await client.send({ userId: USER_ID, text: 'a' })).toEqual({ ticket: 't2', position: 0 })
+  })
+
+  it('polls /status with the ticket and bearer token', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: 'done', reply: 'hi' })))
+    const client = createFetchPmAgentClient(fetchImpl as unknown as typeof fetch, '/api/chat', () => 'tok')
+    expect(await client.poll!('a b')).toEqual({ status: 'done', reply: 'hi' })
+    expect(fetchImpl).toHaveBeenCalledWith('/api/chat/status?ticket=a%20b', { headers: { Authorization: 'Bearer tok' } })
+  })
+
+  it('rejects poll on a non-OK or malformed response', async () => {
+    const client = createFetchPmAgentClient(
+      vi.fn().mockResolvedValueOnce(new Response('{}', { status: 503 })).mockResolvedValueOnce(new Response('{"status":"?"}')) as unknown as typeof fetch,
+      '/api/chat',
+    )
+    await expect(client.poll!('t')).rejects.toThrow('503')
+    await expect(client.poll!('t')).rejects.toThrow('invalid')
+  })
+})
