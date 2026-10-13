@@ -128,6 +128,18 @@ describe('chat widget send/receive', () => {
     expect(send).not.toHaveBeenCalled()
   })
 
+  it('shows a thinking indicator until the reply (or failure) arrives', async () => {
+    let resolve!: (reply: string) => void
+    const send = vi.fn(() => new Promise<string>((r) => { resolve = r }))
+    const element = mount({ send })
+    open(element)
+    sendFrom(element, 'hi')
+    expect(element.querySelector('.chat-thinking')?.textContent).toContain('thinking')
+    resolve('done')
+    await vi.waitFor(() => expect(panelMessages(element)).toEqual(['hi', 'done']))
+    expect(element.querySelector('.chat-thinking')).toBeNull()
+  })
+
   it('renders a backend failure as an error instead of dropping it', async () => {
     const send = vi.fn(async () => {
       throw new Error('chat request failed (404)')

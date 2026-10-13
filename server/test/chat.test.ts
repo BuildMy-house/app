@@ -8,6 +8,7 @@ import type { Express } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
 import { getJwtSecret } from '../src/config.js';
+import { PM_AGENT_TIMEOUT_MS } from '../src/chat.js';
 
 process.env.JWT_SECRET = 'test-secret';
 
@@ -34,6 +35,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   delete process.env.PM_AGENT_URL;
   delete process.env.PM_AGENT_AUTH_TOKEN;
+  delete process.env.PM_AGENT_TIMEOUT_MS;
   db.close();
   rmSync(assetRoot, { recursive: true, force: true });
 });
@@ -88,6 +90,32 @@ describe('POST /api/chat', () => {
 
   it('503s when pm-agent is unreachable', async () => {
     fetchMock.mockRejectedValue(new Error('ECONNREFUSED'));
+    expect((await post({ message: 'hi' })).status).toBe(503);
+  });
+
+  it('waits up to 60s for pm-agent by default (reasoning models take 15-30s)', async () => {
+    expect(PM_AGENT_TIMEOUT_MS).toBe(60_000);
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    fetchMock.mockReturnValue(upstreamJson({ reply: 'ok' }));
+    await post({ message: 'hi' });
+    expect(timeoutSpy).toHaveBeenCalledWith(60_000);
+    timeoutSpy.mockRestore();
+  });
+
+  it('honours a valid PM_AGENT_TIMEOUT_MS override and ignores garbage', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    fetchMock.mockImplementation(() => upstreamJson({ reply: 'ok' }));
+    process.env.PM_AGENT_TIMEOUT_MS = '90000';
+    await post({ message: 'hi' });
+    expect(timeoutSpy).toHaveBeenLastCalledWith(90_000);
+    process.env.PM_AGENT_TIMEOUT_MS = 'abc';
+    await post({ message: 'hi' });
+    expect(timeoutSpy).toHaveBeenLastCalledWith(60_000);
+    timeoutSpy.mockRestore();
+  });
+
+  it('503s when the upstream call times out', async () => {
+    fetchMock.mockRejectedValue(new DOMException('timed out', 'TimeoutError'));
     expect((await post({ message: 'hi' })).status).toBe(503);
   });
 
