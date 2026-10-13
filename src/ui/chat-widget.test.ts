@@ -128,16 +128,53 @@ describe('chat widget send/receive', () => {
     expect(send).not.toHaveBeenCalled()
   })
 
-  it('shows a thinking indicator until the reply (or failure) arrives', async () => {
+  it('shows a typing indicator until the reply arrives', async () => {
     let resolve!: (reply: string) => void
     const send = vi.fn(() => new Promise<string>((r) => { resolve = r }))
     const element = mount({ send })
     open(element)
     sendFrom(element, 'hi')
-    expect(element.querySelector('.chat-thinking')?.textContent).toContain('thinking')
+    const typing = element.querySelector('.chat-typing')!
+    expect(typing.getAttribute('aria-label')).toBe('PM agent is typing')
+    expect(typing.getAttribute('role')).toBe('status')
+    expect(typing.querySelectorAll('.dot')).toHaveLength(3)
     resolve('done')
     await vi.waitFor(() => expect(panelMessages(element)).toEqual(['hi', 'done']))
-    expect(element.querySelector('.chat-thinking')).toBeNull()
+    expect(element.querySelector('.chat-typing')).toBeNull()
+  })
+
+  it('removes the typing indicator on error', async () => {
+    const send = vi.fn(async () => {
+      throw new Error('boom')
+    })
+    const element = mount({ send })
+    open(element)
+    sendFrom(element, 'hi')
+    expect(element.querySelector('.chat-typing')).not.toBeNull()
+    await vi.waitFor(() => expect(element.querySelector<HTMLElement>('.chat-error')!.hidden).toBe(false))
+    expect(element.querySelector('.chat-typing')).toBeNull()
+  })
+
+  it('keeps a single indicator across overlapping sends, last in the list', async () => {
+    const resolvers: Array<(reply: string) => void> = []
+    const send = vi.fn(() => new Promise<string>((r) => { resolvers.push(r) }))
+    const element = mount({ send })
+    open(element)
+    sendFrom(element, 'one')
+    sendFrom(element, 'two')
+    expect(element.querySelectorAll('.chat-typing')).toHaveLength(1)
+    resolvers[0]!('r1')
+    await vi.waitFor(() => expect(panelMessages(element)).toEqual(['one', 'two', 'r1']))
+    const list = element.querySelector('.chat-messages')!
+    expect(list.lastElementChild?.className).toBe('chat-typing')
+    resolvers[1]!('r2')
+    await vi.waitFor(() => expect(element.querySelector('.chat-typing')).toBeNull())
+  })
+
+  it('declares a prefers-reduced-motion fallback for the dots', () => {
+    const element = mount({ send: vi.fn(async () => 'x') })
+    const css = element.querySelector('style')!.textContent!
+    expect(css).toMatch(/prefers-reduced-motion: reduce[\s\S]*animation: none/)
   })
 
   it('renders a backend failure as an error instead of dropping it', async () => {

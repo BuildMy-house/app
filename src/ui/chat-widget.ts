@@ -168,6 +168,33 @@ export function createChatWidget(options: ChatWidgetOptions): HTMLDivElement {
         background: var(--toolbar-bg);
         border: 1px solid var(--border);
       }
+      .chat-widget .chat-typing {
+        align-self: flex-start;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 9px 10px;
+        border-radius: 8px;
+        background: var(--toolbar-bg);
+        border: 1px solid var(--border);
+      }
+      .chat-widget .chat-typing .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--text-secondary);
+        opacity: 0.4;
+        animation: chat-typing-bounce 1.2s ease-in-out infinite;
+      }
+      .chat-widget .chat-typing .dot:nth-child(2) { animation-delay: 0.2s; }
+      .chat-widget .chat-typing .dot:nth-child(3) { animation-delay: 0.4s; }
+      @keyframes chat-typing-bounce {
+        0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+        30% { transform: translateY(-4px); opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .chat-widget .chat-typing .dot { animation: none; opacity: 0.7; }
+      }
       .chat-widget .chat-error {
         margin: 0;
         padding: 6px 10px;
@@ -244,7 +271,30 @@ export function createChatWidget(options: ChatWidgetOptions): HTMLDivElement {
     line.className = `chat-msg ${role}`
     line.textContent = text
     messages.appendChild(line)
+    if (typing) messages.appendChild(typing)
     messages.scrollTop = messages.scrollHeight
+  }
+
+  let pending = 0
+  let typing: HTMLDivElement | null = null
+
+  const showTyping = (): void => {
+    if (!typing) {
+      typing = document.createElement('div')
+      typing.className = 'chat-typing'
+      typing.setAttribute('role', 'status')
+      typing.setAttribute('aria-label', 'PM agent is typing')
+      typing.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>'
+    }
+    messages.appendChild(typing)
+    messages.scrollTop = messages.scrollHeight
+  }
+
+  const settleTyping = (): void => {
+    pending -= 1
+    if (pending > 0) return
+    typing?.remove()
+    typing = null
   }
 
   const send = (): void => {
@@ -260,21 +310,18 @@ export function createChatWidget(options: ChatWidgetOptions): HTMLDivElement {
     error.hidden = true
     input.value = ''
     appendMessage('user', text)
-    // Replies can take up to ~60s (model reasoning + tool calls): show it.
-    const thinking = document.createElement('div')
-    thinking.className = 'chat-thinking'
-    thinking.style.cssText = 'font-style: italic; opacity: 0.7;'
-    thinking.setAttribute('role', 'status')
-    thinking.textContent = 'PM agent is thinking…'
-    messages.appendChild(thinking)
-    messages.scrollTop = messages.scrollHeight
+    // Replies can take up to ~60s (model reasoning + tool calls): show a
+    // typing bubble. One shared indicator covers any number of in-flight
+    // sends (input stays enabled), kept as the last child of the list.
+    pending += 1
+    showTyping()
     void options.client.send({ userId, text }).then(
       (reply) => {
-        thinking.remove()
+        settleTyping()
         appendMessage('agent', reply)
       },
       (err: unknown) => {
-        thinking.remove()
+        settleTyping()
         showError(err instanceof Error ? err.message : 'chat request failed')
       },
     )
