@@ -5,14 +5,41 @@
     "steward": {
       "type": "remote",
       "url": "{env:STEWARD_MCP_URL}",
-      "headers": {"Authorization": "Bearer {env:STEWARD_TOKEN}"}
+      "headers": {
+        "Authorization": "Bearer {env:STEWARD_TOKEN}"
+      }
     },
     "buildmyhouse": {
       "type": "local",
-      "command": ["./mcp/run.sh"],
+      "command": [
+        "./mcp/run.sh"
+      ],
       "enabled": true
     }
   },
-  "instructions": ["AGENTS.md", "CLAUDE.md"],
-  "plugin": ["/opt/company-ops/scripts/opencode-plugins/axiom-usage.js"]
+  "instructions": [
+    "AGENTS.md",
+    "CLAUDE.md"
+  ],
+  "plugin": [
+    "/opt/company-ops/scripts/opencode-plugins/axiom-usage.js"
+  ],
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 20000
+  },
+  "provider": {
+    "opencode": {
+      "models": {
+        "mimo-v2.6-flash-free": {
+          "limit": {
+            "context": 200000,
+            "input": 120000,
+            "output": 32000
+          }
+        }
+      }
+    }
+  }
 }
