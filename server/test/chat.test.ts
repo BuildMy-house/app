@@ -128,3 +128,88 @@ describe('POST /api/chat', () => {
     expect((await post({ message: 'hi' })).status).toBe(502);
   });
 });
+
+describe('POST /api/chat when pm-agent is busy', () => {
+  it('passes a queue ticket through to the client', async () => {
+    fetchMock.mockReturnValue(
+      upstreamJson({ status: 'queued', ticket: 'tkt', position: 2, reply: "You're number 2 in the queue", extra: 'x' }),
+    );
+    const res = await post({ message: 'hi' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: 'queued', ticket: 'tkt', position: 2, reply: "You're number 2 in the queue" });
+  });
+
+  it('passes processing tickets through', async () => {
+    fetchMock.mockReturnValue(upstreamJson({ status: 'processing', ticket: 'tkt' }));
+    const res = await post({ message: 'hi' });
+    expect(res.body).toEqual({ status: 'processing', ticket: 'tkt' });
+  });
+
+  it('relays a busy reply as a plain reply', async () => {
+    fetchMock.mockReturnValue(upstreamJson({ status: 'busy', reply: 'Very busy, try later' }));
+    const res = await post({ message: 'hi' });
+    expect(res.body).toEqual({ reply: 'Very busy, try later' });
+  });
+});
+
+describe('GET /api/chat/status', () => {
+  const get = (query: string, auth = true) => {
+    const r = request(app).get(`/api/chat/status${query}`);
+    return auth ? r.set('Authorization', `Bearer ${token}`) : r;
+  };
+
+  it('rejects unauthenticated requests without calling pm-agent', async () => {
+    const res = await get('?ticket=t', false);
+    expect(res.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('400s without a ticket', async () => {
+    expect((await get('')).status).toBe(400);
+    expect((await get(`?ticket=${'x'.repeat(300)}`)).status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('asks pm-agent with the JWT user id, ignoring a client-supplied one', async () => {
+    process.env.PM_AGENT_AUTH_TOKEN = 's3cret';
+    fetchMock.mockReturnValue(upstreamJson({ status: 'queued', position: 1 }));
+    const res = await get('?ticket=abc&app_user_id=attacker&userId=attacker');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: 'queued', position: 1 });
+    const [url, init] = fetchMock.mock.calls[0];
+    const parsed = new URL(url as string);
+    expect(parsed.origin + parsed.pathname).toBe('http://pm-agent.test:4200/chat/status');
+    expect(parsed.searchParams.get('ticket')).toBe('abc');
+    expect(parsed.searchParams.get('app_user_id')).toBe(userId);
+    expect(init.headers.Authorization).toBe('Bearer s3cret');
+  });
+
+  it("another user's ticket reads as expired (pm-agent checks ownership)", async () => {
+    fetchMock.mockReturnValue(upstreamJson({ status: 'expired' }));
+    const res = await get('?ticket=someone-elses');
+    expect(res.body).toEqual({ status: 'expired' });
+  });
+
+  it('relays done and processing states', async () => {
+    fetchMock.mockReturnValueOnce(upstreamJson({ status: 'done', reply: 'all set', leak: 1 }));
+    expect((await get('?ticket=t')).body).toEqual({ status: 'done', reply: 'all set' });
+    fetchMock.mockReturnValueOnce(upstreamJson({ status: 'processing' }));
+    expect((await get('?ticket=t')).body).toEqual({ status: 'processing' });
+  });
+
+  it('503s when PM_AGENT_URL is unset or pm-agent is unreachable', async () => {
+    fetchMock.mockRejectedValue(new Error('ECONNREFUSED'));
+    expect((await get('?ticket=t')).status).toBe(503);
+    delete process.env.PM_AGENT_URL;
+    expect((await get('?ticket=t')).status).toBe(503);
+  });
+
+  it('maps upstream errors and malformed bodies', async () => {
+    fetchMock.mockReturnValueOnce(upstreamJson({}, 500));
+    expect((await get('?ticket=t')).status).toBe(503);
+    fetchMock.mockReturnValueOnce(upstreamJson({}, 400));
+    expect((await get('?ticket=t')).status).toBe(502);
+    fetchMock.mockReturnValueOnce(upstreamJson({ status: 'weird' }));
+    expect((await get('?ticket=t')).status).toBe(502);
+  });
+});

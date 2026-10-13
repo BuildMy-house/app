@@ -14,6 +14,9 @@ export function pmAgentTimeoutMs(): number {
   return Number.isInteger(n) && n > 0 ? n : PM_AGENT_TIMEOUT_MS;
 }
 const MAX_MESSAGE_LENGTH = 4000;
+const MAX_TICKET_LENGTH = 200;
+/** Status polls answer from memory, so a short budget is plenty. */
+const STATUS_TIMEOUT_MS = 10_000;
 
 /**
  * POST /api/chat — authenticated JSON relay to pm-agent's `POST /chat`.
@@ -61,11 +64,78 @@ export function chatHandler(): RequestHandler {
       res.status(upstream.status >= 500 ? 503 : 502).json({ error: 'Chat service error' });
       return;
     }
-    const data = (await upstream.json().catch(() => null)) as { reply?: unknown } | null;
-    if (!data || typeof data.reply !== 'string') {
+    const data = (await upstream.json().catch(() => null)) as Record<string, unknown> | null;
+    if (!data) {
+      res.status(502).json({ error: 'Chat service returned an invalid reply' });
+      return;
+    }
+    // pm-agent serves one user at a time: when busy it answers at once with a
+    // queue ticket (queued/processing) to poll via GET /api/chat/status.
+    if ((data.status === 'queued' || data.status === 'processing') && typeof data.ticket === 'string') {
+      res.json({
+        status: data.status,
+        ticket: data.ticket,
+        ...(typeof data.position === 'number' ? { position: data.position } : {}),
+        ...(typeof data.reply === 'string' ? { reply: data.reply } : {}),
+      });
+      return;
+    }
+    if (typeof data.reply !== 'string') {
       res.status(502).json({ error: 'Chat service returned an invalid reply' });
       return;
     }
     res.json({ reply: data.reply });
+  });
+}
+
+/**
+ * GET /api/chat/status?ticket=… — poll a queued chat message. Same auth and
+ * target as `chatHandler`. The user id sent upstream is ALWAYS `req.userId`;
+ * pm-agent only answers for the ticket's owner (anything else reads as
+ * `expired`), so a ticket id is useless to any other user.
+ */
+export function chatStatusHandler(): RequestHandler {
+  return asyncHandler(async (req, res) => {
+    const base = process.env.PM_AGENT_URL?.trim();
+    if (!base) {
+      res.status(503).json({ error: 'Chat is not configured' });
+      return;
+    }
+    const ticket = req.query.ticket;
+    if (typeof ticket !== 'string' || !ticket || ticket.length > MAX_TICKET_LENGTH) {
+      res.status(400).json({ error: 'ticket is required' });
+      return;
+    }
+    const headers: Record<string, string> = {};
+    const authToken = process.env.PM_AGENT_AUTH_TOKEN?.trim();
+    if (authToken) headers.Authorization = `Bearer ${authToken}`;
+    const query = new URLSearchParams({ ticket, app_user_id: req.userId! });
+
+    let upstream: Response;
+    try {
+      upstream = await fetch(`${base.replace(/\/+$/, '')}/chat/status?${query}`, {
+        headers,
+        signal: AbortSignal.timeout(STATUS_TIMEOUT_MS),
+      });
+    } catch {
+      res.status(503).json({ error: 'Chat service unavailable' });
+      return;
+    }
+    if (!upstream.ok) {
+      res.status(upstream.status >= 500 ? 503 : 502).json({ error: 'Chat service error' });
+      return;
+    }
+    const data = (await upstream.json().catch(() => null)) as Record<string, unknown> | null;
+    if (data?.status === 'queued' && typeof data.position === 'number') {
+      res.json({ status: 'queued', position: data.position });
+    } else if (data?.status === 'processing') {
+      res.json({ status: 'processing' });
+    } else if (data?.status === 'done' && typeof data.reply === 'string') {
+      res.json({ status: 'done', reply: data.reply });
+    } else if (data?.status === 'expired') {
+      res.json({ status: 'expired' });
+    } else {
+      res.status(502).json({ error: 'Chat service returned an invalid status' });
+    }
   });
 }
