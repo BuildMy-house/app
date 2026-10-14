@@ -115,6 +115,9 @@ export function createChatWidget(options: ChatWidgetOptions): HTMLDivElement {
         font-size: 13px;
         color: var(--text);
       }
+      .chat-widget [hidden] {
+        display: none !important;
+      }
       .chat-widget .chat-panel {
         display: flex;
         flex-direction: column;
