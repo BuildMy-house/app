@@ -22,6 +22,7 @@ import { analyticsRouter } from './analytics.js';
 import { chatHandler } from './chat.js';
 import { homesRouter } from './homes.js';
 import { teamsRouter } from './teams.js';
+import { waitlistRouter } from './waitlist.js';
 import { initDb, type DbAdapter } from './db.js';
 import { AssetStorage } from './storage.js';
 import { renderQueue } from './render-queue.js';
@@ -123,6 +124,7 @@ export async function createApp(
   app.use('/api/homes', homesRouter(adapter));
   app.use('/api/teams', teamsRouter(adapter));
   app.use('/api/analytics', analyticsRouter(adapter));
+  app.use('/api/waitlist', waitlistRouter(adapter));
   app.post('/api/chat', requireAuth, chatHandler());
 
   // Render queue API: enqueue studio/high-quality renders (optional premium feature)
