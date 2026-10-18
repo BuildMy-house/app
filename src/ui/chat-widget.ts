@@ -50,12 +50,20 @@ export interface ChatWidgetOptions {
  * `{ reply }` back). `endpoint` is injected — nothing here hardcodes a URL.
  * Endpoint path for the real backend lands with A2.
  */
-export function createFetchPmAgentClient(fetchImpl: typeof fetch, endpoint: string): PmAgentClient {
+export function createFetchPmAgentClient(
+  fetchImpl: typeof fetch,
+  endpoint: string,
+  getToken: () => string | null = () => null,
+): PmAgentClient {
   return {
     async send({ userId, text }): Promise<string> {
+      // /api/chat sits behind requireAuth, which needs the session JWT as a bearer token.
+      const token = getToken()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) headers.Authorization = `Bearer ${token}`
       const response = await fetchImpl(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ userId, message: text }),
       })
       if (!response.ok) throw new Error(`chat request failed (${response.status})`)
@@ -106,6 +114,9 @@ export function createChatWidget(options: ChatWidgetOptions): HTMLDivElement {
         gap: 8px;
         font-size: 13px;
         color: var(--text);
+      }
+      .chat-widget [hidden] {
+        display: none !important;
       }
       .chat-widget .chat-panel {
         display: flex;
@@ -252,9 +263,23 @@ export function createChatWidget(options: ChatWidgetOptions): HTMLDivElement {
     error.hidden = true
     input.value = ''
     appendMessage('user', text)
+    // Replies can take up to ~60s (model reasoning + tool calls): show it.
+    const thinking = document.createElement('div')
+    thinking.className = 'chat-thinking'
+    thinking.style.cssText = 'font-style: italic; opacity: 0.7;'
+    thinking.setAttribute('role', 'status')
+    thinking.textContent = 'PM agent is thinking…'
+    messages.appendChild(thinking)
+    messages.scrollTop = messages.scrollHeight
     void options.client.send({ userId, text }).then(
-      (reply) => appendMessage('agent', reply),
-      (err: unknown) => showError(err instanceof Error ? err.message : 'chat request failed'),
+      (reply) => {
+        thinking.remove()
+        appendMessage('agent', reply)
+      },
+      (err: unknown) => {
+        thinking.remove()
+        showError(err instanceof Error ? err.message : 'chat request failed')
+      },
     )
   }
 

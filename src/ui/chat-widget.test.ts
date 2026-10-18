@@ -128,6 +128,18 @@ describe('chat widget send/receive', () => {
     expect(send).not.toHaveBeenCalled()
   })
 
+  it('shows a thinking indicator until the reply (or failure) arrives', async () => {
+    let resolve!: (reply: string) => void
+    const send = vi.fn(() => new Promise<string>((r) => { resolve = r }))
+    const element = mount({ send })
+    open(element)
+    sendFrom(element, 'hi')
+    expect(element.querySelector('.chat-thinking')?.textContent).toContain('thinking')
+    resolve('done')
+    await vi.waitFor(() => expect(panelMessages(element)).toEqual(['hi', 'done']))
+    expect(element.querySelector('.chat-thinking')).toBeNull()
+  })
+
   it('renders a backend failure as an error instead of dropping it', async () => {
     const send = vi.fn(async () => {
       throw new Error('chat request failed (404)')
@@ -196,6 +208,34 @@ describe('createFetchPmAgentClient', () => {
         method: 'POST',
         body: JSON.stringify({ userId: USER_ID, message: 'ping' }),
       }),
+    )
+  })
+
+  it('sends the session token as a bearer Authorization header when signed in', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ reply: 'pong' }),
+    }) as unknown as Response)
+    const client = createFetchPmAgentClient(fetchMock as unknown as typeof fetch, '/api/chat', () => 'jwt-abc')
+    await client.send({ userId: USER_ID, text: 'ping' })
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/chat',
+      expect.objectContaining({
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer jwt-abc' },
+      }),
+    )
+  })
+
+  it('omits Authorization when there is no token', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ reply: 'pong' }),
+    }) as unknown as Response)
+    const client = createFetchPmAgentClient(fetchMock as unknown as typeof fetch, '/api/chat')
+    await client.send({ userId: USER_ID, text: 'ping' })
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/chat',
+      expect.objectContaining({ headers: { 'Content-Type': 'application/json' } }),
     )
   })
 
