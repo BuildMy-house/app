@@ -20,6 +20,32 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
 const TOKEN_TTL = '7d';
 
+// Sentinel password hash for Google-only accounts. Not a valid bcrypt digest,
+// so bcrypt.compareSync() always returns false — password login can never
+// succeed for such a user.
+export const GOOGLE_ONLY_HASH = '!google-only';
+
+export const SESSION_COOKIE = 'bmh_session';
+
+// Minimal Cookie-header parser (no new dependency).
+export function parseCookies(header: string | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!header) return out;
+  for (const part of header.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx === -1) continue;
+    const key = part.slice(0, idx).trim();
+    if (!key) continue;
+    const value = part.slice(idx + 1).trim();
+    try {
+      out[key] = decodeURIComponent(value);
+    } catch {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
 // ponytail: in-memory per-email login lockout (per-process, lost on restart).
 // Upgrade to a shared/DB-backed limiter only if multi-instance deployment ever happens.
 const MAX_FAILED_ATTEMPTS = 10;
@@ -135,7 +161,7 @@ export function signToken(userId: string): string {
   return jwt.sign({}, getJwtSecret(), { subject: userId, expiresIn: TOKEN_TTL });
 }
 
-function isUniqueViolation(err: unknown): boolean {
+export function isUniqueViolation(err: unknown): boolean {
   return (
     typeof err === 'object' &&
     err !== null &&
@@ -296,8 +322,11 @@ export function changePasswordHandler(db: DbAdapter) {
   });
 }
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  // Bearer header wins; fall back to the httpOnly session cookie set by the
+  // Google OAuth callback.
   const header = req.headers.authorization;
-  const token = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined;
+  const bearer = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined;
+  const token = bearer ?? parseCookies(req.headers.cookie)[SESSION_COOKIE];
   if (!token) {
     res.status(401).json({ error: 'missing bearer token' });
     return;
@@ -321,7 +350,13 @@ export function meHandler(db: DbAdapter) {
       res.status(404).json({ error: 'user not found' });
       return;
     }
-    res.json({ id: user.id, email: user.email, name: user.name ?? null, createdAt: user.created_at });
+    res.json({
+      id: user.id,
+      email: user.email,
+      name: user.name ?? null,
+      picture: user.picture ?? null,
+      createdAt: user.created_at,
+    });
   });
 }
 
@@ -529,15 +564,31 @@ class SoleOwnerError extends Error {}
 
 export function deleteAccountHandler(db: DbAdapter, storage: AssetStorage) {
   return asyncHandler(async (req: Request, res: Response) => {
-    const password = req.body?.password;
-    if (typeof password !== 'string' || !password) {
-      res.status(400).json({ error: 'password is required' });
-      return;
-    }
     const user = await db.get<UserRow>('SELECT * FROM users WHERE id = ?', req.userId!);
-    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+    if (!user) {
       res.status(401).json({ error: 'password is incorrect' });
       return;
+    }
+
+    if (user.password_hash === GOOGLE_ONLY_HASH) {
+      // Google-only accounts have no password to re-enter; require the account
+      // email as a typed confirmation instead.
+      const confirmEmail =
+        typeof req.body?.confirmEmail === 'string' ? req.body.confirmEmail.trim().toLowerCase() : '';
+      if (!confirmEmail || confirmEmail !== user.email) {
+        res.status(400).json({ error: 'confirmEmail must match your account email' });
+        return;
+      }
+    } else {
+      const password = req.body?.password;
+      if (typeof password !== 'string' || !password) {
+        res.status(400).json({ error: 'password is required' });
+        return;
+      }
+      if (!bcrypt.compareSync(password, user.password_hash)) {
+        res.status(401).json({ error: 'password is incorrect' });
+        return;
+      }
     }
 
     try {
@@ -599,7 +650,8 @@ export function deleteAccountHandler(db: DbAdapter, storage: AssetStorage) {
         }
         await tx.run('DELETE FROM assets WHERE user_id = ?', req.userId!);
 
-        // Hygiene: tokens/invites referencing an id/email about to stop existing.
+        // Hygiene: rows/tokens/invites referencing an id/email about to stop existing.
+        await tx.run('DELETE FROM waitlist WHERE user_id = ?', req.userId!);
         await tx.run('DELETE FROM password_reset_tokens WHERE user_id = ?', req.userId!);
         await tx.run('DELETE FROM magic_link_tokens WHERE email = ?', user.email);
         await tx.run('DELETE FROM team_invites WHERE invited_by_user_id = ?', req.userId!);

@@ -23,6 +23,7 @@ import { chatHandler } from './chat.js';
 import { homesRouter } from './homes.js';
 import { teamsRouter } from './teams.js';
 import { waitlistRouter } from './waitlist.js';
+import { googleAuthRouter, googleApiHandlers } from './googleAuth.js';
 import { initDb, type DbAdapter } from './db.js';
 import { AssetStorage } from './storage.js';
 import { renderQueue } from './render-queue.js';
@@ -110,6 +111,10 @@ export async function createApp(
   const assetStorage = new AssetStorage(assetRoot);
   app.post('/api/auth/register', registerHandler(adapter));
   app.post('/api/auth/login', loginHandler(adapter));
+  app.get('/api/auth/providers', googleApiHandlers.providersHandler);
+  app.post('/api/auth/session', requireAuth, googleApiHandlers.sessionHandler(adapter));
+  app.post('/api/auth/logout', googleApiHandlers.logoutHandler);
+  app.use(googleAuthRouter(adapter));
   app.put('/api/auth/password', requireAuth, changePasswordHandler(adapter));
   app.get('/api/auth/me', requireAuth, meHandler(adapter));
   app.patch('/api/auth/me', requireAuth, updateNameHandler(adapter));

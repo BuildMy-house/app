@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       // Track H backend (homely/server) runs on :3000 in dev.
       '/api': 'http://localhost:3000',
+      '/auth': 'http://localhost:3000',
     },
   },
   build: {
