@@ -423,7 +423,7 @@ export function initDb(db: Database.Database): void {
   }
   // Guarded migration: add name to users if missing (existing rows get NULL).
   const userCols = db.pragma('table_info(users)') as { name: string }[];
-    if (!userCols.some((c) => c.name === 'name')) {
+  if (!userCols.some((c) => c.name === 'name')) {
     db.exec('ALTER TABLE users ADD COLUMN name TEXT');
   }
   // Guarded migration: add google_sub/picture to users if missing (existing rows get NULL).
