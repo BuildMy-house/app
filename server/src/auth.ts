@@ -190,6 +190,8 @@ export function registerHandler(db: DbAdapter) {
       email: valid.email,
       password_hash: bcrypt.hashSync(valid.password, 10),
       name: null,
+      google_sub: null,
+      picture: null,
       created_at: new Date().toISOString(),
     };
     try {

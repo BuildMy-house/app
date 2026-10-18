@@ -17,6 +17,8 @@ export interface UserRow {
   email: string;
   password_hash: string;
   name: string | null;
+  google_sub: string | null;
+  picture: string | null;
   created_at: string;
 }
 
@@ -210,6 +212,25 @@ export class PgAdapter implements DbAdapter {
     if (nameCol.rows.length === 0) {
       await this.q('ALTER TABLE users ADD COLUMN name TEXT');
     }
+    // Migration: add google_sub/picture to users if missing (existing rows get NULL)
+    const googleCol = await this.q(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'users' AND column_name = 'google_sub'`,
+    );
+    if (googleCol.rows.length === 0) {
+      await this.q('ALTER TABLE users ADD COLUMN google_sub TEXT');
+    }
+    const pictureCol = await this.q(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'users' AND column_name = 'picture'`,
+    );
+    if (pictureCol.rows.length === 0) {
+      await this.q('ALTER TABLE users ADD COLUMN picture TEXT');
+    }
+    // Partial unique index on google_sub (NULLs excluded so non-Google users coexist)
+    await this.q(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users (google_sub) WHERE google_sub IS NOT NULL',
+    );
     // Migration: add size_bytes to assets if missing (existing rows get NULL)
     const sizeCol = await this.q(
       `SELECT column_name FROM information_schema.columns
@@ -252,7 +273,17 @@ const SCHEMA = `
     id            TEXT PRIMARY KEY,
     email         TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    created_at    TEXT NOT NULL
+    created_at    TEXT NOT NULL,
+    google_sub    TEXT,
+    picture       TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS waitlist (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL REFERENCES users(id),
+    source     TEXT NOT NULL DEFAULT 'pricing',
+    created_at TEXT NOT NULL,
+    UNIQUE(user_id)
   );
 
   CREATE TABLE IF NOT EXISTS assets (
@@ -392,9 +423,19 @@ export function initDb(db: Database.Database): void {
   }
   // Guarded migration: add name to users if missing (existing rows get NULL).
   const userCols = db.pragma('table_info(users)') as { name: string }[];
-  if (!userCols.some((c) => c.name === 'name')) {
+    if (!userCols.some((c) => c.name === 'name')) {
     db.exec('ALTER TABLE users ADD COLUMN name TEXT');
   }
+  // Guarded migration: add google_sub/picture to users if missing (existing rows get NULL).
+  if (!userCols.some((c) => c.name === 'google_sub')) {
+    db.exec('ALTER TABLE users ADD COLUMN google_sub TEXT');
+  }
+  if (!userCols.some((c) => c.name === 'picture')) {
+    db.exec('ALTER TABLE users ADD COLUMN picture TEXT');
+  }
+  db.exec(
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users (google_sub) WHERE google_sub IS NOT NULL',
+  );
   // Guarded migration: add size_bytes to assets if missing (existing rows get NULL).
   const assetCols = db.pragma('table_info(assets)') as { name: string }[];
   if (!assetCols.some((c) => c.name === 'size_bytes')) {
