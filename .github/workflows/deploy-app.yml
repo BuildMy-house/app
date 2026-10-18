@@ -76,6 +76,9 @@ jobs:
             docker run -d --name "$CANDIDATE" \
               --network steward_acs_default \
               -e JWT_SECRET="${{ secrets.APP_JWT_SECRET }}" \
+              -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+              -e GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+              -e APP_BASE_URL="${{ secrets.APP_BASE_URL }}" \
               -e DB_PATH=/data/homely.db \
               -e ASSET_DIR=/data/assets \
               -e STATIC_DIR=/app/dist-static \
