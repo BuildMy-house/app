@@ -53,7 +53,7 @@ describe.runIf(pgEnabled)('Postgres backend (live DATABASE_URL)', () => {
   });
 
   beforeEach(async () => {
-    await pool.query('TRUNCATE users, assets, homes, teams, team_members');
+    await pool.query('TRUNCATE users, assets, homes, teams, team_members, waitlist');
   });
 
   afterEach(() => {
