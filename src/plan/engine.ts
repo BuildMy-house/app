@@ -163,6 +163,28 @@ export interface PlanPreview {
   /** Live wall-drag angle-lock preview (ghost segment/centerline) — drawn by
    *  the renderer but backed by NO model edit until the drag commits. */
   wallDragGhost: { x1: number; y1: number; x2: number; y2: number } | null
+  /** Live snap feedback for the wall being drawn (null unless drawing). */
+  wallSnap: WallSnapReadout | null
+}
+
+/** What the renderer shows next to the cursor while a wall is being drawn. */
+export interface WallSnapReadout {
+  /** Snapped end point of the wall in progress (model space, cm). */
+  end: Point
+  lengthCm: number
+  /** Direction in degrees: 0 = east, counter-clockwise positive (north/up = 90), range [0, 360). */
+  angleDeg: number
+  /** 'step' = on the normal length step, 'major' = locked on a full metre / foot stop. */
+  lengthLock: 'none' | 'step' | 'major'
+  /** 'step' = a 15 degree step, 'diagonal' = 45 degree multiple, 'axis' = 0/90/180/270 (or parallel/perpendicular to the previous wall). */
+  angleLock: 'none' | 'step' | 'diagonal' | 'axis'
+  /** Snapping mode in effect: soft (default), hard (Shift), off (Alt). */
+  mode: 'soft' | 'hard' | 'off'
+  /** Ctrl/Cmd fine step active. */
+  fine: boolean
+  /** Digits typed so far for an exact length (null when none). */
+  typed: string | null
+  unit: 'cm' | 'inch'
 }
 
 /**
@@ -625,6 +647,7 @@ export class PlanEngine {
       snapLock: this.snapLock,
       furnitureDragHint: this.furnitureDragHint,
       wallDragGhost: this.wallDragGhost,
+      wallSnap: null,
     }
   }
 
