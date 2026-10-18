@@ -1191,6 +1191,50 @@ body {
   flex: 1;
 }
 
+/* Google sign-in block: reason line, provider button, "or use email" divider */
+
+.auth-reason {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-muted, #777);
+}
+
+.auth-reason[hidden],
+.auth-google[hidden] {
+  display: none;
+}
+
+.auth-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  font-weight: 600;
+}
+
+.auth-google-icon {
+  flex: 0 0 auto;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  color: var(--text-muted, #777);
+  font-size: 12px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
 .home-list-dialog {
   width: 380px;
 }

@@ -25,6 +25,16 @@ export interface AuthAdapter {
   register(email: string, password: string, companyName?: string): Promise<void>
   changePassword(currentPassword: string, newPassword: string): Promise<void>
   logout(): void
+  /** Whether the server has Google sign-in configured. False on any failure. */
+  googleAvailable(): Promise<boolean>
+  /** Full-page redirect into the server's Google OAuth flow. */
+  startGoogleSignIn(returnTo?: string): void
+  /**
+   * Resolve the current session. Returns true when already signed in locally,
+   * otherwise exchanges the server's httpOnly cookie for a bearer token and
+   * stores it. Never throws: any failure (401, network error) returns false.
+   */
+  restoreSession(): Promise<boolean>
 }
 
 function readSession(): Session | null {
@@ -106,8 +116,45 @@ export class HttpAuth implements AuthAdapter {
     }
   }
 
+  async googleAvailable(): Promise<boolean> {
+    try {
+      const response = await fetch('/api/auth/providers')
+      if (!response.ok) return false
+      const data = (await response.json()) as { google?: unknown }
+      return data.google === true
+    } catch {
+      return false
+    }
+  }
+
+  startGoogleSignIn(returnTo?: string): void {
+    const target = returnTo ?? `${window.location.pathname}${window.location.search}`
+    window.location.assign(`/auth/google/start?returnTo=${encodeURIComponent(target)}`)
+  }
+
+  async restoreSession(): Promise<boolean> {
+    if (this.session) return true
+    try {
+      const response = await fetch('/api/auth/session', {
+        method: 'POST',
+        credentials: 'same-origin',
+      })
+      if (!response.ok) return false
+      const data = (await response.json()) as { token?: unknown; user?: { email?: unknown } }
+      if (typeof data.token !== 'string' || !data.token) return false
+      const email = typeof data.user?.email === 'string' ? data.user.email.trim().toLowerCase() : ''
+      this.setSession({ token: data.token, email })
+      return true
+    } catch {
+      return false
+    }
+  }
+
   logout(): void {
     this.session = null
     localStorage.removeItem(SESSION_KEY)
+    // Fire-and-forget: clear the server's httpOnly cookie session too. Kept
+    // synchronous so existing call sites need no await.
+    void fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
   }
 }

@@ -23,6 +23,7 @@ import { PreferencesDialog, loadPreferences, hexToIntColor } from './ui/preferen
 import { confirmDialog, promptDialog } from './ui/dialogs'
 import { HttpAuth } from './services/auth'
 import { RemoteHomeStore } from './services/adapters/remote-home-store'
+import { WaitlistClient } from './services/waitlist'
 import { AuthDialog } from './ui/auth-dialog'
 import { ChangePasswordDialog } from './ui/change-password-dialog'
 import { HomeListDialog } from './ui/home-list-dialog'
@@ -111,7 +112,7 @@ const statusAccount = root.querySelector<HTMLSpanElement>('#status-account')!
 const ctx = canvas.getContext('2d')
 const planEmptyState = createPlanEmptyState({
   onDrawWalls: () => root.querySelector<HTMLButtonElement>('button[data-tool="wall"]')?.click(),
-  onOpenProjects: () => accountGuard(openProjectManager),
+  onOpenProjects: () => accountGuard(openProjectManager, SAVE_REASON),
 })
 const contextMenu = root.querySelector<HTMLDivElement>('#context-menu')!
 const mobileNav = root.querySelector<HTMLElement>('#mobile-nav')!
@@ -128,6 +129,13 @@ const clipboardManager = new ClipboardManager(store, model)
 // localStorage-backed; RemoteHomeStore threads the token into requests.
 const auth = new HttpAuth()
 const remoteHomes = new RemoteHomeStore('/api/homes', () => auth.getToken())
+const waitlist = new WaitlistClient('/api/waitlist', () => auth.getToken())
+
+// Turn any server-side (httpOnly cookie) session into the bearer token the
+// client already uses. Signed-out stays the default: a failure is ignored and
+// the editor remains fully usable without an account.
+const sessionRestored = auth.restoreSession()
+sessionRestored.then((ok) => { if (ok) refreshAll() }).catch(() => {})
 
 // PM-agent chat widget (ticket A1): feature-flagged, floating over the app.
 // No real pm-agent URL is wired — that backend arrives with ticket A2; until
@@ -345,8 +353,9 @@ function refreshMenus(): void {
           },
         },
         { label: '---' },
-        { label: 'Save to My Account…', action: () => accountGuard(saveToAccount) },
-        { label: 'My Projects…', action: () => accountGuard(openProjectManager) },
+        { label: 'Save to My Account…', action: () => accountGuard(saveToAccount, SAVE_REASON) },
+        { label: 'My Projects…', action: () => accountGuard(openProjectManager, SAVE_REASON) },
+        { label: 'Join Render-Credits Waitlist…', action: () => joinWaitlist() },
         ...(auth.currentUser()
           ? [
               { label: `Signed in as ${auth.currentUser()}`, disabled: true },
@@ -454,21 +463,61 @@ function openPreferences(): void {
 
 // ── Account (Track H) ────────────────────────────────────────────────────────
 
-/** Show the login/register dialog; resume `then` (if any) after success. */
-function promptLogin(then?: () => void): void {
+const SAVE_REASON = 'Sign in to save your project'
+const WAITLIST_REASON = 'Sign in to join the render-credits waitlist'
+
+/**
+ * Show the login/register dialog; resume `then` (if any) after success.
+ * `reason` is shown above the form; `returnTo` is where a Google sign-in
+ * returns to (defaults to the current URL inside the dialog).
+ */
+function promptLogin(then?: () => void, reason?: string, returnTo?: string): void {
   new AuthDialog(auth, () => {
     refreshAll()
     then?.()
-  }).open()
+  }, 'login', { reason, returnTo }).open()
 }
 
-/** Run an account action, prompting for login first when signed out. */
-function accountGuard(action: () => void): void {
+/**
+ * Run an account action, prompting for sign-in first when signed out. `reason`
+ * is surfaced in the dialog so the gate explains why it appeared.
+ */
+function accountGuard(action: () => void, reason?: string): void {
   if (auth.currentUser()) {
     action()
     return
   }
-  promptLogin(action)
+  promptLogin(action, reason)
+}
+
+/** Join the render-credits waitlist (sign-in required), via accountGuard. */
+function joinWaitlist(): void {
+  accountGuard(() => { void performWaitlistJoin() }, WAITLIST_REASON)
+}
+
+async function performWaitlistJoin(): Promise<void> {
+  try {
+    const result = await waitlist.join('render-credits')
+    showToast('notice', result.alreadyJoined ? "You're already on the waitlist" : "You're on the waitlist")
+  } catch (err) {
+    showToast('error', 'Could not join the waitlist', errorReason(err))
+  }
+}
+
+// `?waitlist=1` deep link (marketing CTA): strip the param, then join once the
+// session has settled. Signed out, the dialog opens with the waitlist reason
+// and a Google returnTo of '/?waitlist=1' so the join resumes after the round
+// trip; email sign-in resumes by joining right after success. Ordinary
+// visitors (no param) never see the dialog auto-open.
+if (new URLSearchParams(window.location.search).get('waitlist') === '1') {
+  const params = new URLSearchParams(window.location.search)
+  params.delete('waitlist')
+  const query = params.toString()
+  window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`)
+  void sessionRestored.then((ok) => {
+    if (ok) joinWaitlist()
+    else promptLogin(() => { void performWaitlistJoin() }, WAITLIST_REASON, '/?waitlist=1')
+  })
 }
 
 async function saveToAccount(): Promise<void> {
@@ -545,7 +594,7 @@ const profileWidget = new ProfileWidget(profileWidgetHost, auth, {
     new ChangePasswordDialog(auth, () => {}).open()
   },
   onManageProjects: () => {
-    accountGuard(openProjectManager)
+    accountGuard(openProjectManager, SAVE_REASON)
   },
 })
 
