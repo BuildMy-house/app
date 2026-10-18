@@ -249,3 +249,17 @@ describe('createFetchPmAgentClient', () => {
     await expect(client.send({ userId: USER_ID, text: 'ping' })).rejects.toThrow('chat request failed (404)')
   })
 })
+
+describe('signed-out support gate', () => {
+  it('shows a sign-in prompt on open and calls onSignInRequired on send, without calling the client', () => {
+    const send = vi.fn()
+    const onSignInRequired = vi.fn()
+    const element = createChatWidget({ client: { send }, getUserId: () => null, onSignInRequired })
+    document.body.appendChild(element)
+    open(element)
+    expect(element.querySelector('.chat-error')?.textContent).toContain('Sign in to talk to support')
+    sendFrom(element, 'hello')
+    expect(onSignInRequired).toHaveBeenCalledTimes(1)
+    expect(send).not.toHaveBeenCalled()
+  })
+})

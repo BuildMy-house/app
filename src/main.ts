@@ -145,6 +145,7 @@ if (isPmAgentChatEnabled()) {
     createChatWidget({
       client: createFetchPmAgentClient(fetch, '/api/chat', () => auth.getToken()),
       getUserId: () => userIdFromToken(auth.getToken()),
+      onSignInRequired: () => promptLogin(undefined, SUPPORT_REASON),
     }),
   )
 }
@@ -464,6 +465,7 @@ function openPreferences(): void {
 // ── Account (Track H) ────────────────────────────────────────────────────────
 
 const SAVE_REASON = 'Sign in to save your project'
+const SUPPORT_REASON = 'Sign in to talk to support'
 const WAITLIST_REASON = 'Sign in to join the render-credits waitlist'
 
 /**

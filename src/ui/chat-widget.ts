@@ -43,6 +43,8 @@ export interface ChatWidgetOptions {
   client: PmAgentClient
   /** Real logged-in user's id, or null when signed out. */
   getUserId: () => string | null
+  /** Called when a signed-out user tries to talk to support; opens sign-in. */
+  onSignInRequired?: () => void
 }
 
 /**
@@ -257,7 +259,8 @@ export function createChatWidget(options: ChatWidgetOptions): HTMLDivElement {
     // No real logged-in user id → refuse to send. Never ship an anonymous
     // or placeholder id to the pm-agent.
     if (!userId) {
-      showError('Sign in to chat — no logged-in user id, message not sent.')
+      showError('Sign in to talk to support — message not sent.')
+      options.onSignInRequired?.()
       return
     }
     error.hidden = true
@@ -287,6 +290,7 @@ export function createChatWidget(options: ChatWidgetOptions): HTMLDivElement {
     panel.hidden = !open
     toggle.setAttribute('aria-expanded', String(open))
     toggle.setAttribute('aria-label', open ? 'Close chat' : 'Open chat')
+    if (open && !options.getUserId()) showError('Sign in to talk to support.')
     if (open) input.focus()
   }
 
