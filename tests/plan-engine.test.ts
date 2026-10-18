@@ -52,12 +52,14 @@ describe('wall tool state machine', () => {
     const { engine, click } = setup()
     engine.setTool('wall')
     click(0, 0)
-    engine.moveMouse(125, 80)
+    // Small-y cursor keeps the soft angle snap on the 0° axis and the 10cm
+    // length step exact, so the snapped preview end is predictable.
+    engine.moveMouse(120, 2)
 
     expect(engine.getPreview().wallLine).toEqual({
       start: { x: 0, y: 0 },
-      end: { x: 125, y: 80 },
-      length: Math.hypot(125, 80),
+      end: { x: 120, y: 0 },
+      length: 120,
     })
   })
 
@@ -331,9 +333,11 @@ describe('magnetism', () => {
     engine.setMagnetism(true)
     engine.setGridSnap(false)
     click(0, 0)
+    // 103cm cursor now falls onto the 10cm length step (was raw 103 under the
+    // pre-snapWallSegment integer-length magnetizer).
     click(103, 1)
     engine.key('escape')
-    expect(wallGraph(store)).toEqual([[0, 0, 103, 0]])
+    expect(wallGraph(store)).toEqual([[0, 0, 100, 0]])
   })
 
   it('set_magnetism toggles the flag used by segment resolution', () => {
@@ -1708,12 +1712,13 @@ describe('modifier keys: Shift hard lock / Alt bypass', () => {
     engine.setTool('wall')
     engine.setModifierKeys({ shift: true })
     click(0, 0)
-    // ~86.6° → locks to 90°, length 500.9 → 501 → (0, 501) exactly
+    // ~86.6° → locks to 90°, length 500.9 → 10cm step under snapWallSegment
+    // (was raw 501 pre-integration) → (0, 500) exactly
     click(30, 500)
     engine.setModifierKeys({ shift: false })
     const wall = store.getHome().walls[0]!
     expect(wall.xEnd).toBe(0)
-    expect(wall.yEnd).toBe(501)
+    expect(wall.yEnd).toBe(500)
   })
 
   it('wall drawing is unchanged by default (soft magnetism path)', () => {

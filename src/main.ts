@@ -176,6 +176,7 @@ async function watchAccountHome(id: string): Promise<void> {
 // Apply stored preferences (wall defaults, ground color).
 const bootPrefs = loadPreferences()
 engine.setWallDefaults(bootPrefs.wallHeightCm, bootPrefs.wallThicknessCm)
+engine.setUnit(bootPrefs.unit)
 
 // Restore the local autosave draft (whatever was open on last refresh/close),
 // so the workspace survives a reload without requiring an explicit save. Only
@@ -441,6 +442,7 @@ function exportSceneJson(): void {
 function openPreferences(): void {
   const dialog = new PreferencesDialog(store, (prefs) => {
     engine.setWallDefaults(prefs.wallHeightCm, prefs.wallThicknessCm)
+    engine.setUnit(prefs.unit)
     store.patchNonUndoable((h) => {
       h.environment.groundColor = hexToIntColor(prefs.groundColor)
       h.environment.groundTextureId = prefs.groundTextureId ?? null
@@ -819,7 +821,9 @@ function refreshStatus(): void {
       ? 'snap off'
       : mods.shift
         ? '15° lock'
-        : 'Shift: 15° lock · Alt: free'
+        : mods.fine
+          ? 'fine step'
+          : 'Shift: 15° lock · Alt: free · Ctrl/Cmd: fine · type length + Enter'
   profileWidget.refresh()
 }
 
@@ -1017,7 +1021,7 @@ canvas.addEventListener('pointerdown', (event) => {
 
   if (event.button !== 0) return
   canvas.setPointerCapture(event.pointerId)
-  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey || event.metaKey })
+  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey, fine: event.ctrlKey || event.metaKey })
   const point = eventModelPoint(event)
   pointer.down = true
   pointer.moved = false
@@ -1039,14 +1043,15 @@ canvas.addEventListener('pointerdown', (event) => {
         y: point.y,
         dbl: false,
         shift: event.shiftKey,
-        altOrMeta: event.altKey || event.metaKey,
+        altOrMeta: event.altKey,
+        fine: event.ctrlKey || event.metaKey,
       })
     })
   }
 })
 
 canvas.addEventListener('pointermove', (event) => {
-  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey || event.metaKey })
+  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey, fine: event.ctrlKey || event.metaKey })
   const coords = canvasPixelCoords(event)
   const pt = new ViewMapper(currentView).toModel(coords.px, coords.py)
   lastCursorModel = pt
@@ -1105,7 +1110,7 @@ canvas.addEventListener('pointermove', (event) => {
   if (pointer.moved && engine.getTool() === 'selection') {
     engine.previewDrag({ x: pointer.startX, y: pointer.startY }, point, {
       shift: event.shiftKey,
-      altOrMeta: event.altKey || event.metaKey,
+      altOrMeta: event.altKey,
     })
     forceNextRender = true
   }
@@ -1118,7 +1123,7 @@ canvas.addEventListener('pointerup', (event) => {
   }
   if (!pointer.down) return
   pointer.down = false
-  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey || event.metaKey })
+  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey, fine: event.ctrlKey || event.metaKey })
   const point = eventModelPoint(event)
 
   if (pointer.rotationId) {
@@ -1148,7 +1153,8 @@ canvas.addEventListener('pointerup', (event) => {
           y: point.y,
           dbl: false,
           shift: event.shiftKey,
-          altOrMeta: event.altKey || event.metaKey,
+          altOrMeta: event.altKey,
+        fine: event.ctrlKey || event.metaKey,
         })
       })
     }
@@ -1194,7 +1200,8 @@ canvas.addEventListener('pointerup', (event) => {
       toX: point.x,
       toY: point.y,
       shift: event.shiftKey,
-      altOrMeta: event.altKey || event.metaKey,
+      altOrMeta: event.altKey,
+      fine: event.ctrlKey || event.metaKey,
     }))
     engine.endDragPreview()
   } else {
@@ -1206,7 +1213,8 @@ canvas.addEventListener('pointerup', (event) => {
         y: point.y,
         dbl: false,
         shift: event.shiftKey,
-        altOrMeta: event.altKey || event.metaKey,
+        altOrMeta: event.altKey,
+        fine: event.ctrlKey || event.metaKey,
       }))
     }
     if (actionName) void traceAction(actionName, doClick)
@@ -1392,6 +1400,28 @@ window.addEventListener('keydown', (event) => {
     return
   }
 
+  // Typed exact wall length (wall-chain drawing only): digits + '.' buffer a
+  // length, Enter commits a wall of exactly that length. Alt/Ctrl/Meta keys
+  // are excluded so modifier combos never type digits. Bare Ctrl/Cmd digit
+  // combos (Ctrl+1 tab switch etc.) are handled above only for z/y/a/c/v/d —
+  // a Ctrl+digit pressed here with no matching shortcut would previously fall
+  // through harmlessly (digits did nothing); with typed lengths live they
+  // would buffer, hence the ctrlKey/metaKey guard.
+  if (engine.isDrawingWall() && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    if (event.key === 'Enter' && engine.commitTypedLength()) {
+      event.preventDefault()
+      refreshToolbar()
+      refreshStatus()
+      return
+    }
+    if (/^[0-9.]$/.test(event.key) && engine.typeLengthChar(event.key)) {
+      event.preventDefault()
+      forceNextRender = true
+      refreshStatus()
+      return
+    }
+  }
+
   // Tool shortcuts V/W — bare keys only, so Ctrl+V paste and Alt combos are
   // unaffected; skipped while typing in a text input (isInput guard above).
   if (!event.ctrlKey && !event.metaKey && !event.altKey &&
@@ -1448,11 +1478,13 @@ window.addEventListener('keyup', (event) => {
 })
 
 // Live modifier tracking for the plan engine (Shift = hard 15° lock,
-// Alt/Option/Meta = bypass all magnetism). Deliberately separate listeners
+// Ctrl/Cmd = fine step, Alt/Option = bypass all magnetism — Meta no longer
+// bypasses so Cmd+digit/Cmd+click OS shortcuts keep their platform meaning).
+// Deliberately separate listeners
 // from the shortcut handler above: never preventDefault, so Shift+arrows
 // nudging and native Alt/Meta combos are unaffected.
 function syncEngineModifiers(event: KeyboardEvent): void {
-  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey || event.metaKey })
+  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey, fine: event.ctrlKey || event.metaKey })
   refreshStatus()
   // Pressing/releasing a modifier must re-shape the live wall-drawing preview
   // (angle lock / free) even with no mouse movement.
@@ -1463,13 +1495,13 @@ function syncEngineModifiers(event: KeyboardEvent): void {
 }
 
 window.addEventListener('keydown', (event) => {
-  if (event.key === 'Shift' || event.key === 'Alt' || event.key === 'Meta') syncEngineModifiers(event)
+  if (event.key === 'Shift' || event.key === 'Alt' || event.key === 'Meta' || event.key === 'Control') syncEngineModifiers(event)
 })
 window.addEventListener('keyup', (event) => {
-  if (event.key === 'Shift' || event.key === 'Alt' || event.key === 'Meta') syncEngineModifiers(event)
+  if (event.key === 'Shift' || event.key === 'Alt' || event.key === 'Meta' || event.key === 'Control') syncEngineModifiers(event)
 })
 window.addEventListener('blur', () => {
-  engine.setModifierKeys({ shift: false, alt: false })
+  engine.setModifierKeys({ shift: false, alt: false, fine: false })
   refreshStatus()
 })
 
