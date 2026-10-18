@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { drawPlan, setTestImageCache, type PlanRenderingContext, type ViewTransform } from './renderer'
+import {
+  drawPlan,
+  formatWallLength,
+  wallSnapReadoutText,
+  setTestImageCache,
+  type PlanRenderingContext,
+  type ViewTransform,
+} from './renderer'
+import type { WallSnapReadout } from './engine'
 import { createEmptyHome, WALL_TEXTURES, resolveTextureUrl } from '../core/home'
 
 interface Op { type: string; args?: unknown[] }
@@ -339,5 +347,181 @@ describe('drawPlan wall measurement preview', () => {
 
     expect(ctx.ops.some(op => op.type === 'lineTo' && op.args?.[0] === 125 && op.args?.[1] === 0)).toBe(true)
     expect(ctx.ops.some(op => op.type === 'fillText' && op.args?.[0] === '1.25 m' && Number(op.args?.[2]) < 0)).toBe(true)
+  })
+})
+
+function makeSnap(partial: Partial<WallSnapReadout>): WallSnapReadout {
+  return {
+    end: { x: 125, y: 0 },
+    lengthCm: 125,
+    angleDeg: 0,
+    lengthLock: 'none',
+    angleLock: 'none',
+    mode: 'soft',
+    fine: false,
+    typed: null,
+    unit: 'cm',
+    ...partial,
+  }
+}
+
+function makeWallPreview(snap: WallSnapReadout, wallEnd: { x: number; y: number }) {
+  return {
+    tool: 'wall' as const,
+    phase: 'drawing' as const,
+    chainStart: { x: 0, y: 0 },
+    pendingWalls: [],
+    wallLine: {
+      start: { x: 0, y: 0 },
+      end: wallEnd,
+      length: 125,
+    },
+    roomPoints: [],
+    polylinePoints: [],
+    dimensionLine: null,
+    marquee: null,
+    closurePolygon: null,
+    closureTooltip: null,
+    snapLock: null,
+    wallDragGhost: null,
+    wallSnap: snap,
+    furnitureDragHint: null,
+  }
+}
+
+describe('formatWallLength', () => {
+  it('formats cm as metres with two decimals', () => {
+    expect(formatWallLength(340, 'cm')).toBe('3.40 m')
+    expect(formatWallLength(0, 'cm')).toBe('0.00 m')
+  })
+
+  it('rounds inch lengths to the nearest foot/inch', () => {
+    expect(formatWallLength(30.48, 'inch')).toBe("1' 0\"")
+    expect(formatWallLength(10.16, 'inch')).toBe("0' 4\"")
+    expect(formatWallLength(45.72, 'inch')).toBe("1' 6\"")
+  })
+})
+
+describe('wallSnapReadoutText', () => {
+  it('builds soft-mode main + hint from length and angle', () => {
+    const r = wallSnapReadoutText(makeSnap({ lengthCm: 340, angleDeg: 45 }))
+    expect(r.main).toBe('3.40 m | 45°')
+    expect(r.hint).toBe('Shift: lock 15° · Alt: free · Ctrl: fine · type length + Enter')
+    expect(r.locked).toBe(false)
+  })
+
+  it('shows the hard-mode hint', () => {
+    expect(wallSnapReadoutText(makeSnap({ mode: 'hard' })).hint).toBe('Shift: 15° lock')
+  })
+
+  it('shows the off-mode hint', () => {
+    expect(wallSnapReadoutText(makeSnap({ mode: 'off' })).hint).toBe('Snapping off (Alt)')
+  })
+
+  it('appends the fine-step suffix', () => {
+    expect(wallSnapReadoutText(makeSnap({ mode: 'hard', fine: true })).hint).toBe(
+      'Shift: 15° lock · fine step',
+    )
+  })
+
+  it('replaces the length with typed digits and the apply hint', () => {
+    const r = wallSnapReadoutText(makeSnap({ typed: '120', angleDeg: 15 }))
+    expect(r.main).toBe('length: 120 cm | 15°')
+    expect(r.hint).toBe('Enter to apply, Esc to clear')
+  })
+
+  it('uses inch wording for typed digits in inch units', () => {
+    const r = wallSnapReadoutText(makeSnap({ typed: '4', unit: 'inch' }))
+    expect(r.main).toBe("length: 4 in | 0°")
+  })
+
+  it('formats inch unit lengths as feet and inches', () => {
+    const r = wallSnapReadoutText(makeSnap({ lengthCm: 30.48, unit: 'inch' }))
+    expect(r.main).toBe("1' 0\" | 0°")
+  })
+
+  it('rounds the angle to 0.1 degree without trailing .0', () => {
+    expect(wallSnapReadoutText(makeSnap({ angleDeg: 44.96 })).main).toBe('1.25 m | 45°')
+    expect(wallSnapReadoutText(makeSnap({ angleDeg: 45.06 })).main).toBe('1.25 m | 45.1°')
+  })
+
+  it('flags major/axis/diagonal locks but not step locks', () => {
+    expect(wallSnapReadoutText(makeSnap({ lengthLock: 'major' })).locked).toBe(true)
+    expect(wallSnapReadoutText(makeSnap({ angleLock: 'axis' })).locked).toBe(true)
+    expect(wallSnapReadoutText(makeSnap({ angleLock: 'diagonal' })).locked).toBe(true)
+    expect(wallSnapReadoutText(makeSnap({ lengthLock: 'step', angleLock: 'step' })).locked).toBe(false)
+  })
+})
+
+describe('drawPlan wall snap readout', () => {
+  it('draws the snapped line, readout text and pill without throwing', () => {
+    const ctx = new MockContext()
+    drawPlan(
+      createEmptyHome(),
+      makeWallPreview(
+        makeSnap({ lengthCm: 125, angleDeg: 45 }),
+        { x: 130, y: 2 }, // raw cursor; snapped end is at (125, 0)
+      ),
+      ctx,
+      IDENTITY_VIEW,
+    )
+
+    // Line stops at the snapped end, not the raw cursor.
+    expect(ctx.ops.some(op => op.type === 'lineTo' && op.args?.[0] === 125 && op.args?.[1] === 0)).toBe(true)
+    expect(ctx.ops.some(op => op.type === 'lineTo' && op.args?.[0] === 130 && op.args?.[1] === 2)).toBe(false)
+
+    const texts = ctx.ops.filter(op => op.type === 'fillText').map(op => op.args?.[0])
+    expect(texts).toContain('1.25 m | 45°')
+    expect(texts).toContain('Shift: lock 15° · Alt: free · Ctrl: fine · type length + Enter')
+
+    // Dark pill background: fillRect anchored at the end point + 14/-14 offset.
+    expect(ctx.ops.some(op => op.type === 'fillRect' && op.args?.[0] === 134 && op.args?.[1] === -24 && op.args?.[3] === 32)).toBe(true)
+  })
+
+  it('draws a major-lock ring at the snapped end', () => {
+    const ctx = new MockContext()
+    drawPlan(
+      createEmptyHome(),
+      makeWallPreview(makeSnap({ lengthLock: 'major' }), { x: 130, y: 2 }),
+      ctx,
+      IDENTITY_VIEW,
+    )
+    const rings = ctx.ops.filter(op => op.type === 'arc' && op.args?.[2] === 9)
+    expect(rings.length).toBeGreaterThan(0)
+  })
+
+  it('draws the axis square at the chain start and the diagonal diamond at the end', () => {
+    const ctx = new MockContext()
+    drawPlan(
+      createEmptyHome(),
+      makeWallPreview(makeSnap({ angleLock: 'axis' }), { x: 130, y: 2 }),
+      ctx,
+      IDENTITY_VIEW,
+    )
+    expect(ctx.ops.some(op => op.type === 'strokeRect')).toBe(true)
+
+    const ctx2 = new MockContext()
+    drawPlan(
+      createEmptyHome(),
+      makeWallPreview(makeSnap({ angleLock: 'diagonal' }), { x: 130, y: 2 }),
+      ctx2,
+      IDENTITY_VIEW,
+    )
+    // Diamond = closed 4-vertex path around the end point (125, 0).
+    expect(ctx2.ops.some(op => op.type === 'lineTo' && op.args?.[0] === 130 && op.args?.[1] === 0)).toBe(true)
+  })
+
+  it('draws no extra indicators for step locks or typed-length readout', () => {
+    const ctx = new MockContext()
+    drawPlan(
+      createEmptyHome(),
+      makeWallPreview(makeSnap({ lengthLock: 'step', angleLock: 'step', typed: '120' }), { x: 130, y: 2 }),
+      ctx,
+      IDENTITY_VIEW,
+    )
+    expect(ctx.ops.some(op => op.type === 'arc' && op.args?.[2] === 9)).toBe(false)
+    expect(ctx.ops.some(op => op.type === 'strokeRect')).toBe(false)
+    // No diamond either (its first lineTo lands at the end + 5px).
+    expect(ctx.ops.filter(op => op.type === 'lineTo').some(op => op.args?.[0] === 130 && op.args?.[1] === 0)).toBe(false)
   })
 })

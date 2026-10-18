@@ -4,7 +4,8 @@ import { wallOutlinePoints } from '../core/top-camera-follower'
 import { buildWallEndpointIndex } from '../core/wall-endpoint-index'
 import { getEffectiveWallSideTextureId } from '../core/wall-exterior'
 import { furnitureRotationHandlePos, wallArcHandlePos } from './engine'
-import type { PlanPreview } from './engine'
+import type { PlanPreview, WallSnapReadout } from './engine'
+import type { Point } from './geometry'
 
 export interface ViewTransform {
   scale: number
@@ -75,6 +76,68 @@ function cssColor(color: number | null | undefined, fallback: string): string {
 /** Formats a length in cm as meters with two decimals. */
 function formatLength(cm: number): string {
   return `${(cm / 100).toFixed(2)} m`
+}
+
+/**
+ * Unit-aware wall length: cm shows metres with two decimals (same as the old
+ * labels); inch shows feet/inches rounded to the nearest inch.
+ */
+export function formatWallLength(cm: number, unit: 'cm' | 'inch'): string {
+  if (unit === 'inch') {
+    const totalInches = Math.round(cm / 2.54)
+    const feet = Math.floor(totalInches / 12)
+    const inches = totalInches - feet * 12
+    return `${feet}' ${inches}"`
+  }
+  return formatLength(cm)
+}
+
+/** Angle part of the readout: nearest 0.1 degree, no trailing '.0' (45 -> '45°'). */
+function formatAngleDeg(angleDeg: number): string {
+  const a = Math.round(angleDeg * 10) / 10
+  return `${a % 1 === 0 ? a.toFixed(0) : a.toFixed(1)}°`
+}
+
+/**
+ * Pure text building for the live wall-snap readout. 'step' length/angle
+ * locks (the ordinary snapping steps) don't count as "active" locks for the
+ * accent colour — they would otherwise be permanently highlighted; only
+ * icon-worthy locks (major stop, axis, diagonal) get the accent.
+ */
+export function wallSnapReadoutText(
+  readout: WallSnapReadout,
+): { main: string; hint: string; locked: boolean } {
+  // Ticket wording for typed digits — "show 'length: <typed> <unit> - Enter
+  // to apply, Esc to clear' replacing the length text" — is ambiguous about
+  // the main/hint split; the typed length goes on the main line and the
+  // submit/clear instruction on the hint line.
+  const locked =
+    readout.lengthLock === 'major' ||
+    readout.angleLock === 'axis' ||
+    readout.angleLock === 'diagonal'
+  const angleText = formatAngleDeg(readout.angleDeg)
+  if (readout.typed != null) {
+    const unitShort = readout.unit === 'inch' ? 'in' : 'cm'
+    return {
+      main: `length: ${readout.typed} ${unitShort} | ${angleText}`,
+      hint: 'Enter to apply, Esc to clear',
+      locked,
+    }
+  }
+  let hint: string
+  if (readout.mode === 'soft') {
+    hint = 'Shift: lock 15° · Alt: free · Ctrl: fine · type length + Enter'
+  } else if (readout.mode === 'hard') {
+    hint = 'Shift: 15° lock'
+  } else {
+    hint = 'Snapping off (Alt)'
+  }
+  if (readout.fine) hint += ' · fine step'
+  return {
+    main: `${formatWallLength(readout.lengthCm, readout.unit)} | ${angleText}`,
+    hint,
+    locked,
+  }
 }
 
 const imageCache = new Map<string, HTMLImageElement>()
@@ -366,6 +429,71 @@ function wallOpenings(
     })
   }
   return results
+}
+
+/** Live wall-snap readout drawn near the cursor end of the in-progress wall. */
+function drawWallSnapReadout(
+  ctx: PlanRenderingContext,
+  mapper: ViewMapper,
+  snap: WallSnapReadout,
+  chainStart: Point | null,
+  x2: number,
+  y2: number,
+): void {
+  const accent = CLOSURE_PREVIEW_STROKE
+
+  // Lock indicators (subtle): major length stop gets a ring around the end
+  // point; angle axis gets a right-angle square at the chain start corner;
+  // diagonal gets a filled diamond at the end; step locks draw nothing.
+  if (snap.lengthLock === 'major') {
+    ctx.beginPath()
+    ctx.arc(x2, y2, 9, 0, Math.PI * 2)
+    ctx.strokeStyle = accent
+    ctx.lineWidth = 2
+    ctx.stroke()
+  }
+  if (snap.angleLock === 'axis' && chainStart) {
+    const cx = mapper.sx(chainStart.x)
+    const cy = mapper.sy(chainStart.y)
+    ctx.strokeStyle = accent
+    ctx.lineWidth = 1.5
+    ctx.strokeRect(cx + 2, cy - 10, 8, 8)
+  }
+  if (snap.angleLock === 'diagonal') {
+    const r = 5
+    ctx.beginPath()
+    ctx.moveTo(x2, y2 - r)
+    ctx.lineTo(x2 + r, y2)
+    ctx.lineTo(x2, y2 + r)
+    ctx.lineTo(x2 - r, y2)
+    ctx.closePath()
+    ctx.fillStyle = accent
+    ctx.fill()
+  }
+
+  // Readout pill: length | angle on top, modifier hint below.
+  const { main, hint, locked } = wallSnapReadoutText(snap)
+  const px = x2 + 14
+  const py = y2 - 14
+  ctx.font = '11px sans-serif'
+  const mainWidth = ctx.measureText(main).width
+  ctx.font = '9px sans-serif'
+  const hintWidth = ctx.measureText(hint).width
+  // Plain rect like the closure tooltip — PlanRenderingContext has no roundRect.
+  ctx.fillStyle = 'rgba(40, 40, 40, 0.82)'
+  ctx.fillRect(px - 5, py - 10, Math.max(mainWidth, hintWidth) + 10, 32)
+  ctx.font = '11px sans-serif'
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = locked ? accent : '#ffffff'
+  ctx.fillText(main, px, py)
+  ctx.font = '9px sans-serif'
+  ctx.globalAlpha = 0.7
+  ctx.fillStyle = locked ? accent : '#cccccc'
+  ctx.fillText(hint, px, py + 13)
+  ctx.globalAlpha = 1
+  ctx.textAlign = 'start'
+  ctx.textBaseline = 'alphabetic'
 }
 
 export function drawPlan(
@@ -819,7 +947,14 @@ export function drawPlan(
     }
     ctx.setLineDash([])
     if (preview.wallLine && preview.wallLine.length > 0) {
-      const { start, end, length } = preview.wallLine
+      // With a snap readout the dashed line stops at the snapped end (not
+      // the raw cursor) and the length comes from wallSnap.lengthCm.
+      const snap = preview.wallSnap
+      const end = snap ? snap.end : preview.wallLine.end
+      const { start, length } = preview.wallLine
+      const lengthText = snap
+        ? formatWallLength(snap.lengthCm, snap.unit)
+        : formatLength(length)
       const x1 = mapper.sx(start.x)
       const y1 = mapper.sy(start.y)
       const x2 = mapper.sx(end.x)
@@ -834,17 +969,21 @@ export function drawPlan(
       ctx.stroke()
       ctx.setLineDash([])
 
-      let normalX = -(y2 - y1) / lineLength
-      let normalY = (x2 - x1) / lineLength
-      if (normalY > 0) {
-        normalX *= -1
-        normalY *= -1
+      if (snap) {
+        drawWallSnapReadout(ctx, mapper, snap, preview.chainStart, x2, y2)
+      } else {
+        let normalX = -(y2 - y1) / lineLength
+        let normalY = (x2 - x1) / lineLength
+        if (normalY > 0) {
+          normalX *= -1
+          normalY *= -1
+        }
+        ctx.fillStyle = PREVIEW_COLOR
+        ctx.font = '11px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(lengthText, (x1 + x2) / 2 + normalX * 12, (y1 + y2) / 2 + normalY * 12)
       }
-      ctx.fillStyle = PREVIEW_COLOR
-      ctx.font = '11px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(formatLength(length), (x1 + x2) / 2 + normalX * 12, (y1 + y2) / 2 + normalY * 12)
     }
     // Snap-lock indicator: filled dot + ring on the endpoint the cursor is
     // locked onto — the click will join there (closure or chain continue).
