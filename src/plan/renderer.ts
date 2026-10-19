@@ -6,6 +6,7 @@ import { getEffectiveWallSideTextureId } from '../core/wall-exterior'
 import { furnitureRotationHandlePos, wallArcHandlePos } from './engine'
 import type { PlanPreview, WallSnapReadout } from './engine'
 import type { Point } from './geometry'
+import { dimensionGeometry } from './dimension-snap'
 
 export interface ViewTransform {
   scale: number
@@ -432,6 +433,94 @@ function wallOpenings(
 }
 
 /** Live wall-snap readout drawn near the cursor end of the in-progress wall. */
+const ANCHOR_LABELS = { endpoint: 'end', midpoint: 'middle', corner: 'corner' } as const
+
+/** Snap indicator for a dimension anchor: filled dot, ring and a small kind tag. */
+function drawDimensionAnchor(
+  ctx: PlanRenderingContext,
+  mapper: ViewMapper,
+  anchor: { point: Point; kind: 'endpoint' | 'midpoint' | 'corner' },
+): void {
+  const x = mapper.sx(anchor.point.x)
+  const y = mapper.sy(anchor.point.y)
+  ctx.beginPath()
+  ctx.arc(x, y, 3, 0, Math.PI * 2)
+  ctx.fillStyle = CLOSURE_PREVIEW_STROKE
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(x, y, 8, 0, Math.PI * 2)
+  ctx.strokeStyle = CLOSURE_PREVIEW_STROKE
+  ctx.lineWidth = 2
+  ctx.stroke()
+  ctx.font = '9px sans-serif'
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = CLOSURE_PREVIEW_STROKE
+  ctx.fillText(ANCHOR_LABELS[anchor.kind], x + 12, y + 12)
+  ctx.textAlign = 'start'
+  ctx.textBaseline = 'alphabetic'
+}
+
+/**
+ * One dimension line as drawn on the plan. Offset != 0 pushes the line out
+ * with extension lines back to the measured points; the length sits on a
+ * light pill centred on the line so the line never strikes through the text.
+ */
+function drawDimensionLine(
+  ctx: PlanRenderingContext,
+  mapper: ViewMapper,
+  dim: { xStart: number; yStart: number; xEnd: number; yEnd: number; offset: number },
+  color: string,
+  unit: 'cm' | 'inch',
+  selected: boolean,
+  withText = true,
+): void {
+  const g = dimensionGeometry(dim)
+  const x1 = mapper.sx(g.lineStart.x)
+  const y1 = mapper.sy(g.lineStart.y)
+  const x2 = mapper.sx(g.lineEnd.x)
+  const y2 = mapper.sy(g.lineEnd.y)
+  ctx.strokeStyle = color
+  ctx.lineWidth = selected ? 2 : 1
+  ctx.beginPath()
+  ctx.moveTo(x1, y1)
+  ctx.lineTo(x2, y2)
+  ctx.stroke()
+  // Extension lines + end ticks perpendicular to the line.
+  const dx = x2 - x1
+  const dy = y2 - y1
+  const len = Math.hypot(dx, dy)
+  const tx = len > 0 ? (-dy / len) * 4 : 0
+  const ty = len > 0 ? (dx / len) * 4 : 4
+  ctx.lineWidth = 1
+  for (const [p, q] of g.extensions) {
+    ctx.beginPath()
+    ctx.moveTo(mapper.sx(p.x), mapper.sy(p.y))
+    ctx.lineTo(mapper.sx(q.x), mapper.sy(q.y))
+    ctx.stroke()
+  }
+  for (const [ex, ey] of [[x1, y1], [x2, y2]] as const) {
+    ctx.beginPath()
+    ctx.moveTo(ex - tx, ey - ty)
+    ctx.lineTo(ex + tx, ey + ty)
+    ctx.stroke()
+  }
+  if (!withText) return
+  const text = formatWallLength(g.lengthCm, unit)
+  ctx.font = '11px sans-serif'
+  const w = ctx.measureText(text).width + 6
+  const mx = (x1 + x2) / 2
+  const my = (y1 + y2) / 2
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
+  ctx.fillRect(mx - w / 2, my - 7, w, 14)
+  ctx.fillStyle = color
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(text, mx, my)
+  ctx.textAlign = 'start'
+  ctx.textBaseline = 'alphabetic'
+}
+
 function drawWallSnapReadout(
   ctx: PlanRenderingContext,
   mapper: ViewMapper,
@@ -505,6 +594,7 @@ export function drawPlan(
   canvasHeight?: number,
   activeLevelId: string | null = null,
   overlayEnabled?: boolean,
+  unit: 'cm' | 'inch' = 'cm',
 ): void {
   lastDrawnView = view
   if (ctx.canvas) installCursorTracking(ctx.canvas)
@@ -895,26 +985,19 @@ export function drawPlan(
     ctx.stroke()
   }
 
-  // Dimension lines.
+  // Dimension lines: offset line, extension lines, end ticks, length pill.
   for (const dim of home.dimensionLines) {
     if (!matchesLevel(dim.levelRef, activeLevelId)) continue
-    ctx.beginPath()
-    ctx.moveTo(mapper.sx(dim.xStart), mapper.sy(dim.yStart))
-    ctx.lineTo(mapper.sx(dim.xEnd), mapper.sy(dim.yEnd))
-    ctx.lineWidth = 1
-    ctx.strokeStyle = selected.has(dim.id) ? SELECTION_COLOR : DIMENSION_COLOR
-    ctx.stroke()
-
-    const midX = (dim.xStart + dim.xEnd) / 2
-    const midY = (dim.yStart + dim.yEnd) / 2
-    const length = Math.hypot(dim.xEnd - dim.xStart, dim.yEnd - dim.yStart)
-    ctx.fillStyle = selected.has(dim.id) ? SELECTION_COLOR : DIMENSION_COLOR
-    ctx.font = '11px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(formatLength(length), mapper.sx(midX), mapper.sy(midY))
-    ctx.textAlign = 'start'
-    ctx.textBaseline = 'alphabetic'
+    const ghost = preview?.dimensionOffsetGhost
+    const offset = ghost && ghost.id === dim.id ? ghost.offset : dim.offset
+    drawDimensionLine(
+      ctx,
+      mapper,
+      { ...dim, offset },
+      selected.has(dim.id) ? SELECTION_COLOR : DIMENSION_COLOR,
+      unit,
+      selected.has(dim.id),
+    )
   }
 
   // Labels.
@@ -1084,27 +1167,32 @@ export function drawPlan(
     }
   }
 
-  // Dimension-line preview: in-progress segment + length readout.
-  if (preview && preview.tool === 'dimensionLine' && preview.dimensionLine) {
-    const { start, end, length } = preview.dimensionLine
-    ctx.beginPath()
-    ctx.moveTo(mapper.sx(start.x), mapper.sy(start.y))
-    ctx.lineTo(mapper.sx(end.x), mapper.sy(end.y))
-    ctx.lineWidth = 1
-    ctx.strokeStyle = PREVIEW_COLOR
-    ctx.setLineDash([6, 4])
-    ctx.stroke()
-    ctx.setLineDash([])
-
-    const midX = (start.x + end.x) / 2
-    const midY = (start.y + end.y) / 2
-    ctx.fillStyle = PREVIEW_COLOR
-    ctx.font = '11px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(formatLength(length), mapper.sx(midX), mapper.sy(midY))
-    ctx.textAlign = 'start'
-    ctx.textBaseline = 'alphabetic'
+  // Dimension-line preview: in-progress segment with the same live
+  // length/angle readout as the wall tool, plus the anchor being snapped to.
+  if (preview && preview.tool === 'dimensionLine') {
+    const dimPreview = preview.dimensionLine
+    if (dimPreview) {
+      const { start, end, length, snap, anchor } = dimPreview
+      ctx.setLineDash([6, 4])
+      drawDimensionLine(
+        ctx,
+        mapper,
+        { xStart: start.x, yStart: start.y, xEnd: end.x, yEnd: end.y, offset: 0 },
+        PREVIEW_COLOR,
+        unit,
+        false,
+        length > 0,
+      )
+      ctx.setLineDash([])
+      ctx.beginPath()
+      ctx.arc(mapper.sx(start.x), mapper.sy(start.y), 4, 0, Math.PI * 2)
+      ctx.strokeStyle = PREVIEW_COLOR
+      ctx.stroke()
+      if (snap) drawWallSnapReadout(ctx, mapper, snap, start, mapper.sx(end.x), mapper.sy(end.y))
+      if (anchor) drawDimensionAnchor(ctx, mapper, anchor)
+    } else if (preview.dimensionHover?.anchor) {
+      drawDimensionAnchor(ctx, mapper, preview.dimensionHover.anchor)
+    }
   }
 
   // Live furniture-drag feedback: where the cursor is asking for when the piece can't go there.

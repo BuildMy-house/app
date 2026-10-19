@@ -866,10 +866,14 @@ function refreshStatus(): void {
   const user = auth.currentUser()
   statusAccount.textContent = user ? `account: ${user}` : 'account: signed out'
   const mods = engine.getModifierKeys()
-  const hintVisible = engine.getTool() === 'wall' || pointer.down
+  const hintVisible = engine.getTool() === 'wall' || engine.getTool() === 'dimensionLine' || pointer.down
   statusHint.textContent = !hintVisible
     ? ''
-    : mods.alt
+    : engine.getTool() === 'dimensionLine' && !mods.alt && !mods.shift && !mods.fine
+      ? preview.phase === 'drawing'
+        ? 'Click 2nd point · type length + Enter · Backspace: undo point · Esc: cancel · Shift: 15° lock · Alt: free · Ctrl/Cmd: fine'
+        : 'Click 1st point (snaps to wall ends, middles, room corners) · Alt: free · drag a dimension later to set its offset'
+      : mods.alt
       ? 'snap off'
       : mods.shift
         ? '15° lock'
@@ -1455,7 +1459,7 @@ window.addEventListener('keydown', (event) => {
   // a Ctrl+digit pressed here with no matching shortcut would previously fall
   // through harmlessly (digits did nothing); with typed lengths live they
   // would buffer, hence the ctrlKey/metaKey guard.
-  if (engine.isDrawingWall() && !event.ctrlKey && !event.metaKey && !event.altKey) {
+  if (engine.acceptsTypedLength() && !event.ctrlKey && !event.metaKey && !event.altKey) {
     if (event.key === 'Enter' && engine.commitTypedLength()) {
       event.preventDefault()
       refreshToolbar()
@@ -1575,7 +1579,7 @@ function render(preview: PlanPreview): void {
   }
 
   const rc = ctx as unknown as PlanRenderingContext
-  drawPlan(home, preview, rc, currentView, canvas.width, canvas.height, activeLevelId, engine.isReferenceOverlayEnabled())
+  drawPlan(home, preview, rc, currentView, canvas.width, canvas.height, activeLevelId, engine.isReferenceOverlayEnabled(), engine.getUnit())
 }
 
 let userHasZoomed = false
