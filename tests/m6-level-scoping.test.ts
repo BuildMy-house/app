@@ -59,6 +59,7 @@ describe('level scoping — engine stamps levelRef', () => {
     engine.setTool('dimensionLine')
     engine.click({ x: 0, y: 0 })
     engine.click({ x: 200, y: 0 })
+    engine.click({ x: 100, y: 40 })
     const home = model.getStore().getHome()
     expect(home.dimensionLines).toHaveLength(1)
     expect(home.dimensionLines[0]!.levelRef).toBe(level.id)

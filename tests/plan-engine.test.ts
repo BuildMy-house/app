@@ -839,18 +839,21 @@ describe('room tool state machine', () => {
 })
 
 describe('dimension-line tool state machine', () => {
-  it('two clicks place a dimension line with the correct endpoints and length', () => {
+  it('three clicks (start, end, offset) place a dimension line with the correct endpoints and length', () => {
     const { engine, click, store } = setup()
     engine.setTool('dimensionLine')
     engine.setMagnetism(false)
     click(0, 0)
     expect(engine.getPreview().phase).toBe('drawing')
     click(300, 0)
+    expect(engine.dimensionStage()).toBe('offset')
+    click(150, 60)
 
     const home = store.getHome()
     expect(home.dimensionLines).toHaveLength(1)
     const dim = home.dimensionLines[0]!
     expect([dim.xStart, dim.yStart, dim.xEnd, dim.yEnd]).toEqual([0, 0, 300, 0])
+    expect(dim.offset).toBe(60)
     expect(engine.getPreview().phase).toBe('idle')
     expect(home.selection).toEqual([dim.id])
   })
@@ -872,6 +875,7 @@ describe('dimension-line tool state machine', () => {
     engine.setMagnetism(false)
     click(0, 0)
     click(150, 0)
+    click(75, 30)
 
     expect(store.getHome().dimensionLines).toHaveLength(1)
     expect(store.canUndo()).toBe(true)
@@ -895,8 +899,10 @@ describe('dimension-line tool state machine', () => {
     engine.setMagnetism(false)
     click(0, 0)
     click(100, 0)
+    click(50, 30)
     click(0, 50)
     click(0, 200)
+    click(30, 120)
 
     expect(store.getHome().dimensionLines).toHaveLength(2)
   })

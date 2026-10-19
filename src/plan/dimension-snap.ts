@@ -215,7 +215,7 @@ export function dimensionGeometry(dim: DimensionGeometryInput): DimensionGeometr
   }
 }
 
-function distToSegment(p: Point, a: Point, b: Point): number {
+export function distToSegment(p: Point, a: Point, b: Point): number {
   const dx = b.x - a.x
   const dy = b.y - a.y
   const len2 = dx * dx + dy * dy
@@ -236,3 +236,92 @@ export function distanceToDimension(point: Point, dim: DimensionGeometryInput): 
   for (const [p, q] of g.extensions) best = Math.min(best, distToSegment(point, p, q))
   return best
 }
+
+// ── One-click "dimension this wall / room side" ─────────────────────────────
+
+export interface DimensionCandidate {
+  start: Point
+  end: Point
+  source: 'wall' | 'room'
+}
+
+export interface DimensionCandidateSource {
+  walls: ReadonlyArray<{
+    xStart: number
+    yStart: number
+    xEnd: number
+    yEnd: number
+    thickness: number
+    arcExtent?: number | null
+  }>
+  rooms: ReadonlyArray<{ points: ReadonlyArray<readonly [number, number]> }>
+}
+
+/**
+ * Wall (preferred) or room side under the cursor, to be measured in one click.
+ * Walls match anywhere over their drawn body plus `margin`; room sides only
+ * within `margin` of the outline. Curved walls are skipped (a chord is not
+ * what anyone means by "the wall's length").
+ */
+export function findDimensionCandidate(
+  cursor: Point,
+  source: DimensionCandidateSource,
+  margin: number,
+): DimensionCandidate | null {
+  let best: DimensionCandidate | null = null
+  let bestDist = Infinity
+  for (const w of source.walls) {
+    if (typeof w.arcExtent === 'number' && Math.abs(w.arcExtent) > 1e-6) continue
+    const a = { x: w.xStart, y: w.yStart }
+    const b = { x: w.xEnd, y: w.yEnd }
+    if (a.x === b.x && a.y === b.y) continue
+    const d = distToSegment(cursor, a, b)
+    if (d <= w.thickness / 2 + margin && d < bestDist) {
+      best = { start: a, end: b, source: 'wall' }
+      bestDist = d
+    }
+  }
+  if (best) return best
+  for (const room of source.rooms) {
+    const pts = room.points
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i]!
+      const q = pts[(i + 1) % pts.length]!
+      const a = { x: p[0], y: p[1] }
+      const b = { x: q[0], y: q[1] }
+      if (a.x === b.x && a.y === b.y) continue
+      const d = distToSegment(cursor, a, b)
+      if (d <= margin && d < bestDist) {
+        best = { start: a, end: b, source: 'room' }
+        bestDist = d
+      }
+    }
+  }
+  return best
+}
+
+/** Gap between a one-click dimension line and the thing it measures. */
+export const CANDIDATE_OFFSET_CM = 40
+
+/**
+ * Side a ready-made dimension goes on: away from `centre` (the middle of the
+ * plan), so an outer wall is dimensioned on the outside. A cursor clearly off
+ * the line (beyond `sideTolerance`) chooses its own side instead.
+ */
+export function candidateOffset(
+  c: DimensionCandidate,
+  cursor: Point,
+  centre: Point | null,
+  sideTolerance: number,
+  gap = CANDIDATE_OFFSET_CM,
+): number {
+  const cursorSide = perpendicularOffset(c.start, c.end, cursor)
+  if (Math.abs(cursorSide) > sideTolerance) return cursorSide > 0 ? gap : -gap
+  if (centre) {
+    const centreSide = perpendicularOffset(c.start, c.end, centre)
+    if (centreSide !== 0) return centreSide > 0 ? -gap : gap
+  }
+  return gap
+}
+
+export type DimensionStage = 'start' | 'end' | 'offset'
