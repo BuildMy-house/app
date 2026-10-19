@@ -93,11 +93,8 @@ test.describe('plan ↔ 3D sync', () => {
     await page.mouse.click(x0, y1) // bottom-left
     await page.mouse.dblclick(x0, y0) // close loop
 
-    // Auto-floor dialog appears when a closed loop is detected — dismiss it
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 5000 })
-    await dialog.locator('.prefs-cancel').click()
-    await expect(dialog).not.toBeVisible()
+    // Closing the loop creates its floor straight away (no dialog)
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
 
     // 4 walls should exist now
     await expect(page.locator('#btn-undo')).toBeEnabled()
@@ -175,12 +172,11 @@ test.describe('plan ↔ 3D sync', () => {
     await view3d.screenshot({ path: 'test-results/m56-ceiling-off.png' })
   })
 
-  test('auto-floor dialog appears on closed wall loop and creates room on confirm', async ({ page }) => {
+  test('closing a wall loop creates the floor with an Undo toast', async ({ page }) => {
     await page.locator('button[data-tool="wall"]').click()
     await page.locator('#magnetism').uncheck({ force: true })
 
-    const planCanvas = page.locator('#plan-canvas')
-    const box = await planCanvas.boundingBox()
+    const box = await page.locator('#plan-canvas').boundingBox()
     expect(box).not.toBeNull()
 
     const x0 = box!.x + box!.width * 0.25
@@ -188,105 +184,22 @@ test.describe('plan ↔ 3D sync', () => {
     const y0 = box!.y + box!.height * 0.25
     const y1 = box!.y + box!.height * 0.75
 
-    // Draw 4 walls forming a rectangle
     await page.mouse.click(x0, y0)
     await page.mouse.click(x1, y0)
     await page.mouse.click(x1, y1)
     await page.mouse.click(x0, y1)
     await page.mouse.dblclick(x0, y0) // close loop
 
-    // Auto-floor dialog should appear
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 5000 })
-    await expect(dialog).toContainText('Create room from closed walls?')
+    await expect(page.locator('.toast-success')).toContainText('Floor created')
+    const roomCount: number = await page.evaluate(() => (window as any).__model.getStore().getHome().rooms.length)
+    expect(roomCount).toBe(1)
 
-    // Verify loop info shows vertex count and area
-    await expect(dialog.locator('.auto-floor-info')).toContainText('4 vertices')
-
-    // Click Create to confirm room creation
-    await dialog.locator('.auto-floor-confirm').click()
-
-    // Dialog should close
-    await expect(dialog).not.toBeVisible()
-
-    // Verify a room was created via the model
-    const roomCount: number = await page.evaluate(() => {
-      return (window as any).__model.getStore().getHome().rooms.length
+    // The toast's Undo takes the floor back, keeping the walls.
+    await page.locator('.toast-success .toast-action').click()
+    const after = await page.evaluate(() => {
+      const h = (window as any).__model.getStore().getHome()
+      return { rooms: h.rooms.length, walls: h.walls.length }
     })
-    expect(roomCount).toBeGreaterThanOrEqual(1)
-  })
-
-  test('auto-floor dialog cancel skips room creation', async ({ page }) => {
-    await page.locator('button[data-tool="wall"]').click()
-    await page.locator('#magnetism').uncheck({ force: true })
-
-    const planCanvas = page.locator('#plan-canvas')
-    const box = await planCanvas.boundingBox()
-    expect(box).not.toBeNull()
-
-    const x0 = box!.x + box!.width * 0.25
-    const x1 = box!.x + box!.width * 0.75
-    const y0 = box!.y + box!.height * 0.25
-    const y1 = box!.y + box!.height * 0.75
-
-    // Draw 4 walls forming a rectangle
-    await page.mouse.click(x0, y0)
-    await page.mouse.click(x1, y0)
-    await page.mouse.click(x1, y1)
-    await page.mouse.click(x0, y1)
-    await page.mouse.dblclick(x0, y0) // close loop
-
-    // Auto-floor dialog should appear
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 5000 })
-
-    // Click Cancel to skip room creation
-    await dialog.locator('.prefs-cancel').click()
-
-    // Dialog should close
-    await expect(dialog).not.toBeVisible()
-
-    // Verify NO room was created
-    const roomCount: number = await page.evaluate(() => {
-      return (window as any).__model.getStore().getHome().rooms.length
-    })
-    expect(roomCount).toBe(0)
-  })
-
-  test('auto-floor dialog dismiss on Escape cancels room creation', async ({ page }) => {
-    await page.locator('button[data-tool="wall"]').click()
-    await page.locator('#magnetism').uncheck({ force: true })
-
-    const planCanvas = page.locator('#plan-canvas')
-    const box = await planCanvas.boundingBox()
-    expect(box).not.toBeNull()
-
-    const x0 = box!.x + box!.width * 0.25
-    const x1 = box!.x + box!.width * 0.75
-    const y0 = box!.y + box!.height * 0.25
-    const y1 = box!.y + box!.height * 0.75
-
-    // Draw 4 walls forming a rectangle
-    await page.mouse.click(x0, y0)
-    await page.mouse.click(x1, y0)
-    await page.mouse.click(x1, y1)
-    await page.mouse.click(x0, y1)
-    await page.mouse.dblclick(x0, y0) // close loop
-
-    // Auto-floor dialog should appear
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 5000 })
-
-    // Press Escape to dismiss
-    await page.keyboard.press('Escape')
-
-    // Dialog should close
-    await expect(dialog).not.toBeVisible()
-
-    // Verify NO room was created
-    const roomCount: number = await page.evaluate(() => {
-      return (window as any).__model.getStore().getHome().rooms.length
-    })
-    expect(roomCount).toBe(0)
+    expect(after).toEqual({ rooms: 0, walls: 4 })
   })
 })

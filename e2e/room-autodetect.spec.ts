@@ -15,6 +15,14 @@ test.describe('wall-enclosure auto-detect via double-click (M64)', () => {
     await page.waitForFunction(() => (window as any).__model, null, { timeout: 10_000 })
   })
 
+  // Closing a wall loop creates its floor right away (default-on). To test the
+  // "loop without a floor yet" paths, take that floor back with one undo.
+  async function dropAutoFloor(page: any) {
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
+    await page.keyboard.press('Control+z')
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 0)
+  }
+
   test('double-click inside a wall rectangle auto-creates a room', async ({ page }) => {
     // Draw a 4-wall rectangle
     await page.locator('button[data-tool="wall"]').click()
@@ -36,13 +44,8 @@ test.describe('wall-enclosure auto-detect via double-click (M64)', () => {
     await page.mouse.dblclick(x0, y0) // close wall loop
 
     expect(await wallCount(page)).toBe(4)
-    expect(await roomCount(page)).toBe(0)
 
-    // Auto-floor dialog appears — dismiss it
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 5000 })
-    await dialog.locator('.prefs-cancel').click()
-    await expect(dialog).not.toBeVisible()
+    await dropAutoFloor(page)
 
     // Switch back to the Selection tool (default tool)
     await page.locator('button[data-tool="selection"]').click()
@@ -91,11 +94,7 @@ test.describe('wall-enclosure auto-detect via double-click (M64)', () => {
     await page.mouse.dblclick(x0, y0)
     expect(await wallCount(page)).toBe(4)
 
-    // Auto-floor dialog appears — dismiss it
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 5000 })
-    await dialog.locator('.prefs-cancel').click()
-    await expect(dialog).not.toBeVisible()
+    await dropAutoFloor(page)
 
     // Switch back to the Selection tool and auto-detect
     await page.locator('button[data-tool="selection"]').click()
@@ -132,15 +131,9 @@ test.describe('wall-enclosure auto-detect via double-click (M64)', () => {
     await page.mouse.dblclick(x0, y0) // close wall loop
     expect(await wallCount(page)).toBe(4)
 
-    // Wall-completion auto-floor dialog appears — dismiss it
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 5000 })
-    await dialog.locator('.prefs-cancel').click()
-    await expect(dialog).not.toBeVisible()
+    await dropAutoFloor(page)
 
-    // Selection tool active, double-click inside the rectangle. The click
-    // before the dblclick re-opens the AutoFloorDialog; the dblclick must
-    // dismiss it and create exactly ONE room.
+    // Selection tool active, double-click inside the rectangle: exactly ONE room.
     await page.locator('button[data-tool="selection"]').click()
     const cx = (x0 + x1) / 2
     const cy = (y0 + y1) / 2
@@ -150,8 +143,7 @@ test.describe('wall-enclosure auto-detect via double-click (M64)', () => {
     expect(await roomCount(page)).toBe(1)
     expect(await wallCount(page)).toBe(4)
 
-    // No dialog left visible, no duplicate room
-    await expect(page.locator('.auto-floor-dialog')).toHaveCount(0)
+    // No duplicate room
     expect(await roomCount(page)).toBe(1)
   })
 })

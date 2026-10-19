@@ -1,169 +1,154 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
-test.describe('Auto-floor E2E', () => {
+// Floor creation UX: closing a wall loop creates its floor immediately,
+// near-closed loops offer a one-click fix, the room tool finds enclosed areas.
+
+test.describe('Floor creation E2E', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
     await page.waitForSelector('#view3d canvas')
     await page.waitForFunction(() => (window as any).__model)
   })
 
-  async function roomCount(page: any): Promise<number> {
-    return page.evaluate(() => (window as any).__model?.getStore()?.getHome()?.rooms?.length ?? 0)
-  }
+  const counts = (page: Page) =>
+    page.evaluate(() => {
+      const h = (window as any).__model.getStore().getHome()
+      return { rooms: h.rooms.length, walls: h.walls.length }
+    })
 
-  async function wallCount(page: any): Promise<number> {
-    return page.evaluate(() => (window as any).__model?.getStore()?.getHome()?.walls?.length ?? 0)
-  }
-
-  // Waits for each click's wall to actually land in the store before firing
-  // the next one -- gives CI's slower software-rendered Chromium (see
-  // playwright.config.ts) room to finish each click's render+state-update
-  // pass before the next synthetic click arrives.
-  async function waitForWallCount(page: any, n: number) {
-    await page.waitForFunction(
-      (expected: number) => ((window as any).__model?.getStore()?.getHome()?.walls?.length ?? 0) >= expected,
-      n,
-      { timeout: 10_000 },
-    )
-  }
-
-  async function drawSquareWalls(page: any) {
-    // Switch to wall tool
-    await page.locator('button[data-tool="wall"]').click()
-    // Draw 4 walls forming a rectangle on the plan canvas
-    const canvas = page.locator('#plan-canvas')
-    const box = await canvas.boundingBox()
+  async function center(page: Page) {
+    const box = await page.locator('#plan-canvas').boundingBox()
     if (!box) throw new Error('plan-canvas not found')
-    const cx = box.x + box.width / 2
-    const cy = box.y + box.height / 2
-    const s = 80
+    return { cx: box.x + box.width / 2, cy: box.y + box.height / 2 }
+  }
 
-    const before = await wallCount(page)
+  async function waitForWalls(page: Page, n: number) {
+    await page.waitForFunction((k: number) => (window as any).__model.getStore().getHome().walls.length >= k, n, { timeout: 10_000 })
+  }
+
+  /** Draw a square of half-size `s` px; `closeAt` is the last click (offset from the start corner). */
+  async function drawSquare(page: Page, closeAt: { dx: number; dy: number } | 'dblclick' = { dx: 0, dy: 0 }) {
+    await page.locator('button[data-tool="wall"]').click()
+    const { cx, cy } = await center(page)
+    const s = 80
     await page.mouse.click(cx - s, cy - s)
     await page.mouse.click(cx + s, cy - s)
-    await waitForWallCount(page, before + 1)
+    await waitForWalls(page, 1)
     await page.mouse.click(cx + s, cy + s)
-    await waitForWallCount(page, before + 2)
+    await waitForWalls(page, 2)
     await page.mouse.click(cx - s, cy + s)
-    await waitForWallCount(page, before + 3)
-    // Closing the loop is a finalize gesture (double-click), not a 5th plain
-    // click back at the start point -- a single click there was never
-    // recognized as "close and finalize" by the wall tool, so the dialog
-    // never appeared regardless of environment (matches the working pattern
-    // in plan-3d-sync.spec.ts's own auto-floor tests).
-    await page.mouse.dblclick(cx - s, cy - s)
+    await waitForWalls(page, 3)
+    if (closeAt === 'dblclick') await page.mouse.dblclick(cx - s, cy - s)
+    else await page.mouse.click(cx - s + closeAt.dx, cy - s + closeAt.dy)
+    return { cx, cy, s }
   }
 
-  test('draw 4 walls, dialog appears, confirm creates room', async ({ page }) => {
-    const before = await roomCount(page)
-    await drawSquareWalls(page)
-
-    // Dialog should appear
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 3000 })
-
-    // Confirm
-    await dialog.locator('button', { hasText: /create/i }).click()
-    await expect(dialog).not.toBeVisible({ timeout: 3000 })
-
-    const after = await roomCount(page)
-    expect(after).toBe(before + 1)
+  test('a single click back on the start point closes the loop and creates the floor', async ({ page }) => {
+    await drawSquare(page)
+    await expect(page.locator('.toast-success')).toContainText('Floor created')
+    expect(await counts(page)).toEqual({ rooms: 1, walls: 4 })
+    // Drawing is finished: the next click must not extend a stale chain.
+    await expect(page.locator('#status-tool')).not.toContainText('drawing')
   })
 
-  test('undo reverts room creation', async ({ page }) => {
-    await drawSquareWalls(page)
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 3000 })
-    await dialog.locator('button', { hasText: /create/i }).click()
-    await expect(dialog).not.toBeVisible({ timeout: 3000 })
-
-    const beforeUndo = await roomCount(page)
-    // Ctrl+Z to undo
-    await page.keyboard.press('Control+z')
-    await page.waitForTimeout(300)
-    const afterUndo = await roomCount(page)
-    expect(afterUndo).toBe(beforeUndo - 1)
-  })
-
-  test('redo restores room creation', async ({ page }) => {
-    await drawSquareWalls(page)
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 3000 })
-    await dialog.locator('button', { hasText: /create/i }).click()
-    await expect(dialog).not.toBeVisible({ timeout: 3000 })
-
-    await page.keyboard.press('Control+z')
-    await page.waitForTimeout(300)
-    const afterUndo = await roomCount(page)
-
-    await page.keyboard.press('Control+y')
-    await page.waitForTimeout(300)
-    const afterRedo = await roomCount(page)
-    expect(afterRedo).toBe(afterUndo + 1)
-  })
-
-  test('dialog cancel does not create room', async ({ page }) => {
-    const before = await roomCount(page)
-    await drawSquareWalls(page)
-
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 3000 })
-    await dialog.locator('button', { hasText: /cancel/i }).click()
-    await expect(dialog).not.toBeVisible({ timeout: 3000 })
-
-    const after = await roomCount(page)
-    expect(after).toBe(before)
-  })
-
-  test('ESC key dismisses dialog without creating room', async ({ page }) => {
-    const before = await roomCount(page)
-    await drawSquareWalls(page)
-
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 3000 })
-    await page.keyboard.press('Escape')
-    await expect(dialog).not.toBeVisible({ timeout: 3000 })
-
-    const after = await roomCount(page)
-    expect(after).toBe(before)
-  })
-
-  test('wall drawing completes with double-click', async ({ page }) => {
-    await page.locator('button[data-tool="wall"]').click()
-    const canvas = page.locator('#plan-canvas')
-    const box = await canvas.boundingBox()
-    if (!box) throw new Error('plan-canvas not found')
-    const cx = box.x + box.width / 2
-    const cy = box.y + box.height / 2
-
-    await page.mouse.click(cx, cy)
-    await page.mouse.click(cx + 100, cy)
-    // Double-click to finalize
-    await page.mouse.dblclick(cx + 100, cy + 100)
-    await page.waitForTimeout(300)
-
-    const walls = await wallCount(page)
-    expect(walls).toBeGreaterThanOrEqual(2)
-  })
-
-  test('3 walls forming triangle triggers dialog on finalize', async ({ page }) => {
-    await page.locator('button[data-tool="wall"]').click()
-    const canvas = page.locator('#plan-canvas')
-    const box = await canvas.boundingBox()
-    if (!box) throw new Error('plan-canvas not found')
-    const cx = box.x + box.width / 2
-    const cy = box.y + box.height / 2
-
-    await page.mouse.click(cx - 60, cy)
-    await page.mouse.click(cx + 60, cy)
-    await page.mouse.click(cx, cy - 80)
-    // Double-click to finalize (closes back to start)
-    await page.mouse.dblclick(cx - 60, cy)
+  test('double-click closing still yields exactly one floor', async ({ page }) => {
+    await drawSquare(page, 'dblclick')
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length >= 1)
     await page.waitForTimeout(500)
+    expect(await counts(page)).toEqual({ rooms: 1, walls: 4 })
+  })
 
-    const dialog = page.locator('.auto-floor-dialog')
-    const visible = await dialog.isVisible().catch(() => false)
-    // May or may not detect loop depending on precision; just verify no crash
-    expect(typeof visible).toBe('boolean')
+  test('undo removes the floor, then the walls; redo restores them', async ({ page }) => {
+    await drawSquare(page)
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
+    await page.keyboard.press('Control+z')
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 0)
+    expect((await counts(page)).walls).toBe(4)
+    await page.keyboard.press('Control+z')
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().walls.length === 0)
+    await page.keyboard.press('Control+y')
+    await page.keyboard.press('Control+y')
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
+    expect(await counts(page)).toEqual({ rooms: 1, walls: 4 })
+  })
+
+  test('a loop that ends a few pixels short of the start still gets its floor', async ({ page }) => {
+    await drawSquare(page, { dx: 0, dy: 8 })
+    await page.keyboard.press('Escape')
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
+  })
+
+  test('a loop with a clear gap shows the gap; clicking it closes the loop and creates the floor', async ({ page }) => {
+    const { cx, cy } = await drawSquare(page, { dx: 0, dy: 70 })
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.toast-notice')).toContainText(/gap/i)
+    expect((await counts(page)).rooms).toBe(0)
+
+    // The view re-fits after the first geometry, so find the gap on screen via
+    // the status bar's cursor readout (model cm) instead of the pre-fit pixels.
+    const readout = async (x: number, y: number) => {
+      await page.mouse.move(x, y)
+      await page.waitForTimeout(100)
+      const t = (await page.locator('#status-cursor').innerText()).match(/x:\s*(-?[\d.]+)\s*y:\s*(-?[\d.]+)/)!
+      return { mx: Number(t[1]), my: Number(t[2]) }
+    }
+    const p0 = await readout(cx, cy)
+    const p1 = await readout(cx + 100, cy + 100)
+    const k = 100 / (p1.mx - p0.mx)
+    const gap = await page.evaluate(() => {
+      const h = (window as any).__model.getStore().getHome()
+      const last = h.walls[h.walls.length - 1]
+      const first = h.walls[0]
+      return { x: (last.xEnd + first.xStart) / 2, y: (last.yEnd + first.yStart) / 2 }
+    })
+    const gx = cx + (gap.x - p0.mx) * k
+    const gy = cy + (gap.y - p0.my) * k
+    await page.mouse.move(gx, gy)
+    await page.mouse.click(gx, gy)
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
+    expect((await counts(page)).walls).toBe(5)
+  })
+
+  test('the floor survives a reload', async ({ page }) => {
+    await drawSquare(page)
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
+    await page.waitForTimeout(1500) // autosave debounce
+    await page.reload()
+    await page.waitForFunction(() => (window as any).__model)
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
+    expect((await counts(page)).walls).toBe(4)
+  })
+
+  test('room tool: one click inside an enclosed area creates the floor', async ({ page }) => {
+    await drawSquare(page)
+    await page.keyboard.press('Control+z') // keep the walls, drop the auto floor
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 0)
+
+    await page.locator('button[data-tool="room"]').click()
+    const { cx, cy } = await center(page)
+    await page.mouse.move(cx, cy)
+    await page.waitForTimeout(250)
+    await page.mouse.click(cx, cy)
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
+    expect((await counts(page)).walls).toBe(4)
+  })
+
+  test('room tool: corners then Enter finishes a floor; Esc cancels', async ({ page }) => {
+    await page.locator('button[data-tool="room"]').click()
+    const { cx, cy } = await center(page)
+    await page.mouse.click(cx - 60, cy - 60)
+    await page.mouse.click(cx + 60, cy - 60)
+    await page.mouse.click(cx + 60, cy + 60)
+    await page.keyboard.press('Enter')
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
+
+    await page.mouse.click(cx - 200, cy + 100)
+    await page.mouse.click(cx - 150, cy + 100)
+    await page.keyboard.press('Escape')
+    expect((await counts(page)).rooms).toBe(1)
+  })
+
+  test('Room toolbar button shows the R hotkey in its tooltip', async ({ page }) => {
+    await expect(page.locator('button[data-tool="room"]')).toHaveAttribute('title', /\(R\)|\bR\b/)
   })
 })

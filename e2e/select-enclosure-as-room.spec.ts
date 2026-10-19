@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test'
 
-// Selection-tool single-click inside a closed (not-yet-a-room) wall loop
-// offers the AutoFloorDialog; confirming creates the room. Mirrors the
-// harness in auto-floor.spec.ts.
+// Selection tool: double-click inside a closed (not-yet-a-room) wall loop
+// creates its floor; a single click only selects / clears the selection.
 
 test.describe('Select enclosure as room E2E', () => {
   test.beforeEach(async ({ page }) => {
@@ -23,8 +22,8 @@ test.describe('Select enclosure as room E2E', () => {
     )
   }
 
-  // Draws 4 walls forming a rectangle, cancels the finalization auto-floor
-  // dialog so the loop exists WITHOUT a room yet.
+  // Draws 4 walls forming a rectangle; closing the loop creates its floor, so
+  // one undo takes it back and the loop exists WITHOUT a room yet.
   async function drawEnclosureAndCancel(page: any) {
     await page.locator('button[data-tool="wall"]').click()
     const canvas = page.locator('#plan-canvas')
@@ -43,42 +42,29 @@ test.describe('Select enclosure as room E2E', () => {
     await waitForWallCount(page, 3)
     await page.mouse.dblclick(cx - s, cy - s)
 
-    // Finalization auto-floor dialog: cancel so no room is created yet.
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 3000 })
-    await dialog.locator('button', { hasText: /cancel/i }).click()
-    await expect(dialog).not.toBeVisible({ timeout: 3000 })
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
+    await page.keyboard.press('Control+z')
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 0)
     expect(await roomCount(page)).toBe(0)
     return { cx, cy }
   }
 
-  test('selection click inside enclosure offers dialog; create makes room', async ({ page }) => {
+  test('selection double-click inside enclosure creates the room', async ({ page }) => {
     const { cx, cy } = await drawEnclosureAndCancel(page)
 
-    // Explicitly switch to the Selection tool, then single-click the interior
-    // (away from any wall).
     await page.locator('button[data-tool="selection"]').click()
-    await page.mouse.click(cx, cy)
+    await page.mouse.dblclick(cx, cy)
 
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 3000 })
-
-    await dialog.locator('button', { hasText: /create/i }).click()
-    await expect(dialog).not.toBeVisible({ timeout: 3000 })
-
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
     expect(await roomCount(page)).toBe(1)
   })
 
-  test('selection click inside enclosure; cancel still creates no room', async ({ page }) => {
+  test('selection single click inside enclosure creates no room', async ({ page }) => {
     const { cx, cy } = await drawEnclosureAndCancel(page)
 
     await page.locator('button[data-tool="selection"]').click()
     await page.mouse.click(cx, cy)
-
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible({ timeout: 3000 })
-    await dialog.locator('button', { hasText: /cancel/i }).click()
-    await expect(dialog).not.toBeVisible({ timeout: 3000 })
+    await page.waitForTimeout(400)
 
     expect(await roomCount(page)).toBe(0)
   })

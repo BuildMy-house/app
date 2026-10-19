@@ -66,9 +66,7 @@ test.describe('wall loop closing precision', () => {
     // and this click missed; the zoom-aware margin (~10 px) must catch it.
     await page.mouse.dblclick(ax + 6, ay)
 
-    const dialog = page.locator('.auto-floor-dialog')
-    await expect(dialog).toBeVisible()
-    await dialog.locator('.auto-floor-confirm').click()
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
     expect(await roomCount(page)).toBe(1)
   })
 
@@ -85,11 +83,19 @@ test.describe('wall loop closing precision', () => {
     await page.mouse.click(box.x + box.width * 0.6, box.y + box.height * 0.6)
     await page.mouse.click(box.x + box.width * 0.4, box.y + box.height * 0.6)
 
-    // ~30 px off: beyond the zoom-aware snap radius — must NOT close.
+    // ~30 px off: beyond the zoom-aware snap radius — must NOT snap onto the
+    // origin. The last wall therefore ends 30 px along the first wall (a
+    // T-junction), which still encloses a trapezoid, so exactly that floor is
+    // created — not the full square.
     await page.mouse.dblclick(ax + 30, ay)
 
-    await expect(page.locator('.auto-floor-dialog')).toBeHidden()
-    expect(await roomCount(page)).toBe(0)
+    await page.waitForFunction(() => (window as any).__model.getStore().getHome().rooms.length === 1)
+    const endX = await page.evaluate(() => {
+      const h = (window as any).__model.getStore().getHome()
+      return h.walls[h.walls.length - 1].xEnd as number
+    })
+    const firstStartX = await page.evaluate(() => (window as any).__model.getStore().getHome().walls[0].xStart as number)
+    expect(Math.abs(endX - firstStartX)).toBeGreaterThan(5)
     await page.keyboard.press('Escape')
   })
 
