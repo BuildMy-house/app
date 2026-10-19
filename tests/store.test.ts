@@ -643,3 +643,15 @@ describe('nextLevelElevation', () => {
     expect(nextLevelElevation(levels)).toBe(680) // max(125+200, 500+180) = 680
   })
 })
+
+describe('withoutUndoHistory', () => {
+  it('keeps edits made inside it off the undo and redo stacks', () => {
+    const store = new HomeStore()
+    store.apply((h) => { h.cameras.observer.x = 1 })
+    store.withoutUndoHistory(() => store.apply((h) => { h.cameras.observer.x = 99 }))
+    expect(store.getHome().cameras.observer.x).toBe(99)
+    store.undo()
+    expect(store.getHome().cameras.observer.x).not.toBe(1)
+    expect(store.canUndo()).toBe(false)
+  })
+})

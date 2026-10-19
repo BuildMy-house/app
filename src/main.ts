@@ -1599,7 +1599,7 @@ function render(preview: PlanPreview): void {
   if (!firstGeometryFitted && preview.phase !== 'drawing') {
     if (home.walls.length > 0 || home.rooms.length > 0 || home.furniture.length > 0) {
       firstGeometryFitted = true
-      doFit()
+      store.withoutUndoHistory(doFit)
     }
   }
 

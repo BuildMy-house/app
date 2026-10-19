@@ -266,6 +266,22 @@ export class HomeStore {
     this._revision++
   }
 
+  /**
+   * Runs `fn` and discards any undo/redo entries it recorded: view framing
+   * (the first-geometry auto-fit) changes the camera through the model but is
+   * not a document edit, so it must not become the step Ctrl+Z hits first.
+   */
+  withoutUndoHistory(fn: () => void): void {
+    const undo = [...this.undoStack]
+    const redo = [...this.redoStack]
+    try {
+      fn()
+    } finally {
+      this.undoStack = undo
+      this.redoStack = redo
+    }
+  }
+
   /** Opaque, creation-ordered ids; harness matches by ledger order, not format. */
   generateId(prefix: string): string {
     return `${prefix}-${this.idCounter++}`
