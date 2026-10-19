@@ -11,6 +11,7 @@ import { lockVectorToAngleStep, pointWithAngleMagnetism, softAxisSnapVector, wal
 import { FurnitureTooLargeError } from '../core/furniture-clearance'
 import { snapFurniturePlacement, snapFurnitureRotation } from './furniture-snap'
 import { resolveSnapMode, snapWallSegment, typedLengthToCm } from './snap-math'
+import { NO_ALIGN, buildAlignIndex, solveAlignment, type AlignGuide, type AlignKind, type AlignResult, type AlignState } from './align-snap'
 import {
   collectDimensionAnchors,
   distanceToDimension,
@@ -26,7 +27,7 @@ import {
   signedArea,
   type Point,
 } from './geometry'
-import { ViewMapper, getLastCursorPx, getLastDrawnView } from './renderer'
+import { ViewMapper, getLastCanvasSize, getLastCursorPx, getLastDrawnView } from './renderer'
 
 const PLAN_SCALE = 1
 const PIXEL_MARGIN = 4 * PLAN_SCALE
@@ -210,6 +211,10 @@ export interface WallSnapReadout {
   /** Digits typed so far for an exact length (null when none). */
   typed: string | null
   unit: 'cm' | 'inch'
+  /** Alignment guides currently capturing the end point (smart guides). */
+  guides?: AlignGuide[]
+  /** What the alignment captured: a single guide, two crossing guides, or a vertex itself. */
+  alignKind?: AlignKind
 }
 
 /**
@@ -307,6 +312,8 @@ export class PlanEngine {
    *  Persisted ONLY from moveMouse; previews and clicks recompute against it
    *  read-only. */
   private wallSnapState: { lengthMajor: boolean; angleLockedDeg: number | null } | null = null
+  /** Hysteresis of the alignment guides (see align-snap.ts); persisted like wallSnapState. */
+  private alignState: AlignState | null = null
   /** Direction (deg, atan2 convention) of the LAST committed chain wall —
    *  angle candidates snap relative to the world axes AND this direction. */
   private prevDirDeg: number | null = null
@@ -1682,6 +1689,7 @@ export class PlanEngine {
       this.phase = 'drawing'
       // Fresh chain: no snap hysteresis, no direction reference, no typed length.
       this.wallSnapState = null
+      this.alignState = null
       this.prevDirDeg = null
       this.typedLengthBuffer = null
       return
@@ -1739,6 +1747,7 @@ export class PlanEngine {
   private advanceChain(end: Point): void {
     this.chainStart = end
     this.wallSnapState = null
+    this.alignState = null
     this.typedLengthBuffer = null
   }
 
@@ -1913,6 +1922,7 @@ export class PlanEngine {
       this.closurePolygon = null
       this.closureTooltip = null
       this.wallSnapState = null
+      this.alignState = null
       this.prevDirDeg = null
       this.typedLengthBuffer = null
       if (this.sessionOpen) {
@@ -1936,6 +1946,7 @@ export class PlanEngine {
       ? (Math.atan2(previous.yEnd - previous.yStart, previous.xEnd - previous.xStart) * 180) / Math.PI
       : null
     this.wallSnapState = null
+    this.alignState = null
     this.typedLengthBuffer = null
     return true
   }
@@ -1956,6 +1967,7 @@ export class PlanEngine {
     this.closurePolygon = null
     this.closureTooltip = null
     this.wallSnapState = null
+    this.alignState = null
     this.prevDirDeg = null
     this.typedLengthBuffer = null
     if (ids.length > 0) this.model.setSelection(ids)
@@ -2663,6 +2675,7 @@ export class PlanEngine {
       lengthLock: 'none' | 'step' | 'major',
       angleLock: 'none' | 'step' | 'diagonal' | 'axis',
       resolvedMode: 'soft' | 'hard' | 'off',
+      align?: AlignResult,
     ): { end: Point; wallSnap: WallSnapReadout | null } => ({
       end,
       wallSnap: {
@@ -2675,6 +2688,7 @@ export class PlanEngine {
         fine: eff.fine,
         typed: this.typedLengthBuffer,
         unit: this.wallUnit,
+        ...(align && align.kind !== 'none' ? { guides: align.guides, alignKind: align.kind } : {}),
       },
     })
 
@@ -2709,6 +2723,8 @@ export class PlanEngine {
         prev: this.wallSnapState,
       })
       if (persist) this.wallSnapState = snap.state
+      const align = this.alignEnd(start, cursor, snap, true, persist)
+      if (align.kind !== 'none') return readout(align.end, 'none', snap.angleLock, 'hard', align)
       return readout(snap.end, snap.lengthLock === 'fine' ? 'step' : snap.lengthLock, snap.angleLock, 'hard')
     }
 
@@ -2755,6 +2771,15 @@ export class PlanEngine {
       prev: this.wallSnapState,
     })
     if (persist) this.wallSnapState = snap.state
+    // Alignment guides (smart guides) come after the vertex join and beat the
+    // length/angle steps and the legacy per-axis alignment below.
+    const align = this.alignEnd(start, cursor, snap, false, persist)
+    if (align.kind !== 'none') {
+      // A single guide on a locked direction keeps that angle; free/crossing
+      // guides leave the 15-degree grid, so the readout must say 'none'.
+      const slid = align.kind === 'guide' && snap.angleLock !== 'none'
+      return readout(align.end, 'none', slid ? snap.angleLock : 'none', 'soft', align)
+    }
     let end = snap.end
     if (snap.angleLock === 'none') {
       const base = { x: end.x, y: end.y }
@@ -2789,6 +2814,66 @@ export class PlanEngine {
       end = aligned
     }
     return readout(end, snap.lengthLock === 'fine' ? 'step' : snap.lengthLock, snap.angleLock, 'soft')
+  }
+
+  /**
+   * Alignment guides for the live segment end (see align-snap.ts). Skipped for
+   * typed lengths (typed wins). Vertices: wall endpoints and room corners on
+   * the active level (plus reference-level ones when the overlay is shown),
+   * limited to what is on screen. The hysteresis state advances only when
+   * `persist` (moveMouse), exactly like wallSnapState, so preview == commit.
+   */
+  private alignEnd(
+    start: Point,
+    cursor: Point,
+    snap: { end: Point; angleLock: 'none' | 'step' | 'diagonal' | 'axis'; angleDeg: number },
+    hard: boolean,
+    persist: boolean,
+  ): AlignResult {
+    const none: AlignResult = { end: snap.end, guides: [], kind: 'none', state: NO_ALIGN }
+    if (this.typedLengthCm() !== null) {
+      if (persist) this.alignState = null
+      return none
+    }
+    const home = this.homeSnapshot()
+    const view = getLastDrawnView()
+    const size = getLastCanvasSize()
+    let bounds = null
+    if (view && size) {
+      const a = new ViewMapper(view).toModel(0, 0)
+      const b = new ViewMapper(view).toModel(size.width, size.height)
+      bounds = {
+        minX: Math.min(a.x, b.x),
+        maxX: Math.max(a.x, b.x),
+        minY: Math.min(a.y, b.y),
+        maxY: Math.max(a.y, b.y),
+      }
+    }
+    const showRef = this.referenceOverlayEnabled && this.activeLevelId != null
+    const visible = (levelRef: string | null | undefined) => this.matchesActiveLevel(levelRef) || showRef
+    const points: Point[] = []
+    for (const w of home.walls) {
+      if (!visible(w.levelRef)) continue
+      points.push({ x: w.xStart, y: w.yStart }, { x: w.xEnd, y: w.yEnd })
+    }
+    for (const room of home.rooms) {
+      if (!visible(room.levelRef)) continue
+      for (const [x, y] of room.points) points.push({ x, y })
+    }
+    const result = solveAlignment({
+      index: buildAlignIndex(points),
+      start,
+      cursor,
+      end: snap.end,
+      angleLock: snap.angleLock,
+      angleDeg: snap.angleDeg,
+      hard,
+      scale: view?.scale ?? 1,
+      bounds,
+      prev: this.alignState,
+    })
+    if (persist) this.alignState = result.kind === 'none' ? null : result.state
+    return result
   }
 
   /**
