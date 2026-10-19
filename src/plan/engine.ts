@@ -6,7 +6,17 @@ import { normalizeAngle } from '../core/export'
 import type { WallLoop } from '../core/wall-loop-detector'
 import { detectClosedLoops, wallCenterlinePoints } from '../core/wall-loop-detector'
 import { buildWallEndpointIndex } from '../core/wall-endpoint-index'
-import { AutoFloorDialog } from '../ui/AutoFloorDialog'
+import { detectFloorFaces, type FloorFace, type FloorGap } from '../core/floor-detect'
+import {
+  FloorDetectionCache,
+  faceHasRoom,
+  formatAreaM2,
+  snapRoomPoint,
+  toFloorWalls,
+  uncoveredFaceAt,
+  type RoomSnapResult,
+} from './floor-assist'
+import type { FloorAssistPreview } from './floor-overlay'
 import { lockVectorToAngleStep, pointWithAngleMagnetism, softAxisSnapVector, wallPointMagnetism } from './magnetism'
 import { FurnitureTooLargeError } from '../core/furniture-clearance'
 import { snapFurniturePlacement, snapFurnitureRotation } from './furniture-snap'
@@ -53,6 +63,18 @@ function endpointSnapMargin(): number {
   return Math.min(ENDPOINT_SNAP_MAX_WORLD, Math.max(ENDPOINT_SNAP_MIN_WORLD, ENDPOINT_SNAP_RADIUS_PX / scale))
 }
 const EPSILON = 1e-6
+/** Largest wall gap (cm) offered for one-click closing. */
+const MAX_FLOOR_GAP_CM = 150
+/** How long follow-up clicks of a click/dblclick gesture are swallowed. */
+const GESTURE_GUARD_MS = 600
+
+/** Feedback the engine asks the UI to show (toast / status bar). */
+export interface PlanNotice {
+  text: string
+  tone: 'info' | 'success' | 'warn'
+  /** The change can be undone with the normal undo command. */
+  undoable: boolean
+}
 const ENDPOINT_HIT_RADIUS = 10
 const CONNECTED_WALL_EPSILON = 0.1
 /** Screen-pixel gap between the furniture edge and the rotation knob. */
@@ -191,6 +213,8 @@ export interface PlanPreview {
   wallDragGhost: { x1: number; y1: number; x2: number; y2: number } | null
   /** Live snap feedback for the wall being drawn (null unless drawing). */
   wallSnap: WallSnapReadout | null
+  /** Floor-creation affordances (hover highlight, gap markers, room-tool live fill). */
+  floorAssist?: FloorAssistPreview | null
 }
 
 /** What the renderer shows next to the cursor while a wall is being drawn. */
@@ -260,15 +284,21 @@ export class PlanEngine {
    *  user's very next click. Consumed (cleared) by the next doubleClick()
    *  call, whichever tool/point it targets — see doubleClick(). */
   private roomJustClosedAt: Point | null = null
-  /** Currently-open AutoFloorDialog, tracked so a dblclick can dismiss it
-   *  (click-before-dblclick race: singleClick opens the dialog, then the
-   *  dblclick handler must clear it before auto-creating the room). */
-  private activeAutoFloorDialog: AutoFloorDialog | null = null
-  /** Timer for the deferred AutoFloorDialog open. The dialog must not exist
-   *  while a click+dblclick gesture is in flight — the dialog box would
-   *  swallow the gesture's second click. Deferring the open lets the whole
-   *  gesture reach the canvas; the dblclick handler cancels the pending open. */
-  private pendingAutoFloorOpen: ReturnType<typeof setTimeout> | null = null
+  /** Memoised enclosed-area / gap detection for the active level. */
+  private readonly floorCache = new FloorDetectionCache()
+  private notifier: ((notice: PlanNotice) => void) | null = null
+  /** Interactive floor-creation assists (auto floor after a closed chain,
+   *  click-to-create, gap offers, room-tool corner snapping). Off for the
+   *  scripted/automation engine so SH3D click-script parity stays exact; the
+   *  app turns it on. */
+  private floorAssistEnabled = false
+  /** A click/dblclick gesture fires two clicks before the dblclick: after a
+   *  click that finished a chain or created a floor, ignore follow-up clicks at
+   *  the same spot for a moment so they do not start a dangling new session. */
+  private gestureGuard: { at: Point; until: number } | null = null
+  /** Near-closed gaps offered after a wall chain ended without closing. */
+  private gapOffer: FloorGap[] = []
+
   /** Vertices collected during a polyline-tool drawing session. */
   private polylinePoints: Array<[number, number]> = []
   /** Start point of a dimension-line-tool drawing session. */
@@ -365,6 +395,7 @@ export class PlanEngine {
       else this.validateDrawnWalls()
     }
     this.tool = tool
+    this.gapOffer = []
     this.closurePolygon = null
     this.closureTooltip = null
     this.wallDragGhost = null
@@ -535,50 +566,161 @@ export class PlanEngine {
     return this.referenceOverlayEnabled
   }
 
+  setFloorAssist(enabled: boolean): void {
+    this.floorAssistEnabled = enabled
+    if (!enabled) this.gapOffer = []
+  }
+
+  /** Registers the UI sink for floor-creation feedback (toast / status bar). */
+  setNotifier(fn: ((notice: PlanNotice) => void) | null): void {
+    this.notifier = fn
+  }
+
+  private notify(text: string, tone: PlanNotice['tone'] = 'info', undoable = false): void {
+    this.notifier?.({ text, tone, undoable })
+  }
+
+  private armGestureGuard(at: Point): void {
+    this.gestureGuard = { at, until: Date.now() + GESTURE_GUARD_MS }
+  }
+
+  private guardedClick(point: Point): boolean {
+    const g = this.gestureGuard
+    if (!g) return false
+    if (Date.now() > g.until) {
+      this.gestureGuard = null
+      return false
+    }
+    return distance(point, g.at) <= ENDPOINT_HIT_RADIUS * 2
+  }
+
+  private levelWallsForFloors() {
+    return toFloorWalls(this.homeSnapshot().walls, (l) => this.matchesActiveLevel(l))
+  }
+
+  private levelFaces(): FloorFace[] {
+    return this.floorCache.faces(this.levelWallsForFloors())
+  }
+
+  private levelGaps(): FloorGap[] {
+    return this.floorCache.gaps(this.levelWallsForFloors(), MAX_FLOOR_GAP_CM)
+  }
+
+  private uncoveredFaceAtPoint(point: Point): FloorFace | null {
+    return uncoveredFaceAt(this.levelFaces(), this.homeSnapshot().rooms, point, (l) => this.matchesActiveLevel(l))
+  }
+
+  /** Adds a floor for a detected face as ONE undo step and selects it. */
+  private createFloorFromFace(face: FloorFace, announce = true): Room {
+    const home = this.homeSnapshot()
+    const store = this.model.getStore()
+    store.beginCompoundEdit()
+    const room = this.model.addRoom(
+      face.polygon.map((p) => [p.x, p.y] as [number, number]),
+      this.roomDefaults(home),
+    )
+    this.model.setSelection([room.id])
+    store.endCompoundEdit()
+    if (announce) this.notify(`Floor created (${formatAreaM2(face.area)}). Ctrl+Z to undo.`, 'success', true)
+    return room
+  }
+
+  /** Bridges a near-closed gap with a wall and creates the floor — one undo step. */
+  private closeGapAndCreateFloor(gap: FloorGap): void {
+    const home = this.homeSnapshot()
+    const src = home.walls.find((w) => w.id === gap.fromWallId)
+    const store = this.model.getStore()
+    store.beginCompoundEdit()
+    this.model.addWall({
+      xStart: gap.from.x,
+      yStart: gap.from.y,
+      xEnd: gap.to.x,
+      yEnd: gap.to.y,
+      thickness: src?.thickness ?? this.wallThicknessCm,
+      height: src?.height ?? this.wallHeightCm,
+      patternId: src?.patternId ?? NEW_WALL_PATTERN_ID,
+      levelRef: this.activeLevelId ?? undefined,
+    })
+    const room = this.model.addRoom(
+      gap.face.polygon.map((p) => [p.x, p.y] as [number, number]),
+      this.roomDefaults(this.homeSnapshot()),
+    )
+    this.model.setSelection([room.id])
+    store.endCompoundEdit()
+    this.gapOffer = []
+    this.notify(`Gap closed and floor created (${formatAreaM2(gap.face.area)}). Ctrl+Z to undo.`, 'success', true)
+  }
+
+  private gapAt(point: Point, gaps: FloorGap[]): FloorGap | null {
+    const radius = endpointSnapMargin() * 1.5
+    let best: FloorGap | null = null
+    let bestD = Infinity
+    for (const g of gaps) {
+      const d = distToSegment(point, g.from, g.to)
+      if (d <= radius && d < bestD) {
+        best = g
+        bestD = d
+      }
+    }
+    return best
+  }
+
+  /** Gaps currently offered to the user: all of them in the room tool, only the
+   *  post-chain ones after a wall session otherwise. */
+  private visibleGaps(): FloorGap[] {
+    if (this.tool === 'room') return this.levelGaps()
+    return this.gapOffer
+  }
+
   /**
-   * Open the auto-floor confirmation dialog for a detected wall loop.
-   * Instantiates the real AutoFloorDialog UI and wires confirm/cancel callbacks.
-   * Skipped in non-browser environments (tests).
+   * After a wall chain ends: floors appear by default for every enclosed area
+   * the chain completed, otherwise say why nothing happened and offer to close
+   * a near-closed loop.
    */
-  openAutoFloorDialog(loop: WallLoop): void {
-    // Skip dialog in non-browser environments (unit tests run in Node)
-    if (typeof document === 'undefined') {
+  private autoFloorAfterChain(ids: string[]): void {
+    this.gapOffer = []
+    if (!this.floorAssistEnabled || ids.length < 2) return
+    const chain = new Set(ids)
+    const faces = this.levelFaces().filter(
+      (f) => f.wallIds.some((id) => chain.has(id)) && !this.faceCovered(f),
+    )
+    if (faces.length > 0) {
+      // Smallest first so partition rooms land before the surrounding hull.
+      const sorted = [...faces].sort((a, b) => a.area - b.area)
+      for (const face of sorted) this.createFloorFromFace(face, false)
+      const total = sorted.reduce((a, f) => a + f.area, 0)
+      this.notify(
+        sorted.length === 1
+          ? `Floor created (${formatAreaM2(total)}). Ctrl+Z to undo.`
+          : `${sorted.length} floors created (${formatAreaM2(total)}). Ctrl+Z to undo.`,
+        'success',
+        true,
+      )
       return
     }
-    // A click+dblclick gesture fires click twice: the second click re-runs
-    // the same detection path. Drop any stale/pending dialog so only one is
-    // ever open (or pending) at a time.
-    if (this.pendingAutoFloorOpen !== null) {
-      clearTimeout(this.pendingAutoFloorOpen)
-      this.pendingAutoFloorOpen = null
-    }
-    if (this.activeAutoFloorDialog) {
-      this.activeAutoFloorDialog.dismiss()
-      this.activeAutoFloorDialog = null
-    }
-    // Defer the open so a double-click gesture already in flight completes
-    // before the dialog exists on screen.
-    this.pendingAutoFloorOpen = setTimeout(() => {
-      this.pendingAutoFloorOpen = null
-      const dialog = new AutoFloorDialog(
-        loop,
-        () => {
-          this.activeAutoFloorDialog = null
-          this.createRoomFromLoop(loop)
-        },
-        () => {
-          this.activeAutoFloorDialog = null
-          /* skip — user cancelled */
-        },
+    if (this.levelFaces().some((f) => f.wallIds.some((id) => chain.has(id)))) return
+    const gaps = this.levelGaps().filter((g) => chain.has(g.fromWallId))
+    if (gaps.length > 0) {
+      this.gapOffer = gaps
+      const g = gaps[0]!
+      this.notify(
+        `Walls almost close: ${Math.round(g.distance)} cm gap (orange). Click it to close and create the floor.`,
+        'warn',
       )
-      this.activeAutoFloorDialog = dialog
-      dialog.open()
-    }, 250)
+      return
+    }
+    if (ids.length >= 3) {
+      this.notify('No floor created: the walls do not enclose an area yet. Close the loop on its start point.', 'warn')
+    }
+  }
+
+  private faceCovered(face: FloorFace): boolean {
+    return faceHasRoom(face, this.homeSnapshot().rooms, (l) => this.matchesActiveLevel(l))
   }
 
   /**
    * T6: creation-time defaults applied to EVERY new room — all creation
-   * paths (loop dialog, double-click enclosure, wall-completion auto-floor,
+   * paths (loop, double-click enclosure, wall-completion auto-floor,
    * manual room tool) route through addRoom with these args, so this is the
    * single injection point for preference-driven defaults (T5).
    *
@@ -722,40 +864,15 @@ export class PlanEngine {
     this.snapLock = this.freeEndpointAt(home, point, endpointSnapMargin())
 
     // Simulate adding a closing wall from chainStart to the resolved cursor.
-    const closingWall = {
-      id: '__closure_preview__',
-      start: { x: this.chainStart.x, y: this.chainStart.y },
-      end: { x: resolved.x, y: resolved.y },
-    }
-
     const allWalls = [
-      ...levelWalls.map((w) => ({
-        id: w.id,
-        start: { x: w.xStart, y: w.yStart },
-        end: { x: w.xEnd, y: w.yEnd },
-        arcExtent: w.arcExtent,
-      })),
-      closingWall,
+      ...toFloorWalls(levelWalls, () => true),
+      { id: '__closure_preview__', start: { x: this.chainStart.x, y: this.chainStart.y }, end: { x: resolved.x, y: resolved.y } },
     ]
-
-    const loops = detectClosedLoops(allWalls)
-
-    // Find a loop that uses the closing wall (its vertices match the wall endpoints).
-    for (const loop of loops) {
-      const hasClosing = loop.vertices.some(
-        (v) =>
-          (Math.abs(v.x - closingWall.start.x) < EPSILON && Math.abs(v.y - closingWall.start.y) < EPSILON) ||
-          (Math.abs(v.x - closingWall.end.x) < EPSILON && Math.abs(v.y - closingWall.end.y) < EPSILON),
-      )
-      if (hasClosing && loop.vertices.length >= 3) {
-        this.closurePolygon = loop.vertices.map((v) => ({ x: v.x, y: v.y }))
-        this.closureTooltip = {
-          text: 'Close room? (Double-click to finish)',
-          x: point.x,
-          y: point.y,
-        }
-        return
-      }
+    const face = detectFloorFaces(allWalls).find((f) => f.wallIds.includes('__closure_preview__'))
+    if (face && face.polygon.length >= 3) {
+      this.closurePolygon = face.polygon.map((v) => ({ x: v.x, y: v.y }))
+      this.closureTooltip = { text: `Click to close · floor ${formatAreaM2(face.area)}`, x: point.x, y: point.y }
+      return
     }
 
     this.closurePolygon = null
@@ -815,6 +932,7 @@ export class PlanEngine {
       }
       wallSnap = computed.wallSnap
     }
+    const floorAssist = this.buildFloorAssist()
     return {
       tool: this.tool,
       phase: this.phase,
@@ -838,7 +956,49 @@ export class PlanEngine {
       furnitureDragHint: this.furnitureDragHint,
       wallDragGhost: this.wallDragGhost,
       wallSnap,
+      floorAssist,
     }
+  }
+
+  /** Cursor in model space as tracked by the renderer (null in tests/automation). */
+  private cursorModel(): Point | null {
+    const px = getLastCursorPx()
+    const view = getLastDrawnView()
+    if (px && view) return new ViewMapper(view).toModel(px.x, px.y)
+    return this.lastMove
+  }
+
+  private buildFloorAssist(): FloorAssistPreview | null {
+    const showGaps = this.tool === 'room' ? this.phase === 'idle' : this.gapOffer.length > 0 && this.phase === 'idle'
+    if (!this.floorAssistEnabled || (this.tool !== 'room' && !showGaps)) return null
+    const cursor = this.cursorModel()
+    const out: FloorAssistPreview = { hoverFace: null, gaps: [], roomLive: null, roomSnap: null, hint: null }
+    if (showGaps) {
+      const gaps = this.visibleGaps()
+      const active = cursor ? this.gapAt(cursor, gaps) : null
+      out.gaps = gaps.map((g) => ({ from: g.from, to: g.to, distanceCm: g.distance, areaCm2: g.face.area, active: g === active }))
+    }
+    if (this.tool !== 'room' || !cursor) return out
+    if (this.phase === 'idle') {
+      const gap = out.gaps.some((g) => g.active)
+      const face = gap ? null : this.roomHoverFace(cursor)
+      if (face) out.hoverFace = { polygon: face.polygon, areaCm2: face.area }
+      else if (!gap) {
+        const snap = this.snapRoomCursor(cursor)
+        out.roomSnap = { point: snap.point, kind: snap.kind, guides: snap.guides }
+        out.hint = { text: 'Click to start a floor · Enter finishes · Esc cancels', at: snap.point }
+      }
+      return out
+    }
+    const snap = this.snapRoomCursor(cursor)
+    const poly = [...this.roomPoints.map(([x, y]) => ({ x, y })), snap.point]
+    const first = this.roomPoints[0]
+    const closing = !!first && this.roomPoints.length >= 3 && distance(snap.point, { x: first[0], y: first[1] }) <= ENDPOINT_HIT_RADIUS
+    const live = closing ? poly.slice(0, -1) : poly
+    out.roomLive = { polygon: poly, areaCm2: live.length >= 3 ? Math.abs(signedArea(live)) : 0, closing }
+    out.roomSnap = { point: snap.point, kind: snap.kind, guides: snap.guides }
+    out.hint = { text: closing ? 'Click to finish floor' : 'Click to add corner · Enter finishes · Esc cancels', at: snap.point }
+    return out
   }
 
   hitTestPoint(point: Point): HitResult | null {
@@ -1611,21 +1771,6 @@ export class PlanEngine {
       const home = this.homeSnapshot()
       const hit = this.hitTest(home, point)
       if (!hit) {
-        // Empty-space click in Selection tool: offer the make-room dialog if
-        // the point sits inside a closed (not-yet-a-room) wall loop — same
-        // confirm-via-dialog flow as wall finalization. walls:[] is safe,
-        // the dialog only reads vertices.length/area and room creation only
-        // reads vertices. Area reuses the same shoelace math as
-        // findEnclosingWallLoop/roof footprint.
-        const loopPoints = this.findEnclosingWallLoop(point)
-        if (loopPoints) {
-          this.openAutoFloorDialog({
-            walls: [],
-            vertices: loopPoints,
-            area: Math.abs(signedArea(loopPoints)),
-          })
-          return
-        }
         if (!shift) this.model.setSelection([])
         return
       }
@@ -1677,6 +1822,14 @@ export class PlanEngine {
     if (this.tool !== 'wall') return
 
     if (this.phase === 'idle') {
+      if (this.guardedClick(point)) return
+      const offered = this.floorAssistEnabled && this.gapOffer.length > 0 ? this.gapAt(point, this.gapOffer) : null
+      if (offered) {
+        this.closeGapAndCreateFloor(offered)
+        this.armGestureGuard(point)
+        return
+      }
+      this.gapOffer = []
       const start = this.resolveChainStart(point)
       // SH3D parity: the whole drawing session is ONE compound undo edit
       // posted at validateDrawnWalls, while each wall enters the home AT ITS
@@ -1739,7 +1892,20 @@ export class PlanEngine {
     }
 
     this.commitChainWall(start, end)
+    // Clicking back on the chain's own start point closes the loop: finish the
+    // chain now (floor appears) instead of silently waiting for a double-click.
+    const origin = this.floorAssistEnabled && this.chainIds.length >= 3 ? this.firstChainStart() : null
+    if (origin && distance(end, origin) <= CONNECTED_WALL_EPSILON * 5) {
+      this.validateDrawnWalls()
+      this.armGestureGuard(end)
+      return
+    }
     this.advanceChain(end)
+  }
+
+  private firstChainStart(): Point | null {
+    const first = this.homeSnapshot().walls.find((w) => w.id === this.chainIds[0])
+    return first ? { x: first.xStart, y: first.yStart } : null
   }
 
   /** Chain continues from the committed wall's end: drop the snap hysteresis
@@ -1754,11 +1920,17 @@ export class PlanEngine {
   private doubleClick(point: Point): void {
     this.marqueeFrom = null
     this.marqueeTo = null
+    // The click(s) of this gesture already did the work (closed a chain,
+    // created a floor): the dblclick must not repeat or undo it.
+    if (this.guardedClick(point)) {
+      this.gestureGuard = null
+      return
+    }
     // Consume roomJustClosedAt exactly once per gesture, regardless of what
     // this dblclick otherwise does. If it's still armed AND this is the
     // room tool AND the point matches, the room was already closed by the
     // click that set it (roomClick's close-to-first branch) — skip this
-    // call entirely instead of falling into isTrivial/findEnclosingWallLoop/
+    // call entirely instead of falling into isTrivial/
     // roomClick, any of which would otherwise start a dangling new session
     // at the point we just closed (see roomJustClosedAt's own comment).
     if (this.roomJustClosedAt) {
@@ -1800,30 +1972,8 @@ export class PlanEngine {
       return
     }
     if (this.tool === 'selection') {
-      // A real browser dblclick is preceded by a click, which (inside a
-      // closed wall loop) already scheduled/opened the AutoFloorDialog.
-      // Cancel the pending open and dismiss any open dialog — the dblclick
-      // supersedes it, this is not a user cancellation — then auto-create
-      // the room directly, no dialog.
-      if (this.pendingAutoFloorOpen !== null) {
-        clearTimeout(this.pendingAutoFloorOpen)
-        this.pendingAutoFloorOpen = null
-      }
-      if (this.activeAutoFloorDialog) {
-        this.activeAutoFloorDialog.dismiss()
-        this.activeAutoFloorDialog = null
-      }
-      const loop = this.findEnclosingWallLoop(point)
-      if (loop) {
-        const home = this.homeSnapshot()
-        this.model.getStore().beginCompoundEdit()
-        const room = this.model.addRoom(
-          loop.map((p) => [p.x, p.y] as [number, number]),
-          this.roomDefaults(home),
-        )
-        this.model.setSelection([room.id])
-        this.model.getStore().endCompoundEdit()
-      }
+      const face = this.uncoveredFaceAtPoint(point)
+      if (face) this.createFloorFromFace(face)
       return
     }
     if (this.tool === 'room') {
@@ -1846,16 +1996,9 @@ export class PlanEngine {
         this.roomPoints = []
         this.phase = 'idle'
       }
-      const loop = this.findEnclosingWallLoop(point)
-      if (loop) {
-        const home = this.homeSnapshot()
-        this.model.getStore().beginCompoundEdit()
-        const room = this.model.addRoom(
-          loop.map((p) => [p.x, p.y] as [number, number]),
-          this.roomDefaults(home),
-        )
-        this.model.setSelection([room.id])
-        this.model.getStore().endCompoundEdit()
+      const face = this.uncoveredFaceAtPoint(point)
+      if (face) {
+        this.createFloorFromFace(face)
         return
       }
       this.roomClick(point)
@@ -1955,9 +2098,9 @@ export class PlanEngine {
    * Seals the drawing session as ONE compound undo edit and selects its walls
    * (SH3D PlanController.java:10912).
    *
-   * After finalizing, checks for closed wall loops and opens the auto-floor
-   * confirmation dialog if one is found. Room creation is gated on user
-   * confirmation via confirmAutoFloor().
+   * With floor assist on, an enclosed area the chain completed gets its floor
+   * right away (its own undo step); otherwise a near-closed gap is offered or
+   * a short message says why no floor appeared (see autoFloorAfterChain).
    */
   private validateDrawnWalls(): void {
     const ids = this.chainIds
@@ -1976,55 +2119,7 @@ export class PlanEngine {
       this.sessionOpen = false
     }
 
-    if (ids.length >= 3) {
-      const loop = this.findClosedLoopFromFinalized(ids)
-      if (loop) {
-        this.openAutoFloorDialog(loop)
-      }
-    }
-  }
-
-  /**
-   * After wall finalization, detect closed loops using WallLoopDetector and
-   * return the smallest one that encloses the midpoint of the last wall drawn.
-   * Returns null if no valid loop is found.
-   */
-  private findClosedLoopFromFinalized(wallIds: string[]): WallLoop | null {
-    const home = this.homeSnapshot()
-    const levelWalls = home.walls.filter(
-      (w) => this.matchesActiveLevel(w.levelRef),
-    )
-    if (levelWalls.length < 3) return null
-
-    const detectorWalls = levelWalls.map((w) => ({
-      id: w.id,
-      start: { x: w.xStart, y: w.yStart },
-      end: { x: w.xEnd, y: w.yEnd },
-      arcExtent: w.arcExtent,
-    }))
-
-    const loops = detectClosedLoops(detectorWalls)
-    if (loops.length === 0) return null
-
-    const lastWallId = wallIds[wallIds.length - 1]
-    const lastWall = home.walls.find((w) => w.id === lastWallId)
-    if (!lastWall) return loops[0] ?? null
-    const testPoint: Point = {
-      x: (lastWall.xStart + lastWall.xEnd) / 2,
-      y: (lastWall.yStart + lastWall.yEnd) / 2,
-    }
-
-    let best: WallLoop | null = null
-    for (const loop of loops) {
-      if (loop.vertices.length < 3) continue
-      if (this.pointInPolygon(testPoint, loop.vertices.map((p) => [p.x, p.y] as [number, number]))) {
-        if (!best || loop.area < best.area) {
-          best = loop
-        }
-      }
-    }
-
-    return best ?? loops.reduce((a, b) => (a.area < b.area ? a : b))
+    this.autoFloorAfterChain(ids)
   }
 
   /**
@@ -2175,21 +2270,72 @@ export class PlanEngine {
 
   // ── Room tool ─────────────────────────────────────────────────────────────
 
+  /** Corner candidates the room tool snaps to: wall/floor corners on the level. */
+  private roomSnapCorners(): Point[] {
+    const out: Point[] = []
+    for (const f of this.levelFaces()) out.push(...f.polygon)
+    const home = this.homeSnapshot()
+    for (const w of home.walls) {
+      if (!this.matchesActiveLevel(w.levelRef)) continue
+      out.push({ x: w.xStart, y: w.yStart }, { x: w.xEnd, y: w.yEnd })
+    }
+    for (const r of home.rooms) {
+      if (!this.matchesActiveLevel(r.levelRef)) continue
+      for (const [x, y] of r.points) out.push({ x, y })
+    }
+    return out
+  }
+
+  /** Where a room-tool click at `point` would actually land. */
+  private snapRoomCursor(point: Point): RoomSnapResult {
+    if (!this.floorAssistEnabled) {
+      const p = this.gridSnapEnabled ? this.snapToGrid(point.x, point.y) : point
+      return { point: p, kind: this.gridSnapEnabled ? 'grid' : 'none', guides: [] }
+    }
+    const first = this.roomPoints[0]
+    const prev = this.roomPoints[this.roomPoints.length - 1]
+    return snapRoomPoint({
+      point,
+      radius: endpointSnapMargin(),
+      corners: [...(first && this.roomPoints.length >= 3 ? [{ x: first[0], y: first[1] }] : []), ...this.roomSnapCorners()],
+      prev: prev ? { x: prev[0], y: prev[1] } : null,
+      first: first ? { x: first[0], y: first[1] } : null,
+      grid: this.gridSnapEnabled ? (p) => this.snapToGrid(p.x, p.y) : undefined,
+      align: this.magnetismEnabled,
+    })
+  }
+
   private roomClick(point: Point): void {
-    const pt = this.gridSnapEnabled ? this.snapToGrid(point.x, point.y) : point
     if (this.phase === 'idle') {
+      if (this.guardedClick(point)) return
       // Suppress the redundant second click of a close-via-click-on-start
       // double-click gesture (see roomJustClosedAt) — otherwise this starts
       // a brand-new, unwanted room session at the point we just closed.
-      if (this.roomJustClosedAt && distance(pt, this.roomJustClosedAt) <= ENDPOINT_HIT_RADIUS) {
+      if (this.roomJustClosedAt && distance(point, this.roomJustClosedAt) <= ENDPOINT_HIT_RADIUS) {
         return
       }
       this.roomJustClosedAt = null
+      const gap = this.floorAssistEnabled ? this.gapAt(point, this.levelGaps()) : null
+      if (gap) {
+        this.closeGapAndCreateFloor(gap)
+        this.armGestureGuard(point)
+        return
+      }
+      // One click inside a closed (or almost closed) loop creates its floor.
+      // Clicking on a corner/edge instead starts a manual polygon.
+      const hover = this.roomHoverFace(point)
+      if (hover) {
+        this.createFloorFromFace(hover)
+        this.armGestureGuard(point)
+        return
+      }
+      const pt = this.snapRoomCursor(point).point
       this.roomPoints = [[pt.x, pt.y]]
       this.phase = 'drawing'
       this.chainStart = pt
       return
     }
+    const pt = this.snapRoomCursor(point).point
     if (this.roomPoints.length >= 3) {
       const first = this.roomPoints[0]!
       if (distance(pt, { x: first[0], y: first[1] }) <= ENDPOINT_HIT_RADIUS) {
@@ -2198,8 +2344,41 @@ export class PlanEngine {
         return
       }
     }
+    const last = this.roomPoints[this.roomPoints.length - 1]
+    if (last && distance(pt, { x: last[0], y: last[1] }) < 1) return
     this.roomPoints.push([pt.x, pt.y])
     this.chainStart = pt
+  }
+
+  /** The enclosed area to offer under `point`, unless the cursor is on a
+   *  corner/edge (those clicks start a manual polygon). */
+  private roomHoverFace(point: Point): FloorFace | null {
+    if (!this.floorAssistEnabled || this.tool !== 'room' || this.phase !== 'idle') return null
+    const face = this.uncoveredFaceAtPoint(point)
+    if (!face) return null
+    const radius = endpointSnapMargin()
+    for (const c of face.polygon) if (distance(c, point) <= radius) return null
+    for (let i = 0; i < face.polygon.length; i++) {
+      if (distToSegment(point, face.polygon[i]!, face.polygon[(i + 1) % face.polygon.length]!) <= radius * 0.5) return null
+    }
+    return face
+  }
+
+  /** Enter: finish whatever is being drawn (wall chain, room, polyline). */
+  finishDrawing(): boolean {
+    if (this.phase !== 'drawing') return false
+    if (this.tool === 'wall') this.validateDrawnWalls()
+    else if (this.tool === 'room') {
+      if (this.roomPoints.length < 3) {
+        this.notify('A floor needs at least 3 corners. Keep clicking, or Esc to cancel.', 'warn')
+        return true
+      }
+      this.closeRoom()
+    } else if (this.tool === 'polyline') {
+      if (this.polylinePoints.length < 2) return false
+      this.closePolyline(false)
+    } else return false
+    return true
   }
 
   private closeRoom(): void {
@@ -2208,11 +2387,17 @@ export class PlanEngine {
     this.phase = 'idle'
     this.chainStart = null
     if (points.length < 3) return
+    const area = Math.abs(signedArea(points.map(([x, y]) => ({ x, y }))))
+    if (area < 100) {
+      this.notify('No floor created: those corners enclose no area.', 'warn')
+      return
+    }
     const home = this.homeSnapshot()
     this.model.getStore().beginCompoundEdit()
     const room = this.model.addRoom(points, this.roomDefaults(home))
     this.model.setSelection([room.id])
     this.model.getStore().endCompoundEdit()
+    this.notify(`Floor created (${formatAreaM2(area)}). Ctrl+Z to undo.`, 'success', true)
   }
 
   private cancelRoomDrawing(): void {
@@ -2262,115 +2447,7 @@ export class PlanEngine {
   }
 
   /**
-   * Walk the wall graph to find the smallest enclosing cycle (by area) whose
-   * interior contains `point`. Returns the cycle's vertex polygon or null.
-   *
-   * Scoped to the common rectangular/simple-polygon case: DFS bounded to
-   * MAX_CYCLE edges per candidate, picking the smallest-area enclosing face.
-   * Works correctly for convex and simple concave enclosures; may miss
-   * extremely complex self-touching layouts (acceptable per M64 DoD).
-   */
-  private findEnclosingWallLoop(point: Point): Array<Point> | null {
-    const home = this.homeSnapshot()
-    const walls = home.walls.filter((w) => this.matchesActiveLevel(w.levelRef))
-    if (walls.length < 3) return null
-
-    const MAX_CYCLE = 10
-
-    // Canonicalize wall endpoints: merge within CONNECTED_WALL_EPSILON.
-    const pts: Point[] = []
-    const canonicalize = (p: Point): number => {
-      for (let i = 0; i < pts.length; i++) {
-        if (distance(pts[i] as Point, p) <= CONNECTED_WALL_EPSILON) return i
-      }
-      pts.push({ x: p.x, y: p.y })
-      return pts.length - 1
-    }
-
-    // Collect edges (wall-indexed) then build adjacency.
-    const edges: Array<[number, number]> = []
-    for (const wall of walls) {
-      const si = canonicalize({ x: wall.xStart, y: wall.yStart })
-      const ei = canonicalize({ x: wall.xEnd, y: wall.yEnd })
-      edges.push([si, ei])
-    }
-
-    const n = pts.length
-    const neighbors: Array<Array<{ node: number; wallIdx: number }>> = Array.from(
-      { length: n },
-      () => [],
-    )
-    for (let wi = 0; wi < edges.length; wi++) {
-      const [si, ei] = edges[wi]!
-      neighbors[si]!.push({ node: ei, wallIdx: wi })
-      neighbors[ei]!.push({ node: si, wallIdx: wi })
-    }
-
-    let bestCycle: number[] | null = null
-    let bestArea = Infinity
-
-    // DFS from each node to find simple cycles containing `point`.
-    // Deduplicate by only starting from the lowest-indexed node in each cycle.
-    for (let start = 0; start < n; start++) {
-      const adj = neighbors[start]
-      if (!adj || adj.length === 0) continue
-
-      const stack: Array<{
-        node: number
-        path: number[]
-        usedWalls: Set<number>
-      }> = []
-      for (const { node, wallIdx } of adj) {
-        if (node < start) continue
-        stack.push({
-          node,
-          path: [start, node],
-          usedWalls: new Set([wallIdx]),
-        })
-      }
-
-      while (stack.length > 0) {
-        const { node, path, usedWalls } = stack.pop()!
-        if (path.length >= MAX_CYCLE) continue
-
-        for (const { node: next, wallIdx } of neighbors[node] ?? []) {
-          if (next === start && path.length >= 3) {
-            const poly = path.map((i) => pts[i]!)
-            if (
-              this.pointInPolygon(
-                point,
-                poly.map((p) => [p.x, p.y]),
-              )
-            ) {
-              const area = Math.abs(signedArea(poly))
-              if (area < bestArea) {
-                bestArea = area
-                bestCycle = [...path]
-              }
-            }
-          } else if (
-            next > start &&
-            !usedWalls.has(wallIdx) &&
-            !path.includes(next)
-          ) {
-            const nextUsed = new Set(usedWalls)
-            nextUsed.add(wallIdx)
-            stack.push({
-              node: next,
-              path: [...path, next],
-              usedWalls: nextUsed,
-            })
-          }
-        }
-      }
-    }
-
-    return bestCycle ? bestCycle.map((i) => pts[i]!) : null
-  }
-
-  /**
-   * Like findEnclosingWallLoop but returns the LARGEST cycle enclosing the
-   * point (max area) — used by the roof tool for footprint auto-detection.
+   * Returns the LARGEST wall cycle enclosing the point (max area) — used by the roof tool for footprint auto-detection.
    */
   private findLargestEnclosingWallLoop(point: Point): Array<Point> | null {
     const home = this.homeSnapshot()

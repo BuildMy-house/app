@@ -1755,7 +1755,7 @@ select:focus-visible {
   border: 1px solid var(--border);
   border-left-width: 4px;
   background: var(--panel-bg, #1f2328);
-  color: var(--text-primary, #e6edf3);
+  color: var(--text, #e6edf3);
   font-size: 13px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
@@ -1801,7 +1801,7 @@ select:focus-visible {
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--panel-bg, #1f2328);
-  color: var(--text-primary, #e6edf3);
+  color: var(--text, #e6edf3);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
   z-index: 5;
   /* Decorative first-run tip: never swallow clicks/wheel events meant for
@@ -1852,7 +1852,7 @@ select:focus-visible {
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--panel-bg, #1f2328);
-  color: var(--text-primary, #e6edf3);
+  color: var(--text, #e6edf3);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
   font-size: 12px;
 }

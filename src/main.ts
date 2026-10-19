@@ -127,6 +127,18 @@ const store = new HomeStore()
 const model = new HomeModel(store)
 const engine = new PlanEngine(model)
 const clipboardManager = new ClipboardManager(store, model)
+// Floor-creation feedback: a created floor offers Undo; "why nothing happened"
+// messages stay until dismissed. Also mirrored in the status bar.
+engine.setFloorAssist(true)
+engine.setNotifier((notice) => {
+  forceNextRender = true
+  showToast(
+    notice.tone === 'success' ? 'success' : 'notice',
+    notice.text,
+    undefined,
+    notice.undoable ? { label: 'Undo', run: () => doUndo() } : undefined,
+  )
+})
 
 // Account auth + server-backed home store (Track H). The auth session is
 // localStorage-backed; RemoteHomeStore threads the token into requests.
@@ -622,6 +634,7 @@ function buildToolbar(): void {
       <button class="tool-btn" id="btn-catalog" title="${tooltipFor('furniture')}">Furniture</button>
       <button class="tool-btn" data-tool="selection" title="${tooltipFor('selection')}">Select</button>
       <button class="tool-btn" data-tool="wall" title="${tooltipFor('wall', 'Shift 15° lock, Alt free, Ctrl/Cmd fine')}">Wall</button>
+      <button class="tool-btn" data-tool="room" title="${tooltipFor('room', 'Click inside a closed wall loop to create its floor')}">Room</button>
       <button class="tool-btn" data-tool="dimensionLine" title="${tooltipFor('dimensionLine')}">Dim</button>
       <button class="tool-btn" data-tool="label" title="${tooltipFor('label')}">Text</button>
     </div>
@@ -866,9 +879,13 @@ function refreshStatus(): void {
   const user = auth.currentUser()
   statusAccount.textContent = user ? `account: ${user}` : 'account: signed out'
   const mods = engine.getModifierKeys()
-  const hintVisible = engine.getTool() === 'wall' || engine.getTool() === 'dimensionLine' || pointer.down
+  const hintVisible = engine.getTool() === 'wall' || engine.getTool() === 'room' || engine.getTool() === 'dimensionLine' || pointer.down
   statusHint.textContent = !hintVisible
     ? ''
+    : engine.getTool() === 'room' && !mods.alt
+      ? preview.phase === 'drawing'
+        ? 'Click corners (snap to walls) · click the first corner or Enter to finish · Esc: cancel'
+        : 'Click inside a closed wall loop to create its floor · or click corners to draw one · orange gap: click to close'
     : engine.getTool() === 'dimensionLine' && !mods.alt && !mods.shift && !mods.fine
       ? preview.phase === 'drawing'
         ? 'Click 2nd point · type length + Enter · Backspace: undo point · Esc: cancel · Shift: 15° lock · Alt: free · Ctrl/Cmd: fine'
@@ -1474,6 +1491,14 @@ window.addEventListener('keydown', (event) => {
     }
   }
 
+  // Enter finishes whatever is being drawn (wall chain, room polygon, polyline).
+  if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey && !event.altKey && engine.finishDrawing()) {
+    event.preventDefault()
+    forceNextRender = true
+    refreshAll()
+    return
+  }
+
   if (event.key === ' ' && !event.repeat) {
     event.preventDefault()
     spaceHeld = true
@@ -1574,7 +1599,7 @@ function render(preview: PlanPreview): void {
   if (!firstGeometryFitted && preview.phase !== 'drawing') {
     if (home.walls.length > 0 || home.rooms.length > 0 || home.furniture.length > 0) {
       firstGeometryFitted = true
-      doFit()
+      store.withoutUndoHistory(doFit)
     }
   }
 
@@ -1627,6 +1652,7 @@ function frame(ts: number): void {
     forceNextRender ||
     isPanning ||
     preview.phase === 'drawing' ||
+    preview.floorAssist != null ||
     (preview.furnitureDragHint !== null) !== lastRenderedDragHint ||
     preview.furnitureDragHint !== null ||
     revision !== lastRenderedRevision ||
