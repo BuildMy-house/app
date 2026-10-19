@@ -435,36 +435,63 @@ function wallOpenings(
 /** Live wall-snap readout drawn near the cursor end of the in-progress wall. */
 const ANCHOR_LABELS = { endpoint: 'end', midpoint: 'middle', corner: 'corner' } as const
 
-/** Snap indicator for a dimension anchor: filled dot, ring and a small kind tag. */
+const ANCHOR_ACTIVE = 'rgb(30, 140, 60)'
+
+/** Every point the dimension tool can snap to: small hollow dots, visible before any click. */
+function drawDimensionAnchorDots(
+  ctx: PlanRenderingContext,
+  mapper: ViewMapper,
+  anchors: ReadonlyArray<{ point: Point }>,
+): void {
+  ctx.lineWidth = 1.5
+  ctx.strokeStyle = 'rgba(30, 140, 60, 0.75)'
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+  for (const a of anchors) {
+    ctx.beginPath()
+    ctx.arc(mapper.sx(a.point.x), mapper.sy(a.point.y), 3.5, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+  }
+}
+
+/** Where a click would land: ring + crosshair, with a kind tag when it is a real anchor. */
 function drawDimensionAnchor(
   ctx: PlanRenderingContext,
   mapper: ViewMapper,
-  anchor: { point: Point; kind: 'endpoint' | 'midpoint' | 'corner' },
+  point: Point,
+  kind: 'endpoint' | 'midpoint' | 'corner' | null,
 ): void {
-  const x = mapper.sx(anchor.point.x)
-  const y = mapper.sy(anchor.point.y)
-  ctx.beginPath()
-  ctx.arc(x, y, 3, 0, Math.PI * 2)
-  ctx.fillStyle = CLOSURE_PREVIEW_STROKE
-  ctx.fill()
-  ctx.beginPath()
-  ctx.arc(x, y, 8, 0, Math.PI * 2)
-  ctx.strokeStyle = CLOSURE_PREVIEW_STROKE
+  const x = mapper.sx(point.x)
+  const y = mapper.sy(point.y)
+  ctx.strokeStyle = ANCHOR_ACTIVE
+  ctx.fillStyle = ANCHOR_ACTIVE
   ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.arc(x, y, kind ? 8 : 5, 0, Math.PI * 2)
   ctx.stroke()
-  ctx.font = '9px sans-serif'
+  ctx.beginPath()
+  ctx.arc(x, y, 2.5, 0, Math.PI * 2)
+  ctx.fill()
+  if (!kind) return
+  ctx.font = '600 11px sans-serif'
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
-  ctx.fillStyle = CLOSURE_PREVIEW_STROKE
-  ctx.fillText(ANCHOR_LABELS[anchor.kind], x + 12, y + 12)
+  const label = ANCHOR_LABELS[kind]
+  const w = ctx.measureText(label).width + 8
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.92)'
+  ctx.fillRect(x + 12, y + 6, w, 16)
+  ctx.fillStyle = ANCHOR_ACTIVE
+  ctx.fillText(label, x + 16, y + 14)
   ctx.textAlign = 'start'
   ctx.textBaseline = 'alphabetic'
 }
 
 /**
  * One dimension line as drawn on the plan. Offset != 0 pushes the line out
- * with extension lines back to the measured points; the length sits on a
- * light pill centred on the line so the line never strikes through the text.
+ * with extension lines back to the measured points. The length is screen-space
+ * text on a light pill centred on the line (so the line never strikes through
+ * it); selected adds a bold line, a bordered pill and a drag grip, hovered
+ * a bolder line.
  */
 function drawDimensionLine(
   ctx: PlanRenderingContext,
@@ -472,16 +499,16 @@ function drawDimensionLine(
   dim: { xStart: number; yStart: number; xEnd: number; yEnd: number; offset: number },
   color: string,
   unit: 'cm' | 'inch',
-  selected: boolean,
-  withText = true,
+  state: { selected?: boolean; hovered?: boolean; withText?: boolean } = {},
 ): void {
+  const { selected = false, hovered = false, withText = true } = state
   const g = dimensionGeometry(dim)
   const x1 = mapper.sx(g.lineStart.x)
   const y1 = mapper.sy(g.lineStart.y)
   const x2 = mapper.sx(g.lineEnd.x)
   const y2 = mapper.sy(g.lineEnd.y)
   ctx.strokeStyle = color
-  ctx.lineWidth = selected ? 2 : 1
+  ctx.lineWidth = selected ? 2.5 : hovered ? 2 : 1.25
   ctx.beginPath()
   ctx.moveTo(x1, y1)
   ctx.lineTo(x2, y2)
@@ -490,9 +517,9 @@ function drawDimensionLine(
   const dx = x2 - x1
   const dy = y2 - y1
   const len = Math.hypot(dx, dy)
-  const tx = len > 0 ? (-dy / len) * 4 : 0
-  const ty = len > 0 ? (dx / len) * 4 : 4
-  ctx.lineWidth = 1
+  const tx = len > 0 ? (-dy / len) * 5 : 0
+  const ty = len > 0 ? (dx / len) * 5 : 5
+  ctx.lineWidth = selected || hovered ? 1.5 : 1
   for (const [p, q] of g.extensions) {
     ctx.beginPath()
     ctx.moveTo(mapper.sx(p.x), mapper.sy(p.y))
@@ -507,18 +534,33 @@ function drawDimensionLine(
   }
   if (!withText) return
   const text = formatWallLength(g.lengthCm, unit)
-  ctx.font = '11px sans-serif'
-  const w = ctx.measureText(text).width + 6
+  ctx.font = '600 12px sans-serif'
+  const w = ctx.measureText(text).width + 10
   const mx = (x1 + x2) / 2
   const my = (y1 + y2) / 2
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
-  ctx.fillRect(mx - w / 2, my - 7, w, 14)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'
+  ctx.fillRect(mx - w / 2, my - 9, w, 18)
+  if (selected || hovered) {
+    ctx.lineWidth = 1
+    ctx.strokeRect(mx - w / 2 + 0.5, my - 9 + 0.5, w - 1, 17)
+  }
   ctx.fillStyle = color
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(text, mx, my)
+  ctx.fillText(text, mx, my + 0.5)
   ctx.textAlign = 'start'
   ctx.textBaseline = 'alphabetic'
+  if (selected && len > 0) {
+    // Drag grip on the line (just clear of the pill): pull it to re-offset.
+    const gx = mx + (dx / len) * (w / 2 + 12)
+    const gy = my + (dy / len) * (w / 2 + 12)
+    ctx.beginPath()
+    ctx.arc(gx, gy, 5, 0, Math.PI * 2)
+    ctx.fillStyle = '#ffffff'
+    ctx.fill()
+    ctx.lineWidth = 2
+    ctx.stroke()
+  }
 }
 
 function drawWallSnapReadout(
@@ -994,9 +1036,9 @@ export function drawPlan(
       ctx,
       mapper,
       { ...dim, offset },
-      selected.has(dim.id) ? SELECTION_COLOR : DIMENSION_COLOR,
+      selected.has(dim.id) || preview?.dimensionHoverId === dim.id ? SELECTION_COLOR : DIMENSION_COLOR,
       unit,
-      selected.has(dim.id),
+      { selected: selected.has(dim.id), hovered: preview?.dimensionHoverId === dim.id },
     )
   }
 
@@ -1167,31 +1209,48 @@ export function drawPlan(
     }
   }
 
-  // Dimension-line preview: in-progress segment with the same live
-  // length/angle readout as the wall tool, plus the anchor being snapped to.
+  // Dimension tool feedback, by stage: every snap anchor + the landing point
+  // + the one-click wall candidate (stage 1), the live segment (stage 2), the
+  // line being pulled out to its offset (stage 3).
   if (preview && preview.tool === 'dimensionLine') {
     const dimPreview = preview.dimensionLine
     if (dimPreview) {
-      const { start, end, length, snap, anchor } = dimPreview
-      ctx.setLineDash([6, 4])
+      const { start, end, length, snap, anchor, offset, stage } = dimPreview
+      const placing = stage === 'offset'
+      if (!placing) ctx.setLineDash([6, 4])
       drawDimensionLine(
         ctx,
         mapper,
-        { xStart: start.x, yStart: start.y, xEnd: end.x, yEnd: end.y, offset: 0 },
-        PREVIEW_COLOR,
+        { xStart: start.x, yStart: start.y, xEnd: end.x, yEnd: end.y, offset },
+        placing ? SELECTION_COLOR : '#555555',
         unit,
-        false,
-        length > 0,
+        { selected: placing, withText: length > 0 },
       )
       ctx.setLineDash([])
-      ctx.beginPath()
-      ctx.arc(mapper.sx(start.x), mapper.sy(start.y), 4, 0, Math.PI * 2)
-      ctx.strokeStyle = PREVIEW_COLOR
-      ctx.stroke()
+      for (const p of placing ? [start, end] : [start]) {
+        ctx.beginPath()
+        ctx.arc(mapper.sx(p.x), mapper.sy(p.y), 4, 0, Math.PI * 2)
+        ctx.fillStyle = placing ? SELECTION_COLOR : PREVIEW_COLOR
+        ctx.fill()
+      }
       if (snap) drawWallSnapReadout(ctx, mapper, snap, start, mapper.sx(end.x), mapper.sy(end.y))
-      if (anchor) drawDimensionAnchor(ctx, mapper, anchor)
-    } else if (preview.dimensionHover?.anchor) {
-      drawDimensionAnchor(ctx, mapper, preview.dimensionHover.anchor)
+      if (anchor) drawDimensionAnchor(ctx, mapper, anchor.point, anchor.kind)
+    } else if (preview.dimensionHover) {
+      const hover = preview.dimensionHover
+      drawDimensionAnchorDots(ctx, mapper, hover.anchors)
+      if (hover.candidate) {
+        const c = hover.candidate
+        drawDimensionLine(
+          ctx,
+          mapper,
+          { xStart: c.start.x, yStart: c.start.y, xEnd: c.end.x, yEnd: c.end.y, offset: c.offset },
+          SELECTION_COLOR,
+          unit,
+          { hovered: true },
+        )
+      } else {
+        drawDimensionAnchor(ctx, mapper, hover.point, hover.anchor?.kind ?? null)
+      }
     }
   }
 

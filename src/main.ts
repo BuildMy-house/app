@@ -856,6 +856,16 @@ function refreshLevelButtons(): void {
 
 // ── Status bar ──────────────────────────────────────────────────────────────
 
+function dimensionHint(stage: ReturnType<typeof engine.dimensionStage>): string {
+  if (stage === 'end') {
+    return 'Click 2nd point · type length + Enter · Shift: 15° lock · Alt: free · Ctrl/Cmd: fine · Backspace: back · Esc: cancel'
+  }
+  if (stage === 'offset') {
+    return 'Move to pull the dimension line out, click to place · Enter: place here · Alt: free · Ctrl/Cmd: fine · Backspace: back · Esc: cancel'
+  }
+  return 'Click a wall to dimension it · or click 1st point (snaps to wall ends, middles, room corners) · Alt: free · Esc: select tool'
+}
+
 function refreshStatus(): void {
   const preview = engine.getPreview()
   const tool = engine.getTool()
@@ -870,9 +880,7 @@ function refreshStatus(): void {
   statusHint.textContent = !hintVisible
     ? ''
     : engine.getTool() === 'dimensionLine' && !mods.alt && !mods.shift && !mods.fine
-      ? preview.phase === 'drawing'
-        ? 'Click 2nd point · type length + Enter · Backspace: undo point · Esc: cancel · Shift: 15° lock · Alt: free · Ctrl/Cmd: fine'
-        : 'Click 1st point (snaps to wall ends, middles, room corners) · Alt: free · drag a dimension later to set its offset'
+      ? dimensionHint(engine.dimensionStage())
       : mods.alt
       ? 'snap off'
       : mods.shift
@@ -1112,11 +1120,20 @@ canvas.addEventListener('pointermove', (event) => {
   const pt = new ViewMapper(currentView).toModel(coords.px, coords.py)
   lastCursorModel = pt
   statusCursor.textContent = `x: ${pt.x.toFixed(1)}  y: ${pt.y.toFixed(1)}`
-  if (engine.getTool() === 'wall') engine.moveMouse(pt.x, pt.y)
+  // The dimension tool needs the live cursor for its hover indicators and
+  // preview just like the wall tool: without this it only ever saw click points.
+  if (engine.getTool() === 'wall' || engine.getTool() === 'dimensionLine') engine.moveMouse(pt.x, pt.y)
+  // Idle hover feedback (anchors, the wall a click would dimension) is not
+  // covered by the redraw conditions in frame(): without this it only
+  // repainted on the 500 ms safety-net tick.
+  if (engine.getTool() === 'dimensionLine') forceNextRender = true
 
   // Cursor management for selection tool
   if (engine.getTool() === 'selection' && !isPanning && !pointer.down) {
     const hit = engine.hitTestPoint(pt)
+    const hoveredDim = hit?.kind === 'dimension' ? hit.id : null
+    if (hoveredDim !== engine.getHoveredDimension()) forceNextRender = true
+    engine.setHoveredDimension(hoveredDim)
     if (!hit) {
       canvas.style.cursor = 'default'
     } else if (hit.kind === 'wall-endpoint') {
@@ -1459,7 +1476,12 @@ window.addEventListener('keydown', (event) => {
   // a Ctrl+digit pressed here with no matching shortcut would previously fall
   // through harmlessly (digits did nothing); with typed lengths live they
   // would buffer, hence the ctrlKey/metaKey guard.
-  if (engine.acceptsTypedLength() && !event.ctrlKey && !event.metaKey && !event.altKey) {
+  if (
+    (engine.acceptsTypedLength() || engine.dimensionStage() === 'offset') &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey
+  ) {
     if (event.key === 'Enter' && engine.commitTypedLength()) {
       event.preventDefault()
       refreshToolbar()
@@ -1538,7 +1560,7 @@ function syncEngineModifiers(event: KeyboardEvent): void {
   refreshStatus()
   // Pressing/releasing a modifier must re-shape the live wall-drawing preview
   // (angle lock / free) even with no mouse movement.
-  if (engine.getTool() === 'wall' && lastCursorModel) {
+  if ((engine.getTool() === 'wall' || engine.getTool() === 'dimensionLine') && lastCursorModel) {
     engine.moveMouse(lastCursorModel.x, lastCursorModel.y)
   }
   forceNextRender = true

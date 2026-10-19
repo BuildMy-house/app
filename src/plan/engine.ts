@@ -12,13 +12,15 @@ import { FurnitureTooLargeError } from '../core/furniture-clearance'
 import { snapFurniturePlacement, snapFurnitureRotation } from './furniture-snap'
 import { resolveSnapMode, snapWallSegment, typedLengthToCm } from './snap-math'
 import {
+  candidateOffset,
   collectDimensionAnchors,
   distanceToDimension,
   perpendicularOffset,
+  findDimensionCandidate,
   resolveDimensionPoint,
   snapDimensionOffset,
 } from './dimension-snap'
-import type { DimensionAnchor, DimensionPointResult } from './dimension-snap'
+import type { DimensionAnchor, DimensionCandidate, DimensionPointResult, DimensionStage } from './dimension-snap'
 import {
   closestPointOnSegment,
   distance,
@@ -170,12 +172,24 @@ export interface PlanPreview {
     start: Point
     end: Point
     length: number
+    /** Offset the line will be placed at: 0 while the end is still being chosen,
+     *  the live (snapped) offset in the final "pull it out" stage. */
+    offset: number
+    stage: 'end' | 'offset'
     snap?: WallSnapReadout | null
     anchor?: DimensionAnchor | null
   } | null
-  /** Anchor (wall end/mid, room corner) under the cursor before the first
-   *  dimension point is placed — drawn as a snap indicator. */
-  dimensionHover?: { point: Point; anchor: DimensionAnchor | null } | null
+  /** Before the first dimension point is placed: where the click would land
+   *  (anchor snap or grid), every anchor available on the level, and the
+   *  wall / room side a plain click would dimension in one go. */
+  dimensionHover?: {
+    point: Point
+    anchor: DimensionAnchor | null
+    anchors: DimensionAnchor[]
+    candidate: (DimensionCandidate & { offset: number }) | null
+  } | null
+  /** Dimension under the cursor in the Selection tool (hover highlight). */
+  dimensionHoverId?: string | null
   /** Live offset while dragging an existing dimension in the Selection tool. */
   dimensionOffsetGhost?: { id: string; offset: number } | null
   marquee: { from: Point; to: Point } | null
@@ -268,6 +282,10 @@ export class PlanEngine {
   private polylinePoints: Array<[number, number]> = []
   /** Start point of a dimension-line-tool drawing session. */
   private dimensionStart: Point | null = null
+  /** Second point once placed: the dimension is then in its "pull out the offset" stage. */
+  private dimensionEnd: Point | null = null
+  /** Dimension hovered by the Selection tool (set from the pointer handler). */
+  private hoveredDimensionId: string | null = null
   /** Snap hysteresis of the dimension's second point (see wallSnapState). */
   private dimensionSnapState: { lengthMajor: boolean; angleLockedDeg: number | null } | null = null
   /** Live offset preview while dragging a dimension's offset line. */
@@ -397,7 +415,22 @@ export class PlanEngine {
 
   /** True while typed exact lengths are accepted (wall chain or dimension's second point). */
   acceptsTypedLength(): boolean {
-    return this.isDrawingWall() || this.isDrawingDimension()
+    return this.isDrawingWall() || this.dimensionStage() === 'end'
+  }
+
+  /** Which of the dimension tool's three clicks is next (null = not in the dimension tool). */
+  dimensionStage(): DimensionStage | null {
+    if (this.tool !== 'dimensionLine') return null
+    if (!this.isDrawingDimension()) return 'start'
+    return this.dimensionEnd ? 'offset' : 'end'
+  }
+
+  getHoveredDimension(): string | null {
+    return this.hoveredDimensionId
+  }
+
+  setHoveredDimension(id: string | null): void {
+    this.hoveredDimensionId = id
   }
 
   /** Digits typed so far for an exact wall length (null when none). */
@@ -678,7 +711,7 @@ export class PlanEngine {
     if (this.tool === 'wall' && this.phase === 'drawing') {
       this.detectClosurePreview({ x, y }, true)
     }
-    if (this.isDrawingDimension()) this.resolveDimensionCursor({ x, y }, true)
+    if (this.dimensionStage() === 'end') this.resolveDimensionCursor({ x, y }, true)
   }
 
   getLastMove(): Point | null {
@@ -780,18 +813,39 @@ export class PlanEngine {
     this.syncInteractiveCursor()
     let dim: PlanPreview['dimensionLine'] = null
     let dimensionHover: PlanPreview['dimensionHover'] = null
-    if (this.tool === 'dimensionLine' && this.lastMove) {
-      const resolved = this.resolveDimensionCursor(this.lastMove, false)
-      if (this.dimensionStart && this.phase === 'drawing') {
+    const stage = this.dimensionStage()
+    if (stage && this.lastMove) {
+      if (stage === 'offset') {
+        const start = this.dimensionStart!
+        const end = this.dimensionEnd!
         dim = {
-          start: this.dimensionStart,
+          start,
+          end,
+          length: distance(start, end),
+          offset: this.resolveDimensionPlacementOffset(this.lastMove),
+          stage: 'offset',
+          anchor: null,
+        }
+      } else if (stage === 'end') {
+        const start = this.dimensionStart!
+        const resolved = this.resolveDimensionCursor(this.lastMove, false)
+        dim = {
+          start,
           end: resolved.point,
-          length: distance(this.dimensionStart, resolved.point),
-          snap: this.dimensionReadout(this.dimensionStart, resolved),
+          length: distance(start, resolved.point),
+          offset: 0,
+          stage: 'end',
+          snap: this.dimensionReadout(start, resolved),
           anchor: resolved.anchor,
         }
       } else {
-        dimensionHover = { point: resolved.point, anchor: resolved.anchor }
+        const resolved = this.resolveDimensionCursor(this.lastMove, false)
+        dimensionHover = {
+          point: resolved.point,
+          anchor: resolved.anchor,
+          anchors: this.dimensionAnchors(),
+          candidate: resolved.anchor ? null : this.dimensionCandidateAt(this.lastMove),
+        }
       }
     }
     // Wall chain: the live segment resolves through the SAME solver as the
@@ -820,6 +874,7 @@ export class PlanEngine {
       polylinePoints: this.polylinePoints.map(([x, y]) => [x, y] as [number, number]),
       dimensionLine: dim,
       dimensionHover,
+      dimensionHoverId: this.tool === 'selection' ? this.hoveredDimensionId : null,
       dimensionOffsetGhost: this.dimensionOffsetGhost,
       marquee:
         this._marqueeActive && this.marqueeFrom && this.marqueeTo
@@ -1529,6 +1584,9 @@ export class PlanEngine {
       if ((key === 'backspace' || key === 'delete') && this.isDrawingDimension()) {
         if (this.typedLengthBuffer !== null && this.typedLengthBuffer !== '') {
           this.backspaceTypedLength()
+        } else if (this.dimensionEnd) {
+          // Pulling out the offset: step back to choosing the second point.
+          this.dimensionEnd = null
         } else {
           this.cancelDimensionLine()
         }
@@ -2510,30 +2568,101 @@ export class PlanEngine {
     }
   }
 
+  /**
+   * Wall (or room side) a plain click would dimension in one go, with the
+   * offset it would be placed at. Null when the click would instead start a
+   * dimension: Alt (free), an anchor within reach, or nothing under the cursor.
+   */
+  private dimensionCandidateAt(cursor: Point): (DimensionCandidate & { offset: number }) | null {
+    const eff = this.effectiveModifiers(this.gestureInput)
+    if (eff.alt || this.typedLengthBuffer !== null) return null
+    const home = this.homeSnapshot()
+    const walls = home.walls.filter((w) => this.matchesActiveLevel(w.levelRef))
+    const rooms = home.rooms.filter((r) => this.matchesActiveLevel(r.levelRef))
+    const margin = endpointSnapMargin()
+    const candidate = findDimensionCandidate(cursor, { walls, rooms }, margin)
+    if (!candidate) return null
+    let centre: Point | null = null
+    if (walls.length > 0) {
+      centre = {
+        x: walls.reduce((sum, w) => sum + (w.xStart + w.xEnd) / 2, 0) / walls.length,
+        y: walls.reduce((sum, w) => sum + (w.yStart + w.yEnd) / 2, 0) / walls.length,
+      }
+    }
+    // A wall's own body is the click target, so the cursor says nothing about
+    // the side: go outward. A room side is clicked on its outline, where
+    // the cursor's side is a deliberate choice.
+    const tolerance = candidate.source === 'wall' ? Number.POSITIVE_INFINITY : margin / 2
+    return { ...candidate, offset: candidateOffset(candidate, cursor, centre, tolerance) }
+  }
+
+  /** Offset the dimension takes if placed with the cursor at `cursor` (stepped, Alt = raw). */
+  private resolveDimensionPlacementOffset(cursor: Point): number {
+    const eff = this.effectiveModifiers(this.gestureInput)
+    const mode = resolveSnapMode({ shift: eff.shift, alt: eff.alt }, this.magnetismEnabled)
+    const raw = perpendicularOffset(this.dimensionStart!, this.dimensionEnd!, cursor)
+    return snapDimensionOffset(raw, { unit: this.wallUnit, mode, fine: eff.fine })
+  }
+
+  /**
+   * Three clicks, like every CAD dimension tool: first point, second point,
+   * then pull the line out to its offset and click to place it. A click on a
+   * wall (or room side) with no anchor in reach dimensions it in one go.
+   */
   private dimensionLineClick(point: Point): void {
-    if (this.phase === 'idle') {
-      const pt = this.resolveDimensionCursor(point, false).point
-      this.dimensionStart = pt
+    const stage = this.dimensionStage()
+    if (stage === 'offset') {
+      this.finishDimension(this.resolveDimensionPlacementOffset(point))
+      return
+    }
+    const resolved = this.resolveDimensionCursor(point, false)
+    if (stage === 'start') {
+      const candidate = resolved.anchor ? null : this.dimensionCandidateAt(point)
+      if (candidate) {
+        this.dimensionStart = candidate.start
+        this.dimensionEnd = candidate.end
+        this.finishDimension(candidate.offset)
+        return
+      }
+      this.dimensionStart = resolved.point
       this.dimensionSnapState = null
       this.typedLengthBuffer = null
-      this.chainStart = pt
+      this.chainStart = resolved.point
       this.phase = 'drawing'
       return
     }
-    // A pending typed length wins over the click position: the click only
-    // supplies the direction (same contract as the wall tool).
-    const pt = this.resolveDimensionCursor(point, false).point
-    this.finishDimension(pt)
+    // stage 'end': a pending typed length wins over the click position (the
+    // click only supplies the direction, same contract as the wall tool).
+    this.placeDimensionEnd(resolved.point)
   }
 
-  /** Enter with a typed value: dimension of EXACTLY that length along the live snapped direction. */
+  private placeDimensionEnd(end: Point): void {
+    if (distance(this.dimensionStart!, end) <= EPSILON) {
+      // Same point twice: nothing to measure, drop the half-placed dimension.
+      this.cancelDimensionLine()
+      return
+    }
+    this.dimensionEnd = end
+    this.dimensionSnapState = null
+    this.typedLengthBuffer = null
+  }
+
+  /**
+   * Enter in the dimension tool. With a typed value (second-point stage): a
+   * dimension of EXACTLY that length along the live snapped direction, which
+   * moves on to the offset stage. In the offset stage: place it at the live offset.
+   */
   private commitTypedDimension(): boolean {
+    if (this.dimensionStage() === 'offset') {
+      this.finishDimension(this.resolveDimensionPlacementOffset(this.lastMove ?? this.dimensionEnd!))
+      return true
+    }
     const buffer = this.typedLengthBuffer
     this.typedLengthBuffer = null
     if (buffer === null) return false
-    const lengthCm = this.parseTypedCm(buffer)
+    const lengthCm = typedLengthToCm(buffer, this.wallUnit)
     const start = this.dimensionStart!
-    if (!(lengthCm > 0)) return true
+    if (lengthCm === null || !(lengthCm > 0)) return true
     const cursor = this.lastMove ?? start
     const eff = this.effectiveModifiers(this.gestureInput)
     const snap = snapWallSegment({
@@ -2548,23 +2677,13 @@ export class PlanEngine {
     let end = snap.end
     // Still cursor on the start: lay it due east, like the wall tool.
     if (distance(end, start) <= EPSILON) end = { x: start.x + lengthCm, y: start.y }
-    this.finishDimension(end)
+    this.placeDimensionEnd(end)
     return true
   }
 
-  private parseTypedCm(buffer: string): number {
-    const parsed = parseFloat(buffer)
-    if (!Number.isFinite(parsed)) return 0
-    return this.wallUnit === 'inch' ? parsed * 2.54 : parsed
-  }
-
-  private finishDimension(end: Point): void {
+  private finishDimension(offset: number): void {
     const start = this.dimensionStart!
-    if (distance(start, end) <= EPSILON) {
-      // Same point twice: nothing to measure, drop the half-placed dimension.
-      this.cancelDimensionLine()
-      return
-    }
+    const end = this.dimensionEnd!
     this.cancelDimensionLine()
     this.model.getStore().beginCompoundEdit()
     const dim = this.model.addDimensionLine({
@@ -2572,7 +2691,7 @@ export class PlanEngine {
       yStart: start.y,
       xEnd: end.x,
       yEnd: end.y,
-      offset: 0,
+      offset,
       levelRef: this.activeLevelId ?? undefined,
     })
     this.model.setSelection([dim.id])
@@ -2581,6 +2700,7 @@ export class PlanEngine {
 
   private cancelDimensionLine(): void {
     this.dimensionStart = null
+    this.dimensionEnd = null
     this.dimensionSnapState = null
     this.typedLengthBuffer = null
     this.chainStart = null
