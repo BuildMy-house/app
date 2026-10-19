@@ -679,11 +679,16 @@ export function drawPlan(
     const areaCm2 = shoelaceArea(room.points)
     const areaM2 = (areaCm2 / 10000).toFixed(2)
 
-    ctx.fillStyle = '#5577aa'
-    ctx.font = '12px sans-serif'
+    // Readable on any floor texture: dark label on a light pill.
+    const areaText = `${areaM2} m²`
+    ctx.font = 'bold 12px sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(`${areaM2} m²`, mapper.sx(centroidX), mapper.sy(centroidY))
+    const labelW = ctx.measureText(areaText).width + 10
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.82)'
+    ctx.fillRect(mapper.sx(centroidX) - labelW / 2, mapper.sy(centroidY) - 9, labelW, 18)
+    ctx.fillStyle = '#2b4a7a'
+    ctx.fillText(areaText, mapper.sx(centroidX), mapper.sy(centroidY))
     ctx.textAlign = 'start'
     ctx.textBaseline = 'alphabetic'
 
