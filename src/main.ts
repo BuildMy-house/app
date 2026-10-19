@@ -10,6 +10,7 @@ import { FurnitureCatalog } from './core/catalog'
 import { catalogFromManifest, loadDefaultCatalog, readCachedManifest } from './core/catalog-service'
 import { isMultiLevelEnabled } from './config/feature-flags'
 import { CatalogPanel } from './ui/catalog-panel'
+import { isToolShortcutEvent, isTypingTarget, isMacPlatform, shortcutTooltip, tooltipFor } from './ui/tool-hotkeys'
 import { PlanEngine, type PlanPreview, type PlanTool } from './plan/engine'
 import { snapFurniturePlacement } from './plan/furniture-snap'
 import { ViewMapper, drawPlan, fitToBounds, type PlanRenderingContext, type ViewTransform } from './plan/renderer'
@@ -567,16 +568,16 @@ function switchTool(tool: PlanTool): void {
 function buildToolbar(): void {
   toolbar.innerHTML = `
     <div class="tool-group">
-      <button class="tool-btn" id="btn-catalog" title="Furniture catalog (F)">Furniture</button>
-      <button class="tool-btn" data-tool="selection" title="Selection (V)">Select</button>
-      <button class="tool-btn" data-tool="wall" title="Wall tool (W)">Wall</button>
-      <button class="tool-btn" data-tool="dimensionLine" title="Dimension tool">Dim</button>
-      <button class="tool-btn" data-tool="label" title="Text tool">Text</button>
+      <button class="tool-btn" id="btn-catalog" title="${tooltipFor('furniture')}">Furniture</button>
+      <button class="tool-btn" data-tool="selection" title="${tooltipFor('selection')}">Select</button>
+      <button class="tool-btn" data-tool="wall" title="${tooltipFor('wall', 'Shift 15° lock, Alt free, Ctrl/Cmd fine')}">Wall</button>
+      <button class="tool-btn" data-tool="dimensionLine" title="${tooltipFor('dimensionLine')}">Dim</button>
+      <button class="tool-btn" data-tool="label" title="${tooltipFor('label')}">Text</button>
     </div>
     <div class="tool-separator"></div>
     <div class="tool-group">
-      <button class="tool-btn" id="btn-undo" title="Undo (Ctrl+Z)">Undo</button>
-      <button class="tool-btn" id="btn-redo" title="Redo (Ctrl+Y)">Redo</button>
+      <button class="tool-btn" id="btn-undo" title="${shortcutTooltip('Undo', ['ctrl', 'z'], isMacPlatform())}">Undo</button>
+      <button class="tool-btn" id="btn-redo" title="${shortcutTooltip('Redo', ['ctrl', 'y'], isMacPlatform())}">Redo</button>
     </div>
     <div class="tool-separator"></div>
     <span class="toolbar-label" id="level-group-label">Floor:</span>
@@ -1356,12 +1357,8 @@ window.addEventListener('keydown', (event) => {
   // Typing in a text field (auth dialog, props panel, …) must keep native
   // editing — Backspace, Space, letters, Ctrl+A/Z — so skip every shortcut.
   const target = event.target instanceof HTMLElement ? event.target : null
-  if (target && (
-    target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' ||
-    target.isContentEditable ||
-    // Any focus inside a modal dialog: plan shortcuts (Delete, arrows, f…) must not act on the scene behind it.
-    target.closest('.prefs-overlay, dialog, [role="dialog"]')
-  )) return
+  // Includes any focus inside a modal dialog / prefs overlay.
+  if (isTypingTarget(event.target)) return
   // Space on a focused button/link activates it natively — don't hijack it for pan.
   if (event.key === ' ' && target && (target.tagName === 'BUTTON' || target.tagName === 'A' || target.tagName === 'SUMMARY')) return
   if ((event.ctrlKey || event.metaKey) && shortcutKey === 'z' && !event.shiftKey) {
@@ -1422,15 +1419,6 @@ window.addEventListener('keydown', (event) => {
     }
   }
 
-  // Tool shortcuts V/W — bare keys only, so Ctrl+V paste and Alt combos are
-  // unaffected; skipped while typing in a text input (isInput guard above).
-  if (!event.ctrlKey && !event.metaKey && !event.altKey &&
-      (shortcutKey === 'v' || shortcutKey === 'w') ) {
-    event.preventDefault()
-    switchTool(shortcutKey === 'v' ? 'selection' : 'wall')
-    return
-  }
-
   if (event.key === ' ' && !event.repeat) {
     event.preventDefault()
     spaceHeld = true
@@ -1438,11 +1426,18 @@ window.addEventListener('keydown', (event) => {
     return
   }
 
-  if (event.key === 'f' || event.key === 'F') {
+  // Tool shortcuts — one dispatch driven by the registry in ui/tool-hotkeys.
+  // Bare keys only (modifiers belong to snapping and Ctrl/Cmd shortcuts).
+  const toolHotkey = isToolShortcutEvent(event)
+  if (toolHotkey) {
     event.preventDefault()
-    catalogHost.classList.toggle('collapsed')
-    resizeCanvas()
-    refreshStatus()
+    if (toolHotkey.id === 'furniture') {
+      catalogHost.classList.toggle('collapsed')
+      resizeCanvas()
+      refreshStatus()
+    } else {
+      switchTool(toolHotkey.id as PlanTool)
+    }
     return
   }
 
