@@ -19,7 +19,8 @@ describe('dimension tool: snapping', () => {
     model.addWall({ xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 10, height: 250 })
     engine.click({ x: 3, y: -2 })
     engine.click({ x: 400, y: 0 })
-    expect(dims(store)[0]).toMatchObject({ xStart: 0, yStart: 0, xEnd: 400, yEnd: 0 })
+    engine.click({ x: 0, y: 0, altOrMeta: true })
+        expect(dims(store)[0]).toMatchObject({ xStart: 0, yStart: 0, xEnd: 400, yEnd: 0 })
   })
 
   it('snaps onto a wall midpoint', () => {
@@ -27,7 +28,8 @@ describe('dimension tool: snapping', () => {
     model.addWall({ xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 10, height: 250 })
     engine.click({ x: 0, y: 0 })
     engine.click({ x: 198, y: 3 })
-    expect(dims(store)[0]).toMatchObject({ xEnd: 200, yEnd: 0 })
+    engine.click({ x: 0, y: 0, altOrMeta: true })
+        expect(dims(store)[0]).toMatchObject({ xEnd: 200, yEnd: 0 })
   })
 
   it('second point steps length to 10 cm and locks the axis', () => {
@@ -35,7 +37,8 @@ describe('dimension tool: snapping', () => {
     engine.setGridSnap(false)
     engine.click({ x: 1000, y: 1000 })
     engine.click({ x: 1347, y: 1004 })
-    const d = dims(store)[0]!
+    engine.click({ x: 0, y: 0, altOrMeta: true })
+        const d = dims(store)[0]!
     expect(d.yEnd).toBe(1000)
     expect(Math.round(d.xEnd - d.xStart) % 10).toBe(0)
   })
@@ -45,7 +48,8 @@ describe('dimension tool: snapping', () => {
     engine.setGridSnap(false)
     engine.click({ x: 1000, y: 1000 })
     engine.click({ x: 1347, y: 1004, altOrMeta: true })
-    const d = dims(store)[0]!
+    engine.click({ x: 0, y: 0, altOrMeta: true })
+        const d = dims(store)[0]!
     expect([d.xEnd, d.yEnd]).toEqual([1347, 1004])
   })
 
@@ -69,6 +73,8 @@ describe('dimension tool: typed value, cancel, undo-point', () => {
     for (const ch of '237.5') expect(engine.typeLengthChar(ch)).toBe(true)
     expect(engine.getTypedLength()).toBe('237.5')
     expect(engine.commitTypedLength()).toBe(true)
+    expect(engine.dimensionStage()).toBe('offset')
+    expect(engine.commitTypedLength()).toBe(true)
     const d = dims(store)[0]!
     expect(Math.hypot(d.xEnd - d.xStart, d.yEnd - d.yStart)).toBeCloseTo(237.5, 6)
     expect(engine.getPreview().phase).toBe('idle')
@@ -81,6 +87,7 @@ describe('dimension tool: typed value, cancel, undo-point', () => {
     engine.click({ x: 0, y: 0 })
     engine.moveMouse(500, 0)
     for (const ch of '100') engine.typeLengthChar(ch)
+    engine.commitTypedLength()
     engine.commitTypedLength()
     const d = dims(store)[0]!
     expect(d.xEnd - d.xStart).toBeCloseTo(254, 6)
@@ -165,5 +172,92 @@ describe('dimension tool: select, hit-test and offset drag', () => {
     expect(engine.getPreview().dimensionOffsetGhost).toEqual({ id: d.id, offset: 30 })
     engine.endDragPreview()
     expect(engine.getPreview().dimensionOffsetGhost).toBeNull()
+  })
+})
+
+describe('dimension tool: one-click wall, offset stage', () => {
+  const wallsAround = (model: HomeModel) => {
+    model.addWall({ xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 10, height: 250 })
+    model.addWall({ xStart: 400, yStart: 0, xEnd: 400, yEnd: 300, thickness: 10, height: 250 })
+    model.addWall({ xStart: 400, yStart: 300, xEnd: 0, yEnd: 300, thickness: 10, height: 250 })
+    model.addWall({ xStart: 0, yStart: 300, xEnd: 0, yEnd: 0, thickness: 10, height: 250 })
+  }
+
+  it('a plain click on a wall body dimensions it in one go, outside the building', () => {
+    const { model, engine, store } = setup()
+    wallsAround(model)
+    engine.moveMouse(90, 2)
+    expect(engine.getPreview().dimensionHover?.candidate?.source).toBe('wall')
+    engine.click({ x: 90, y: 2 })
+    expect(dims(store)).toHaveLength(1)
+    const d = dims(store)[0]!
+    expect([d.xStart, d.yStart, d.xEnd, d.yEnd]).toEqual([0, 0, 400, 0])
+    expect(d.offset).toBeLessThan(0) // top wall: outward is up (negative y)
+    expect(store.getHome().selection).toEqual([d.id])
+  })
+
+  it('a click on an anchor still starts a manual dimension (anchor wins over the candidate)', () => {
+    const { model, engine, store } = setup()
+    wallsAround(model)
+    engine.click({ x: 200, y: 0 }) // wall midpoint anchor
+    expect(dims(store)).toHaveLength(0)
+    expect(engine.dimensionStage()).toBe('end')
+  })
+
+  it('Alt disables the one-click wall shortcut', () => {
+    const { model, engine, store } = setup()
+    wallsAround(model)
+    engine.click({ x: 90, y: 2, altOrMeta: true })
+    expect(dims(store)).toHaveLength(0)
+    expect(engine.dimensionStage()).toBe('end')
+  })
+
+  it('stage walks start -> end -> offset -> start', () => {
+    const { engine } = setup()
+    expect(engine.dimensionStage()).toBe('start')
+    engine.setMagnetism(false)
+    engine.click({ x: 0, y: 0 })
+    expect(engine.dimensionStage()).toBe('end')
+    engine.click({ x: 300, y: 0 })
+    expect(engine.dimensionStage()).toBe('offset')
+    engine.moveMouse(150, -20)
+    expect(engine.getPreview().dimensionLine?.stage).toBe('offset')
+    engine.click({ x: 150, y: -70 })
+    expect(engine.dimensionStage()).toBe('start')
+  })
+
+  it('the offset stage follows the cursor perpendicular and Enter places it there', () => {
+    const { engine, store } = setup()
+    engine.setMagnetism(false)
+    engine.click({ x: 0, y: 0 })
+    engine.click({ x: 300, y: 0 })
+    engine.moveMouse(150, 62)
+    const live = engine.getPreview().dimensionLine!.offset
+    expect(live).toBeGreaterThan(50)
+    engine.commitTypedLength()
+    expect(dims(store)[0]!.offset).toBe(live)
+  })
+
+  it('Backspace in the offset stage returns to the end stage; again drops the start; Escape cancels all', () => {
+    const { engine, store } = setup()
+    engine.setMagnetism(false)
+    engine.click({ x: 0, y: 0 })
+    engine.click({ x: 300, y: 0 })
+    engine.key('backspace')
+    expect(engine.dimensionStage()).toBe('end')
+    engine.click({ x: 300, y: 0 })
+    engine.key('escape')
+    expect(engine.dimensionStage()).toBe('start')
+    expect(dims(store)).toHaveLength(0)
+  })
+
+  it('hover id highlights a committed dimension in the selection tool', () => {
+    const { model, engine } = setup()
+    const d = model.addDimensionLine({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, offset: 20 })
+    engine.setHoveredDimension(d.id)
+    expect(engine.getHoveredDimension()).toBe(d.id)
+    engine.setTool('selection')
+    engine.setHoveredDimension(null)
+    expect(engine.getHoveredDimension()).toBeNull()
   })
 })

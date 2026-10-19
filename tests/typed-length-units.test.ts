@@ -62,6 +62,7 @@ describe('typed length: dimension tool preview and commit agree per unit', () =>
     type(engine, '237')
     expect(engine.getPreview().dimensionLine!.length).toBeCloseTo(237, 6)
     engine.commitTypedLength()
+    engine.commitTypedLength()
     const d = store.getHome().dimensionLines[0]!
     expect(Math.hypot(d.xEnd - d.xStart, d.yEnd - d.yStart)).toBeCloseTo(237, 6)
   })
@@ -70,6 +71,7 @@ describe('typed length: dimension tool preview and commit agree per unit', () =>
     const { engine, store } = setup('dimensionLine', 'inch')
     type(engine, '100')
     expect(engine.getPreview().dimensionLine!.length).toBeCloseTo(254, 6)
+    engine.commitTypedLength()
     engine.commitTypedLength()
     const d = store.getHome().dimensionLines[0]!
     expect(Math.hypot(d.xEnd - d.xStart, d.yEnd - d.yStart)).toBeCloseTo(254, 6)

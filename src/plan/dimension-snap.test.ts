@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  candidateOffset,
   collectDimensionAnchors,
   dimensionGeometry,
   distanceToDimension,
+  findDimensionCandidate,
   nearestAnchor,
   perpendicularOffset,
   resolveDimensionPoint,
@@ -122,5 +124,48 @@ describe('dimension geometry and hit distance', () => {
 
   it('hits the extension lines', () => {
     expect(distanceToDimension({ x: 0, y: 25 }, dim)).toBe(0)
+  })
+})
+
+describe('findDimensionCandidate', () => {
+  const src = {
+    walls: [{ xStart: 0, yStart: 0, xEnd: 400, yEnd: 0, thickness: 10 }],
+    rooms: [{ points: [[0, 100], [300, 100], [300, 250]] as Array<[number, number]> }],
+  }
+
+  it('matches anywhere over a wall body plus margin', () => {
+    expect(findDimensionCandidate({ x: 120, y: 5 }, src, 8)?.source).toBe('wall')
+    expect(findDimensionCandidate({ x: 120, y: 13 }, src, 8)?.source).toBe('wall')
+    expect(findDimensionCandidate({ x: 120, y: 14 }, src, 8)).toBeNull()
+  })
+
+  it('falls back to a room side only within the margin, and prefers walls', () => {
+    const c = findDimensionCandidate({ x: 150, y: 103 }, src, 8)
+    expect(c?.source).toBe('room')
+    expect(c?.start).toEqual({ x: 0, y: 100 })
+    expect(findDimensionCandidate({ x: 150, y: 120 }, src, 8)).toBeNull()
+  })
+
+  it('skips curved walls', () => {
+    const arc = { walls: [{ ...src.walls[0]!, arcExtent: 90 }], rooms: [] }
+    expect(findDimensionCandidate({ x: 120, y: 0 }, arc, 8)).toBeNull()
+  })
+})
+
+describe('candidateOffset', () => {
+  const top = { start: { x: 0, y: 0 }, end: { x: 400, y: 0 }, source: 'wall' as const }
+
+  it('goes away from the plan centre by default', () => {
+    expect(candidateOffset(top, { x: 100, y: 0 }, { x: 200, y: 150 }, 20)).toBe(-40)
+    expect(candidateOffset({ ...top, start: top.end, end: top.start }, { x: 100, y: 0 }, { x: 200, y: 150 }, 20)).toBe(40)
+  })
+
+  it('a cursor clearly to one side picks that side', () => {
+    expect(candidateOffset(top, { x: 100, y: 30 }, { x: 200, y: 150 }, 20)).toBe(40)
+    expect(candidateOffset(top, { x: 100, y: -30 }, { x: 200, y: -150 }, 20)).toBe(-40)
+  })
+
+  it('falls back to +gap with no centre', () => {
+    expect(candidateOffset(top, { x: 100, y: 0 }, null, 20)).toBe(40)
   })
 })
