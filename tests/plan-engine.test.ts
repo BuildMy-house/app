@@ -14,6 +14,7 @@ import {
   pointWithAngleMagnetism,
   wallPointMagnetism,
 } from '../src/plan/magnetism'
+import { ViewMapper } from '../src/plan/renderer'
 
 function setup() {
   const store = new HomeStore()
@@ -51,12 +52,14 @@ describe('wall tool state machine', () => {
     const { engine, click } = setup()
     engine.setTool('wall')
     click(0, 0)
-    engine.moveMouse(125, 80)
+    // Small-y cursor keeps the soft angle snap on the 0° axis and the 10cm
+    // length step exact, so the snapped preview end is predictable.
+    engine.moveMouse(120, 2)
 
     expect(engine.getPreview().wallLine).toEqual({
       start: { x: 0, y: 0 },
-      end: { x: 125, y: 80 },
-      length: Math.hypot(125, 80),
+      end: { x: 120, y: 0 },
+      length: 120,
     })
   })
 
@@ -330,9 +333,11 @@ describe('magnetism', () => {
     engine.setMagnetism(true)
     engine.setGridSnap(false)
     click(0, 0)
+    // 103cm cursor now falls onto the 10cm length step (was raw 103 under the
+    // pre-snapWallSegment integer-length magnetizer).
     click(103, 1)
     engine.key('escape')
-    expect(wallGraph(store)).toEqual([[0, 0, 103, 0]])
+    expect(wallGraph(store)).toEqual([[0, 0, 100, 0]])
   })
 
   it('set_magnetism toggles the flag used by segment resolution', () => {
@@ -1624,5 +1629,168 @@ describe('wall chain backspace (removeLastChainPoint)', () => {
     engine.setTool('selection')
     expect(engine.removeLastChainPoint()).toBe(false)
     expect(store.getHome().walls).toHaveLength(1)
+  })
+})
+
+describe('modifier keys: Shift hard lock / Alt bypass', () => {
+  it('body-drag shift locks translation to the nearest 15° multiple', () => {
+    const { engine, drag, model, store } = setup()
+    engine.setMagnetism(false)
+    engine.setGridSnap(false)
+    model.addWall({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7 })
+    // off-axis delta (300, 30): direction ~5.7° → nearest multiple 0° → dy 0
+    drag(50, 0, 350, 30, { shift: true })
+    const wall = store.getHome().walls[0]!
+    expect(wall.yStart).toBe(0)
+    expect(wall.yEnd).toBe(0)
+    expect(wall.xStart).toBeCloseTo(0 + Math.hypot(300, 30), 9)
+    expect(wall.xEnd).toBeCloseTo(100 + Math.hypot(300, 30), 9)
+  })
+
+  it('body-drag shift rounds a steeper off-axis delta up to the 15° multiple', () => {
+    const { engine, drag, model, store } = setup()
+    engine.setMagnetism(false)
+    engine.setGridSnap(false)
+    model.addWall({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7 })
+    // delta (300, 40): 7.6° > 7.5° half-step → locks to the 15° ray
+    drag(50, 0, 350, 40, { shift: true })
+    const wall = store.getHome().walls[0]!
+    const length = Math.hypot(300, 40)
+    expect(wall.yStart).toBeCloseTo(length * Math.sin(Math.PI / 12), 9)
+    expect(wall.yEnd).toBeCloseTo(length * Math.sin(Math.PI / 12), 9)
+    expect(wall.xEnd - wall.xStart).toBeCloseTo(100, 9)
+  })
+
+  it('body-drag with altOrMeta applies the raw delta even with magnetism on', () => {
+    const { engine, drag, model, store } = setup()
+    engine.setMagnetism(true)
+    engine.setGridSnap(true)
+    model.addWall({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7 })
+    drag(50, 0, 350, 40, { altOrMeta: true })
+    const wall = store.getHome().walls[0]!
+    expect(wall.xStart).toBe(300)
+    expect(wall.yStart).toBe(40)
+    expect(wall.xEnd).toBe(400)
+    expect(wall.yEnd).toBe(40)
+  })
+
+  it('endpoint drag with shift hard-locks to 15° even with magnetism toggled off', () => {
+    const { engine, drag, model, store } = setup()
+    engine.setMagnetism(false)
+    model.addWall({ xStart: 0, yStart: 0, xEnd: 300, yEnd: 0, thickness: 7 })
+    // drag the (300,0) end by (300, 30): ~5.7° → locks to 0°, length 600.75 → 601
+    drag(300, 0, 600, 30, { shift: true })
+    const wall = store.getHome().walls[0]!
+    expect(wall.yEnd).toBe(0)
+    expect(wall.xEnd).toBe(601)
+  })
+
+  it('endpoint drag with altOrMeta bypasses magnetism AND grid snap', () => {
+    const { engine, drag, model, store } = setup()
+    engine.setMagnetism(true)
+    engine.setGridSnap(true, 10)
+    model.addWall({ xStart: 0, yStart: 0, xEnd: 300, yEnd: 0, thickness: 7 })
+    drag(300, 0, 617, 43, { altOrMeta: true })
+    const wall = store.getHome().walls[0]!
+    expect(wall.xEnd).toBe(617)
+    expect(wall.yEnd).toBe(43)
+  })
+
+  it('endpoint drag with magnetism off and no modifiers keeps the raw grid-snapped point', () => {
+    const { engine, drag, model, store } = setup()
+    engine.setMagnetism(false)
+    engine.setGridSnap(false)
+    model.addWall({ xStart: 0, yStart: 0, xEnd: 300, yEnd: 0, thickness: 7 })
+    drag(300, 0, 617, 43, {})
+    const wall = store.getHome().walls[0]!
+    expect(wall.xEnd).toBe(617)
+    expect(wall.yEnd).toBe(43)
+  })
+
+  it('wall drawing with setModifierKeys({shift:true}) lands exactly on the 90° ray', () => {
+    const { engine, click, store } = setup()
+    engine.setTool('wall')
+    engine.setModifierKeys({ shift: true })
+    click(0, 0)
+    // ~86.6° → locks to 90°, length 500.9 → 10cm step under snapWallSegment
+    // (was raw 501 pre-integration) → (0, 500) exactly
+    click(30, 500)
+    engine.setModifierKeys({ shift: false })
+    const wall = store.getHome().walls[0]!
+    expect(wall.xEnd).toBe(0)
+    expect(wall.yEnd).toBe(500)
+  })
+
+  it('wall drawing is unchanged by default (soft magnetism path)', () => {
+    const { engine, click, store } = setup()
+    engine.setTool('wall')
+    engine.setMagnetism(false)
+    engine.setGridSnap(false)
+    click(0, 0)
+    click(125, 80)
+    const wall = store.getHome().walls[0]!
+    expect(wall.xEnd).toBe(125)
+    expect(wall.yEnd).toBe(80)
+  })
+})
+
+describe('live drag preview (previewDrag)', () => {
+  it('marquee updates live with a stable `from` and mutates nothing', () => {
+    const { engine, store, model } = setup()
+    model.addWall({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7 })
+    const revisionBefore = store.getRevision()
+
+    engine.previewDrag({ x: -50, y: -50 }, { x: 20, y: 20 })
+    expect(engine.getPreview().marquee).toEqual({ from: { x: -50, y: -50 }, to: { x: 20, y: 20 } })
+
+    engine.previewDrag({ x: -50, y: -50 }, { x: 150, y: 60 })
+    expect(engine.getPreview().marquee).toEqual({ from: { x: -50, y: -50 }, to: { x: 150, y: 60 } })
+
+    expect(store.getRevision()).toBe(revisionBefore)
+    expect(store.getHome().selection).toHaveLength(0)
+
+    // release-time drag applies the selection for the final rect
+    engine.drag({ fromX: -50, fromY: -50, toX: 150, toY: 60 })
+    const wallId = store.getHome().walls[0]!.id
+    expect(store.getHome().selection).toContain(wallId)
+  })
+
+  it('ghosts the hard-locked endpoint drag without model edits', () => {
+    const { engine, store, model } = setup()
+    engine.setMagnetism(false)
+    engine.setGridSnap(false)
+    model.addWall({ xStart: 0, yStart: 0, xEnd: 300, yEnd: 0, thickness: 7 })
+    const revisionBefore = store.getRevision()
+
+    engine.previewDrag({ x: 300, y: 0 }, { x: 600, y: 30 }, { shift: true })
+    expect(engine.getPreview().wallDragGhost).toEqual({ x1: 0, y1: 0, x2: 601, y2: 0 })
+    expect(store.getRevision()).toBe(revisionBefore)
+
+    // committing clears the ghost
+    engine.drag({ fromX: 300, fromY: 0, toX: 600, toY: 30, shift: true })
+    expect(engine.getPreview().wallDragGhost).toBeNull()
+  })
+
+  it('ghosts the locked body-drag delta as the translated wall centerline', () => {
+    const { engine, model } = setup()
+    engine.setMagnetism(false)
+    engine.setGridSnap(false)
+    model.addWall({ xStart: 0, yStart: 0, xEnd: 100, yEnd: 0, thickness: 7 })
+    engine.previewDrag({ x: 50, y: 0 }, { x: 350, y: 30 }, { shift: true })
+    expect(engine.getPreview().wallDragGhost).toEqual({
+      x1: 50,
+      y1: 0,
+      x2: 50 + Math.hypot(300, 30),
+      y2: 0,
+    })
+  })
+
+  it('ViewMapper round-trips model↔canvas consistently (marquee/hit-test parity)', () => {
+    const mapper = new ViewMapper({ scale: 2, offsetX: 100, offsetY: 50 })
+    const model = { x: 37.5, y: -12.25 }
+    const canvasPoint = { x: mapper.sx(model.x), y: mapper.sy(model.y) }
+    const roundTripped = mapper.toModel(canvasPoint.x, canvasPoint.y)
+    expect(roundTripped.x).toBeCloseTo(model.x, 9)
+    expect(roundTripped.y).toBeCloseTo(model.y, 9)
   })
 })

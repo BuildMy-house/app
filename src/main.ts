@@ -10,6 +10,7 @@ import { FurnitureCatalog } from './core/catalog'
 import { catalogFromManifest, loadDefaultCatalog, readCachedManifest } from './core/catalog-service'
 import { isMultiLevelEnabled } from './config/feature-flags'
 import { CatalogPanel } from './ui/catalog-panel'
+import { isToolShortcutEvent, isTypingTarget, isMacPlatform, shortcutTooltip, tooltipFor } from './ui/tool-hotkeys'
 import { PlanEngine, type PlanPreview, type PlanTool } from './plan/engine'
 import { snapFurniturePlacement } from './plan/furniture-snap'
 import { ViewMapper, drawPlan, fitToBounds, type PlanRenderingContext, type ViewTransform } from './plan/renderer'
@@ -91,6 +92,7 @@ root.innerHTML = `
     <span id="status-cursor">x: 0  y: 0</span>
     <span id="status-tool">selection</span>
     <span id="status-zoom">zoom: 100%</span>
+    <span id="status-hint"></span>
     <span id="status-automation">automation: idle</span>
     <span id="status-account"></span>
   </div>
@@ -107,6 +109,7 @@ const canvas = root.querySelector<HTMLCanvasElement>('#plan-canvas')!
 const statusCursor = root.querySelector<HTMLSpanElement>('#status-cursor')!
 const statusTool = root.querySelector<HTMLSpanElement>('#status-tool')!
 const statusZoom = root.querySelector<HTMLSpanElement>('#status-zoom')!
+const statusHint = root.querySelector<HTMLSpanElement>('#status-hint')!
 const statusAutomation = root.querySelector<HTMLSpanElement>('#status-automation')!
 const statusAccount = root.querySelector<HTMLSpanElement>('#status-account')!
 const ctx = canvas.getContext('2d')
@@ -183,6 +186,7 @@ async function watchAccountHome(id: string): Promise<void> {
 // Apply stored preferences (wall defaults, ground color).
 const bootPrefs = loadPreferences()
 engine.setWallDefaults(bootPrefs.wallHeightCm, bootPrefs.wallThicknessCm)
+engine.setUnit(bootPrefs.unit)
 
 // Restore the local autosave draft (whatever was open on last refresh/close),
 // so the workspace survives a reload without requiring an explicit save. Only
@@ -449,6 +453,7 @@ function exportSceneJson(): void {
 function openPreferences(): void {
   const dialog = new PreferencesDialog(store, (prefs) => {
     engine.setWallDefaults(prefs.wallHeightCm, prefs.wallThicknessCm)
+    engine.setUnit(prefs.unit)
     store.patchNonUndoable((h) => {
       h.environment.groundColor = hexToIntColor(prefs.groundColor)
       h.environment.groundTextureId = prefs.groundTextureId ?? null
@@ -614,16 +619,16 @@ function switchTool(tool: PlanTool): void {
 function buildToolbar(): void {
   toolbar.innerHTML = `
     <div class="tool-group">
-      <button class="tool-btn" id="btn-catalog" title="Furniture catalog (F)">Furniture</button>
-      <button class="tool-btn" data-tool="selection" title="Selection (V)">Select</button>
-      <button class="tool-btn" data-tool="wall" title="Wall tool (W)">Wall</button>
-      <button class="tool-btn" data-tool="dimensionLine" title="Dimension tool">Dim</button>
-      <button class="tool-btn" data-tool="label" title="Text tool">Text</button>
+      <button class="tool-btn" id="btn-catalog" title="${tooltipFor('furniture')}">Furniture</button>
+      <button class="tool-btn" data-tool="selection" title="${tooltipFor('selection')}">Select</button>
+      <button class="tool-btn" data-tool="wall" title="${tooltipFor('wall', 'Shift 15° lock, Alt free, Ctrl/Cmd fine')}">Wall</button>
+      <button class="tool-btn" data-tool="dimensionLine" title="${tooltipFor('dimensionLine')}">Dim</button>
+      <button class="tool-btn" data-tool="label" title="${tooltipFor('label')}">Text</button>
     </div>
     <div class="tool-separator"></div>
     <div class="tool-group">
-      <button class="tool-btn" id="btn-undo" title="Undo (Ctrl+Z)">Undo</button>
-      <button class="tool-btn" id="btn-redo" title="Redo (Ctrl+Y)">Redo</button>
+      <button class="tool-btn" id="btn-undo" title="${shortcutTooltip('Undo', ['ctrl', 'z'], isMacPlatform())}">Undo</button>
+      <button class="tool-btn" id="btn-redo" title="${shortcutTooltip('Redo', ['ctrl', 'y'], isMacPlatform())}">Redo</button>
     </div>
     <div class="tool-separator"></div>
     <span class="toolbar-label" id="level-group-label">Floor:</span>
@@ -860,6 +865,17 @@ function refreshStatus(): void {
   statusZoom.textContent = `zoom: ${Math.round(currentView.scale * 100)}%`
   const user = auth.currentUser()
   statusAccount.textContent = user ? `account: ${user}` : 'account: signed out'
+  const mods = engine.getModifierKeys()
+  const hintVisible = engine.getTool() === 'wall' || pointer.down
+  statusHint.textContent = !hintVisible
+    ? ''
+    : mods.alt
+      ? 'snap off'
+      : mods.shift
+        ? '15° lock'
+        : mods.fine
+          ? 'fine step'
+          : 'Shift: 15° lock · Alt: free · Ctrl/Cmd: fine · type length + Enter'
   profileWidget.refresh()
 }
 
@@ -991,7 +1007,6 @@ interface PointerState {
   lastX: number
   lastY: number
   moved: boolean
-  shift: boolean
   button: number
   rotationId: string | null
   furnitureMoveId: string | null
@@ -1005,13 +1020,15 @@ const pointer: PointerState = {
   lastX: 0,
   lastY: 0,
   moved: false,
-  shift: false,
   button: 0,
   rotationId: null,
   furnitureMoveId: null,
   wallDrawing: false,
 }
 let pendingFurnitureMovePoint: { x: number; y: number } | null = null
+// Last cursor position in model space — lets a modifier keydown refresh the
+// wall-drawing preview without any mouse movement.
+let lastCursorModel: { x: number; y: number } | null = null
 
 function eventModelPoint(event: PointerEvent | MouseEvent): { x: number; y: number } {
   const rect = canvas.getBoundingClientRect()
@@ -1056,10 +1073,10 @@ canvas.addEventListener('pointerdown', (event) => {
 
   if (event.button !== 0) return
   canvas.setPointerCapture(event.pointerId)
+  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey, fine: event.ctrlKey || event.metaKey })
   const point = eventModelPoint(event)
   pointer.down = true
   pointer.moved = false
-  pointer.shift = event.shiftKey
   pointer.button = event.button
   pointer.startX = point.x
   pointer.startY = point.y
@@ -1078,15 +1095,18 @@ canvas.addEventListener('pointerdown', (event) => {
         y: point.y,
         dbl: false,
         shift: event.shiftKey,
-        altOrMeta: event.altKey || event.metaKey,
+        altOrMeta: event.altKey,
+        fine: event.ctrlKey || event.metaKey,
       })
     })
   }
 })
 
 canvas.addEventListener('pointermove', (event) => {
+  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey, fine: event.ctrlKey || event.metaKey })
   const coords = canvasPixelCoords(event)
   const pt = new ViewMapper(currentView).toModel(coords.px, coords.py)
+  lastCursorModel = pt
   statusCursor.textContent = `x: ${pt.x.toFixed(1)}  y: ${pt.y.toFixed(1)}`
   if (engine.getTool() === 'wall') engine.moveMouse(pt.x, pt.y)
 
@@ -1135,6 +1155,17 @@ canvas.addEventListener('pointermove', (event) => {
     pendingFurnitureMovePoint = pointer.moved ? point : null
     return
   }
+
+  // Live drag preview (marquee + wall angle-lock ghost): engine-side, purely
+  // visual — the single undoable edit still happens at pointerup. forceNextRender
+  // because preview-only state changes never touch the store revision.
+  if (pointer.moved && engine.getTool() === 'selection') {
+    engine.previewDrag({ x: pointer.startX, y: pointer.startY }, point, {
+      shift: event.shiftKey,
+      altOrMeta: event.altKey,
+    })
+    forceNextRender = true
+  }
 })
 
 canvas.addEventListener('pointerup', (event) => {
@@ -1144,6 +1175,7 @@ canvas.addEventListener('pointerup', (event) => {
   }
   if (!pointer.down) return
   pointer.down = false
+  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey, fine: event.ctrlKey || event.metaKey })
   const point = eventModelPoint(event)
 
   if (pointer.rotationId) {
@@ -1168,7 +1200,14 @@ canvas.addEventListener('pointerup', (event) => {
   if (pointer.wallDrawing) {
     if (pointer.moved) {
       void traceAction('wall.click', () => {
-        engine.click({ x: point.x, y: point.y, dbl: false, shift: pointer.shift })
+        engine.click({
+          x: point.x,
+          y: point.y,
+          dbl: false,
+          shift: event.shiftKey,
+          altOrMeta: event.altKey,
+        fine: event.ctrlKey || event.metaKey,
+        })
       })
     }
     pointer.wallDrawing = false
@@ -1212,9 +1251,11 @@ canvas.addEventListener('pointerup', (event) => {
       fromY: pointer.startY,
       toX: point.x,
       toY: point.y,
-      shift: pointer.shift,
-      altOrMeta: event.altKey || event.metaKey,
+      shift: event.shiftKey,
+      altOrMeta: event.altKey,
+      fine: event.ctrlKey || event.metaKey,
     }))
+    engine.endDragPreview()
   } else {
     const tool = engine.getTool()
     const actionName = tool === 'wall' ? 'wall.click' : tool === 'room' ? 'room.add' : null
@@ -1224,7 +1265,8 @@ canvas.addEventListener('pointerup', (event) => {
         y: point.y,
         dbl: false,
         shift: event.shiftKey,
-        altOrMeta: event.altKey || event.metaKey,
+        altOrMeta: event.altKey,
+        fine: event.ctrlKey || event.metaKey,
       }))
     }
     if (actionName) void traceAction(actionName, doClick)
@@ -1366,12 +1408,8 @@ window.addEventListener('keydown', (event) => {
   // Typing in a text field (auth dialog, props panel, …) must keep native
   // editing — Backspace, Space, letters, Ctrl+A/Z — so skip every shortcut.
   const target = event.target instanceof HTMLElement ? event.target : null
-  if (target && (
-    target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' ||
-    target.isContentEditable ||
-    // Any focus inside a modal dialog: plan shortcuts (Delete, arrows, f…) must not act on the scene behind it.
-    target.closest('.prefs-overlay, dialog, [role="dialog"]')
-  )) return
+  // Includes any focus inside a modal dialog / prefs overlay.
+  if (isTypingTarget(event.target)) return
   // Space on a focused button/link activates it natively — don't hijack it for pan.
   if (event.key === ' ' && target && (target.tagName === 'BUTTON' || target.tagName === 'A' || target.tagName === 'SUMMARY')) return
   if ((event.ctrlKey || event.metaKey) && shortcutKey === 'z' && !event.shiftKey) {
@@ -1410,13 +1448,26 @@ window.addEventListener('keydown', (event) => {
     return
   }
 
-  // Tool shortcuts V/W — bare keys only, so Ctrl+V paste and Alt combos are
-  // unaffected; skipped while typing in a text input (isInput guard above).
-  if (!event.ctrlKey && !event.metaKey && !event.altKey &&
-      (shortcutKey === 'v' || shortcutKey === 'w') ) {
-    event.preventDefault()
-    switchTool(shortcutKey === 'v' ? 'selection' : 'wall')
-    return
+  // Typed exact wall length (wall-chain drawing only): digits + '.' buffer a
+  // length, Enter commits a wall of exactly that length. Alt/Ctrl/Meta keys
+  // are excluded so modifier combos never type digits. Bare Ctrl/Cmd digit
+  // combos (Ctrl+1 tab switch etc.) are handled above only for z/y/a/c/v/d —
+  // a Ctrl+digit pressed here with no matching shortcut would previously fall
+  // through harmlessly (digits did nothing); with typed lengths live they
+  // would buffer, hence the ctrlKey/metaKey guard.
+  if (engine.isDrawingWall() && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    if (event.key === 'Enter' && engine.commitTypedLength()) {
+      event.preventDefault()
+      refreshToolbar()
+      refreshStatus()
+      return
+    }
+    if (/^[0-9.]$/.test(event.key) && engine.typeLengthChar(event.key)) {
+      event.preventDefault()
+      forceNextRender = true
+      refreshStatus()
+      return
+    }
   }
 
   if (event.key === ' ' && !event.repeat) {
@@ -1426,11 +1477,18 @@ window.addEventListener('keydown', (event) => {
     return
   }
 
-  if (event.key === 'f' || event.key === 'F') {
+  // Tool shortcuts — one dispatch driven by the registry in ui/tool-hotkeys.
+  // Bare keys only (modifiers belong to snapping and Ctrl/Cmd shortcuts).
+  const toolHotkey = isToolShortcutEvent(event)
+  if (toolHotkey) {
     event.preventDefault()
-    catalogHost.classList.toggle('collapsed')
-    resizeCanvas()
-    refreshStatus()
+    if (toolHotkey.id === 'furniture') {
+      catalogHost.classList.toggle('collapsed')
+      resizeCanvas()
+      refreshStatus()
+    } else {
+      switchTool(toolHotkey.id as PlanTool)
+    }
     return
   }
 
@@ -1463,6 +1521,34 @@ window.addEventListener('keyup', (event) => {
     spaceHeld = false
     canvas.style.cursor = ''
   }
+})
+
+// Live modifier tracking for the plan engine (Shift = hard 15° lock,
+// Ctrl/Cmd = fine step, Alt/Option = bypass all magnetism — Meta no longer
+// bypasses so Cmd+digit/Cmd+click OS shortcuts keep their platform meaning).
+// Deliberately separate listeners
+// from the shortcut handler above: never preventDefault, so Shift+arrows
+// nudging and native Alt/Meta combos are unaffected.
+function syncEngineModifiers(event: KeyboardEvent): void {
+  engine.setModifierKeys({ shift: event.shiftKey, alt: event.altKey, fine: event.ctrlKey || event.metaKey })
+  refreshStatus()
+  // Pressing/releasing a modifier must re-shape the live wall-drawing preview
+  // (angle lock / free) even with no mouse movement.
+  if (engine.getTool() === 'wall' && lastCursorModel) {
+    engine.moveMouse(lastCursorModel.x, lastCursorModel.y)
+  }
+  forceNextRender = true
+}
+
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Shift' || event.key === 'Alt' || event.key === 'Meta' || event.key === 'Control') syncEngineModifiers(event)
+})
+window.addEventListener('keyup', (event) => {
+  if (event.key === 'Shift' || event.key === 'Alt' || event.key === 'Meta' || event.key === 'Control') syncEngineModifiers(event)
+})
+window.addEventListener('blur', () => {
+  engine.setModifierKeys({ shift: false, alt: false, fine: false })
+  refreshStatus()
 })
 
 // ── Render loop ─────────────────────────────────────────────────────────────

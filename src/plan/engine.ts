@@ -7,9 +7,10 @@ import type { WallLoop } from '../core/wall-loop-detector'
 import { detectClosedLoops, wallCenterlinePoints } from '../core/wall-loop-detector'
 import { buildWallEndpointIndex } from '../core/wall-endpoint-index'
 import { AutoFloorDialog } from '../ui/AutoFloorDialog'
-import { pointWithAngleMagnetism, wallPointMagnetism } from './magnetism'
+import { lockVectorToAngleStep, pointWithAngleMagnetism, softAxisSnapVector, wallPointMagnetism } from './magnetism'
 import { FurnitureTooLargeError } from '../core/furniture-clearance'
 import { snapFurniturePlacement, snapFurnitureRotation } from './furniture-snap'
+import { resolveSnapMode, snapWallSegment } from './snap-math'
 import {
   closestPointOnSegment,
   distance,
@@ -126,6 +127,8 @@ export interface ClickInput {
   dbl?: boolean
   shift?: boolean
   altOrMeta?: boolean
+  /** Ctrl/Cmd fine length step (1 cm / 1 in). */
+  fine?: boolean
 }
 
 export interface DragInput {
@@ -135,6 +138,7 @@ export interface DragInput {
   toY: number
   shift?: boolean
   altOrMeta?: boolean
+  fine?: boolean
 }
 
 export type PlanKey = 'escape' | 'delete' | 'backspace' | 'arrow-up' | 'arrow-down' | 'arrow-left' | 'arrow-right'
@@ -160,6 +164,31 @@ export interface PlanPreview {
   snapLock: Point | null
   /** Live feedback while dragging a piece: where it was asked to go and why it isn't going there. */
   furnitureDragHint: FurnitureDragHint | null
+  /** Live wall-drag angle-lock preview (ghost segment/centerline) — drawn by
+   *  the renderer but backed by NO model edit until the drag commits. */
+  wallDragGhost: { x1: number; y1: number; x2: number; y2: number } | null
+  /** Live snap feedback for the wall being drawn (null unless drawing). */
+  wallSnap: WallSnapReadout | null
+}
+
+/** What the renderer shows next to the cursor while a wall is being drawn. */
+export interface WallSnapReadout {
+  /** Snapped end point of the wall in progress (model space, cm). */
+  end: Point
+  lengthCm: number
+  /** Direction in degrees: 0 = east, counter-clockwise positive (north/up = 90), range [0, 360). */
+  angleDeg: number
+  /** 'step' = on the normal length step, 'major' = locked on a full metre / foot stop. */
+  lengthLock: 'none' | 'step' | 'major'
+  /** 'step' = a 15 degree step, 'diagonal' = 45 degree multiple, 'axis' = 0/90/180/270 (or parallel/perpendicular to the previous wall). */
+  angleLock: 'none' | 'step' | 'diagonal' | 'axis'
+  /** Snapping mode in effect: soft (default), hard (Shift), off (Alt). */
+  mode: 'soft' | 'hard' | 'off'
+  /** Ctrl/Cmd fine step active. */
+  fine: boolean
+  /** Digits typed so far for an exact length (null when none). */
+  typed: string | null
+  unit: 'cm' | 'inch'
 }
 
 /**
@@ -237,6 +266,29 @@ export class PlanEngine {
   private _marqueeActive = false
   private closurePolygon: Array<Point> | null = null
   private closureTooltip: { text: string; x: number; y: number } | null = null
+  /** Live keyboard modifiers (Shift = hard 15° lock, Alt/Option/Meta = bypass
+   *  all magnetism). main.ts pushes these on every pointer/key event so a key
+   *  pressed mid-gesture applies without waiting for a fresh pointer event. */
+  private liveShift = false
+  private liveAlt = false
+  private liveFine = false
+  /** Modifiers captured on the click/drag input currently being processed
+   *  (null outside one); OR-ed with the live keys by effectiveModifiers(). */
+  private gestureInput: { shift?: boolean; altOrMeta?: boolean; fine?: boolean } | null = null
+  /** Unit for wall-length step snapping (10 cm / 1 m; 4 in / 1 ft), driven by preferences. */
+  private wallUnit: 'cm' | 'inch' = 'cm'
+  /** Hysteresis state of the last snapWallSegment call while a chain is open
+   *  (major-stop / angle-lock stickiness carried between cursor moves).
+   *  Persisted ONLY from moveMouse; previews and clicks recompute against it
+   *  read-only. */
+  private wallSnapState: { lengthMajor: boolean; angleLockedDeg: number | null } | null = null
+  /** Direction (deg, atan2 convention) of the LAST committed chain wall —
+   *  angle candidates snap relative to the world axes AND this direction. */
+  private prevDirDeg: number | null = null
+  /** Digits typed for an exact wall length; null when none typed. */
+  private typedLengthBuffer: string | null = null
+  /** Ghost segment for the live wall-drag angle-lock preview (see PlanPreview). */
+  private wallDragGhost: { x1: number; y1: number; x2: number; y2: number } | null = null
   private snapLock: Point | null = null
   private furnitureDragHint: FurnitureDragHint | null = null
 
@@ -283,6 +335,7 @@ export class PlanEngine {
     this.tool = tool
     this.closurePolygon = null
     this.closureTooltip = null
+    this.wallDragGhost = null
     if (tool !== 'wall' && tool !== 'room' && tool !== 'polyline' && tool !== 'dimensionLine' && tool !== 'label') this.phase = 'idle'
     // Mirror the tool into home state without polluting undo history.
     this.model.getStore().patchNonUndoable((h) => {
@@ -296,6 +349,141 @@ export class PlanEngine {
 
   isMagnetismEnabled(): boolean {
     return this.magnetismEnabled
+  }
+
+  /** Wall length-step unit (preferences-driven). */
+  setUnit(unit: 'cm' | 'inch'): void {
+    this.wallUnit = unit
+  }
+
+  getUnit(): 'cm' | 'inch' {
+    return this.wallUnit
+  }
+
+  /** True while the wall tool is mid-chain. */
+  isDrawingWall(): boolean {
+    return this.tool === 'wall' && this.phase === 'drawing'
+  }
+
+  /** Digits typed so far for an exact wall length (null when none). */
+  getTypedLength(): string | null {
+    return this.typedLengthBuffer
+  }
+
+  /** Feed one typed character ('0'-'9' or a single '.') for an exact wall
+   *  length. Returns true when consumed (drawing a wall chain + accepted
+   *  character). */
+  typeLengthChar(ch: string): boolean {
+    if (!this.isDrawingWall()) return false
+    const isDigit = ch.length === 1 && ch >= '0' && ch <= '9'
+    const isDot = ch.length === 1 && ch === '.'
+    if (!isDigit && !isDot) return false
+    const buffer = this.typedLengthBuffer ?? ''
+    // ponytail: no thousand separators / negative forms — plain digits + one dot.
+    if (isDot && buffer.includes('.')) return false
+    this.typedLengthBuffer = buffer + ch
+    return true
+  }
+
+  /** Delete the last typed character. True when it deleted one. */
+  backspaceTypedLength(): boolean {
+    if (!this.isDrawingWall()) return false
+    const buffer = this.typedLengthBuffer
+    if (buffer === null || buffer.length === 0) return false
+    const next = buffer.slice(0, -1)
+    this.typedLengthBuffer = next.length > 0 ? next : null
+    return true
+  }
+
+  /** Discard the typed length entirely (Escape). True when it cleared one. */
+  clearTypedLength(): boolean {
+    if (!this.isDrawingWall() || this.typedLengthBuffer === null) return false
+    this.typedLengthBuffer = null
+    return true
+  }
+
+  /** Exact-length override from the buffer in cm (inch input scaled), null
+   *  when nothing valid is typed. */
+  private typedLengthCm(): number | null {
+    const parsed = parseFloat(this.typedLengthBuffer ?? '')
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+  }
+
+  /**
+   * Enter with a typed length: commit a wall of EXACTLY that length from the
+   * chain start along the live snapped direction (the same solver the preview
+   * uses; the typed length overrides the stepped length while keeping the
+   * locked angle; with auto-magnetism off or Alt it keeps the raw cursor
+   * direction — the engine's off-mode contract). Returns true whenever the
+   * Enter was consumed while drawing, even if the buffer didn't parse.
+   */
+  commitTypedLength(): boolean {
+    if (!this.isDrawingWall()) return false
+    const buffer = this.typedLengthBuffer
+    this.typedLengthBuffer = null
+    if (buffer === null) return false
+    this.clearClosure()
+    const parsed = parseFloat(buffer)
+    if (!Number.isFinite(parsed) || parsed <= 0) return true
+    const lengthCm = this.wallUnit === 'inch' ? parsed * 2.54 : parsed
+    const start = this.chainStart!
+    const cursor = this.lastMove ?? { x: start.x, y: start.y }
+    // Bypasses the free-endpoint join on purpose: an exact typed length must
+    // not silently become "join whatever endpoint is nearby".
+    const eff = this.effectiveModifiers(this.gestureInput)
+    const snap = snapWallSegment({
+      start,
+      cursor,
+      unit: this.wallUnit,
+      mode: resolveSnapMode({ shift: eff.shift, alt: eff.alt }, this.magnetismEnabled),
+      fine: eff.fine,
+      prevDirDeg: this.prevDirDeg,
+      typedLengthCm: lengthCm,
+      prev: this.wallSnapState,
+    })
+    let end = snap.end
+    // Zero-length cursor reference (no mouse move yet): fall back to the
+    // previous chain wall's direction, east when none, so '250' + Enter with
+    // a still cursor lays exactly 250 cm to the east.
+    if (distance(end, start) <= EPSILON) {
+      const rad = ((this.prevDirDeg ?? 0) * Math.PI) / 180
+      end = { x: start.x + lengthCm * Math.cos(rad), y: start.y + lengthCm * Math.sin(rad) }
+    }
+    if (distance(end, start) > EPSILON) {
+      this.commitChainWall(start, end)
+      this.advanceChain(end)
+    }
+    return true
+  }
+
+  /** Push live keyboard modifiers (main.ts calls this on every pointer/key
+   *  event and on window blur). Alt = snap off; Shift = hard lock; Ctrl/Cmd =
+   *  fine length step. */
+  setModifierKeys(keys: { shift?: boolean; alt?: boolean; fine?: boolean }): void {
+    this.liveShift = keys.shift === true
+    this.liveAlt = keys.alt === true
+    this.liveFine = keys.fine === true
+  }
+
+  getModifierKeys(): { shift: boolean; alt: boolean; fine: boolean } {
+    return { shift: this.liveShift, alt: this.liveAlt, fine: this.liveFine }
+  }
+
+  /** Effective modifiers for a gesture: the live keys OR the gesture input's
+   *  own captured flags (a key held at pointerdown counts even if the live
+   *  push was missed, and vice versa). */
+  private effectiveModifiers(input?: { shift?: boolean; altOrMeta?: boolean; fine?: boolean } | null): { shift: boolean; alt: boolean; fine: boolean } {
+    return {
+      shift: this.liveShift || input?.shift === true,
+      alt: this.liveAlt || input?.altOrMeta === true,
+      fine: this.liveFine || input?.fine === true,
+    }
+  }
+
+  /** Clear the loop-closure preview state. */
+  private clearClosure(): void {
+    this.closurePolygon = null
+    this.closureTooltip = null
   }
 
   setReferenceOverlay(enabled: boolean): void {
@@ -454,7 +642,7 @@ export class PlanEngine {
     }
     this.lastMove = { x, y }
     if (this.tool === 'wall' && this.phase === 'drawing') {
-      this.detectClosurePreview({ x, y })
+      this.detectClosurePreview({ x, y }, true)
     }
   }
 
@@ -467,7 +655,7 @@ export class PlanEngine {
    * (connected back to `chainStart`) would close a loop. If so, set the
    * closure preview polygon and tooltip for live feedback.
    */
-  private detectClosurePreview(point: Point): void {
+  private detectClosurePreview(point: Point, persist = false): void {
     if (this.tool !== 'wall' || this.phase !== 'drawing' || !this.chainStart) {
       this.closurePolygon = null
       this.closureTooltip = null
@@ -488,7 +676,7 @@ export class PlanEngine {
     // vertex the click will actually land on, so simulating the closing wall
     // with the raw point misses the chain origin and no loop is ever found
     // with a real mouse. Resolve through the same pipeline the click uses.
-    const resolved = this.resolveSegmentEnd(this.chainStart, point)
+    const resolved = this.resolveSegmentEnd(this.chainStart, point, persist)
     this.snapLock = this.freeEndpointAt(home, point, endpointSnapMargin())
 
     // Simulate adding a closing wall from chainStart to the resolved cursor.
@@ -563,6 +751,20 @@ export class PlanEngine {
             length: distance(this.dimensionStart, this.lastMove),
           }
         : null
+    // Wall chain: the live segment resolves through the SAME solver as the
+    // commit path (computeChainEnd, persist=false so previews/clicks never
+    // advance the snap hysteresis) — preview == commit, always.
+    let wallLine: PlanPreview['wallLine'] = null
+    let wallSnap: PlanPreview['wallSnap'] = null
+    if (this.tool === 'wall' && this.phase === 'drawing' && this.chainStart && this.lastMove) {
+      const computed = this.computeChainEnd(this.chainStart, this.lastMove, false)
+      wallLine = {
+        start: { x: this.chainStart.x, y: this.chainStart.y },
+        end: computed.end,
+        length: distance(this.chainStart, computed.end),
+      }
+      wallSnap = computed.wallSnap
+    }
     return {
       tool: this.tool,
       phase: this.phase,
@@ -570,14 +772,7 @@ export class PlanEngine {
       // Walls enter the home at each click (SH3D WallDrawingState), so the
       // renderer draws them from the store snapshot; nothing stays pending.
       pendingWalls: [],
-      wallLine:
-        this.tool === 'wall' && this.phase === 'drawing' && this.chainStart && this.lastMove
-          ? {
-              start: this.chainStart,
-              end: this.lastMove,
-              length: distance(this.chainStart, this.lastMove),
-            }
-          : null,
+      wallLine,
       roomPoints: this.roomPoints.map(([x, y]) => [x, y] as [number, number]),
       polylinePoints: this.polylinePoints.map(([x, y]) => [x, y] as [number, number]),
       dimensionLine: dim,
@@ -589,11 +784,70 @@ export class PlanEngine {
       closureTooltip: this.closureTooltip,
       snapLock: this.snapLock,
       furnitureDragHint: this.furnitureDragHint,
+      wallDragGhost: this.wallDragGhost,
+      wallSnap,
     }
   }
 
   hitTestPoint(point: Point): HitResult | null {
     return this.hitTest(this.homeSnapshot(), point)
+  }
+
+  /**
+   * Live drag preview for selection-tool drags, driven from pointermove long
+   * before the release-time commit: draws the marquee rectangle on empty
+   * space and the Shift angle-lock ghost when dragging a wall (endpoint or
+   * body). Purely visual — NO model mutation, NO undo entries; the single
+   * undoable edit still happens in the release-time drag().
+   */
+  previewDrag(from: Point, to: Point, input: { shift?: boolean; altOrMeta?: boolean } = {}): void {
+    if (this.tool !== 'selection') return
+    const home = this.homeSnapshot()
+    const hit = this.hitTest(home, from)
+    if (!hit) {
+      this.wallDragGhost = null
+      if (!this._marqueeActive || !this.marqueeFrom || !samePoint(this.marqueeFrom, from)) {
+        this._marqueeActive = true
+        this.marqueeFrom = from
+      }
+      this.marqueeTo = to
+      return
+    }
+    if (hit.kind === 'wall-endpoint') {
+      const wall = home.walls.find((w) => w.id === hit.wallId)
+      if (!wall) return
+      const vd = {
+        wallId: wall.id,
+        endpoint: hit.endpoint,
+        startX: hit.endpoint === 'start' ? wall.xStart : wall.xEnd,
+        startY: hit.endpoint === 'start' ? wall.yStart : wall.yEnd,
+      }
+      const oppositeEnd = vd.endpoint === 'start'
+        ? { x: wall.xEnd, y: wall.yEnd }
+        : { x: wall.xStart, y: wall.yStart }
+      const snapped = this.resolveEndpointDragPoint(home, vd, from, to, this.effectiveModifiers(input))
+      this.wallDragGhost = { x1: oppositeEnd.x, y1: oppositeEnd.y, x2: snapped.x, y2: snapped.y }
+      return
+    }
+    if (hit.kind === 'wall-body') {
+      const wall = home.walls.find((w) => w.id === hit.id)
+      if (!wall) return
+      const delta = this.resolveBodyDragDelta(to.x - from.x, to.y - from.y, this.effectiveModifiers(input))
+      this.wallDragGhost = {
+        x1: (wall.xStart + wall.xEnd) / 2,
+        y1: (wall.yStart + wall.yEnd) / 2,
+        x2: (wall.xStart + wall.xEnd) / 2 + delta.x,
+        y2: (wall.yStart + wall.yEnd) / 2 + delta.y,
+      }
+      return
+    }
+    this.wallDragGhost = null
+  }
+
+  /** Drop the live wall-drag ghost (marquee lifecycle is untouched — the
+   *  rectangle stays visible after release, as before). */
+  endDragPreview(): void {
+    this.wallDragGhost = null
   }
 
   beginFurnitureRotation(id: string, pointer: Point): boolean {
@@ -687,11 +941,25 @@ export class PlanEngine {
 
   /** All-or-nothing: a rejected edit (furniture too large for its room) leaves no partial change. */
   click(input: ClickInput): void {
-    this.model.getStore().atomically(() => this.clickImpl(input))
+    this.model.getStore().atomically(() => {
+      this.gestureInput = input
+      try {
+        this.clickImpl(input)
+      } finally {
+        this.gestureInput = null
+      }
+    })
   }
 
   drag(input: DragInput): void {
-    this.model.getStore().atomically(() => this.dragImpl(input))
+    this.model.getStore().atomically(() => {
+      this.gestureInput = input
+      try {
+        this.dragImpl(input)
+      } finally {
+        this.gestureInput = null
+      }
+    })
   }
 
   key(key: PlanKey, shift = false): void {
@@ -704,14 +972,108 @@ export class PlanEngine {
     if (input.dbl) {
       this.doubleClick(point)
     } else {
-      this.singleClick(point, input.shift === true)
+      this.singleClick(point, this.effectiveModifiers(input).shift)
     }
+  }
+
+  /**
+   * Resolve a wall-endpoint drag target. Shared by the committed drag
+   * (dragImpl) and the live preview (previewDrag) so both apply exactly the
+   * same modifier semantics: Shift = hard 15° lock relative to the opposite
+   * endpoint (even with magnetism off; length still magnetizes), Alt = raw
+   * point (no magnetism, no grid snap), default = SH3D WallResizeState.moveMouse
+   * soft magnetism when enabled (WallPointWithAngleMagnetism anchors on the
+   * opposite endpoint and snaps to OTHER walls' endpoints, gated on the toggle).
+   */
+  private resolveEndpointDragPoint(
+    home: Readonly<NormalizedHomeState>,
+    vd: { wallId: string; endpoint: 'start' | 'end'; startX: number; startY: number },
+    from: Point,
+    to: Point,
+    eff: { shift: boolean; alt: boolean },
+  ): Point {
+    let rawX = vd.startX + (to.x - from.x)
+    let rawY = vd.startY + (to.y - from.y)
+    if (eff.alt) return { x: rawX, y: rawY }
+    if (this.gridSnapEnabled) {
+      const g = this.snapToGrid(rawX, rawY)
+      rawX = g.x
+      rawY = g.y
+    }
+    const draggedWall = home.walls.find((w) => w.id === vd.wallId)
+    if (!draggedWall) return { x: rawX, y: rawY }
+    const oppositeEnd = vd.endpoint === 'start'
+      ? { x: draggedWall.xEnd, y: draggedWall.yEnd }
+      : { x: draggedWall.xStart, y: draggedWall.yStart }
+    if (eff.shift) {
+      // Hard lock: angle wins, so no per-axis endpoint snapping (walls: []).
+      return wallPointMagnetism(
+        oppositeEnd,
+        { x: rawX, y: rawY },
+        [],
+        {
+          enabled: true,
+          mode: 'hard',
+          maxDelta: PLAN_SCALE,
+          endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+        },
+      )
+    }
+    if (this.magnetismEnabled) {
+      let snapped = wallPointMagnetism(
+        oppositeEnd,
+        { x: rawX, y: rawY },
+        home.walls.filter((w) => w.id !== vd.wallId && this.matchesActiveLevel(w.levelRef)),
+        {
+          enabled: true,
+          maxDelta: PLAN_SCALE,
+          endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+        },
+      )
+      // Cross-level: if same-level didn't snap, try reference walls.
+      if (
+        this.referenceOverlayEnabled && this.activeLevelId != null
+        && snapped.x === rawX && snapped.y === rawY
+      ) {
+        const refWalls = home.walls.filter(
+          (w) => w.id !== vd.wallId && !this.matchesActiveLevel(w.levelRef),
+        )
+        if (refWalls.length > 0) {
+          snapped = wallPointMagnetism(
+            oppositeEnd,
+            { x: rawX, y: rawY },
+            refWalls,
+            {
+              enabled: true,
+              maxDelta: PLAN_SCALE,
+              endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
+            },
+          )
+        }
+      }
+      return snapped
+    }
+    return { x: rawX, y: rawY }
+  }
+
+  /**
+   * Whole-wall body-drag delta, shared by the committed drag and the live
+   * preview: Alt = raw, Shift = hard 15° direction lock, default = soft
+   * horizontal/vertical axis snap when magnetism is on, else raw.
+   */
+  private resolveBodyDragDelta(dx: number, dy: number, eff: { shift: boolean; alt: boolean }): Point {
+    if (eff.alt) return { x: dx, y: dy }
+    if (eff.shift) return lockVectorToAngleStep(dx, dy)
+    if (this.magnetismEnabled) return softAxisSnapVector(dx, dy)
+    return { x: dx, y: dy }
   }
 
   private dragImpl(input: DragInput): void {
     this.validateDrag(input)
+    this.wallDragGhost = null
     const from = { x: input.fromX, y: input.fromY }
     const to = { x: input.toX, y: input.toY }
+    const eff = this.effectiveModifiers(input)
     if (this.tool !== 'selection') {
       if (this._marqueeActive) this._endMarqueeDrag(false)
       return
@@ -720,7 +1082,7 @@ export class PlanEngine {
     const hit = this.hitTest(home, from)
 
     if (hit) {
-      if (this._marqueeActive) this._endMarqueeDrag(input.shift === true)
+      if (this._marqueeActive) this._endMarqueeDrag(eff.shift)
       if (hit.kind === 'wall-endpoint') {
         if (!this.vertexDrag) {
           const wall = home.walls.find((w) => w.id === hit.wallId)
@@ -744,59 +1106,7 @@ export class PlanEngine {
         }
         const vd = this.vertexDrag
         if (!vd) return
-        let rawX = vd.startX + (to.x - from.x)
-        let rawY = vd.startY + (to.y - from.y)
-        if (this.gridSnapEnabled) {
-          const g = this.snapToGrid(rawX, rawY)
-          rawX = g.x
-          rawY = g.y
-        }
-        const draggedWall = home.walls.find((w) => w.id === vd.wallId)
-        if (!draggedWall) return
-        const oppositeEnd = vd.endpoint === 'start'
-          ? { x: draggedWall.xEnd, y: draggedWall.yEnd }
-          : { x: draggedWall.xStart, y: draggedWall.yStart }
-        // SH3D WallResizeState.moveMouse: WallPointWithAngleMagnetism anchors
-        // on the opposite endpoint and snaps to OTHER walls' endpoints.
-        // Gate the whole magnetizer on the toggle (the helper keeps snapping
-        // endpoints even with enabled:false, so gate here for SH3D parity).
-        let snapped: Point
-        if (this.magnetismEnabled) {
-          const otherWalls = home.walls.filter((w) => w.id !== vd.wallId && this.matchesActiveLevel(w.levelRef))
-          snapped = wallPointMagnetism(
-            oppositeEnd,
-            { x: rawX, y: rawY },
-            otherWalls,
-            {
-              enabled: true,
-              maxDelta: PLAN_SCALE,
-              endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
-            },
-          )
-          // Cross-level: if same-level didn't snap, try reference walls.
-          if (
-            this.referenceOverlayEnabled && this.activeLevelId != null
-            && snapped.x === rawX && snapped.y === rawY
-          ) {
-            const refWalls = home.walls.filter(
-              (w) => w.id !== vd.wallId && !this.matchesActiveLevel(w.levelRef),
-            )
-            if (refWalls.length > 0) {
-              snapped = wallPointMagnetism(
-                oppositeEnd,
-                { x: rawX, y: rawY },
-                refWalls,
-                {
-                  enabled: true,
-                  maxDelta: PLAN_SCALE,
-                  endpointMargin: WALL_ENDS_PIXEL_MARGIN * 2,
-                },
-              )
-            }
-          }
-        } else {
-          snapped = { x: rawX, y: rawY }
-        }
+        const snapped = this.resolveEndpointDragPoint(home, vd, from, to, eff)
         this.model.getStore().beginCompoundEdit()
         this.model.setWallEndpoint(vd.wallId, vd.endpoint, snapped.x, snapped.y)
         for (const cw of vd.connectedWalls) {
@@ -954,7 +1264,10 @@ export class PlanEngine {
         }
         const moved = new Set<string>(home.selection)
         moved.add(hit.id)
-        this.model.moveSelection(to.x - from.x, to.y - from.y)
+        const delta = this.resolveBodyDragDelta(to.x - from.x, to.y - from.y, eff)
+        // Connected walls do not follow a body-dragged wall (existing gap,
+        // out of scope — only the moved selection translates).
+        this.model.moveSelection(delta.x, delta.y)
         this.updateRoomsAfterWallMove(
           home,
           [...moved].filter((id) => home.walls.some((w) => w.id === id)),
@@ -1011,12 +1324,12 @@ export class PlanEngine {
       } else if (this.marqueeFrom && samePoint(this.marqueeFrom, from)) {
         this.marqueeTo = to
       } else {
-        this._endMarqueeDrag(input.shift === true)
+        this._endMarqueeDrag(eff.shift)
         this._marqueeActive = true
         this.marqueeFrom = from
         this.marqueeTo = to
       }
-      this._applyMarqueeSelection(input.shift === true)
+      this._applyMarqueeSelection(eff.shift)
     }
   }
 
@@ -1102,6 +1415,18 @@ export class PlanEngine {
       throw new ModelError(`unsupported key ${JSON.stringify(key)}`)
     }
     if (key === 'delete' || key === 'backspace') {
+      // Typed-length buffer eats Backspace first: it deletes one typed
+      // character before it can walk the wall chain back one step.
+      if (
+        key === 'backspace'
+        && this.tool === 'wall'
+        && this.phase === 'drawing'
+        && this.typedLengthBuffer !== null
+        && this.typedLengthBuffer !== ''
+      ) {
+        this.backspaceTypedLength()
+        return
+      }
       // Backspace mid-chain walks the wall chain back one step (see
       // removeLastChainPoint) — additive to the compound-undo design below,
       // never touching the real undo stack. Mirrors the Escape mid-chain
@@ -1137,6 +1462,12 @@ export class PlanEngine {
     if (this._marqueeActive) this._endMarqueeDrag(false)
 
     if (this.tool === 'wall' && this.phase === 'drawing') {
+      // A non-empty typed-length buffer swallows Escape: it clears the buffer
+      // only. The chain itself is finished by the NEXT Escape (empty buffer).
+      if (this.typedLengthBuffer !== null && this.typedLengthBuffer !== '') {
+        this.clearTypedLength()
+        return
+      }
       this.validateDrawnWalls()
       return
     }
@@ -1244,6 +1575,10 @@ export class PlanEngine {
       this.model.setSelection([])
       this.chainStart = start
       this.phase = 'drawing'
+      // Fresh chain: no snap hysteresis, no direction reference, no typed length.
+      this.wallSnapState = null
+      this.prevDirDeg = null
+      this.typedLengthBuffer = null
       return
     }
 
@@ -1291,7 +1626,15 @@ export class PlanEngine {
     }
 
     this.commitChainWall(start, end)
+    this.advanceChain(end)
+  }
+
+  /** Chain continues from the committed wall's end: drop the snap hysteresis
+   *  (the next segment starts its own lock hunt) and any typed length. */
+  private advanceChain(end: Point): void {
     this.chainStart = end
+    this.wallSnapState = null
+    this.typedLengthBuffer = null
   }
 
   private doubleClick(point: Point): void {
@@ -1410,6 +1753,7 @@ export class PlanEngine {
     if (distance(start, end) > 0) {
       // joinNewWallEndToWall: the closing piece from the last wall's end.
       this.commitChainWall(start, end)
+      this.advanceChain(end)
     }
     this.validateDrawnWalls()
   }
@@ -1426,6 +1770,8 @@ export class PlanEngine {
       levelRef: this.activeLevelId ?? undefined,
     })
     this.chainIds.push(wall.id)
+    // Next segment's angle candidates snap relative to this wall's direction.
+    this.prevDirDeg = (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI
   }
 
   /**
@@ -1461,6 +1807,9 @@ export class PlanEngine {
       this.phase = 'idle'
       this.closurePolygon = null
       this.closureTooltip = null
+      this.wallSnapState = null
+      this.prevDirDeg = null
+      this.typedLengthBuffer = null
       if (this.sessionOpen) {
         this.model.getStore().endCompoundEdit()
         this.sessionOpen = false
@@ -1473,6 +1822,16 @@ export class PlanEngine {
     this.closurePolygon = null
     this.closureTooltip = null
     this.model.removeWall(wallId)
+    // The chain resumed at the PREVIOUS wall's start: the next segment must
+    // again snap relative to that wall's direction (null with an empty chain).
+    const previous = this.chainIds.length > 0
+      ? this.homeSnapshot().walls.find((w) => w.id === this.chainIds[this.chainIds.length - 1])
+      : undefined
+    this.prevDirDeg = previous
+      ? (Math.atan2(previous.yEnd - previous.yStart, previous.xEnd - previous.xStart) * 180) / Math.PI
+      : null
+    this.wallSnapState = null
+    this.typedLengthBuffer = null
     return true
   }
 
@@ -1491,6 +1850,9 @@ export class PlanEngine {
     this.phase = 'idle'
     this.closurePolygon = null
     this.closureTooltip = null
+    this.wallSnapState = null
+    this.prevDirDeg = null
+    this.typedLengthBuffer = null
     if (ids.length > 0) this.model.setSelection(ids)
     if (this.sessionOpen) {
       this.model.getStore().endCompoundEdit()
@@ -2057,41 +2419,169 @@ export class PlanEngine {
    * Segment end resolution order (SH3D WallDrawingState.moveMouse):
    * 1. exact join onto a FREE endpoint within endpointSnapMargin()
    * 2. angle+length magnetization plus per-axis wall-endpoint snapping
+   *
+   * Every wall-chain path (singleClick / doubleClick / closure preview /
+   * getPreview) routes through computeChainEnd so preview == commit.
    */
-  private resolveSegmentEnd(start: Point, point: Point): Point {
+  private resolveSegmentEnd(start: Point, point: Point, persist = false): Point {
+    return this.computeChainEnd(start, point, persist).end
+  }
+
+  /**
+   * ONE definition of where the wall chain's next segment ends, used by both
+   * the commit path (resolveSegmentEnd → singleClick/doubleClick/closure
+   * preview) and the preview path (getPreview). `persist` is true ONLY from
+   * moveMouse: snapWallSegment's hysteresis state (major-stop/angle-lock
+   * stickiness) advances once per cursor move; previews and clicks recompute
+   * against the persisted state read-only.
+   *
+   * Branch order: Alt → raw cursor; Shift → hard snapWallSegment; auto-
+   * magnetism off → today's plain legacy tail (free join + grid snap +
+   * per-axis endpoint/T-junction snap, no angle lock); soft → free join, then
+   * snapWallSegment length/angle steps relative to the world axes AND the
+   * last committed chain wall's direction, then the legacy per-axis endpoint
+   * alignment + body T-junction + cross-level snap but ONLY when the angle
+   * ended up free ('none') — a locked angle is the contract and must not be
+   * bent onto an endpoint axis afterwards.
+   */
+  private computeChainEnd(
+    start: Point,
+    cursor: Point,
+    persist: boolean,
+  ): { end: Point; wallSnap: WallSnapReadout | null } {
+    const eff = this.effectiveModifiers(this.gestureInput)
+    const mode = resolveSnapMode({ shift: eff.shift, alt: eff.alt }, this.magnetismEnabled)
+    const readout = (
+      end: Point,
+      lengthLock: 'none' | 'step' | 'major',
+      angleLock: 'none' | 'step' | 'diagonal' | 'axis',
+      resolvedMode: 'soft' | 'hard' | 'off',
+    ): { end: Point; wallSnap: WallSnapReadout | null } => ({
+      end,
+      wallSnap: {
+        end: { x: end.x, y: end.y },
+        lengthCm: distance(start, end),
+        angleDeg: (((Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI) % 360 + 360) % 360,
+        lengthLock,
+        angleLock,
+        mode: resolvedMode,
+        fine: eff.fine,
+        typed: this.typedLengthBuffer,
+        unit: this.wallUnit,
+      },
+    })
+
+    // Alt/Option: bypass ALL magnetism — snapWallSegment 'off' keeps the raw
+    // cursor verbatim, or the typed length along the RAW cursor direction
+    // (no join, no grid snap, no body snap).
+    if (eff.alt) {
+      const snap = snapWallSegment({
+        start,
+        cursor,
+        unit: this.wallUnit,
+        mode,
+        fine: eff.fine,
+        typedLengthCm: this.typedLengthCm(),
+      })
+      return readout(snap.end, snap.lengthLock === 'fine' ? 'step' : snap.lengthLock, snap.angleLock, 'off')
+    }
+
+    // Shift: the hard 15° lock wins over everything — no free-endpoint join,
+    // no per-axis/body snap. Length steps still apply (4 in / 1 ft fine on
+    // imperial). The cursor is NOT pre-grid-snapped: length stepping itself
+    // quantizes the distance.
+    if (mode === 'hard') {
+      const snap = snapWallSegment({
+        start,
+        cursor,
+        unit: this.wallUnit,
+        mode,
+        fine: eff.fine,
+        prevDirDeg: this.prevDirDeg,
+        typedLengthCm: this.typedLengthCm(),
+        prev: this.wallSnapState,
+      })
+      if (persist) this.wallSnapState = snap.state
+      return readout(snap.end, snap.lengthLock === 'fine' ? 'step' : snap.lengthLock, snap.angleLock, 'hard')
+    }
+
+    // Auto-magnetism OFF (no Alt/Shift): keep today's plain grid-snap tail
+    // byte-identical (wall-draw-order golden replay depends on it). The
+    // cross-level retry is intentionally omitted here: it never fired in
+    // this state (its old gate required magnetismEnabled).
+    if (!this.magnetismEnabled) {
+      const home = this.homeSnapshot()
+      const margin = endpointSnapMargin()
+      const free = this.freeEndpointAt(home, cursor, margin)
+      if (free) return readout(free, 'none', 'none', 'off')
+      const base = this.gridSnapEnabled ? this.snapToGrid(cursor.x, cursor.y) : cursor
+      const sameResult = wallPointMagnetism(start, base, home.walls, {
+        enabled: false,
+        maxDelta: PLAN_SCALE,
+        endpointMargin: margin,
+      })
+      if (sameResult.x === base.x && sameResult.y === base.y) {
+        const onWall = this.wallBodySnapAt(home, base, margin)
+        if (onWall) return readout(onWall, 'none', 'none', 'off')
+      }
+      return readout(sameResult, 'none', 'none', 'off')
+    }
+
+    // Soft: an existing FREE wall endpoint within the snap margin wins first
+    // (exact join), like today, and short-circuits length/angle stepping.
     const home = this.homeSnapshot()
     const margin = endpointSnapMargin()
-    const free = this.freeEndpointAt(home, point, margin)
-    if (free) return free
-    const base = this.gridSnapEnabled ? this.snapToGrid(point.x, point.y) : point
-    const sameResult = wallPointMagnetism(start, base, home.walls, {
-      enabled: this.magnetismEnabled,
-      maxDelta: PLAN_SCALE,
-      endpointMargin: margin,
+    const free = this.freeEndpointAt(home, cursor, margin)
+    if (free) return readout(free, 'none', 'none', 'soft')
+
+    // Length steps (10 cm with sticky 1 m majors; 4 in / 1 ft imperial) and
+    // angle snap (15° steps, sticky 45°/90°), relative to the world axes AND
+    // the last committed chain wall's direction.
+    const snap = snapWallSegment({
+      start,
+      cursor,
+      unit: this.wallUnit,
+      mode,
+      fine: eff.fine,
+      prevDirDeg: this.prevDirDeg,
+      typedLengthCm: this.typedLengthCm(),
+      prev: this.wallSnapState,
     })
-    // Cross-level: if same-level magnetism didn't move the point, try with reference walls.
-    if (
-      this.referenceOverlayEnabled && this.magnetismEnabled && this.activeLevelId != null
-      && sameResult.x === base.x && sameResult.y === base.y
-    ) {
-      const refWalls = home.walls.filter((w) => !this.matchesActiveLevel(w.levelRef))
-      if (refWalls.length > 0) {
-        const refResult = wallPointMagnetism(start, base, refWalls, {
-          enabled: true,
-          maxDelta: PLAN_SCALE,
-          endpointMargin: margin,
-        })
-        return refResult
+    if (persist) this.wallSnapState = snap.state
+    let end = snap.end
+    if (snap.angleLock === 'none') {
+      const base = { x: end.x, y: end.y }
+      const unchanged = (p: Point) => p.x === base.x && p.y === base.y
+      // mode 'off' = per-axis endpoint snapping ONLY (no second angle lock),
+      // fed the length-snapped end so an exact length survives the alignment.
+      let aligned = wallPointMagnetism(start, base, home.walls, {
+        enabled: true,
+        mode: 'off',
+        maxDelta: PLAN_SCALE,
+        endpointMargin: margin,
+      })
+      // Cross-level: if same-level endpoint snapping didn't move the point,
+      // try with reference (off-level) walls.
+      if (this.referenceOverlayEnabled && this.activeLevelId != null && unchanged(aligned)) {
+        const refWalls = home.walls.filter((w) => !this.matchesActiveLevel(w.levelRef))
+        if (refWalls.length > 0) {
+          aligned = wallPointMagnetism(start, base, refWalls, {
+            enabled: true,
+            mode: 'off',
+            maxDelta: PLAN_SCALE,
+            endpointMargin: margin,
+          })
+        }
       }
+      // No endpoint-based snap fired on either axis: try snapping onto the
+      // BODY of the nearest wall (T-junction) before giving up.
+      if (unchanged(aligned)) {
+        const onWall = this.wallBodySnapAt(home, base, margin)
+        if (onWall) aligned = onWall
+      }
+      end = aligned
     }
-    // No endpoint-based snap fired on either axis: try snapping onto the
-    // BODY of the nearest wall (T-junction) before giving up to the plain
-    // magnetized point.
-    if (sameResult.x === base.x && sameResult.y === base.y) {
-      const onWall = this.wallBodySnapAt(home, base, margin)
-      if (onWall) return onWall
-    }
-    return sameResult
+    return readout(end, snap.lengthLock === 'fine' ? 'step' : snap.lengthLock, snap.angleLock, 'soft')
   }
 
   /**
