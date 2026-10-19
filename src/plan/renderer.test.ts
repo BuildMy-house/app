@@ -525,3 +525,26 @@ describe('drawPlan wall snap readout', () => {
     expect(ctx.ops.filter(op => op.type === 'lineTo').some(op => op.args?.[0] === 130 && op.args?.[1] === 0)).toBe(false)
   })
 })
+
+describe('committed dimension lines', () => {
+  function homeWithDimension(offset: number) {
+    const home = createEmptyHome()
+    home.dimensionLines.push({ id: 'd1', xStart: 0, yStart: 0, xEnd: 300, yEnd: 0, offset })
+    return home
+  }
+
+  it('draws the line pushed out by the offset with extension lines and a metric label', () => {
+    const ctx = new MockContext()
+    drawPlan(homeWithDimension(50), null, ctx, IDENTITY_VIEW)
+    expect(ctx.ops.some(op => op.type === 'lineTo' && op.args?.[0] === 300 && op.args?.[1] === 50)).toBe(true)
+    // Extension line back to the measured point.
+    expect(ctx.ops.some(op => op.type === 'moveTo' && op.args?.[0] === 300 && op.args?.[1] === 0)).toBe(true)
+    expect(ctx.ops.filter(op => op.type === 'fillText').map(op => op.args?.[0])).toContain('3.00 m')
+  })
+
+  it('labels in feet and inches for the imperial preference', () => {
+    const ctx = new MockContext()
+    drawPlan(homeWithDimension(0), null, ctx, IDENTITY_VIEW, undefined, undefined, null, undefined, 'inch')
+    expect(ctx.ops.filter(op => op.type === 'fillText').map(op => op.args?.[0])).toContain(`9' 10"`)
+  })
+})
