@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { allowHeavyImport } from './support/heavy-import'
+
+allowHeavyImport()
 
 // Boot main.ts (which builds the menu bar) like catalog-load-failure.test.ts.
 // We mock the heavy view/panel modules so the app can initialize under jsdom,
