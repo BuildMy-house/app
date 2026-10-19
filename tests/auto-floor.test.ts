@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { detectClosedLoops, type Wall, type WallLoop } from '../src/core/wall-loop-detector'
 
 // Integration tests: verify the data flow from wall-loop-detector through
-// AutoFloorDialog interactions into room creation logic (mocked model).
+// room creation logic (mocked model).
 
 function makeWall(id: string, sx: number, sy: number, ex: number, ey: number): Wall {
   return { id, start: { x: sx, y: sy }, end: { x: ex, y: ey } }
@@ -85,30 +85,6 @@ describe('Auto-floor integration', () => {
     rooms.length = 0
     rooms.push(...prev)
     expect(rooms).toHaveLength(1)
-  })
-
-  it('dialog confirm triggers room creation callback', () => {
-    const walls = rectWalls(0, 0, 10, 8)
-    detectClosedLoops(walls)
-    const onConfirm = vi.fn()
-    const onCancel = vi.fn()
-
-    // Simulate dialog interaction: confirm
-    onConfirm()
-    expect(onConfirm).toHaveBeenCalledOnce()
-    expect(onCancel).not.toHaveBeenCalled()
-  })
-
-  it('dialog cancel does not trigger room creation', () => {
-    const walls = rectWalls(0, 0, 10, 8)
-    detectClosedLoops(walls)
-    const onConfirm = vi.fn()
-    const onCancel = vi.fn()
-
-    // Simulate dialog interaction: cancel
-    onCancel()
-    expect(onCancel).toHaveBeenCalledOnce()
-    expect(onConfirm).not.toHaveBeenCalled()
   })
 
   it('detects multiple loops from disconnected walls', () => {

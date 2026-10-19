@@ -2,7 +2,7 @@
  * Promise-based replacements for native confirm()/prompt(). Native dialogs
  * can't be themed (broken in dark mode), look out of place in the Tauri shell,
  * and can't be driven from e2e automation. Mirrors the prefs-overlay pattern
- * used by AutoFloorDialog/PreferencesDialog/AuthDialog.
+ * used by PreferencesDialog/AuthDialog.
  */
 
 /**

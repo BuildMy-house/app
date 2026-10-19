@@ -1,3 +1,4 @@
+import { drawFloorAssist } from './floor-overlay'
 import type { NormalizedHomeState, Wall, Furniture, Level } from '../core/home'
 import { WALL_TEXTURES, resolveTextureUrl, effectiveFurnitureTextureId } from '../core/home'
 import { wallOutlinePoints } from '../core/top-camera-follower'
@@ -1124,7 +1125,8 @@ export function drawPlan(
   }
 
   // Room-tool preview: in-progress polygon outline + vertex dots.
-  if (preview && preview.tool === 'room' && preview.phase === 'drawing' && preview.roomPoints.length > 0) {
+  if (preview?.floorAssist) drawFloorAssist(ctx, mapper, preview.floorAssist)
+  if (preview && preview.tool === 'room' && preview.phase === 'drawing' && preview.roomPoints.length > 0 && !preview.floorAssist?.roomLive) {
     ctx.setLineDash([6, 4])
     ctx.strokeStyle = PREVIEW_COLOR
     ctx.lineWidth = 2
