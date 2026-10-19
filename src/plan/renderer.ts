@@ -160,6 +160,13 @@ export function getLastDrawnView(): ViewTransform | null {
   return lastDrawnView
 }
 
+let lastCanvasSize: { width: number; height: number } | null = null
+
+/** Canvas size (px) of the last drawPlan call; used to ignore off-screen vertices. */
+export function getLastCanvasSize(): { width: number; height: number } | null {
+  return lastCanvasSize
+}
+
 /** One-time pointermove/pointerleave hookup per canvas. */
 function installCursorTracking(canvas: HTMLCanvasElement): void {
   if (cursorTrackedCanvas === canvas) return
@@ -585,6 +592,68 @@ function drawWallSnapReadout(
   ctx.textBaseline = 'alphabetic'
 }
 
+const ALIGN_GUIDE_COLOR = '#d6336c'
+
+/**
+ * Smart guides: a thin line from each source vertex to the snapped end, a
+ * small ring on the source vertex, and a distinct marker at the end - a
+ * diamond for a single guide, an X where two guides cross, a filled square
+ * with ring when the end sits on a vertex itself.
+ */
+function drawAlignGuides(
+  ctx: PlanRenderingContext,
+  mapper: ViewMapper,
+  snap: WallSnapReadout,
+  x2: number,
+  y2: number,
+): void {
+  const guides = snap.guides
+  if (!guides || guides.length === 0 || !snap.alignKind || snap.alignKind === 'none') return
+  ctx.save()
+  ctx.strokeStyle = ALIGN_GUIDE_COLOR
+  ctx.fillStyle = ALIGN_GUIDE_COLOR
+  ctx.lineWidth = 1
+  ctx.setLineDash([3, 3])
+  for (const guide of guides) {
+    const sx = mapper.sx(guide.source.x)
+    const sy = mapper.sy(guide.source.y)
+    ctx.beginPath()
+    ctx.moveTo(sx, sy)
+    ctx.lineTo(x2, y2)
+    ctx.stroke()
+  }
+  ctx.setLineDash([])
+  for (const guide of guides) {
+    ctx.beginPath()
+    ctx.arc(mapper.sx(guide.source.x), mapper.sy(guide.source.y), 3.5, 0, Math.PI * 2)
+    ctx.stroke()
+  }
+  if (snap.alignKind === 'vertex') {
+    ctx.fillRect(x2 - 4, y2 - 4, 8, 8)
+    ctx.beginPath()
+    ctx.arc(x2, y2, 9, 0, Math.PI * 2)
+    ctx.lineWidth = 2
+    ctx.stroke()
+  } else if (snap.alignKind === 'intersection') {
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.moveTo(x2 - 5, y2 - 5)
+    ctx.lineTo(x2 + 5, y2 + 5)
+    ctx.moveTo(x2 + 5, y2 - 5)
+    ctx.lineTo(x2 - 5, y2 + 5)
+    ctx.stroke()
+  } else {
+    ctx.beginPath()
+    ctx.moveTo(x2, y2 - 4)
+    ctx.lineTo(x2 + 4, y2)
+    ctx.lineTo(x2, y2 + 4)
+    ctx.lineTo(x2 - 4, y2)
+    ctx.closePath()
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
 export function drawPlan(
   home: NormalizedHomeState,
   preview: PlanPreview | null,
@@ -597,6 +666,7 @@ export function drawPlan(
   unit: 'cm' | 'inch' = 'cm',
 ): void {
   lastDrawnView = view
+  if (canvasWidth != null && canvasHeight != null) lastCanvasSize = { width: canvasWidth, height: canvasHeight }
   if (ctx.canvas) installCursorTracking(ctx.canvas)
   const mapper = new ViewMapper(view)
   const selected = new Set(home.selection)
@@ -1053,6 +1123,7 @@ export function drawPlan(
       ctx.setLineDash([])
 
       if (snap) {
+        drawAlignGuides(ctx, mapper, snap, x2, y2)
         drawWallSnapReadout(ctx, mapper, snap, preview.chainStart, x2, y2)
       } else {
         let normalX = -(y2 - y1) / lineLength
