@@ -3,8 +3,7 @@
  *
  * This module is intentionally dependency-free (no DOM, no engine imports) so
  * both the toolbar tooltips and the window keydown handler can share it, and
- * so it stays unit-testable in a plain node environment. Wiring it into
- * main.ts (toolbar titles + keydown dispatch) happens in a later ticket.
+ * so it stays unit-testable in a plain node environment.
  *
  * Key assignment notes (fixed by product decision, do not reshuffle casually):
  * - Selection uses both 'a' and 's' (plus legacy alias 'v', kept working for
@@ -13,6 +12,13 @@
  * - Ctrl/Meta/Alt/Shift combos are deliberately NOT tool shortcuts: bare keys
  *   only, so existing Ctrl shortcuts (Ctrl+A select-all, Ctrl+C/V/D clipboard,
  *   Ctrl+Z/Y undo-redo) and snap modifiers stay untouched.
+ * - 'panning' is deliberately absent: main.ts pans only via middle-click /
+ *   space-drag (an engine 'panning' tool has no pointer UI path at all), so a
+ *   hotkey for it would switch the status bar into a mode where clicks do
+ *   nothing visible — pruned by ticket C2 rather than shipped dead.
+ *
+ * Wired into main.ts: toolbar tooltips (tooltipFor/shortcutTooltip) and the
+ * window keydown dispatch (isToolShortcutEvent).
  */
 
 export type ToolHotkeyId =
@@ -23,7 +29,6 @@ export type ToolHotkeyId =
   | 'dimensionLine'
   | 'label'
   | 'roof'
-  | 'panning'
   | 'furniture'
 
 export interface ToolHotkey {
@@ -43,7 +48,6 @@ export const TOOL_HOTKEYS: readonly ToolHotkey[] = Object.freeze([
   { id: 'dimensionLine', label: 'Dimension', keys: ['d'] },
   { id: 'label', label: 'Text', keys: ['t'] },
   { id: 'roof', label: 'Roof tool', keys: ['o'] },
-  { id: 'panning', label: 'Pan (hand)', keys: ['h'] },
   { id: 'furniture', label: 'Furniture catalog', keys: ['f'] },
 ])
 

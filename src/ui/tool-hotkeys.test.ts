@@ -34,14 +34,17 @@ describe('TOOL_HOTKEYS registry', () => {
     }
   })
 
-  it('covers every PlanTool id plus furniture with at least one key', () => {
-    const planTools: PlanTool[] = ['selection', 'panning', 'wall', 'room', 'polyline', 'dimensionLine', 'label', 'roof']
+  it('covers every PlanTool id except panning, plus furniture, with at least one key', () => {
+    // 'panning' (a valid PlanTool) is intentionally absent from the registry:
+    // main.ts has no pointer UI path for it — see the registry header note.
+    const planTools: Exclude<PlanTool, 'panning'>[] = ['selection', 'wall', 'room', 'polyline', 'dimensionLine', 'label', 'roof']
     const required: ToolHotkeyId[] = [...planTools, 'furniture']
     for (const id of required) {
       const entry = TOOL_HOTKEYS.find((t) => t.id === id)
       expect(entry, `missing registry entry for '${id}'`).toBeDefined()
       expect(entry!.keys.length, `'${id}' has no keys`).toBeGreaterThan(0)
     }
+    expect(TOOL_HOTKEYS.some((t) => (t.id as string) === 'panning')).toBe(false)
   })
 
   it('keeps selection on a/s (alias v) and wall on w — user-fixed mapping', () => {
@@ -57,7 +60,7 @@ describe('tooltipFor', () => {
   it('renders the known tooltip shapes', () => {
     expect(tooltipFor('selection')).toBe('Select (A / S)')
     expect(tooltipFor('wall')).toBe('Wall tool (W)')
-    expect(tooltipFor('panning')).toBe('Pan (hand) (H)')
+    expect(tooltipFor('furniture')).toBe('Furniture catalog (F)')
   })
 
   it('uppercases every key of every entry', () => {
