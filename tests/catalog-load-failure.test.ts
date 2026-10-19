@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
+import { allowHeavyImport } from './support/heavy-import'
+
+allowHeavyImport()
 
 // Create the root element before main.ts runs
 const root = document.createElement('div')

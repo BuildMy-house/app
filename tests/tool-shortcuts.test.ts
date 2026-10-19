@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { allowHeavyImport } from './support/heavy-import'
+
+allowHeavyImport()
 
 // Toolbar V/W keyboard shortcuts (boot main.ts like menu-save-open-errors.test.ts —
 // same heavy-module mocks so the app initializes under jsdom).

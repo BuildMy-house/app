@@ -10,7 +10,7 @@ import { AutoFloorDialog } from '../ui/AutoFloorDialog'
 import { lockVectorToAngleStep, pointWithAngleMagnetism, softAxisSnapVector, wallPointMagnetism } from './magnetism'
 import { FurnitureTooLargeError } from '../core/furniture-clearance'
 import { snapFurniturePlacement, snapFurnitureRotation } from './furniture-snap'
-import { resolveSnapMode, snapWallSegment } from './snap-math'
+import { resolveSnapMode, snapWallSegment, typedLengthToCm } from './snap-math'
 import {
   collectDimensionAnchors,
   distanceToDimension,
@@ -440,8 +440,7 @@ export class PlanEngine {
   /** Exact-length override from the buffer in cm (inch input scaled), null
    *  when nothing valid is typed. */
   private typedLengthCm(): number | null {
-    const parsed = parseFloat(this.typedLengthBuffer ?? '')
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+    return typedLengthToCm(this.typedLengthBuffer, this.wallUnit)
   }
 
   /**
@@ -459,9 +458,8 @@ export class PlanEngine {
     this.typedLengthBuffer = null
     if (buffer === null) return false
     this.clearClosure()
-    const parsed = parseFloat(buffer)
-    if (!Number.isFinite(parsed) || parsed <= 0) return true
-    const lengthCm = this.wallUnit === 'inch' ? parsed * 2.54 : parsed
+    const lengthCm = typedLengthToCm(buffer, this.wallUnit)
+    if (lengthCm === null) return true
     const start = this.chainStart!
     const cursor = this.lastMove ?? { x: start.x, y: start.y }
     // Bypasses the free-endpoint join on purpose: an exact typed length must
@@ -2463,13 +2461,6 @@ export class PlanEngine {
     })
   }
 
-  /** Typed length in cm (inch input scaled), null when none/invalid. */
-  private typedLengthAsCm(): number | null {
-    const parsed = this.typedLengthCm()
-    if (parsed === null) return null
-    return this.wallUnit === 'inch' ? parsed * 2.54 : parsed
-  }
-
   /**
    * ONE definition of where a dimension point lands, shared by the commit
    * path (clicks, typed Enter) and the preview. Same modifiers as the wall
@@ -2486,13 +2477,13 @@ export class PlanEngine {
       unit: this.wallUnit,
       mode,
       fine: eff.fine,
-      typedLengthCm: this.dimensionStart ? this.typedLengthAsCm() : null,
+      typedLengthCm: this.dimensionStart ? this.typedLengthCm() : null,
       anchors: this.dimensionAnchors(),
       anchorMargin: endpointSnapMargin(),
       gridSnap: this.gridSnapEnabled ? (p) => this.snapToGrid(p.x, p.y) : null,
       prev: this.dimensionSnapState,
     })
-    if (mode === 'off' && !eff.alt && this.gridSnapEnabled && !result.anchor && this.typedLengthAsCm() === null) {
+    if (mode === 'off' && !eff.alt && this.gridSnapEnabled && !result.anchor && this.typedLengthCm() === null) {
       const g = this.snapToGrid(result.point.x, result.point.y)
       result.point = g
       if (this.dimensionStart) {

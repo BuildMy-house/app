@@ -259,6 +259,18 @@ function positiveLength(value: number | null | undefined): number | null {
  * exact typed length. Axis-locked ends are produced with exact integer
  * offsets. `off` mode returns the raw cursor unless a typed length is given.
  */
+/**
+ * Typed-length buffer (what the user keys in: cm in metric mode, inches in
+ * imperial mode) to centimetres. null when empty, unparsable or non-positive.
+ * The ONE conversion shared by the wall and dimension tools, preview and
+ * commit alike.
+ */
+export function typedLengthToCm(buffer: string | null, unit: UnitSystem): number | null {
+  const parsed = parseFloat(buffer ?? '')
+  if (!Number.isFinite(parsed) || parsed <= 0) return null
+  return unit === 'inch' ? parsed * 2.54 : parsed
+}
+
 export function snapWallSegment(input: SnapWallSegmentInput): SnapWallSegmentResult {
   const { start, cursor, unit, mode } = input
   const dx = cursor.x - start.x
