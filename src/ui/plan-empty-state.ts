@@ -14,7 +14,7 @@ export interface PlanEmptyState {
   element: HTMLDivElement
   /** Show when `empty`, hide otherwise. Cheap to call every frame. */
   setEmpty(empty: boolean): void
-  /** Reflect sign-in state in the secondary action's wording. */
+  /** Reflect sign-in state in the secondary action's wording and the tip. */
   setSignedIn(signedIn: boolean): void
 }
 
@@ -163,8 +163,12 @@ export function createPlanEmptyState(actions: PlanEmptyStateActions): PlanEmptyS
     element.hidden = true
   })
 
+  const hint = element.querySelector('.plan-empty-hint')!
   const setSignedIn = (signedIn: boolean): void => {
     secondary.textContent = signedIn ? 'Open a saved project' : 'Log in to open saved projects'
+    hint.textContent = signedIn
+      ? 'Tip: use File → Save to keep your work.'
+      : 'Tip: use File → Save to keep your work on this device — "Save to My Account" asks you to sign in first.'
   }
   setSignedIn(false)
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { HomeStore } from '../src/core/store'
-import { RemoteHomeStore } from '../src/services/adapters/remote-home-store'
+import { AuthRequiredError, RemoteHomeStore } from '../src/services/adapters/remote-home-store'
 import { serializeForSave } from '../src/services/adapters/home-persistence'
 
 function sampleHome() {
@@ -175,5 +175,72 @@ describe('RemoteHomeStore Authorization header', () => {
     const [url, init] = fetchStub.mock.calls[0]!
     expect(url).toBe('/api/homes/h1')
     expect(new Headers(init.headers).get('Authorization')).toBe('Bearer tok-123')
+  })
+})
+
+/** Resolve to the rejection value (or fail the test if the promise resolved). */
+async function rejection(promise: Promise<unknown>): Promise<unknown> {
+  try {
+    await promise
+  } catch (err) {
+    return err
+  }
+  throw new Error('expected the promise to reject')
+}
+
+describe('RemoteHomeStore 401 handling', () => {
+  it('classifies a 401 save as AuthRequiredError and keeps the legacy message shape', async () => {
+    fetchStub.mockResolvedValue(jsonResponse(401, { error: 'unauthorized' }))
+    vi.stubGlobal('fetch', fetchStub)
+
+    const store = new RemoteHomeStore()
+    const err = await rejection(store.save(sampleHome(), { name: 'House A' }))
+
+    expect(err).toBeInstanceOf(AuthRequiredError)
+    expect((err as Error).message).toMatch(/^home save failed \(401\)/)
+    expect((err as Error).message).toMatch(/sign in again/)
+  })
+
+  it('classifies 401 on list(), loadRecord(), and remove() as AuthRequiredError', async () => {
+    fetchStub.mockResolvedValue(jsonResponse(401, { error: 'unauthorized' }))
+    vi.stubGlobal('fetch', fetchStub)
+
+    const store = new RemoteHomeStore()
+    await expect(store.list()).rejects.toBeInstanceOf(AuthRequiredError)
+    await expect(store.loadRecord('h1')).rejects.toBeInstanceOf(AuthRequiredError)
+    await expect(store.remove('h1')).rejects.toBeInstanceOf(AuthRequiredError)
+  })
+
+  it('classifies a 401 on the first leg of rename() as AuthRequiredError', async () => {
+    fetchStub.mockResolvedValue(jsonResponse(401, { error: 'unauthorized' }))
+    vi.stubGlobal('fetch', fetchStub)
+
+    const store = new RemoteHomeStore()
+    await expect(store.rename('h1', 'New name')).rejects.toBeInstanceOf(AuthRequiredError)
+  })
+
+  it('still throws a plain Error with the original message for non-401 failures', async () => {
+    fetchStub.mockResolvedValue(jsonResponse(500, { error: 'boom' }))
+    vi.stubGlobal('fetch', fetchStub)
+
+    const store = new RemoteHomeStore()
+    const listErr = await rejection(store.list())
+    expect(listErr).not.toBeInstanceOf(AuthRequiredError)
+    expect(listErr).toBeInstanceOf(Error)
+    expect((listErr as Error).message).toBe('home library unavailable (500)')
+
+    fetchStub.mockResolvedValue(jsonResponse(400, { error: 'bad' }))
+    const saveErr = await rejection(store.save(sampleHome(), { name: 'House A' }))
+    expect(saveErr).not.toBeInstanceOf(AuthRequiredError)
+    expect((saveErr as Error).message).toBe('home save failed (400)')
+  })
+
+  it('classifies 401 on subscribe() and setPresence() as AuthRequiredError', async () => {
+    fetchStub.mockResolvedValue(jsonResponse(401, { error: 'unauthorized' }))
+    vi.stubGlobal('fetch', fetchStub)
+
+    const store = new RemoteHomeStore()
+    await expect(store.subscribe('h1', () => {})).rejects.toBeInstanceOf(AuthRequiredError)
+    await expect(store.setPresence('h1')).rejects.toBeInstanceOf(AuthRequiredError)
   })
 })

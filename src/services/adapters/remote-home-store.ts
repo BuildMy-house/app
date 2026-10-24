@@ -28,6 +28,21 @@ export interface HomeUpdateEvent {
 }
 
 /**
+ * The server answered 401: the stored auth token is missing, expired, or
+ * rejected. Distinct from ordinary transport/server failures (404/500/…) so
+ * callers can offer a sign-in prompt and resume the interrupted action
+ * instead of showing a dead-end error toast the user can't act on.
+ * The message keeps the existing `<what> (<status>)` shape so generic
+ * error handling and older assertions still match.
+ */
+export class AuthRequiredError extends Error {
+  constructor(what: string, status: number) {
+    super(`${what} (${status}) — sign in again to continue`)
+    this.name = 'AuthRequiredError'
+  }
+}
+
+/**
  * Server-backed home-project store ("Save to my account" / "Open from my
  * account"). Additive persistence path next to home-persistence.ts's local
  * file save/open — it serializes/parses with the same helpers, but persists
@@ -55,10 +70,20 @@ export class RemoteHomeStore {
     return fetch(url, { ...init, headers })
   }
 
+  /**
+   * Error for a non-OK response. A 401 becomes an AuthRequiredError so
+   * callers can trigger the sign-in flow; every other status keeps the
+   * plain Error with the exact message this method has always produced.
+   */
+  private failure(what: string, status: number): Error {
+    if (status === 401) return new AuthRequiredError(what, status)
+    return new Error(`${what} (${status})`)
+  }
+
   /** List the authenticated user's saved homes (summaries, no JSON blob). */
   async list(): Promise<RemoteHomeSummary[]> {
     const response = await this.request(this.baseUrl)
-    if (!response.ok) throw new Error(`home library unavailable (${response.status})`)
+    if (!response.ok) throw this.failure('home library unavailable', response.status)
     return ((await response.json()) as { items: RemoteHomeSummary[] }).items
   }
 
@@ -81,7 +106,7 @@ export class RemoteHomeStore {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
-    if (!response.ok) throw new Error(`home save failed (${response.status})`)
+    if (!response.ok) throw this.failure('home save failed', response.status)
     return (await response.json()) as RemoteHome
   }
 
@@ -89,7 +114,7 @@ export class RemoteHomeStore {
   async subscribe(id: string, onUpdate: (event: HomeUpdateEvent) => void): Promise<() => void> {
     const controller = new AbortController()
     const response = await this.request(`${this.baseUrl}/${encodeURIComponent(id)}/events`, { signal: controller.signal })
-    if (!response.ok || !response.body) throw new Error(`home events unavailable (${response.status})`)
+    if (!response.ok || !response.body) throw this.failure('home events unavailable', response.status)
     void this.readEvents(response.body, onUpdate, controller.signal)
     return () => controller.abort()
   }
@@ -100,7 +125,7 @@ export class RemoteHomeStore {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role }),
     })
-    if (!response.ok) throw new Error(`home presence unavailable (${response.status})`)
+    if (!response.ok) throw this.failure('home presence unavailable', response.status)
   }
 
   private async readEvents(body: ReadableStream<Uint8Array>, onUpdate: (event: HomeUpdateEvent) => void, signal: AbortSignal): Promise<void> {
@@ -132,14 +157,14 @@ export class RemoteHomeStore {
   /** Load a saved home and its revision metadata. */
   async loadRecord(id: string): Promise<RemoteHome> {
     const response = await this.request(`${this.baseUrl}/${encodeURIComponent(id)}`)
-    if (!response.ok) throw new Error(`home load failed (${response.status})`)
+    if (!response.ok) throw this.failure('home load failed', response.status)
     return (await response.json()) as RemoteHome
   }
 
   /** Delete a saved home by id. */
   async remove(id: string): Promise<void> {
     const response = await this.request(`${this.baseUrl}/${encodeURIComponent(id)}`, { method: 'DELETE' })
-    if (!response.ok) throw new Error(`home removal failed (${response.status})`)
+    if (!response.ok) throw this.failure('home removal failed', response.status)
   }
 
   /**
@@ -149,14 +174,14 @@ export class RemoteHomeStore {
    */
   async rename(id: string, name: string): Promise<RemoteHome> {
     const getResponse = await this.request(`${this.baseUrl}/${encodeURIComponent(id)}`)
-    if (!getResponse.ok) throw new Error(`home load failed (${getResponse.status})`)
+    if (!getResponse.ok) throw this.failure('home load failed', getResponse.status)
     const record = (await getResponse.json()) as RemoteHome
     const putResponse = await this.request(`${this.baseUrl}/${encodeURIComponent(id)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, json: record.json }),
     })
-    if (!putResponse.ok) throw new Error(`home rename failed (${putResponse.status})`)
+    if (!putResponse.ok) throw this.failure('home rename failed', putResponse.status)
     return (await putResponse.json()) as RemoteHome
   }
 }

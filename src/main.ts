@@ -23,7 +23,7 @@ import { nextLevelElevation } from './core/home'
 import { PreferencesDialog, loadPreferences, hexToIntColor } from './ui/preferences'
 import { confirmDialog, promptDialog } from './ui/dialogs'
 import { HttpAuth } from './services/auth'
-import { RemoteHomeStore } from './services/adapters/remote-home-store'
+import { RemoteHomeStore, AuthRequiredError } from './services/adapters/remote-home-store'
 import { WaitlistClient } from './services/waitlist'
 import { AuthDialog } from './ui/auth-dialog'
 import { ChangePasswordDialog } from './ui/change-password-dialog'
@@ -560,6 +560,16 @@ async function saveToAccount(): Promise<void> {
     track('plan_saved', { kind: 'account' })
     showToast('success', `Saved "${trimmed}" to your account`, 'Find it under File → My Projects.')
   } catch (err) {
+    // 401 = the stored token is dead (expired/revoked), not a broken save or
+    // a flaky network: a generic error toast leaves the user with no way
+    // forward. Explain what happened, prompt for sign-in, and resume this
+    // same save once they are back in — `model.setName` already ran above,
+    // so the re-opened name dialog comes pre-filled with what they chose.
+    if (err instanceof AuthRequiredError) {
+      showToast('notice', 'Sign in to finish saving', 'Your sign-in has expired, so nothing was saved. Sign in again and we will finish this save for you.')
+      promptLogin(() => { void saveToAccount() }, SAVE_REASON)
+      return
+    }
     showToast('error', 'Could not save to your account', `${errorReason(err)} Your changes are still open and unsaved — check your connection or sign in again, then retry.`)
   }
 }
