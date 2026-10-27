@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 const enqueue = vi.fn()
+const flush = vi.fn(async () => {})
 
 vi.mock('./transport', () => ({
   enqueue: (...args: unknown[]) => enqueue(...args),
-  flush: vi.fn(async () => {}),
+  flush: () => flush(),
   registerUnload: vi.fn(),
 }))
 
@@ -372,5 +373,56 @@ describe('telemetry.track (generic escape hatch)', () => {
     telemetry.track('some.new.event', 2)
 
     expect(enqueue).not.toHaveBeenCalled()
+  })
+})
+
+describe('telemetry crash-critical flushing', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    enqueue.mockClear()
+    flush.mockClear()
+    vi.unstubAllEnvs()
+    vi.stubEnv('DATABASE_URL', undefined)
+  })
+
+  it('flushes immediately after error.caught instead of waiting for the batch timer', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token')
+    const { telemetry } = await import('./logger')
+
+    telemetry.error(new Error('boom'), 'catch')
+
+    expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({ event: 'error.caught' }))
+    expect(flush).toHaveBeenCalledTimes(1)
+    expect(enqueue.mock.invocationCallOrder[0]).toBeLessThan(flush.mock.invocationCallOrder[0]!)
+  })
+
+  it('flushes immediately for crash events emitted through track()', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token')
+    const { telemetry } = await import('./logger')
+
+    telemetry.track('renderer.crash', 1, { reason: 'gpu-reset' })
+
+    expect(flush).toHaveBeenCalledTimes(1)
+  })
+
+  it('flushes app.exit after enqueueing it, regardless of listener order', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token')
+    const { telemetry } = await import('./logger')
+
+    telemetry.appExit()
+
+    expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({ event: 'app.exit' }))
+    expect(flush).toHaveBeenCalledTimes(1)
+    expect(enqueue.mock.invocationCallOrder[0]).toBeLessThan(flush.mock.invocationCallOrder[0]!)
+  })
+
+  it('does not flush ordinary events early', async () => {
+    vi.stubEnv('VITE_AXIOM_TOKEN', 'test-token')
+    const { telemetry } = await import('./logger')
+
+    telemetry.appStart()
+
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(flush).not.toHaveBeenCalled()
   })
 })

@@ -49,6 +49,8 @@ import { PropertiesPanel } from './ui/properties-panel'
 // Boot clock for perf.app_boot: starts as this module body executes (static
 // imports above have already run), stops at the end of the boot section below.
 const MAIN_MODULE_START = performance.now()
+// Register before init()'s unload flush so app.exit is enqueued first.
+window.addEventListener('pagehide', () => telemetry.appExit())
 telemetry.init()
 
 window.onerror = (msg, _src, _line, _col, err) => {
@@ -59,7 +61,6 @@ window.addEventListener('unhandledrejection', (e) => {
 })
 window.addEventListener('focus', () => telemetry.appFocus())
 window.addEventListener('blur', () => telemetry.appBlur())
-window.addEventListener('pagehide', () => telemetry.appExit())
 
 // ── DOM shell ───────────────────────────────────────────────────────────────
 

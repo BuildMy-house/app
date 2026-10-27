@@ -10,6 +10,53 @@ let _buffer: TelemetryEvent[] = []
 let _timer: ReturnType<typeof setTimeout> | null = null
 let _flushing = false
 
+/**
+ * Chrome caps the total body of in-flight `keepalive` requests at ~64KB; a
+ * larger body fails silently on unload. Keep each request comfortably under.
+ */
+const KEEPALIVE_CHUNK_BYTES = 60 * 1024
+
+function byteLength(text: string): number {
+  return new TextEncoder().encode(text).length
+}
+
+/** Split a batch into keepalive-safe payloads without splitting an event. */
+function chunkBatch(batch: TelemetryEvent[]): TelemetryEvent[][] {
+  const chunks: TelemetryEvent[][] = []
+  let current: TelemetryEvent[] = []
+  let size = 2 // "[]"
+  for (const event of batch) {
+    const eventSize = byteLength(JSON.stringify(event)) + 1 // comma
+    if (current.length > 0 && size + eventSize > KEEPALIVE_CHUNK_BYTES) {
+      chunks.push(current)
+      current = []
+      size = 2
+    }
+    current.push(event)
+    size += eventSize
+  }
+  if (current.length > 0) chunks.push(current)
+  return chunks
+}
+
+async function postBatch(url: string, token: string, batch: TelemetryEvent[]): Promise<void> {
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(batch),
+      keepalive: true,
+    })
+    if (!response.ok) console.warn(`[telemetry] Axiom ingest failed: HTTP ${response.status}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn('[telemetry] Axiom ingest failed:', message)
+  }
+}
+
 /** Enqueue an event for batched delivery. */
 export function enqueue(event: TelemetryEvent): void {
   const config = getTelemetryConfig()
@@ -47,21 +94,10 @@ export async function flush(): Promise<void> {
     return
   }
 
+  const url = `${config.endpoint}/v1/ingest/${config.dataset}`
   try {
-    const url = `${config.endpoint}/v1/ingest/${config.dataset}`
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${config.token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(batch),
-      keepalive: true,
-    })
-    if (!response.ok) console.warn(`[telemetry] Axiom ingest failed: HTTP ${response.status}`)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    console.warn('[telemetry] Axiom ingest failed:', message)
+    // All fetches are initiated synchronously so they survive page unload.
+    await Promise.all(chunkBatch(batch).map((chunk) => postBatch(url, config.token, chunk)))
   } finally {
     _flushing = false
   }

@@ -32,6 +32,11 @@ function makeEvent(event: string, tier: TelemetryTier, extra?: Record<string, un
   } as TelemetryEvent
 }
 
+/** Errors and crashes must not wait for the batch timer — they may be the last thing that happens. */
+function isCrashCritical(event: string): boolean {
+  return event === 'error.caught' || event.includes('crash')
+}
+
 function emit(event: string, tier: TelemetryTier, extra?: Record<string, unknown>): void {
   // ponytail: e2e/test observability hook — only exists when a test injects the
   // array (page.addInitScript); capped so long app sessions can't grow it.
@@ -41,6 +46,7 @@ function emit(event: string, tier: TelemetryTier, extra?: Record<string, unknown
 
   if (!getTelemetryConfig().enabled) return
   enqueue(makeEvent(event, tier, extra))
+  if (isCrashCritical(event)) void flush()
 }
 
 function percentile(sorted: number[], p: number): number {
@@ -66,6 +72,9 @@ export const telemetry = {
 
   appExit(): void {
     emit('app.exit', 1)
+    // The unload flush listener may be registered before this one, so flush
+    // synchronously here or app.exit would be enqueued after the only flush.
+    void flush()
   },
 
   appFocus(): void {
