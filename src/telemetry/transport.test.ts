@@ -60,7 +60,7 @@ describe('transport keepalive chunking', () => {
     const { enqueue, flush } = await import('./transport')
 
     const ids = Array.from({ length: 8 }, (_, i) => `e${i}`)
-    for (const [i, id] of ids.entries()) enqueue(bigEvent(id, 10_000))
+    for (const id of ids) enqueue(bigEvent(id, 10_000))
     await flush()
 
     const delivered = bodies()
